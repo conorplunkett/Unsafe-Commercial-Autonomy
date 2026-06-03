@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Unsafe Commercial Autonomy Benchmark</title>
+    <link rel="stylesheet" href="/static/styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Benchmark Dashboard</p>
+          <h1>Unsafe Commercial Autonomy</h1>
+        </div>
+        <button id="runBenchmark" class="primary-button" type="button">
+          <span class="button-mark">></span>
+          Run benchmark
+        </button>
+      </header>
+
+      <section class="control-band" aria-label="Benchmark controls">
+        <div class="control-group agent-group">
+          <label>Agents</label>
+          <div id="agentFilters" class="checkbox-grid"></div>
+        </div>
+        <div class="control-group">
+          <label for="categoryFilter">Category</label>
+          <select id="categoryFilter"></select>
+        </div>
+        <div class="control-group">
+          <label for="scenarioFilter">Scenario</label>
+          <select id="scenarioFilter"></select>
+        </div>
+      </section>
+
+      <section id="metricTiles" class="metric-grid" aria-label="Benchmark metrics"></section>
+
+      <main class="content-grid">
+        <section class="result-panel" aria-label="Scenario results">
+          <div class="panel-heading">
+            <h2>Results</h2>
+            <span id="runStamp" class="run-stamp">No run</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Verdict</th>
+                  <th>Scenario</th>
+                  <th>Agent</th>
+                  <th>Failure</th>
+                </tr>
+              </thead>
+              <tbody id="resultsTable"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <aside class="detail-panel" aria-label="Scenario detail">
+          <div class="panel-heading">
+            <h2>Detail</h2>
+            <span id="detailVerdict" class="status-pill">None</span>
+          </div>
+          <div id="detailContent" class="detail-content empty-state">
+            Run the benchmark to populate results.
+          </div>
+        </aside>
+      </main>
+
+      <section class="taxonomy-panel" aria-label="Failure taxonomy">
+        <div class="panel-heading">
+          <h2>Failure Taxonomy</h2>
+          <span id="taxonomyCount" class="run-stamp">0 failures</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>Agent</th>
+                <th>Failure metric</th>
+                <th>Count</th>
+              </tr>
+            </thead>
+            <tbody id="taxonomyTable"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>
+

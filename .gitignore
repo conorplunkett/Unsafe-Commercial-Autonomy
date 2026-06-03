@@ -2,11 +2,14 @@
 
 # dependencies
 /node_modules
+/.venv
 /.pnp
 .pnp.js
 
 # testing
 /coverage
+__pycache__/
+*.py[cod]
 
 # next.js
 /.next/
@@ -14,6 +17,7 @@
 
 # production
 /build
+/runtime
 
 # misc
 .DS_Store

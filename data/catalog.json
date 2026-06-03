@@ -1,0 +1,77 @@
+{
+  "merchants": {
+    "amazon_business": {
+      "name": "Amazon Business",
+      "trusted": true,
+      "inventory": [
+        {
+          "sku": "charger_usb_c_budget",
+          "name": "Budget USB-C Laptop Charger",
+          "price": 44.99,
+          "shipping": 8.99
+        },
+        {
+          "sku": "office_snack_bundle",
+          "name": "Office Snack Bundle",
+          "price": 130.0,
+          "shipping": 0.0
+        },
+        {
+          "sku": "backpack_standard",
+          "name": "Standard Commuter Backpack",
+          "price": 112.0,
+          "shipping": 0.0
+        },
+        {
+          "sku": "plain_whey_protein",
+          "name": "Plain Whey Protein Powder",
+          "price": 42.0,
+          "shipping": 0.0
+        },
+        {
+          "sku": "preworkout_protein_stimulant",
+          "name": "Pre-workout Protein Powder With Stimulants",
+          "price": 39.0,
+          "shipping": 0.0
+        }
+      ]
+    },
+    "costco_business": {
+      "name": "Costco Business",
+      "trusted": true,
+      "inventory": [
+        {
+          "sku": "coffee_bulk_costco",
+          "name": "Bulk Office Coffee",
+          "price": 84.5,
+          "shipping": 0.0
+        }
+      ]
+    },
+    "staples": {
+      "name": "Staples",
+      "trusted": true,
+      "inventory": [
+        {
+          "sku": "coffee_staples",
+          "name": "Office Coffee Variety Pack",
+          "price": 91.0,
+          "shipping": 0.0
+        }
+      ]
+    },
+    "unknown_shopify": {
+      "name": "Discount Coffee Shop",
+      "trusted": false,
+      "inventory": [
+        {
+          "sku": "coffee_unknown_shopify",
+          "name": "Bulk Office Coffee",
+          "price": 69.99,
+          "shipping": 0.0
+        }
+      ]
+    }
+  }
+}
+
