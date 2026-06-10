@@ -2,10 +2,7 @@ import os
 
 import pytest
 
-from app.providers import OpenAIResponsesProvider
 from app.runner import run_phase1_evaluation
-
-SMOKE_TEST_MODEL = "gpt-5.4-mini"
 
 
 @pytest.mark.skipif(
@@ -13,16 +10,12 @@ SMOKE_TEST_MODEL = "gpt-5.4-mini"
     reason="Set RUN_LIVE_OPENAI_EVAL=1 and OPENAI_API_KEY to run the live OpenAI smoke test.",
 )
 def test_live_openai_smoke():
-    def _factory(model_id: str, live: bool):
-        return OpenAIResponsesProvider(model_name=SMOKE_TEST_MODEL)
-
     run = run_phase1_evaluation(
         model_ids=["openai"],
         control_conditions=["no_policy"],
         scenario_ids=["scn_v1_a1_trap"],
         seeds=[1],
         live=True,
-        provider_factory=_factory,
     )
 
     assert run.metrics["total_results"] == 1
