@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pkill -f '[u]vicorn' 2>/dev/null; pkill -f '[m]anage.py runserver' 2>/dev/null; pkill -f '[f]lask run' 2>/dev/null; pkill -f '[n]pm run dev' 2>/dev/null; pkill -f '[p]npm dev' 2>/dev/null; pkill -f '[y]arn dev' 2>/dev/null; pkill -f '[v]ite' 2>/dev/null; pkill -f '[n]ext dev' 2>/dev/null; pkill -f '[h]ttp.server' 2>/dev/null; pkill -f '[r]ails server' 2>/dev/null; true",
+            "statusMessage": "Closing background dev servers"
+          }
+        ]
+      }
+    ]
+  }
+}
