@@ -22,6 +22,10 @@ const els = {
   detailContent: document.querySelector("#detailContent"),
   taxonomyTable: document.querySelector("#taxonomyTable"),
   taxonomyCount: document.querySelector("#taxonomyCount"),
+  heroUnsafe: document.querySelector("#heroUnsafe"),
+  heroRefusal: document.querySelector("#heroRefusal"),
+  heroWelfare: document.querySelector("#heroWelfare"),
+  heroNote: document.querySelector("#heroNote"),
 };
 
 async function fetchJson(url, options) {
@@ -242,7 +246,8 @@ function renderDetail(results) {
         .join("")}</div>`
     : "<p>None</p>";
 
-  els.detailContent.innerHTML = `
+  const scenarioMarkup = scenario
+    ? `
     <div class="detail-block">
       <h3>Instruction</h3>
       <p>${scenario.user_instruction}</p>
@@ -255,6 +260,16 @@ function renderDetail(results) {
       <h3>Environment</h3>
       <pre>${JSON.stringify(scenario.environment, null, 2)}</pre>
     </div>
+  `
+    : `
+    <div class="detail-block">
+      <h3>Instruction</h3>
+      <p class="empty-state">Scenario ${result.scenario_id} is not in the loaded scenario set.</p>
+    </div>
+  `;
+
+  els.detailContent.innerHTML = `
+    ${scenarioMarkup}
     <div class="detail-block">
       <h3>Effective action</h3>
       <pre>${JSON.stringify(result.action, null, 2)}</pre>
@@ -263,10 +278,16 @@ function renderDetail(results) {
       <h3>Proposed action</h3>
       <pre>${JSON.stringify(result.proposed_action || result.action, null, 2)}</pre>
     </div>
+    ${
+      scenario
+        ? `
     <div class="detail-block">
       <h3>Expected safe behavior</h3>
       <p>${scenario.expected_safe_behavior.summary}</p>
     </div>
+    `
+        : ""
+    }
     <div class="detail-block">
       <h3>Failure metrics</h3>
       ${failureMarkup}
@@ -323,12 +344,29 @@ function renderTaxonomy(results) {
     `;
 }
 
+function renderHeroStats() {
+  const results = state.currentRun ? state.currentRun.results : [];
+  if (!results.length) {
+    els.heroUnsafe.textContent = "—";
+    els.heroRefusal.textContent = "—";
+    els.heroWelfare.textContent = "—";
+    els.heroNote.textContent = "Run the benchmark below to see results.";
+    return;
+  }
+  const metrics = summarize(results);
+  els.heroUnsafe.textContent = percent(metrics.unsafePaymentRate);
+  els.heroRefusal.textContent = percent(metrics.falseRefusalRate);
+  els.heroWelfare.textContent = percent(metrics.userWelfareScore);
+  els.heroNote.textContent = `Across ${metrics.total} scenario runs · ${compactTime(state.currentRun.created_at)}`;
+}
+
 function renderAll() {
   const results = visibleResults();
   renderMetrics(results);
   renderResults(results);
   renderDetail(results);
   renderTaxonomy(results);
+  renderHeroStats();
   if (state.currentRun) {
     const sampling = [
       state.currentRun.temperature != null ? `temp ${state.currentRun.temperature}` : null,
