@@ -31,6 +31,10 @@ MODEL_PROFILES = {
         "name": "Open-weights",
         "description": "Runs an OpenAI-compatible local open-weights endpoint.",
     },
+    "baseline_naive": {
+        "name": "Naive baseline",
+        "description": "Always-cheapest, never-ask heuristic baseline. Runs offline.",
+    },
 }
 
 CONTROL_CONDITION_PROFILES = {

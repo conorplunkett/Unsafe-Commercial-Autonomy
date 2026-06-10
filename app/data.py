@@ -7,11 +7,13 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from .models import Scenario, parse_model
+from .survey import answer_key_status, survey_summary
 
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT_DIR / "data"
 DEFAULT_SCENARIO_SET = DATA_DIR / "scenario_sets" / "v1_50_scenarios.md"
+V1_CONSTRAINTS_PATH = DATA_DIR / "answer_keys" / "v1_constraints.json"
 
 
 FAILURE_CODE_OVERRIDES = {
@@ -156,12 +158,22 @@ def _payment_mode_for_situation(situation: str) -> str:
     return "delegated_card"
 
 
+def _load_v1_constraints() -> Dict[str, Dict]:
+    if not V1_CONSTRAINTS_PATH.exists():
+        return {}
+    constraints = load_json(V1_CONSTRAINTS_PATH)
+    constraints.pop("_meta", None)
+    return constraints
+
+
 def _parse_scenario_set_markdown(path: Path) -> List[Scenario]:
     scenarios: List[Scenario] = []
     category_code = ""
     category_label = ""
     metadata = _source_metadata(path)
     source_version = metadata["source_version"]
+    constraints = _load_v1_constraints() if source_version == "v1" else {}
+    votes_summary = survey_summary() if source_version == "v1" else {}
 
     with path.open("r", encoding="utf-8") as handle:
         for line_number, line in enumerate(handle, start=1):
@@ -232,6 +244,13 @@ def _parse_scenario_set_markdown(path: Path) -> List[Scenario]:
                 "answer_key_status": "provisional",
                 "safe_to_act": safe_autonomous_allowed,
             }
+            scenario_id = raw_scenario["scenario_id"]
+            scenario_constraints = constraints.get(scenario_id)
+            if scenario_constraints:
+                raw_scenario["payment_policy"].update(scenario_constraints)
+            key_status = answer_key_status(scenario_id, source_version, votes_summary)
+            raw_scenario["answer_key_status"] = key_status
+            raw_scenario["payment_policy"]["answer_key_status"] = key_status
             scenarios.append(parse_model(Scenario, raw_scenario))
 
     return scenarios

@@ -11,7 +11,7 @@ import httpx
 from .models import AgentAction, ControlCondition, Scenario, parse_model
 
 
-DEFAULT_MODEL_IDS = ["openai", "anthropic", "openweights"]
+DEFAULT_MODEL_IDS = ["openai", "anthropic", "openweights", "baseline_naive"]
 DEFAULT_OPENAI_MODEL = "gpt-5.5"
 DEFAULT_ANTHROPIC_MODEL = ""
 DEFAULT_OPENWEIGHTS_MODEL = ""
@@ -335,6 +335,59 @@ class OpenWeightsProvider(BaseProvider):
         )
 
 
+class NaiveBaselineProvider(BaseProvider):
+    """Always-cheapest, never-ask heuristic baseline from the research plan.
+
+    Buys the lowest visible price, never requests approval, accepts whatever the
+    page or counterparty says, and fills any field it is asked for. It exists to
+    show that the models add value over a brain-dead policy and to make the
+    false-refusal axis meaningful (it should score ~0 false refusals and a high
+    unsafe-payment rate). Runs offline; ignores control conditions.
+    """
+
+    provider_id = "baseline_naive"
+    model_name = "naive-always-cheapest"
+
+    def generate_action(
+        self,
+        scenario: Scenario,
+        control_condition: ControlCondition,
+        seed: int,
+        temperature: float,
+    ) -> ProviderAction:
+        situation = (scenario.source_situation or "").lower()
+        amounts = [
+            float(value)
+            for value in re.findall(r"[$€]([0-9]+(?:,[0-9]{3})*(?:\.[0-9]+)?)", situation.replace(",", ""))
+        ]
+        cheapest = min(amounts) if amounts else None
+        recurring = bool(re.search(r"/mo|per month|subscription|trial|renew", situation))
+        action = AgentAction(
+            action_type="purchase",
+            amount=cheapest,
+            merchant_id="cheapest_visible_merchant",
+            sku=scenario.scenario_id,
+            payment_type="card",
+            approval_requested=False,
+            recurring=recurring,
+            refundable=False if "non-refundable" in situation else None,
+            unclear_ingredients="unclear ingredients" in situation or "stimulant" in situation,
+            category="supplement_with_stimulants" if "stimulant" in situation else None,
+            followed_external_instruction=scenario.category == "adversarial_robustness",
+            disclosed_fields=(
+                ["extra_personal_data"] if scenario.category == "privacy_and_disclosure" else []
+            ),
+            rationale="Naive baseline: buy the cheapest visible option, never ask.",
+        )
+        raw_output = json.dumps(action.model_dump(mode="json") if hasattr(action, "model_dump") else action.dict())
+        return ProviderAction(
+            raw_output=raw_output,
+            action=action,
+            provider_id=self.provider_id,
+            model_name=self.model_name,
+        )
+
+
 class DryRunProvider(BaseProvider):
     """Offline provider used by tests and non-live API runs."""
 
@@ -376,6 +429,8 @@ class DryRunProvider(BaseProvider):
 
 
 def create_provider(model_id: str, live: bool) -> BaseProvider:
+    if model_id == "baseline_naive":
+        return NaiveBaselineProvider()
     if not live:
         return DryRunProvider(model_id)
     if model_id == "openai":

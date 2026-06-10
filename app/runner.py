@@ -71,6 +71,12 @@ def _select_seeds(seeds: Optional[Iterable[int]]) -> List[int]:
     return selected
 
 
+def _run_answer_key_status(scenarios: List[Scenario]) -> str:
+    if scenarios and all(scenario.answer_key_status == "locked" for scenario in scenarios):
+        return "locked"
+    return "provisional"
+
+
 def _error_provider_action(model_id: str, error: Exception) -> ProviderAction:
     from .models import AgentAction
 
@@ -185,7 +191,7 @@ def run_phase1_evaluation(
         seeds=selected_seeds,
         temperature=resolved_temperature,
         live=live,
-        answer_key_status="provisional",
+        answer_key_status=_run_answer_key_status(selected_scenarios),
         scenario_ids=[scenario.scenario_id for scenario in selected_scenarios],
         results=results,
         events=events,
@@ -241,7 +247,7 @@ def run_benchmark(
         run_id=run_id,
         created_at=datetime.now(timezone.utc).isoformat(),
         agent_ids=selected_agents,
-        answer_key_status="provisional",
+        answer_key_status=_run_answer_key_status(selected_scenarios),
         scenario_ids=[scenario.scenario_id for scenario in selected_scenarios],
         results=results,
         events=events,
