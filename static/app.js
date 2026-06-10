@@ -13,6 +13,11 @@ const els = {
   categoryFilter: document.querySelector("#categoryFilter"),
   scenarioFilter: document.querySelector("#scenarioFilter"),
   liveRun: document.querySelector("#liveRun"),
+  byokEnabled: document.querySelector("#byokEnabled"),
+  byokFields: document.querySelector("#byokFields"),
+  byokProvider: document.querySelector("#byokProvider"),
+  byokModel: document.querySelector("#byokModel"),
+  byokKey: document.querySelector("#byokKey"),
   temperatureInput: document.querySelector("#temperatureInput"),
   reasoningEffort: document.querySelector("#reasoningEffort"),
   metricTiles: document.querySelector("#metricTiles"),
@@ -70,7 +75,26 @@ function currentFilters() {
     live: els.liveRun.checked,
     temperature: els.temperatureInput ? Number.parseFloat(els.temperatureInput.value) : null,
     reasoningEffort: els.reasoningEffort ? els.reasoningEffort.value || null : null,
+    byok: {
+      enabled: els.byokEnabled ? els.byokEnabled.checked : false,
+      provider: els.byokProvider ? els.byokProvider.value : "openai",
+      model: els.byokModel ? els.byokModel.value.trim() : "",
+      key: els.byokKey ? els.byokKey.value.trim() : "",
+    },
   };
+}
+
+const BYOK_MODEL_PLACEHOLDER = {
+  openai: "e.g. gpt-4o",
+  anthropic: "e.g. claude-sonnet-4-6",
+};
+
+function syncByokUi() {
+  if (!els.byokFields) return;
+  els.byokFields.hidden = !els.byokEnabled.checked;
+  if (els.byokModel) {
+    els.byokModel.placeholder = BYOK_MODEL_PLACEHOLDER[els.byokProvider.value] || "model name";
+  }
 }
 
 function visibleResults() {
@@ -246,37 +270,14 @@ function renderDetail(results) {
         .join("")}</div>`
     : "<p>None</p>";
 
-  const scenarioMarkup = scenario
-    ? `
-    <div class="detail-block">
-      <h3>Instruction</h3>
-      <p>${scenario.user_instruction}</p>
-    </div>
-    <div class="detail-block">
-      <h3>Policy</h3>
-      <pre>${JSON.stringify(scenario.payment_policy, null, 2)}</pre>
-    </div>
-    <div class="detail-block">
-      <h3>Environment</h3>
-      <pre>${JSON.stringify(scenario.environment, null, 2)}</pre>
-    </div>
-  `
-    : `
-    <div class="detail-block">
-      <h3>Instruction</h3>
-      <p class="empty-state">Scenario ${result.scenario_id} is not in the loaded scenario set.</p>
-    </div>
-  `;
+  const instructionMarkup = scenario
+    ? `<p>${scenario.user_instruction}</p>`
+    : `<p class="empty-state">Scenario ${result.scenario_id} is not in the loaded scenario set.</p>`;
 
   els.detailContent.innerHTML = `
-    ${scenarioMarkup}
     <div class="detail-block">
-      <h3>Effective action</h3>
-      <pre>${JSON.stringify(result.action, null, 2)}</pre>
-    </div>
-    <div class="detail-block">
-      <h3>Proposed action</h3>
-      <pre>${JSON.stringify(result.proposed_action || result.action, null, 2)}</pre>
+      <h3>Instruction</h3>
+      ${instructionMarkup}
     </div>
     ${
       scenario
@@ -291,6 +292,28 @@ function renderDetail(results) {
     <div class="detail-block">
       <h3>Failure metrics</h3>
       ${failureMarkup}
+    </div>
+    ${
+      scenario
+        ? `
+    <div class="detail-block">
+      <h3>Policy</h3>
+      <pre>${JSON.stringify(scenario.payment_policy, null, 2)}</pre>
+    </div>
+    <div class="detail-block">
+      <h3>Environment</h3>
+      <pre>${JSON.stringify(scenario.environment, null, 2)}</pre>
+    </div>
+    `
+        : ""
+    }
+    <div class="detail-block">
+      <h3>Effective action</h3>
+      <pre>${JSON.stringify(result.action, null, 2)}</pre>
+    </div>
+    <div class="detail-block">
+      <h3>Proposed action</h3>
+      <pre>${JSON.stringify(result.proposed_action || result.action, null, 2)}</pre>
     </div>
     <div class="detail-block">
       <h3>Audit events</h3>
@@ -393,6 +416,24 @@ async function runBenchmark() {
             .map((scenario) => scenario.scenario_id)
         : null;
 
+  const byok = filters.byok;
+  // With your own key you test exactly one provider live: override the model
+  // selection and force a live run for that single provider.
+  let modelIds = filters.modelIds.length ? filters.modelIds : ["openai"];
+  let live = filters.live;
+  let apiKey = null;
+  let byokModelName = null;
+  if (byok.enabled) {
+    if (!byok.key) {
+      alert("Enter your API key, or uncheck \"Test with my own API key\".");
+      return;
+    }
+    modelIds = [byok.provider];
+    live = true;
+    apiKey = byok.key;
+    byokModelName = byok.model || null;
+  }
+
   els.runButton.disabled = true;
   els.runButton.textContent = "Running...";
   try {
@@ -400,13 +441,15 @@ async function runBenchmark() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model_ids: filters.modelIds.length ? filters.modelIds : ["openai"],
+        model_ids: modelIds,
         control_conditions: filters.controlConditions.length ? filters.controlConditions : null,
         scenario_ids: selectedScenarioIds,
         seeds: [1, 2, 3, 4, 5],
         temperature: Number.isFinite(filters.temperature) ? filters.temperature : null,
         reasoning_effort: filters.reasoningEffort,
-        live: filters.live,
+        live,
+        api_key: apiKey,
+        byok_model_name: byokModelName,
       }),
     });
     state.selectedResultKey = null;
@@ -430,6 +473,8 @@ function bindEvents() {
   els.categoryFilter.addEventListener("change", renderAll);
   els.scenarioFilter.addEventListener("change", renderAll);
   els.liveRun.addEventListener("change", renderAll);
+  els.byokEnabled.addEventListener("change", syncByokUi);
+  els.byokProvider.addEventListener("change", syncByokUi);
   els.resultsTable.addEventListener("click", (event) => {
     const row = event.target.closest("tr[data-result-key]");
     if (!row) return;
@@ -451,6 +496,7 @@ async function init() {
     renderModels();
     renderControlConditions();
     renderScenarioFilters();
+    syncByokUi();
     bindEvents();
     await loadInitialRun();
     renderAll();

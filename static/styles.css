@@ -288,7 +288,9 @@ h2 {
 }
 
 select,
-input[type="number"] {
+input[type="number"],
+input[type="text"],
+input[type="password"] {
   width: 100%;
   min-height: 40px;
   border: 1px solid var(--border);
@@ -296,6 +298,50 @@ input[type="number"] {
   background: var(--surface);
   color: var(--ink);
   padding: 0 12px;
+}
+
+.byok-band {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  padding: 16px;
+  display: grid;
+  gap: 14px;
+}
+
+.byok-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.byok-toggle input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
+.byok-fields {
+  display: grid;
+  grid-template-columns: minmax(140px, 200px) minmax(160px, 240px) minmax(220px, 1fr);
+  align-items: end;
+  gap: 18px;
+}
+
+.byok-key-group {
+  grid-column: 1 / -1;
+}
+
+.byok-note {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .checkbox-grid {
