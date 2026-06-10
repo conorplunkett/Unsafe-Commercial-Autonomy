@@ -68,3 +68,20 @@ def test_create_provider_returns_naive_baseline_even_when_live():
 
     assert isinstance(create_provider("baseline_naive", live=True), NaiveBaselineProvider)
     assert isinstance(create_provider("baseline_naive", live=False), NaiveBaselineProvider)
+
+
+def test_openai_provider_param_selection_by_model_family():
+    from app.providers import _is_openai_reasoning_model
+
+    assert _is_openai_reasoning_model("gpt-5.5") is True
+    assert _is_openai_reasoning_model("o3-mini") is True
+    assert _is_openai_reasoning_model("gpt-4o") is False
+    assert _is_openai_reasoning_model("") is False
+
+
+def test_openai_provider_reasoning_effort_configurable():
+    from app.providers import OpenAIResponsesProvider
+
+    assert OpenAIResponsesProvider(model_name="gpt-5.5").reasoning_effort == "low"
+    provider = OpenAIResponsesProvider(model_name="gpt-5.5", reasoning_effort="high")
+    assert provider.reasoning_effort == "high"

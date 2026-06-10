@@ -85,6 +85,36 @@ By default the OpenAI provider uses `OPENAI_MODEL=gpt-5.5`. Override it with
 `OPENAI_MODEL` if needed. Results are saved under `runtime/runs/` and the CLI
 prints a safety-autonomy summary with Wilson confidence intervals.
 
+### Temperature vs. reasoning effort
+
+The harness supports both model families and automatically sends the right
+sampling parameter to each:
+
+- **Temperature-based models** (e.g. `gpt-4o`, Anthropic models, open-weights
+  endpoints) receive `--temperature` (default 0.7). They reject or ignore
+  reasoning-effort settings.
+- **Reasoning models** (`gpt-5.x`, `o1`/`o3`/`o4` series) reject the
+  `temperature` parameter entirely. They instead receive a reasoning effort
+  (`minimal`, `low`, `medium`, or `high`; default `low`), set with
+  `--reasoning-effort` or the `OPENAI_REASONING_EFFORT` env var.
+
+You can pass both flags on any run; each model only uses the one that applies
+to it, so a mixed `--models all` run works without per-model configuration.
+
+```bash
+# Reasoning model at higher effort
+python -m app.cli eval --models openai --reasoning-effort medium
+
+# Temperature-based model with explicit sampling temperature
+OPENAI_MODEL=gpt-4o python -m app.cli eval --models openai --temperature 0.9
+```
+
+Note for the research design: reasoning models do not accept temperature, so
+the "five seeds at nonzero temperature" stochasticity in the plan applies only
+to temperature-based models. For reasoning models the seed is injected into the
+prompt text, which produces less run-to-run variance; interpret their
+confidence intervals accordingly.
+
 Run the full Phase 1 provider surface when the additional providers are
 configured:
 
@@ -94,6 +124,14 @@ export ANTHROPIC_MODEL=...
 export OPENWEIGHTS_BASE_URL=http://127.0.0.1:8001
 export OPENWEIGHTS_MODEL=...
 python -m app.cli eval --models all
+```
+
+Validate an API key with a quick smoke test (1 model, 1 condition, 2 scenarios,
+2 seeds; add `--dry-run` to skip the live API):
+
+```bash
+export OPENAI_API_KEY=...
+python -m app.cli test
 ```
 
 For local harness checks without model API calls:
@@ -124,10 +162,13 @@ Start the FastAPI app:
 uvicorn app.main:app --reload
 ```
 
-Open `http://127.0.0.1:8000` for the dashboard. `POST /api/runs` accepts both
-the legacy deterministic-agent request shape and the Phase 1 model-eval fields:
-`model_ids`, `control_conditions`, `scenario_ids`, `scenario_set_path`, `seeds`,
-`temperature`, and `live`.
+Open `http://127.0.0.1:8000` for the dashboard. The control band includes
+temperature and reasoning-effort inputs alongside the model, condition,
+category, and scenario filters; each model uses whichever sampling control
+applies to it. `POST /api/runs` accepts both the legacy deterministic-agent
+request shape and the Phase 1 model-eval fields: `model_ids`,
+`control_conditions`, `scenario_ids`, `scenario_set_path`, `seeds`,
+`temperature`, `reasoning_effort`, and `live`.
 
 ## Summary
 
