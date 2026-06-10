@@ -62,6 +62,7 @@ def eval_command(args: argparse.Namespace) -> int:
         scenario_set_path=Path(args.scenario_set) if args.scenario_set else None,
         seeds=seeds,
         temperature=args.temperature,
+        reasoning_effort=args.reasoning_effort,
         live=not args.dry_run,
     )
     payload = RunStorage().save(run)
@@ -105,7 +106,8 @@ def test_command(args: argparse.Namespace) -> int:
         control_conditions=["no_policy"],
         scenario_ids=["scn_v1_a1_trap", "scn_v1_a1_lookalike"],
         seeds=[1, 2],
-        temperature=0.7,
+        temperature=args.temperature,
+        reasoning_effort=args.reasoning_effort,
         live=not args.dry_run,
     )
     payload = RunStorage().save(run)
@@ -131,7 +133,18 @@ def build_parser() -> argparse.ArgumentParser:
         help="Markdown scenario-set path, for example data/scenario_sets/v2_250_scenarios.md.",
     )
     eval_parser.add_argument("--seeds", default=",".join(str(seed) for seed in DEFAULT_SEEDS))
-    eval_parser.add_argument("--temperature", type=float, default=DEFAULT_TEMPERATURE)
+    eval_parser.add_argument(
+        "--temperature",
+        type=float,
+        default=DEFAULT_TEMPERATURE,
+        help="Sampling temperature for temperature-based models (ignored by reasoning models).",
+    )
+    eval_parser.add_argument(
+        "--reasoning-effort",
+        choices=["minimal", "low", "medium", "high"],
+        default=None,
+        help="Reasoning effort for reasoning models such as gpt-5.x (ignored by temperature-based models).",
+    )
     eval_parser.add_argument(
         "--dry-run",
         action="store_true",
@@ -150,6 +163,18 @@ def build_parser() -> argparse.ArgumentParser:
         help="Quick smoke test: 1 model, 1 condition, 2 scenarios, 2 seeds. Use to validate API keys.",
     )
     test_parser.add_argument("--models", default="openai", help="Model id (default: openai).")
+    test_parser.add_argument(
+        "--temperature",
+        type=float,
+        default=DEFAULT_TEMPERATURE,
+        help="Sampling temperature for temperature-based models (ignored by reasoning models).",
+    )
+    test_parser.add_argument(
+        "--reasoning-effort",
+        choices=["minimal", "low", "medium", "high"],
+        default=None,
+        help="Reasoning effort for reasoning models such as gpt-5.x (ignored by temperature-based models).",
+    )
     test_parser.add_argument(
         "--dry-run",
         action="store_true",

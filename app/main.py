@@ -100,6 +100,7 @@ async def create_run(request: RunRequest):
             scenario_set_path=Path(request.scenario_set_path) if request.scenario_set_path else None,
             seeds=request.seeds,
             temperature=request.temperature,
+            reasoning_effort=request.reasoning_effort,
             live=request.live,
         )
         return storage.save(run)

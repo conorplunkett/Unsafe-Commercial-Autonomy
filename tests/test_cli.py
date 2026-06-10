@@ -76,3 +76,11 @@ def test_cli_survey_reports_all_locked(capsys):
     assert status == 0
     assert "SYNTHETIC" in output
     assert "Locked: 50/50 scenarios" in output
+
+
+def test_cli_test_command_dry_run(capsys):
+    status = main(["test", "--dry-run", "--reasoning-effort", "low"])
+
+    output = capsys.readouterr().out
+    assert status == 0
+    assert "Run saved:" in output
