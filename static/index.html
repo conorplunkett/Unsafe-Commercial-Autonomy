@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Unsafe Commercial Autonomy Benchmark</title>
-    <link rel="stylesheet" href="/static/styles.css?v=3">
+    <link rel="stylesheet" href="/static/styles.css?v=4">
   </head>
   <body>
     <div class="app-shell">
@@ -57,37 +57,46 @@
       <div id="dashboard">
         <header class="topbar">
           <div>
-            <p class="eyebrow">Benchmark Dashboard</p>
             <h1>Unsafe Commercial Autonomy</h1>
           </div>
           <button id="runBenchmark" class="primary-button" type="button">
-            <span class="button-mark">></span>
+            <span class="button-mark" aria-hidden="true">
+              <svg viewBox="0 0 16 16" width="11" height="11" fill="currentColor">
+                <path d="M4.5 2.6v10.8a.8.8 0 0 0 1.22.68l8.5-5.4a.8.8 0 0 0 0-1.36L5.72 1.92A.8.8 0 0 0 4.5 2.6Z"/>
+              </svg>
+            </span>
             Run benchmark
           </button>
         </header>
 
         <section class="control-band" aria-label="Benchmark controls">
           <div class="control-group provider-group">
-            <label>Models</label>
+            <label>Model</label>
             <div id="modelFilters" class="checkbox-grid"></div>
+            <p class="control-hint" id="modelPickerHint">Pick one model to run. A live run needs a key — your own (below) or one configured on the server.</p>
+            <p class="control-hint model-override-note" id="modelOverrideNote" hidden>Using your own key — the model is chosen in the key section below.</p>
           </div>
           <div class="control-group condition-group">
             <label>Control Conditions</label>
             <div id="conditionFilters" class="checkbox-grid condition-grid"></div>
+            <p class="control-hint">How much safety guidance the model gets: none, the policy in its prompt, or a tool that blocks unsafe payments.</p>
           </div>
           <div class="control-group">
             <label for="categoryFilter">Category</label>
             <select id="categoryFilter"></select>
+            <p class="control-hint">Narrow scenarios to one risk category, or leave on all.</p>
           </div>
           <div class="control-group">
             <label for="scenarioFilter">Scenario</label>
             <select id="scenarioFilter"></select>
+            <p class="control-hint">Run a single scenario, or every scenario in the chosen category.</p>
           </div>
-          <div class="control-group" title="Used by temperature-based models (e.g. gpt-4o, Anthropic, open-weights). Reasoning models ignore it.">
+          <div class="control-group">
             <label for="temperatureInput">Temperature</label>
             <input id="temperatureInput" type="number" min="0" max="2" step="0.1" value="0.7">
+            <p class="control-hint">Sampling randomness, 0–2. 0 = deterministic, ~0.7 = balanced, 2 = most random. Reasoning models ignore it.</p>
           </div>
-          <div class="control-group" title="Used by reasoning models (e.g. gpt-5.x, o-series). Temperature-based models ignore it.">
+          <div class="control-group">
             <label for="reasoningEffort">Reasoning effort</label>
             <select id="reasoningEffort">
               <option value="">Default (low)</option>
@@ -96,18 +105,23 @@
               <option value="medium">Medium</option>
               <option value="high">High</option>
             </select>
+            <p class="control-hint">Thinking budget for reasoning models (gpt-5.x, o-series). Temperature-based models ignore it.</p>
           </div>
-          <label class="live-check" title="When enabled, the server uses configured provider API keys from its environment.">
-            <input id="liveRun" type="checkbox" checked>
-            <span>Live model calls</span>
-          </label>
+          <div class="control-group live-group">
+            <label class="live-check">
+              <input id="liveRun" type="checkbox" checked>
+              <span>Live model calls</span>
+            </label>
+            <p class="control-hint">On: calls the real model API, using your key below or the server's configured keys (for local / self-hosted runs). Off: an offline dry run with canned actions.</p>
+          </div>
         </section>
 
         <section class="byok-band" aria-label="Bring your own key">
-          <label class="byok-toggle" title="Run one provider live with your own API key. The key is sent only for this run and is never stored.">
+          <label class="byok-toggle">
             <input id="byokEnabled" type="checkbox">
             <span>Test with my own API key</span>
           </label>
+          <p class="byok-subtitle">Using the live website? Paste your own key to run one model. Running locally from the repo, just load your key into your shell and use “Live model calls” above instead.</p>
           <div id="byokFields" class="byok-fields" hidden>
             <div class="control-group">
               <label for="byokProvider">Provider</label>
@@ -118,7 +132,7 @@
             </div>
             <div class="control-group">
               <label for="byokModel">Model</label>
-              <input id="byokModel" type="text" placeholder="e.g. gpt-4o" autocomplete="off">
+              <select id="byokModel"></select>
             </div>
             <div class="control-group byok-key-group">
               <label for="byokKey">API key</label>
@@ -188,6 +202,6 @@
       </div>
     </div>
 
-    <script src="/static/app.js?v=3"></script>
+    <script src="/static/app.js?v=4"></script>
   </body>
 </html>
