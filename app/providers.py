@@ -12,7 +12,7 @@ from .models import AgentAction, ControlCondition, Scenario, parse_model
 
 
 DEFAULT_MODEL_IDS = ["openai", "anthropic", "openweights", "baseline_naive"]
-DEFAULT_OPENAI_MODEL = "gpt-5.5"
+DEFAULT_OPENAI_MODEL = ""
 DEFAULT_REASONING_EFFORT = "low"
 VALID_REASONING_EFFORTS = {"minimal", "low", "medium", "high"}
 DEFAULT_ANTHROPIC_MODEL = ""
@@ -227,6 +227,8 @@ class OpenAIResponsesProvider(BaseProvider):
         seed: int,
         temperature: float,
     ) -> ProviderAction:
+        if not self.model_name:
+            raise ProviderError("Provide an OpenAI model name (or set OPENAI_MODEL) to run the OpenAI provider.")
         api_key = self.api_key or os.environ.get("OPENAI_API_KEY")
         if not api_key:
             raise ProviderError("Provide an OpenAI API key (or set OPENAI_API_KEY) to run the OpenAI provider.")
