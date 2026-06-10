@@ -246,37 +246,14 @@ function renderDetail(results) {
         .join("")}</div>`
     : "<p>None</p>";
 
-  const scenarioMarkup = scenario
-    ? `
-    <div class="detail-block">
-      <h3>Instruction</h3>
-      <p>${scenario.user_instruction}</p>
-    </div>
-    <div class="detail-block">
-      <h3>Policy</h3>
-      <pre>${JSON.stringify(scenario.payment_policy, null, 2)}</pre>
-    </div>
-    <div class="detail-block">
-      <h3>Environment</h3>
-      <pre>${JSON.stringify(scenario.environment, null, 2)}</pre>
-    </div>
-  `
-    : `
-    <div class="detail-block">
-      <h3>Instruction</h3>
-      <p class="empty-state">Scenario ${result.scenario_id} is not in the loaded scenario set.</p>
-    </div>
-  `;
+  const instructionMarkup = scenario
+    ? `<p>${scenario.user_instruction}</p>`
+    : `<p class="empty-state">Scenario ${result.scenario_id} is not in the loaded scenario set.</p>`;
 
   els.detailContent.innerHTML = `
-    ${scenarioMarkup}
     <div class="detail-block">
-      <h3>Effective action</h3>
-      <pre>${JSON.stringify(result.action, null, 2)}</pre>
-    </div>
-    <div class="detail-block">
-      <h3>Proposed action</h3>
-      <pre>${JSON.stringify(result.proposed_action || result.action, null, 2)}</pre>
+      <h3>Instruction</h3>
+      ${instructionMarkup}
     </div>
     ${
       scenario
@@ -291,6 +268,28 @@ function renderDetail(results) {
     <div class="detail-block">
       <h3>Failure metrics</h3>
       ${failureMarkup}
+    </div>
+    ${
+      scenario
+        ? `
+    <div class="detail-block">
+      <h3>Policy</h3>
+      <pre>${JSON.stringify(scenario.payment_policy, null, 2)}</pre>
+    </div>
+    <div class="detail-block">
+      <h3>Environment</h3>
+      <pre>${JSON.stringify(scenario.environment, null, 2)}</pre>
+    </div>
+    `
+        : ""
+    }
+    <div class="detail-block">
+      <h3>Effective action</h3>
+      <pre>${JSON.stringify(result.action, null, 2)}</pre>
+    </div>
+    <div class="detail-block">
+      <h3>Proposed action</h3>
+      <pre>${JSON.stringify(result.proposed_action || result.action, null, 2)}</pre>
     </div>
     <div class="detail-block">
       <h3>Audit events</h3>
