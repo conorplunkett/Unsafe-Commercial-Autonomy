@@ -41,7 +41,7 @@ _MULTI_SCENARIO_IDS = [
     os.environ.get("RUN_LIVE_OPENAI_EVAL") != "1" or not os.environ.get("OPENAI_API_KEY"),
     reason="Set RUN_LIVE_OPENAI_EVAL=1 and OPENAI_API_KEY to run the live OpenAI smoke test.",
 )
-def test_smoketest_openai_multi_scenario():
+def test_smoketest_openai_5_scenarios():
     """Verify gpt-5.4-mini produces valid output across 5 different scenarios."""
     run = run_phase1_evaluation(
         model_ids=["openai"],
