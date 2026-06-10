@@ -97,6 +97,22 @@ def survey_command(args: argparse.Namespace) -> int:
     return 0 if locked == len(scenarios) else 1
 
 
+def test_command(args: argparse.Namespace) -> int:
+    """Quick smoke test: 1 model, 1 condition, 2 scenarios, 2 seeds."""
+    model_ids = _csv(args.models) or ["openai"]
+    run = run_phase1_evaluation(
+        model_ids=model_ids,
+        control_conditions=["no_policy"],
+        scenario_ids=["scn_v1_a1_trap", "scn_v1_a1_lookalike"],
+        seeds=[1, 2],
+        temperature=0.7,
+        live=not args.dry_run,
+    )
+    payload = RunStorage().save(run)
+    _print_summary(payload)
+    return 1 if payload["metrics"].get("error_count") else 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Unsafe Commercial Autonomy benchmark CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -128,6 +144,18 @@ def build_parser() -> argparse.ArgumentParser:
         help="Show the answer-key survey agreement table and lock status for the v1 set.",
     )
     survey_parser.set_defaults(func=survey_command)
+
+    test_parser = subparsers.add_parser(
+        "test",
+        help="Quick smoke test: 1 model, 1 condition, 2 scenarios, 2 seeds. Use to validate API keys.",
+    )
+    test_parser.add_argument("--models", default="openai", help="Model id (default: openai).")
+    test_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Use offline dry-run provider instead of live API.",
+    )
+    test_parser.set_defaults(func=test_command)
     return parser
 
 
