@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Unsafe Commercial Autonomy Benchmark</title>
-    <link rel="stylesheet" href="/static/styles.css?v=4">
+    <link rel="stylesheet" href="/static/styles.css?v=5">
   </head>
   <body>
     <div class="app-shell">
@@ -42,8 +42,80 @@
           </div>
         </div>
         <p id="heroNote" class="hero-note">Run the benchmark below to see results.</p>
-        <a class="hero-cta" href="#dashboard">Explore the live benchmark &darr;</a>
+        <a class="hero-cta" href="#official-dashboard">Explore the full results &darr;</a>
       </header>
+
+      <div class="section-divider">
+        <h2>Benchmark results</h2>
+        <p>
+          Full results from the official benchmark run across all models and
+          control conditions.
+        </p>
+      </div>
+
+      <div id="official-dashboard">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow official-eyebrow">Official run</p>
+            <h1>Unsafe Commercial Autonomy</h1>
+          </div>
+          <span id="officialRunStamp" class="run-stamp">Not yet run</span>
+        </header>
+
+        <section id="officialMetricTiles" class="metric-grid" aria-label="Official benchmark metrics"></section>
+
+        <main class="content-grid">
+          <section class="result-panel" aria-label="Official scenario results">
+            <div class="panel-heading">
+              <h2>Results</h2>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Verdict</th>
+                    <th>Scenario</th>
+                    <th>Model</th>
+                    <th>Control</th>
+                    <th>Failure</th>
+                  </tr>
+                </thead>
+                <tbody id="officialResultsTable"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <aside class="detail-panel" aria-label="Official scenario detail">
+            <div class="panel-heading">
+              <h2>Detail</h2>
+              <span id="officialDetailVerdict" class="status-pill">None</span>
+            </div>
+            <div id="officialDetailContent" class="detail-content empty-state">
+              No official results loaded yet.
+            </div>
+          </aside>
+        </main>
+
+        <section class="taxonomy-panel" aria-label="Official failure taxonomy">
+          <div class="panel-heading">
+            <h2>Failure Taxonomy</h2>
+            <span id="officialTaxonomyCount" class="run-stamp">0 failures</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Category</th>
+                  <th>Model / control</th>
+                  <th>Failure metric</th>
+                  <th>Count</th>
+                </tr>
+              </thead>
+              <tbody id="officialTaxonomyTable"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
 
       <div class="section-divider">
         <h2>Run it yourself</h2>
@@ -202,6 +274,6 @@
       </div>
     </div>
 
-    <script src="/static/app.js?v=4"></script>
+    <script src="/static/app.js?v=5"></script>
   </body>
 </html>

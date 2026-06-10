@@ -4,6 +4,8 @@ const state = {
   scenarios: [],
   currentRun: null,
   selectedResultKey: null,
+  officialRun: null,
+  officialSelectedKey: null,
 };
 
 const els = {
@@ -30,6 +32,14 @@ const els = {
   detailContent: document.querySelector("#detailContent"),
   taxonomyTable: document.querySelector("#taxonomyTable"),
   taxonomyCount: document.querySelector("#taxonomyCount"),
+  // official (read-only) dashboard elements
+  officialRunStamp: document.querySelector("#officialRunStamp"),
+  officialMetricTiles: document.querySelector("#officialMetricTiles"),
+  officialResultsTable: document.querySelector("#officialResultsTable"),
+  officialDetailVerdict: document.querySelector("#officialDetailVerdict"),
+  officialDetailContent: document.querySelector("#officialDetailContent"),
+  officialTaxonomyTable: document.querySelector("#officialTaxonomyTable"),
+  officialTaxonomyCount: document.querySelector("#officialTaxonomyCount"),
   heroUnsafe: document.querySelector("#heroUnsafe"),
   heroRefusal: document.querySelector("#heroRefusal"),
   heroWelfare: document.querySelector("#heroWelfare"),
@@ -221,7 +231,7 @@ function renderScenarioFilters() {
   ].join("");
 }
 
-function renderMetrics(results) {
+function renderMetrics(results, tileEl) {
   const metrics = summarize(results);
   const tiles = [
     ["Results", String(metrics.total)],
@@ -232,7 +242,7 @@ function renderMetrics(results) {
     ["Errors", percent(metrics.errorRate)],
     ["User welfare", percent(metrics.userWelfareScore)],
   ];
-  els.metricTiles.innerHTML = tiles
+  tileEl.innerHTML = tiles
     .map(
       ([label, value]) => `
         <article class="metric-tile">
@@ -249,9 +259,9 @@ function statusPill(verdict) {
   return `<span class="status-pill status-${verdict || "safe"}">${label}</span>`;
 }
 
-function renderResults(results) {
+function renderResults(results, getKey, setKey, tableEl) {
   if (!results.length) {
-    els.resultsTable.innerHTML = `
+    tableEl.innerHTML = `
       <tr>
         <td colspan="5" class="empty-state">No matching results.</td>
       </tr>
@@ -259,14 +269,14 @@ function renderResults(results) {
     return;
   }
 
-  if (!state.selectedResultKey || !results.some((result) => resultKey(result) === state.selectedResultKey)) {
-    state.selectedResultKey = resultKey(results[0]);
+  if (!getKey() || !results.some((result) => resultKey(result) === getKey())) {
+    setKey(resultKey(results[0]));
   }
 
-  els.resultsTable.innerHTML = results
+  tableEl.innerHTML = results
     .map((result) => {
       const failures = result.failure_metrics.length ? result.failure_metrics.join(", ") : "none";
-      const selected = resultKey(result) === state.selectedResultKey ? "selected" : "";
+      const selected = resultKey(result) === getKey() ? "selected" : "";
       const modelLabel = result.model_name || result.agent_name;
       const conditionLabel = result.control_condition
         ? result.control_condition.replaceAll("_", " ")
@@ -288,20 +298,20 @@ function findScenario(scenarioId) {
   return state.scenarios.find((scenario) => scenario.scenario_id === scenarioId);
 }
 
-function renderDetail(results) {
-  const result = results.find((item) => resultKey(item) === state.selectedResultKey);
+function renderDetail(results, selectedKey, verdictEl, contentEl) {
+  const result = results.find((item) => resultKey(item) === selectedKey);
   if (!result) {
-    els.detailVerdict.textContent = "None";
-    els.detailVerdict.className = "status-pill";
-    els.detailContent.className = "detail-content empty-state";
-    els.detailContent.textContent = "No result selected.";
+    verdictEl.textContent = "None";
+    verdictEl.className = "status-pill";
+    contentEl.className = "detail-content empty-state";
+    contentEl.textContent = "No result selected.";
     return;
   }
 
   const scenario = findScenario(result.scenario_id);
-  els.detailVerdict.textContent = result.verdict.replaceAll("_", " ");
-  els.detailVerdict.className = `status-pill status-${result.verdict}`;
-  els.detailContent.className = "detail-content";
+  verdictEl.textContent = result.verdict.replaceAll("_", " ");
+  verdictEl.className = `status-pill status-${result.verdict}`;
+  contentEl.className = "detail-content";
 
   const failureMarkup = result.failure_metrics.length
     ? `<div class="failure-list">${result.failure_metrics
@@ -313,7 +323,7 @@ function renderDetail(results) {
     ? `<p>${scenario.user_instruction}</p>`
     : `<p class="empty-state">Scenario ${result.scenario_id} is not in the loaded scenario set.</p>`;
 
-  els.detailContent.innerHTML = `
+  contentEl.innerHTML = `
     <div class="detail-block">
       <h3>Instruction</h3>
       ${instructionMarkup}
@@ -361,7 +371,7 @@ function renderDetail(results) {
   `;
 }
 
-function renderTaxonomy(results) {
+function renderTaxonomy(results, tableEl, countEl) {
   const rows = [];
   for (const result of results) {
     for (const failure of result.failure_metrics) {
@@ -385,8 +395,8 @@ function renderTaxonomy(results) {
     `${a.category}${a.agent}${a.failure}`.localeCompare(`${b.category}${b.agent}${b.failure}`)
   );
 
-  els.taxonomyCount.textContent = `${rows.length} failures`;
-  els.taxonomyTable.innerHTML = values.length
+  countEl.textContent = `${rows.length} failures`;
+  tableEl.innerHTML = values.length
     ? values
         .map(
           (row) => `
@@ -407,7 +417,8 @@ function renderTaxonomy(results) {
 }
 
 function renderHeroStats() {
-  const results = state.currentRun ? state.currentRun.results : [];
+  const run = state.officialRun || state.currentRun;
+  const results = run ? run.results : [];
   if (!results.length) {
     els.heroUnsafe.textContent = "—";
     els.heroRefusal.textContent = "—";
@@ -419,15 +430,20 @@ function renderHeroStats() {
   els.heroUnsafe.textContent = percent(metrics.unsafePaymentRate);
   els.heroRefusal.textContent = percent(metrics.falseRefusalRate);
   els.heroWelfare.textContent = percent(metrics.userWelfareScore);
-  els.heroNote.textContent = `Across ${metrics.total} scenario runs · ${compactTime(state.currentRun.created_at)}`;
+  els.heroNote.textContent = `Across ${metrics.total} scenario runs · ${compactTime(run.created_at)}`;
 }
 
 function renderAll() {
   const results = visibleResults();
-  renderMetrics(results);
-  renderResults(results);
-  renderDetail(results);
-  renderTaxonomy(results);
+  renderMetrics(results, els.metricTiles);
+  renderResults(
+    results,
+    () => state.selectedResultKey,
+    (k) => { state.selectedResultKey = k; },
+    els.resultsTable,
+  );
+  renderDetail(results, state.selectedResultKey, els.detailVerdict, els.detailContent);
+  renderTaxonomy(results, els.taxonomyTable, els.taxonomyCount);
   renderHeroStats();
   if (state.currentRun) {
     const sampling = [
@@ -442,6 +458,22 @@ function renderAll() {
   } else {
     els.runStamp.textContent = "No run";
   }
+}
+
+function renderOfficialAll() {
+  const results = state.officialRun ? state.officialRun.results : [];
+  renderMetrics(results, els.officialMetricTiles);
+  renderResults(
+    results,
+    () => state.officialSelectedKey,
+    (k) => { state.officialSelectedKey = k; },
+    els.officialResultsTable,
+  );
+  renderDetail(results, state.officialSelectedKey, els.officialDetailVerdict, els.officialDetailContent);
+  renderTaxonomy(results, els.officialTaxonomyTable, els.officialTaxonomyCount);
+  els.officialRunStamp.textContent = state.officialRun
+    ? compactTime(state.officialRun.created_at)
+    : "Not yet run";
 }
 
 async function runBenchmark() {
@@ -505,6 +537,12 @@ async function loadInitialRun() {
   state.currentRun = await fetchJson(`/api/runs/${runs[0].run_id}`);
 }
 
+async function loadOfficialRun() {
+  const runs = await fetchJson("/api/runs");
+  if (!runs.length) return;
+  state.officialRun = await fetchJson(`/api/runs/${runs[0].run_id}`);
+}
+
 function bindEvents() {
   els.runButton.addEventListener("click", runBenchmark);
   els.modelFilters.addEventListener("change", renderAll);
@@ -519,6 +557,12 @@ function bindEvents() {
     if (!row) return;
     state.selectedResultKey = row.dataset.resultKey;
     renderAll();
+  });
+  els.officialResultsTable.addEventListener("click", (event) => {
+    const row = event.target.closest("tr[data-result-key]");
+    if (!row) return;
+    state.officialSelectedKey = row.dataset.resultKey;
+    renderOfficialAll();
   });
 }
 
@@ -537,7 +581,8 @@ async function init() {
     renderScenarioFilters();
     syncByokUi();
     bindEvents();
-    await loadInitialRun();
+    await Promise.all([loadOfficialRun(), loadInitialRun()]);
+    renderOfficialAll();
     renderAll();
   } catch (error) {
     els.detailContent.className = "detail-content empty-state";
