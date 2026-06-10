@@ -20,6 +20,10 @@ const els = {
   detailContent: document.querySelector("#detailContent"),
   taxonomyTable: document.querySelector("#taxonomyTable"),
   taxonomyCount: document.querySelector("#taxonomyCount"),
+  heroUnsafe: document.querySelector("#heroUnsafe"),
+  heroRefusal: document.querySelector("#heroRefusal"),
+  heroWelfare: document.querySelector("#heroWelfare"),
+  heroNote: document.querySelector("#heroNote"),
 };
 
 async function fetchJson(url, options) {
@@ -319,12 +323,29 @@ function renderTaxonomy(results) {
     `;
 }
 
+function renderHeroStats() {
+  const results = state.currentRun ? state.currentRun.results : [];
+  if (!results.length) {
+    els.heroUnsafe.textContent = "—";
+    els.heroRefusal.textContent = "—";
+    els.heroWelfare.textContent = "—";
+    els.heroNote.textContent = "Run the benchmark below to see results.";
+    return;
+  }
+  const metrics = summarize(results);
+  els.heroUnsafe.textContent = percent(metrics.unsafePaymentRate);
+  els.heroRefusal.textContent = percent(metrics.falseRefusalRate);
+  els.heroWelfare.textContent = percent(metrics.userWelfareScore);
+  els.heroNote.textContent = `Across ${metrics.total} scenario runs · ${compactTime(state.currentRun.created_at)}`;
+}
+
 function renderAll() {
   const results = visibleResults();
   renderMetrics(results);
   renderResults(results);
   renderDetail(results);
   renderTaxonomy(results);
+  renderHeroStats();
   els.runStamp.textContent = state.currentRun ? compactTime(state.currentRun.created_at) : "No run";
 }
 

@@ -8,94 +8,142 @@
   </head>
   <body>
     <div class="app-shell">
-      <header class="topbar">
-        <div>
-          <p class="eyebrow">Benchmark Dashboard</p>
-          <h1>Unsafe Commercial Autonomy</h1>
+      <header class="hero">
+        <p class="eyebrow">AI Safety Benchmark · Phase 1</p>
+        <h1 class="hero-title">Unsafe Commercial Autonomy</h1>
+        <div class="hero-lede">
+          <p>
+            AI agents are moving from recommendation into execution: buying,
+            paying, subscribing, booking, refunding, and transferring money on
+            a user's behalf. Authorizing a payment is the easy part. The
+            harder question is whether the agent should attempt the payment
+            at all.
+          </p>
+          <p>
+            This benchmark drops models into realistic commercial tasks, each
+            with a stated rule on spend limits, merchant restrictions,
+            approval thresholds, or privacy &mdash; then checks whether the
+            agent preserves the user's intent when the task turns ambiguous,
+            adversarial, or economically tempting.
+          </p>
         </div>
-        <button id="runBenchmark" class="primary-button" type="button">
-          <span class="button-mark">></span>
-          Run benchmark
-        </button>
+        <div id="heroStats" class="stat-row">
+          <div class="stat-callout">
+            <p class="stat-value stat-danger" id="heroUnsafe">&mdash;</p>
+            <p class="stat-label">Unsafe payment rate</p>
+          </div>
+          <div class="stat-callout">
+            <p class="stat-value stat-warn" id="heroRefusal">&mdash;</p>
+            <p class="stat-label">False refusal rate</p>
+          </div>
+          <div class="stat-callout">
+            <p class="stat-value stat-ok" id="heroWelfare">&mdash;</p>
+            <p class="stat-label">User welfare score</p>
+          </div>
+        </div>
+        <p id="heroNote" class="hero-note">Run the benchmark below to see results.</p>
+        <a class="hero-cta" href="#dashboard">Explore the live benchmark &darr;</a>
       </header>
 
-      <section class="control-band" aria-label="Benchmark controls">
-        <div class="control-group provider-group">
-          <label>Models</label>
-          <div id="modelFilters" class="checkbox-grid"></div>
-        </div>
-        <div class="control-group condition-group">
-          <label>Control Conditions</label>
-          <div id="conditionFilters" class="checkbox-grid condition-grid"></div>
-        </div>
-        <div class="control-group">
-          <label for="categoryFilter">Category</label>
-          <select id="categoryFilter"></select>
-        </div>
-        <div class="control-group">
-          <label for="scenarioFilter">Scenario</label>
-          <select id="scenarioFilter"></select>
-        </div>
-        <label class="live-check" title="When enabled, the server uses configured provider API keys from its environment.">
-          <input id="liveRun" type="checkbox" checked>
-          <span>Live model calls</span>
-        </label>
-      </section>
+      <div class="section-divider">
+        <h2>Run it yourself</h2>
+        <p>
+          Choose the models and control conditions to test, optionally narrow
+          to a category or scenario, then run the benchmark. Results,
+          per-scenario detail, and the failure taxonomy update below.
+        </p>
+      </div>
 
-      <section id="metricTiles" class="metric-grid" aria-label="Benchmark metrics"></section>
+      <div id="dashboard">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Benchmark Dashboard</p>
+            <h1>Unsafe Commercial Autonomy</h1>
+          </div>
+          <button id="runBenchmark" class="primary-button" type="button">
+            <span class="button-mark">></span>
+            Run benchmark
+          </button>
+        </header>
 
-      <main class="content-grid">
-        <section class="result-panel" aria-label="Scenario results">
+        <section class="control-band" aria-label="Benchmark controls">
+          <div class="control-group provider-group">
+            <label>Models</label>
+            <div id="modelFilters" class="checkbox-grid"></div>
+          </div>
+          <div class="control-group condition-group">
+            <label>Control Conditions</label>
+            <div id="conditionFilters" class="checkbox-grid condition-grid"></div>
+          </div>
+          <div class="control-group">
+            <label for="categoryFilter">Category</label>
+            <select id="categoryFilter"></select>
+          </div>
+          <div class="control-group">
+            <label for="scenarioFilter">Scenario</label>
+            <select id="scenarioFilter"></select>
+          </div>
+          <label class="live-check" title="When enabled, the server uses configured provider API keys from its environment.">
+            <input id="liveRun" type="checkbox" checked>
+            <span>Live model calls</span>
+          </label>
+        </section>
+
+        <section id="metricTiles" class="metric-grid" aria-label="Benchmark metrics"></section>
+
+        <main class="content-grid">
+          <section class="result-panel" aria-label="Scenario results">
+            <div class="panel-heading">
+              <h2>Results</h2>
+              <span id="runStamp" class="run-stamp">No run</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Verdict</th>
+                    <th>Scenario</th>
+                    <th>Model</th>
+                    <th>Control</th>
+                    <th>Failure</th>
+                  </tr>
+                </thead>
+                <tbody id="resultsTable"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <aside class="detail-panel" aria-label="Scenario detail">
+            <div class="panel-heading">
+              <h2>Detail</h2>
+              <span id="detailVerdict" class="status-pill">None</span>
+            </div>
+            <div id="detailContent" class="detail-content empty-state">
+              Run the benchmark to populate results.
+            </div>
+          </aside>
+        </main>
+
+        <section class="taxonomy-panel" aria-label="Failure taxonomy">
           <div class="panel-heading">
-            <h2>Results</h2>
-            <span id="runStamp" class="run-stamp">No run</span>
+            <h2>Failure Taxonomy</h2>
+            <span id="taxonomyCount" class="run-stamp">0 failures</span>
           </div>
           <div class="table-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>Verdict</th>
-                  <th>Scenario</th>
-                  <th>Model</th>
-                  <th>Control</th>
-                  <th>Failure</th>
+                  <th>Category</th>
+                  <th>Model / control</th>
+                  <th>Failure metric</th>
+                  <th>Count</th>
                 </tr>
               </thead>
-              <tbody id="resultsTable"></tbody>
+              <tbody id="taxonomyTable"></tbody>
             </table>
           </div>
         </section>
-
-        <aside class="detail-panel" aria-label="Scenario detail">
-          <div class="panel-heading">
-            <h2>Detail</h2>
-            <span id="detailVerdict" class="status-pill">None</span>
-          </div>
-          <div id="detailContent" class="detail-content empty-state">
-            Run the benchmark to populate results.
-          </div>
-        </aside>
-      </main>
-
-      <section class="taxonomy-panel" aria-label="Failure taxonomy">
-        <div class="panel-heading">
-          <h2>Failure Taxonomy</h2>
-          <span id="taxonomyCount" class="run-stamp">0 failures</span>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Category</th>
-                <th>Model / control</th>
-                <th>Failure metric</th>
-                <th>Count</th>
-              </tr>
-            </thead>
-            <tbody id="taxonomyTable"></tbody>
-          </table>
-        </div>
-      </section>
+      </div>
     </div>
 
     <script src="/static/app.js"></script>
