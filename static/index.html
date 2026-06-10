@@ -83,6 +83,20 @@
             <label for="scenarioFilter">Scenario</label>
             <select id="scenarioFilter"></select>
           </div>
+          <div class="control-group" title="Used by temperature-based models (e.g. gpt-4o, Anthropic, open-weights). Reasoning models ignore it.">
+            <label for="temperatureInput">Temperature</label>
+            <input id="temperatureInput" type="number" min="0" max="2" step="0.1" value="0.7">
+          </div>
+          <div class="control-group" title="Used by reasoning models (e.g. gpt-5.x, o-series). Temperature-based models ignore it.">
+            <label for="reasoningEffort">Reasoning effort</label>
+            <select id="reasoningEffort">
+              <option value="">Default (low)</option>
+              <option value="minimal">Minimal</option>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
           <label class="live-check" title="When enabled, the server uses configured provider API keys from its environment.">
             <input id="liveRun" type="checkbox" checked>
             <span>Live model calls</span>

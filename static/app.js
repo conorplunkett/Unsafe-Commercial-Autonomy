@@ -13,6 +13,8 @@ const els = {
   categoryFilter: document.querySelector("#categoryFilter"),
   scenarioFilter: document.querySelector("#scenarioFilter"),
   liveRun: document.querySelector("#liveRun"),
+  temperatureInput: document.querySelector("#temperatureInput"),
+  reasoningEffort: document.querySelector("#reasoningEffort"),
   metricTiles: document.querySelector("#metricTiles"),
   resultsTable: document.querySelector("#resultsTable"),
   runStamp: document.querySelector("#runStamp"),
@@ -66,6 +68,8 @@ function currentFilters() {
     category: els.categoryFilter.value,
     scenarioId: els.scenarioFilter.value,
     live: els.liveRun.checked,
+    temperature: els.temperatureInput ? Number.parseFloat(els.temperatureInput.value) : null,
+    reasoningEffort: els.reasoningEffort ? els.reasoningEffort.value || null : null,
   };
 }
 
@@ -242,7 +246,8 @@ function renderDetail(results) {
         .join("")}</div>`
     : "<p>None</p>";
 
-  els.detailContent.innerHTML = `
+  const scenarioMarkup = scenario
+    ? `
     <div class="detail-block">
       <h3>Instruction</h3>
       <p>${scenario.user_instruction}</p>
@@ -255,6 +260,16 @@ function renderDetail(results) {
       <h3>Environment</h3>
       <pre>${JSON.stringify(scenario.environment, null, 2)}</pre>
     </div>
+  `
+    : `
+    <div class="detail-block">
+      <h3>Instruction</h3>
+      <p class="empty-state">Scenario ${result.scenario_id} is not in the loaded scenario set.</p>
+    </div>
+  `;
+
+  els.detailContent.innerHTML = `
+    ${scenarioMarkup}
     <div class="detail-block">
       <h3>Effective action</h3>
       <pre>${JSON.stringify(result.action, null, 2)}</pre>
@@ -263,10 +278,16 @@ function renderDetail(results) {
       <h3>Proposed action</h3>
       <pre>${JSON.stringify(result.proposed_action || result.action, null, 2)}</pre>
     </div>
+    ${
+      scenario
+        ? `
     <div class="detail-block">
       <h3>Expected safe behavior</h3>
       <p>${scenario.expected_safe_behavior.summary}</p>
     </div>
+    `
+        : ""
+    }
     <div class="detail-block">
       <h3>Failure metrics</h3>
       ${failureMarkup}
@@ -346,7 +367,19 @@ function renderAll() {
   renderDetail(results);
   renderTaxonomy(results);
   renderHeroStats();
-  els.runStamp.textContent = state.currentRun ? compactTime(state.currentRun.created_at) : "No run";
+  if (state.currentRun) {
+    const sampling = [
+      state.currentRun.temperature != null ? `temp ${state.currentRun.temperature}` : null,
+      state.currentRun.reasoning_effort ? `effort ${state.currentRun.reasoning_effort}` : null,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+    els.runStamp.textContent = sampling
+      ? `${compactTime(state.currentRun.created_at)} · ${sampling}`
+      : compactTime(state.currentRun.created_at);
+  } else {
+    els.runStamp.textContent = "No run";
+  }
 }
 
 async function runBenchmark() {
@@ -371,6 +404,8 @@ async function runBenchmark() {
         control_conditions: filters.controlConditions.length ? filters.controlConditions : null,
         scenario_ids: selectedScenarioIds,
         seeds: [1, 2, 3, 4, 5],
+        temperature: Number.isFinite(filters.temperature) ? filters.temperature : null,
+        reasoning_effort: filters.reasoningEffort,
         live: filters.live,
       }),
     });

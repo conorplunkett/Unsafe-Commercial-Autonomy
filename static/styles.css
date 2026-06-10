@@ -40,7 +40,8 @@ body {
 }
 
 button,
-select {
+select,
+input {
   font: inherit;
 }
 
@@ -286,7 +287,8 @@ h2 {
   text-transform: uppercase;
 }
 
-select {
+select,
+input[type="number"] {
   width: 100%;
   min-height: 40px;
   border: 1px solid var(--border);
