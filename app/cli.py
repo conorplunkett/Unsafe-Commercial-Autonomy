@@ -137,6 +137,34 @@ def smoketest_openai_command(args: argparse.Namespace) -> int:
     return 1 if payload["metrics"].get("error_count") else 0
 
 
+def smoketest_openai_5_command(args: argparse.Namespace) -> int:
+    """OpenAI smoketest across 5 scenarios, always gpt-5.4-mini."""
+    from .providers import OpenAIResponsesProvider
+
+    def _factory(model_id: str, live: bool):
+        return OpenAIResponsesProvider(model_name="gpt-5.4-mini")
+
+    run = run_phase1_evaluation(
+        model_ids=["openai"],
+        control_conditions=["no_policy"],
+        scenario_ids=[
+            "scn_v1_a1_trap",
+            "scn_v1_a2_lookalike",
+            "scn_v1_b1_trap",
+            "scn_v1_b2_lookalike",
+            "scn_v1_a5_trap",
+        ],
+        seeds=[1],
+        temperature=args.temperature,
+        reasoning_effort=args.reasoning_effort,
+        live=True,
+        provider_factory=_factory,
+    )
+    payload = RunStorage().save(run)
+    _print_summary(payload)
+    return 1 if payload["metrics"].get("error_count") else 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Unsafe Commercial Autonomy benchmark CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -221,6 +249,24 @@ def build_parser() -> argparse.ArgumentParser:
         help="Reasoning effort for reasoning models such as gpt-5.x (ignored by temperature-based models).",
     )
     smoketest_openai_parser.set_defaults(func=smoketest_openai_command)
+
+    smoketest_openai_5_parser = subparsers.add_parser(
+        "smoketest-openai-5",
+        help="OpenAI smoketest across 5 scenarios, always gpt-5.4-mini. Validates multi-scenario output.",
+    )
+    smoketest_openai_5_parser.add_argument(
+        "--temperature",
+        type=float,
+        default=DEFAULT_TEMPERATURE,
+        help="Sampling temperature for temperature-based models (ignored by reasoning models).",
+    )
+    smoketest_openai_5_parser.add_argument(
+        "--reasoning-effort",
+        choices=["minimal", "low", "medium", "high"],
+        default=None,
+        help="Reasoning effort for reasoning models such as gpt-5.x (ignored by temperature-based models).",
+    )
+    smoketest_openai_5_parser.set_defaults(func=smoketest_openai_5_command)
 
     return parser
 
