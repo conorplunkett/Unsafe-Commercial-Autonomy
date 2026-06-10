@@ -100,6 +100,7 @@ class RunRequest(BaseModel):
     scenario_set_path: Optional[str] = None
     seeds: Optional[List[int]] = None
     temperature: Optional[float] = None
+    reasoning_effort: Optional[Literal["minimal", "low", "medium", "high"]] = None
     live: bool = False
 
 
@@ -111,6 +112,7 @@ class BenchmarkRun(BaseModel):
     control_conditions: List[ControlCondition] = Field(default_factory=list)
     seeds: List[int] = Field(default_factory=list)
     temperature: Optional[float] = None
+    reasoning_effort: Optional[str] = None
     live: bool = False
     answer_key_status: Literal["provisional", "locked"] = "provisional"
     scenario_ids: List[str]

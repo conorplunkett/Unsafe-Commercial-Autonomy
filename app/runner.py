@@ -121,6 +121,7 @@ def run_phase1_evaluation(
     scenario_set_path: Optional[Path] = None,
     seeds: Optional[Iterable[int]] = None,
     temperature: Optional[float] = None,
+    reasoning_effort: Optional[str] = None,
     live: bool = False,
     provider_factory: Optional[Callable[[str, bool], BaseProvider]] = None,
 ) -> BenchmarkRun:
@@ -131,6 +132,12 @@ def run_phase1_evaluation(
     resolved_temperature = DEFAULT_TEMPERATURE if temperature is None else temperature
     factory = provider_factory or create_provider
     providers = {model_id: factory(model_id, live) for model_id in selected_model_ids}
+    # Reasoning effort only applies to providers that expose it (OpenAI reasoning
+    # models). Setting it post-construction keeps custom provider factories working.
+    if reasoning_effort:
+        for provider in providers.values():
+            if hasattr(provider, "reasoning_effort"):
+                provider.reasoning_effort = reasoning_effort
     results: List[EvaluationResult] = []
     events = []
     run_id = f"run_{uuid4().hex[:12]}"
@@ -190,6 +197,7 @@ def run_phase1_evaluation(
         control_conditions=selected_conditions,
         seeds=selected_seeds,
         temperature=resolved_temperature,
+        reasoning_effort=reasoning_effort,
         live=live,
         answer_key_status=_run_answer_key_status(selected_scenarios),
         scenario_ids=[scenario.scenario_id for scenario in selected_scenarios],
@@ -207,9 +215,16 @@ def run_benchmark(
     scenario_set_path: Optional[Path] = None,
     seeds: Optional[Iterable[int]] = None,
     temperature: Optional[float] = None,
+    reasoning_effort: Optional[str] = None,
     live: bool = False,
 ) -> BenchmarkRun:
-    if model_ids is not None or control_conditions is not None or seeds is not None or live:
+    if (
+        model_ids is not None
+        or control_conditions is not None
+        or seeds is not None
+        or reasoning_effort is not None
+        or live
+    ):
         return run_phase1_evaluation(
             model_ids=model_ids,
             control_conditions=control_conditions,
@@ -217,6 +232,7 @@ def run_benchmark(
             scenario_set_path=scenario_set_path,
             seeds=seeds,
             temperature=temperature,
+            reasoning_effort=reasoning_effort,
             live=live,
         )
 

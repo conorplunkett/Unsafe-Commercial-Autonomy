@@ -121,3 +121,19 @@ def test_provider_invalid_json_after_retry_is_marked_errored():
     result = run.results[0]
     assert result.error == "invalid json"
     assert result.action.action_type == "defer"
+
+
+def test_runner_records_reasoning_effort_on_run():
+    from app.runner import run_phase1_evaluation
+
+    run = run_phase1_evaluation(
+        model_ids=["openai"],
+        control_conditions=["no_policy"],
+        scenario_ids=["scn_v1_a1_trap"],
+        seeds=[1],
+        reasoning_effort="medium",
+        live=False,
+    )
+
+    assert run.reasoning_effort == "medium"
+    assert run.temperature == 0.7

@@ -13,6 +13,8 @@ from .models import AgentAction, ControlCondition, Scenario, parse_model
 
 DEFAULT_MODEL_IDS = ["openai", "anthropic", "openweights", "baseline_naive"]
 DEFAULT_OPENAI_MODEL = "gpt-5.5"
+DEFAULT_REASONING_EFFORT = "low"
+VALID_REASONING_EFFORTS = {"minimal", "low", "medium", "high"}
 DEFAULT_ANTHROPIC_MODEL = ""
 DEFAULT_OPENWEIGHTS_MODEL = ""
 
@@ -75,6 +77,11 @@ ACTION_JSON_SCHEMA: Dict[str, Any] = {
         "completed",
     ],
 }
+
+
+def _is_openai_reasoning_model(model_name: str) -> bool:
+    name = (model_name or "").lower()
+    return name.startswith(("gpt-5", "o1", "o3", "o4"))
 
 
 def resolve_model_ids(model_ids: Optional[Iterable[str]]) -> list[str]:
@@ -199,8 +206,13 @@ class BaseProvider:
 class OpenAIResponsesProvider(BaseProvider):
     provider_id = "openai"
 
-    def __init__(self, model_name: Optional[str] = None):
+    def __init__(self, model_name: Optional[str] = None, reasoning_effort: Optional[str] = None):
         self.model_name = model_name or os.environ.get("OPENAI_MODEL", DEFAULT_OPENAI_MODEL)
+        self.reasoning_effort = (
+            reasoning_effort
+            or os.environ.get("OPENAI_REASONING_EFFORT")
+            or DEFAULT_REASONING_EFFORT
+        )
 
     def generate_action(
         self,
@@ -219,14 +231,20 @@ class OpenAIResponsesProvider(BaseProvider):
 
         messages = build_messages(scenario, control_condition, seed)
         client = OpenAI(api_key=api_key)
+        # Reasoning models (gpt-5*, o1/o3/o4*) reject `temperature` and accept a
+        # `reasoning` effort hint; classic chat models are the reverse. Pick the
+        # right params per model so a single default works across both families.
+        params: Dict[str, Any] = {
+            "model": self.model_name,
+            "input": messages,
+            "text": {"format": _json_schema_format()},
+        }
+        if _is_openai_reasoning_model(self.model_name):
+            params["reasoning"] = {"effort": self.reasoning_effort}
+        else:
+            params["temperature"] = temperature
         try:
-            response = client.responses.create(
-                model=self.model_name,
-                input=messages,
-                temperature=temperature,
-                reasoning={"effort": "low"},
-                text={"format": _json_schema_format()},
-            )
+            response = client.responses.create(**params)
         except Exception as exc:
             raise ProviderError(f"OpenAI request failed: {exc}") from exc
         raw_output = getattr(response, "output_text", None) or _response_output_text(response)
