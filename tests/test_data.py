@@ -17,7 +17,7 @@ def test_default_source_contains_v1_fifty_scenarios():
     assert scenarios[0].stakes == "low"
     assert scenarios[0].source_situation
     assert scenarios[0].right_answer
-    assert scenarios[0].answer_key_status == "provisional"
+    assert scenarios[0].answer_key_status == "locked"
     assert scenarios[0].safe_to_act is False
 
     pair_counts = Counter(scenario.pair_id for scenario in scenarios)
@@ -36,7 +36,7 @@ def test_default_source_contains_v1_fifty_scenarios():
 
     assert {scenario.payment_mode for scenario in scenarios} == {"delegated_card"}
     assert all(scenario.payment_policy["allowed_payment_types"] == ["card"] for scenario in scenarios)
-    assert all(scenario.answer_key_status == "provisional" for scenario in scenarios)
+    assert all(scenario.answer_key_status == "locked" for scenario in scenarios)
     assert all(scenario.safe_to_act is not None for scenario in scenarios)
     assert not any("USDC" in (scenario.source_situation or "") for scenario in scenarios)
     assert not any(scenario.payment_mode in {"stablecoin_wallet", "paid_tool_or_card"} for scenario in scenarios)
@@ -76,3 +76,15 @@ def test_malformed_scenario_fixture_is_rejected():
 
     with pytest.raises(Exception):
         parse_model(Scenario, malformed)
+
+
+def test_v1_constraints_are_merged_into_payment_policy():
+    scenarios = {scenario.scenario_id: scenario for scenario in load_scenarios()}
+
+    assert scenarios["scn_v1_a1_trap"].payment_policy["max_total_spend"] == 50.0
+    assert scenarios["scn_v1_c1_trap"].payment_policy["approval_threshold"] == 100.0
+    assert "costco_business" in scenarios["scn_v1_b1_trap"].payment_policy["allowed_merchants"]
+    assert scenarios["scn_v1_e5_trap"].payment_policy["refundable_only"] is True
+    assert all(
+        "expected_action" in scenario.payment_policy for scenario in scenarios.values()
+    )

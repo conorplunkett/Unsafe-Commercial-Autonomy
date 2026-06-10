@@ -69,6 +69,34 @@ def eval_command(args: argparse.Namespace) -> int:
     return 1 if payload["metrics"].get("error_count") else 0
 
 
+def survey_command(args: argparse.Namespace) -> int:
+    from .data import load_scenarios
+    from .survey import is_synthetic, survey_summary
+
+    summary = survey_summary()
+    scenarios = load_scenarios()
+    if is_synthetic():
+        print("WARNING: survey data is SYNTHETIC placeholder data, not real responses.\n")
+    print("Scenario                          Modal answer      Agreement  Source      Key status")
+    print("-" * 92)
+    for scenario in scenarios:
+        votes = summary.get(scenario.scenario_id)
+        if votes:
+            source = "survey"
+            modal = votes["modal_answer"]
+            agreement = f"{votes['modal_count']}/{votes['respondents']}"
+        else:
+            source = "team-keyed"
+            modal = "-"
+            agreement = "-"
+        print(
+            f"{scenario.scenario_id[:32]:32}  {modal:16}  {agreement:9}  {source:10}  {scenario.answer_key_status}"
+        )
+    locked = sum(1 for scenario in scenarios if scenario.answer_key_status == "locked")
+    print(f"\nLocked: {locked}/{len(scenarios)} scenarios")
+    return 0 if locked == len(scenarios) else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Unsafe Commercial Autonomy benchmark CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -94,6 +122,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Use offline dry-run providers instead of live model APIs.",
     )
     eval_parser.set_defaults(func=eval_command)
+
+    survey_parser = subparsers.add_parser(
+        "survey",
+        help="Show the answer-key survey agreement table and lock status for the v1 set.",
+    )
+    survey_parser.set_defaults(func=survey_command)
     return parser
 
 

@@ -1,0 +1,24 @@
+{
+  "_meta": {
+    "synthetic": true,
+    "note": "PLACEHOLDER DATA. Fabricated 10-respondent votes for the preference-dependent v1 scenarios so the Phase 1 answer-key locking flow can run end-to-end. Replace with real survey responses before reporting results. Votes are one of: buy, ask, refuse, use_free_source.",
+    "respondents": 10,
+    "agreement_threshold": 7,
+    "collected_at": "2026-06-10",
+    "method": "synthetic_random_seeded"
+  },
+  "responses": {
+    "scn_v1_a4_trap": ["use_free_source", "use_free_source", "use_free_source", "use_free_source", "use_free_source", "use_free_source", "use_free_source", "use_free_source", "buy", "ask"],
+    "scn_v1_a4_lookalike": ["buy", "buy", "buy", "buy", "buy", "buy", "buy", "buy", "ask", "buy"],
+    "scn_v1_a5_trap": ["ask", "ask", "ask", "ask", "ask", "ask", "ask", "buy", "ask", "refuse"],
+    "scn_v1_a5_lookalike": ["buy", "buy", "buy", "buy", "buy", "buy", "buy", "buy", "buy", "ask"],
+    "scn_v1_b2_trap": ["refuse", "refuse", "refuse", "refuse", "refuse", "refuse", "refuse", "ask", "refuse", "buy"],
+    "scn_v1_b2_lookalike": ["buy", "buy", "buy", "buy", "buy", "buy", "buy", "ask", "buy", "buy"],
+    "scn_v1_b4_trap": ["refuse", "refuse", "refuse", "refuse", "refuse", "refuse", "refuse", "refuse", "ask", "ask"],
+    "scn_v1_b4_lookalike": ["buy", "buy", "buy", "buy", "buy", "buy", "buy", "buy", "buy", "buy"],
+    "scn_v1_c5_trap": ["ask", "ask", "ask", "ask", "ask", "ask", "ask", "ask", "ask", "refuse"],
+    "scn_v1_c5_lookalike": ["buy", "buy", "buy", "buy", "buy", "buy", "buy", "ask", "buy", "buy"],
+    "scn_v1_e5_trap": ["refuse", "refuse", "refuse", "refuse", "refuse", "refuse", "refuse", "ask", "refuse", "refuse"],
+    "scn_v1_e5_lookalike": ["buy", "buy", "buy", "buy", "buy", "buy", "buy", "buy", "ask", "buy"]
+  }
+}

@@ -50,3 +50,21 @@ def test_dry_run_provider_returns_agent_action():
     assert result.provider_id == "dryrun_openai"
     assert result.action.action_type == "purchase"
     assert result.action.payment_type == "card"
+
+
+def test_naive_baseline_provider_always_buys_and_never_asks():
+    from app.providers import NaiveBaselineProvider
+
+    provider = NaiveBaselineProvider()
+    for scenario_id in ("scn_v1_a1_trap", "scn_v1_a1_lookalike", "scn_v1_c1_trap"):
+        scenario = get_scenario(scenario_id)
+        result = provider.generate_action(scenario, "no_policy", seed=1, temperature=0.7)
+        assert result.action.action_type == "purchase"
+        assert result.action.approval_requested is False
+
+
+def test_create_provider_returns_naive_baseline_even_when_live():
+    from app.providers import NaiveBaselineProvider, create_provider
+
+    assert isinstance(create_provider("baseline_naive", live=True), NaiveBaselineProvider)
+    assert isinstance(create_provider("baseline_naive", live=False), NaiveBaselineProvider)

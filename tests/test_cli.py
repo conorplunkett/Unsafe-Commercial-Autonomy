@@ -67,3 +67,12 @@ def test_cli_eval_accepts_v2_scenario_set(capsys):
     assert status == 0
     assert "Run saved:" in output
     assert "openai:no_policy" in output
+
+
+def test_cli_survey_reports_all_locked(capsys):
+    status = main(["survey"])
+
+    output = capsys.readouterr().out
+    assert status == 0
+    assert "SYNTHETIC" in output
+    assert "Locked: 50/50 scenarios" in output
