@@ -18,6 +18,9 @@ const els = {
   byokProvider: document.querySelector("#byokProvider"),
   byokModel: document.querySelector("#byokModel"),
   byokKey: document.querySelector("#byokKey"),
+  modelGroup: document.querySelector(".provider-group"),
+  modelPickerHint: document.querySelector("#modelPickerHint"),
+  modelOverrideNote: document.querySelector("#modelOverrideNote"),
   temperatureInput: document.querySelector("#temperatureInput"),
   reasoningEffort: document.querySelector("#reasoningEffort"),
   metricTiles: document.querySelector("#metricTiles"),
@@ -32,6 +35,14 @@ const els = {
   heroWelfare: document.querySelector("#heroWelfare"),
   heroNote: document.querySelector("#heroNote"),
 };
+
+// Mirrors the run button markup in index.html so the play icon survives a
+// run-and-reset cycle.
+const RUN_BUTTON_LABEL =
+  '<span class="button-mark" aria-hidden="true">' +
+  '<svg viewBox="0 0 16 16" width="11" height="11" fill="currentColor">' +
+  '<path d="M4.5 2.6v10.8a.8.8 0 0 0 1.22.68l8.5-5.4a.8.8 0 0 0 0-1.36L5.72 1.92A.8.8 0 0 0 4.5 2.6Z"/>' +
+  "</svg></span>Run benchmark";
 
 async function fetchJson(url, options) {
   const response = await fetch(url, options);
@@ -61,14 +72,12 @@ function resultKey(result) {
 }
 
 function currentFilters() {
-  const checkedModels = [...els.modelFilters.querySelectorAll("input:checked")].map(
-    (input) => input.value
-  );
+  const selectedModel = els.modelFilters.querySelector("input:checked");
   const checkedConditions = [...els.conditionFilters.querySelectorAll("input:checked")].map(
     (input) => input.value
   );
   return {
-    modelIds: checkedModels,
+    modelIds: selectedModel ? [selectedModel.value] : [],
     controlConditions: checkedConditions,
     category: els.categoryFilter.value,
     scenarioId: els.scenarioFilter.value,
@@ -84,17 +93,47 @@ function currentFilters() {
   };
 }
 
-const BYOK_MODEL_PLACEHOLDER = {
-  openai: "e.g. gpt-4o",
-  anthropic: "e.g. claude-sonnet-4-6",
+// Curated per-provider model lists for the bring-your-own-key dropdown. The
+// chosen value is passed straight through to the provider API as the model
+// name, so keep these in sync with what each provider currently serves.
+const BYOK_MODELS = {
+  openai: ["gpt-4o", "gpt-4o-mini", "gpt-4.1", "gpt-4.1-mini", "o4-mini", "o3"],
+  anthropic: ["claude-opus-4-8", "claude-sonnet-4-6", "claude-haiku-4-5-20251001"],
 };
+
+const BYOK_KEY_PLACEHOLDER = {
+  openai: "sk-...",
+  anthropic: "sk-ant-...",
+};
+
+function populateByokModels() {
+  if (!els.byokModel || !els.byokProvider) return;
+  const previous = els.byokModel.value;
+  const models = BYOK_MODELS[els.byokProvider.value] || [];
+  els.byokModel.innerHTML = models
+    .map((modelName) => `<option value="${modelName}">${modelName}</option>`)
+    .join("");
+  if (models.includes(previous)) {
+    els.byokModel.value = previous;
+  }
+}
 
 function syncByokUi() {
   if (!els.byokFields) return;
-  els.byokFields.hidden = !els.byokEnabled.checked;
-  if (els.byokModel) {
-    els.byokModel.placeholder = BYOK_MODEL_PLACEHOLDER[els.byokProvider.value] || "model name";
+  const enabled = els.byokEnabled.checked;
+  els.byokFields.hidden = !enabled;
+  populateByokModels();
+  if (els.byokKey && els.byokProvider) {
+    els.byokKey.placeholder = BYOK_KEY_PLACEHOLDER[els.byokProvider.value] || "API key";
   }
+  // With your own key the model comes from the key section, so the top model
+  // picker would only conflict — disable it and explain why.
+  els.modelFilters
+    .querySelectorAll("input")
+    .forEach((input) => (input.disabled = enabled));
+  if (els.modelGroup) els.modelGroup.classList.toggle("is-disabled", enabled);
+  if (els.modelPickerHint) els.modelPickerHint.hidden = enabled;
+  if (els.modelOverrideNote) els.modelOverrideNote.hidden = !enabled;
 }
 
 function visibleResults() {
@@ -146,7 +185,7 @@ function renderModels() {
     .map(
       ([modelId, model]) => `
         <label class="agent-check" title="${model.description}">
-          <input type="checkbox" value="${modelId}" ${modelId === "openai" ? "checked" : ""}>
+          <input type="radio" name="modelChoice" value="${modelId}" ${modelId === "openai" ? "checked" : ""}>
           <span>${model.name}</span>
         </label>
       `
@@ -456,7 +495,7 @@ async function runBenchmark() {
     renderAll();
   } finally {
     els.runButton.disabled = false;
-    els.runButton.innerHTML = '<span class="button-mark">></span>Run benchmark';
+    els.runButton.innerHTML = RUN_BUTTON_LABEL;
   }
 }
 

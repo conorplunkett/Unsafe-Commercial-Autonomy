@@ -255,6 +255,10 @@ h2 {
   background: rgba(255, 255, 255, 0.18);
 }
 
+.button-mark svg {
+  display: block;
+}
+
 .control-band,
 .result-panel,
 .detail-panel,
@@ -269,7 +273,7 @@ h2 {
 .control-band {
   display: grid;
   grid-template-columns: minmax(220px, 0.8fr) minmax(260px, 1fr) minmax(160px, 220px) minmax(220px, 300px);
-  align-items: end;
+  align-items: start;
   gap: 18px;
   padding: 16px;
 }
@@ -278,6 +282,7 @@ h2 {
   display: grid;
   gap: 8px;
   min-width: 0;
+  align-content: start;
 }
 
 .control-group > label {
@@ -285,6 +290,21 @@ h2 {
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
+}
+
+.control-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.provider-group.is-disabled .checkbox-grid {
+  opacity: 0.5;
+}
+
+.model-override-note {
+  color: var(--accent);
 }
 
 select,
@@ -334,6 +354,14 @@ input[type="password"] {
 
 .byok-key-group {
   grid-column: 1 / -1;
+}
+
+.byok-subtitle {
+  margin: -4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+  max-width: 70ch;
 }
 
 .byok-note {
