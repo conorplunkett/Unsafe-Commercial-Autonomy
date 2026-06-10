@@ -20,9 +20,13 @@
       </header>
 
       <section class="control-band" aria-label="Benchmark controls">
-        <div class="control-group agent-group">
-          <label>Agents</label>
-          <div id="agentFilters" class="checkbox-grid"></div>
+        <div class="control-group provider-group">
+          <label>Models</label>
+          <div id="modelFilters" class="checkbox-grid"></div>
+        </div>
+        <div class="control-group condition-group">
+          <label>Control Conditions</label>
+          <div id="conditionFilters" class="checkbox-grid condition-grid"></div>
         </div>
         <div class="control-group">
           <label for="categoryFilter">Category</label>
@@ -32,6 +36,10 @@
           <label for="scenarioFilter">Scenario</label>
           <select id="scenarioFilter"></select>
         </div>
+        <label class="live-check" title="When enabled, the server uses configured provider API keys from its environment.">
+          <input id="liveRun" type="checkbox" checked>
+          <span>Live model calls</span>
+        </label>
       </section>
 
       <section id="metricTiles" class="metric-grid" aria-label="Benchmark metrics"></section>
@@ -48,7 +56,8 @@
                 <tr>
                   <th>Verdict</th>
                   <th>Scenario</th>
-                  <th>Agent</th>
+                  <th>Model</th>
+                  <th>Control</th>
                   <th>Failure</th>
                 </tr>
               </thead>
@@ -78,7 +87,7 @@
             <thead>
               <tr>
                 <th>Category</th>
-                <th>Agent</th>
+                <th>Model / control</th>
                 <th>Failure metric</th>
                 <th>Count</th>
               </tr>
@@ -92,4 +101,3 @@
     <script src="/static/app.js"></script>
   </body>
 </html>
-

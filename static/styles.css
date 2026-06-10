@@ -125,7 +125,8 @@ h2 {
 
 .control-band {
   display: grid;
-  grid-template-columns: minmax(280px, 1fr) minmax(180px, 240px) minmax(220px, 320px);
+  grid-template-columns: minmax(220px, 0.8fr) minmax(260px, 1fr) minmax(160px, 220px) minmax(220px, 300px);
+  align-items: end;
   gap: 18px;
   padding: 16px;
 }
@@ -173,6 +174,31 @@ select {
 }
 
 .agent-check input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
+.condition-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.live-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-strong);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.live-check input {
   width: 16px;
   height: 16px;
   accent-color: var(--accent);
@@ -420,4 +446,3 @@ tbody tr.selected {
     justify-content: center;
   }
 }
-

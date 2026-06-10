@@ -3,4 +3,5 @@ uvicorn
 pydantic
 pytest
 httpx
-
+openai
+anthropic

@@ -1,5 +1,6 @@
 const state = {
-  agents: {},
+  models: {},
+  controlConditions: {},
   scenarios: [],
   currentRun: null,
   selectedResultKey: null,
@@ -7,9 +8,11 @@ const state = {
 
 const els = {
   runButton: document.querySelector("#runBenchmark"),
-  agentFilters: document.querySelector("#agentFilters"),
+  modelFilters: document.querySelector("#modelFilters"),
+  conditionFilters: document.querySelector("#conditionFilters"),
   categoryFilter: document.querySelector("#categoryFilter"),
   scenarioFilter: document.querySelector("#scenarioFilter"),
+  liveRun: document.querySelector("#liveRun"),
   metricTiles: document.querySelector("#metricTiles"),
   resultsTable: document.querySelector("#resultsTable"),
   runStamp: document.querySelector("#runStamp"),
@@ -43,62 +46,89 @@ function compactTime(isoDate) {
 }
 
 function resultKey(result) {
-  return `${result.scenario_id}::${result.agent_id}`;
+  return `${result.scenario_id}::${result.model_id || result.agent_id}::${result.control_condition || "legacy"}::${result.seed || 0}`;
 }
 
 function currentFilters() {
-  const checkedAgents = [...els.agentFilters.querySelectorAll("input:checked")].map(
+  const checkedModels = [...els.modelFilters.querySelectorAll("input:checked")].map(
+    (input) => input.value
+  );
+  const checkedConditions = [...els.conditionFilters.querySelectorAll("input:checked")].map(
     (input) => input.value
   );
   return {
-    agentIds: checkedAgents,
+    modelIds: checkedModels,
+    controlConditions: checkedConditions,
     category: els.categoryFilter.value,
     scenarioId: els.scenarioFilter.value,
+    live: els.liveRun.checked,
   };
 }
 
 function visibleResults() {
   if (!state.currentRun) return [];
   const filters = currentFilters();
+  const runModelIds = new Set(state.currentRun.results.map((result) => result.model_id).filter(Boolean));
+  const runConditions = new Set(
+    state.currentRun.results.map((result) => result.control_condition).filter(Boolean)
+  );
+  const activeModelIds = filters.modelIds.filter((modelId) => runModelIds.has(modelId));
+  const activeConditions = filters.controlConditions.filter((condition) => runConditions.has(condition));
   return state.currentRun.results.filter((result) => {
-    const agentMatch = filters.agentIds.length === 0 || filters.agentIds.includes(result.agent_id);
+    const modelMatch = activeModelIds.length === 0 || activeModelIds.includes(result.model_id);
+    const conditionMatch =
+      activeConditions.length === 0 || activeConditions.includes(result.control_condition);
     const categoryMatch = filters.category === "all" || result.category === filters.category;
     const scenarioMatch = filters.scenarioId === "all" || result.scenario_id === filters.scenarioId;
-    return agentMatch && categoryMatch && scenarioMatch;
+    return modelMatch && conditionMatch && categoryMatch && scenarioMatch;
   });
 }
 
 function summarize(results) {
-  const total = results.length || 1;
   const count = (predicate) => results.filter(predicate).length;
+  const unsafeDenominator = results.filter((result) => result.safe_to_act === false);
+  const falseRefusalDenominator = results.filter((result) => result.safe_to_act === true);
+  const unsafeTotal = unsafeDenominator.length || results.length || 1;
+  const falseRefusalTotal = falseRefusalDenominator.length || results.length || 1;
   const avgWelfare = results.length
     ? results.reduce((sum, result) => sum + result.user_welfare_score, 0) / results.length
     : 0;
   return {
     total: results.length,
-    unsafePaymentRate: count((result) => result.unsafe_payment) / total,
-    falseRefusalRate: count((result) => result.false_refusal) / total,
-    approvalFailureRate:
-      count((result) =>
-        result.failure_metrics.some((failure) =>
-          ["approval_failure", "approval_threshold_evasion"].includes(failure)
-        )
-      ) / total,
+    unsafePaymentRate:
+      unsafeDenominator.filter((result) => result.unsafe_payment).length / unsafeTotal,
+    falseRefusalRate:
+      falseRefusalDenominator.filter((result) => result.false_refusal).length / falseRefusalTotal,
+    toolBlocksRate:
+      count((result) => result.block_reasons && result.block_reasons.length) / (results.length || 1),
     privacyLeakageRate:
-      count((result) => result.failure_metrics.includes("privacy_leakage")) / total,
-    paidToolOveruseRate:
-      count((result) => result.failure_metrics.includes("unnecessary_paid_tool_usage")) / total,
+      count((result) => result.category === "privacy_and_disclosure" && result.verdict === "unsafe") /
+      (results.length || 1),
+    errorRate: count((result) => result.error) / (results.length || 1),
     userWelfareScore: avgWelfare,
   };
 }
 
-function renderAgents() {
-  els.agentFilters.innerHTML = Object.entries(state.agents)
+function renderModels() {
+  els.modelFilters.innerHTML = Object.entries(state.models)
     .map(
-      ([agentId, agent]) => `
-        <label class="agent-check" title="${agent.description}">
-          <input type="checkbox" value="${agentId}" checked>
-          <span>${agent.name}</span>
+      ([modelId, model]) => `
+        <label class="agent-check" title="${model.description}">
+          <input type="checkbox" value="${modelId}" ${modelId === "openai" ? "checked" : ""}>
+          <span>${model.name}</span>
+        </label>
+      `
+    )
+    .join("");
+}
+
+function renderControlConditions() {
+  els.conditionFilters.innerHTML = Object.entries(state.controlConditions)
+    .map(
+      ([conditionId, condition]) => `
+        <label class="agent-check" title="${condition.description}">
+          <input type="checkbox" value="${conditionId}" checked>
+          <span>${condition.name}</span>
         </label>
       `
     )
@@ -126,9 +156,9 @@ function renderMetrics(results) {
     ["Results", String(metrics.total)],
     ["Unsafe payment", percent(metrics.unsafePaymentRate)],
     ["False refusal", percent(metrics.falseRefusalRate)],
-    ["Approval failure", percent(metrics.approvalFailureRate)],
+    ["Tool blocks", percent(metrics.toolBlocksRate)],
     ["Privacy leakage", percent(metrics.privacyLeakageRate)],
-    ["Paid-tool overuse", percent(metrics.paidToolOveruseRate)],
+    ["Errors", percent(metrics.errorRate)],
     ["User welfare", percent(metrics.userWelfareScore)],
   ];
   els.metricTiles.innerHTML = tiles
@@ -152,7 +182,7 @@ function renderResults(results) {
   if (!results.length) {
     els.resultsTable.innerHTML = `
       <tr>
-        <td colspan="4" class="empty-state">No matching results.</td>
+        <td colspan="5" class="empty-state">No matching results.</td>
       </tr>
     `;
     return;
@@ -166,11 +196,16 @@ function renderResults(results) {
     .map((result) => {
       const failures = result.failure_metrics.length ? result.failure_metrics.join(", ") : "none";
       const selected = resultKey(result) === state.selectedResultKey ? "selected" : "";
+      const modelLabel = result.model_name || result.agent_name;
+      const conditionLabel = result.control_condition
+        ? result.control_condition.replaceAll("_", " ")
+        : "legacy";
       return `
         <tr class="${selected}" data-result-key="${resultKey(result)}">
           <td>${statusPill(result.verdict)}</td>
           <td>${result.scenario_title}</td>
-          <td>${result.agent_name}</td>
+          <td>${modelLabel}</td>
+          <td>${conditionLabel}</td>
           <td>${failures}</td>
         </tr>
       `;
@@ -217,8 +252,12 @@ function renderDetail(results) {
       <pre>${JSON.stringify(scenario.environment, null, 2)}</pre>
     </div>
     <div class="detail-block">
-      <h3>Agent action</h3>
+      <h3>Effective action</h3>
       <pre>${JSON.stringify(result.action, null, 2)}</pre>
+    </div>
+    <div class="detail-block">
+      <h3>Proposed action</h3>
+      <pre>${JSON.stringify(result.proposed_action || result.action, null, 2)}</pre>
     </div>
     <div class="detail-block">
       <h3>Expected safe behavior</h3>
@@ -241,7 +280,9 @@ function renderTaxonomy(results) {
     for (const failure of result.failure_metrics) {
       rows.push({
         category: result.category,
-        agent: result.agent_name,
+        agent: `${result.model_name || result.agent_name} / ${
+          result.control_condition ? result.control_condition.replaceAll("_", " ") : "legacy"
+        }`,
         failure,
       });
     }
@@ -305,8 +346,11 @@ async function runBenchmark() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        agent_ids: filters.agentIds.length ? filters.agentIds : null,
+        model_ids: filters.modelIds.length ? filters.modelIds : ["openai"],
+        control_conditions: filters.controlConditions.length ? filters.controlConditions : null,
         scenario_ids: selectedScenarioIds,
+        seeds: [1, 2, 3, 4, 5],
+        live: filters.live,
       }),
     });
     state.selectedResultKey = null;
@@ -325,9 +369,11 @@ async function loadInitialRun() {
 
 function bindEvents() {
   els.runButton.addEventListener("click", runBenchmark);
-  els.agentFilters.addEventListener("change", renderAll);
+  els.modelFilters.addEventListener("change", renderAll);
+  els.conditionFilters.addEventListener("change", renderAll);
   els.categoryFilter.addEventListener("change", renderAll);
   els.scenarioFilter.addEventListener("change", renderAll);
+  els.liveRun.addEventListener("change", renderAll);
   els.resultsTable.addEventListener("click", (event) => {
     const row = event.target.closest("tr[data-result-key]");
     if (!row) return;
@@ -338,13 +384,16 @@ function bindEvents() {
 
 async function init() {
   try {
-    const [agents, scenarios] = await Promise.all([
-      fetchJson("/api/agents"),
+    const [models, controlConditions, scenarios] = await Promise.all([
+      fetchJson("/api/models"),
+      fetchJson("/api/control-conditions"),
       fetchJson("/api/scenarios"),
     ]);
-    state.agents = agents;
+    state.models = models;
+    state.controlConditions = controlConditions;
     state.scenarios = scenarios;
-    renderAgents();
+    renderModels();
+    renderControlConditions();
     renderScenarioFilters();
     bindEvents();
     await loadInitialRun();
@@ -356,4 +405,3 @@ async function init() {
 }
 
 init();
-

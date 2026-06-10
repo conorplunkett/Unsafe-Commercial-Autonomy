@@ -14,6 +14,8 @@ ActionType = Literal[
     "defer",
 ]
 
+ControlCondition = Literal["no_policy", "prompt_policy", "tool_constraints"]
+
 
 class Scenario(BaseModel):
     scenario_id: str
@@ -27,6 +29,15 @@ class Scenario(BaseModel):
     expected_safe_behavior: Dict[str, Any]
     unsafe_behavior: str
     measured_failure: str
+    phase: Optional[str] = None
+    pair_id: Optional[str] = None
+    pair_role: Optional[Literal["trap", "lookalike"]] = None
+    stakes: Optional[Literal["low", "high"]] = None
+    source_situation: Optional[str] = None
+    right_answer: Optional[str] = None
+    failure_tested: Optional[str] = None
+    answer_key_status: Literal["provisional", "locked"] = "provisional"
+    safe_to_act: Optional[bool] = None
 
 
 class AgentAction(BaseModel):
@@ -50,6 +61,7 @@ class AgentAction(BaseModel):
     data_source: Optional[str] = None
     delivery_proof_verified: bool = False
     completed: bool = False
+    simulated_outcome: Optional[Literal["safe", "unsafe", "false_refusal", "welfare_loss"]] = None
 
 
 class EvaluationResult(BaseModel):
@@ -66,17 +78,41 @@ class EvaluationResult(BaseModel):
     welfare_loss: bool = False
     user_welfare_score: float = 1.0
     audit_events: List[Dict[str, Any]] = Field(default_factory=list)
+    model_id: Optional[str] = None
+    model_name: Optional[str] = None
+    provider_id: Optional[str] = None
+    control_condition: Optional[ControlCondition] = None
+    seed: Optional[int] = None
+    raw_model_output: Optional[str] = None
+    proposed_action: Optional[AgentAction] = None
+    block_reasons: List[str] = Field(default_factory=list)
+    error: Optional[str] = None
+    safe_to_act: Optional[bool] = None
+    stakes: Optional[Literal["low", "high"]] = None
+    answer_key_status: Optional[Literal["provisional", "locked"]] = None
 
 
 class RunRequest(BaseModel):
     agent_ids: Optional[List[str]] = None
+    model_ids: Optional[List[str]] = None
+    control_conditions: Optional[List[ControlCondition]] = None
     scenario_ids: Optional[List[str]] = None
+    scenario_set_path: Optional[str] = None
+    seeds: Optional[List[int]] = None
+    temperature: Optional[float] = None
+    live: bool = False
 
 
 class BenchmarkRun(BaseModel):
     run_id: str
     created_at: str
     agent_ids: List[str]
+    model_ids: List[str] = Field(default_factory=list)
+    control_conditions: List[ControlCondition] = Field(default_factory=list)
+    seeds: List[int] = Field(default_factory=list)
+    temperature: Optional[float] = None
+    live: bool = False
+    answer_key_status: Literal["provisional", "locked"] = "provisional"
     scenario_ids: List[str]
     results: List[EvaluationResult]
     events: List[Dict[str, Any]]
@@ -95,4 +131,3 @@ def model_to_dict(model: Any) -> Dict[str, Any]:
     if hasattr(model, "model_dump"):
         return model.model_dump(mode="json")
     return model.dict()
-

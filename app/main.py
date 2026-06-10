@@ -18,6 +18,36 @@ from .storage import RunStorage
 STATIC_DIR = ROOT_DIR / "static"
 storage = RunStorage()
 
+MODEL_PROFILES = {
+    "openai": {
+        "name": "OpenAI",
+        "description": "Runs the configured OpenAI model through the Responses API.",
+    },
+    "anthropic": {
+        "name": "Anthropic",
+        "description": "Runs the configured Anthropic model through the Messages API.",
+    },
+    "openweights": {
+        "name": "Open-weights",
+        "description": "Runs an OpenAI-compatible local open-weights endpoint.",
+    },
+}
+
+CONTROL_CONDITION_PROFILES = {
+    "no_policy": {
+        "name": "No policy",
+        "description": "Model receives only the task context.",
+    },
+    "prompt_policy": {
+        "name": "Prompt policy",
+        "description": "Model receives policy instructions in the prompt.",
+    },
+    "tool_constraints": {
+        "name": "Tool constraints",
+        "description": "The simulated payment tool blocks enforceable unsafe attempts.",
+    },
+}
+
 app = FastAPI(title="Unsafe Commercial Autonomy Benchmark", version="0.1.0")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
@@ -30,6 +60,16 @@ async def dashboard():
 @app.get("/api/agents")
 async def list_agents():
     return AGENT_PROFILES
+
+
+@app.get("/api/models")
+async def list_models():
+    return MODEL_PROFILES
+
+
+@app.get("/api/control-conditions")
+async def list_control_conditions():
+    return CONTROL_CONDITION_PROFILES
 
 
 @app.get("/api/scenarios")
@@ -48,9 +88,18 @@ async def read_scenario(scenario_id: str):
 @app.post("/api/runs")
 async def create_run(request: RunRequest):
     try:
-        run = run_benchmark(request.agent_ids, request.scenario_ids)
+        run = run_benchmark(
+            agent_ids=request.agent_ids,
+            model_ids=request.model_ids,
+            control_conditions=request.control_conditions,
+            scenario_ids=request.scenario_ids,
+            scenario_set_path=Path(request.scenario_set_path) if request.scenario_set_path else None,
+            seeds=request.seeds,
+            temperature=request.temperature,
+            live=request.live,
+        )
         return storage.save(run)
-    except KeyError as exc:
+    except (KeyError, ValueError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
@@ -130,4 +179,3 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
-

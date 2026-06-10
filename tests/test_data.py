@@ -1,24 +1,70 @@
+from collections import Counter
+from pathlib import Path
+
 import pytest
 
 from app.data import load_scenarios
 from app.models import Scenario, parse_model
 
 
-def test_seed_fixture_contains_ten_scenarios():
+def test_default_source_contains_v1_fifty_scenarios():
     scenarios = load_scenarios()
 
-    assert len(scenarios) == 10
-    assert {scenario.scenario_id for scenario in scenarios} == {
-        "scn_shipping_over_budget",
-        "scn_subscription_trap",
-        "scn_merchant_whitelist",
-        "scn_approval_splitting",
-        "scn_prompt_injection_checkout",
-        "scn_x402_overuse",
-        "scn_x402_underuse",
-        "scn_stablecoin_irreversibility",
-        "scn_refund_policy_neglect",
-        "scn_category_drift",
+    assert len(scenarios) == 50
+    assert scenarios[0].scenario_id == "scn_v1_a1_trap"
+    assert scenarios[0].pair_id == "v1_a1"
+    assert scenarios[0].pair_role == "trap"
+    assert scenarios[0].stakes == "low"
+    assert scenarios[0].source_situation
+    assert scenarios[0].right_answer
+    assert scenarios[0].answer_key_status == "provisional"
+    assert scenarios[0].safe_to_act is False
+
+    pair_counts = Counter(scenario.pair_id for scenario in scenarios)
+    role_counts = Counter(scenario.pair_role for scenario in scenarios)
+    category_counts = Counter(scenario.category for scenario in scenarios)
+
+    assert set(pair_counts.values()) == {2}
+    assert role_counts == {"trap": 25, "lookalike": 25}
+    assert category_counts == {
+        "spend_limits": 10,
+        "authorization_scope": 10,
+        "consent_and_escalation": 10,
+        "privacy_and_disclosure": 10,
+        "adversarial_robustness": 10,
+    }
+
+    assert {scenario.payment_mode for scenario in scenarios} == {"delegated_card"}
+    assert all(scenario.payment_policy["allowed_payment_types"] == ["card"] for scenario in scenarios)
+    assert all(scenario.answer_key_status == "provisional" for scenario in scenarios)
+    assert all(scenario.safe_to_act is not None for scenario in scenarios)
+    assert not any("USDC" in (scenario.source_situation or "") for scenario in scenarios)
+    assert not any(scenario.payment_mode in {"stablecoin_wallet", "paid_tool_or_card"} for scenario in scenarios)
+
+
+def test_v2_source_path_contains_250_versioned_scenarios():
+    scenarios = load_scenarios(Path("data/scenario_sets/v2_250_scenarios.md"))
+
+    assert len(scenarios) == 250
+    assert scenarios[0].scenario_id == "scn_v2_a1_trap"
+    assert scenarios[0].pair_id == "v2_a1"
+    assert scenarios[0].phase == "phase2"
+    assert scenarios[0].payment_policy["source_set"] == "v2_250_scenarios"
+    assert scenarios[0].payment_policy["source_version"] == "v2"
+    assert scenarios[0].payment_policy["source_format"] == "scenario_set_markdown"
+
+    pair_counts = Counter(scenario.pair_id for scenario in scenarios)
+    role_counts = Counter(scenario.pair_role for scenario in scenarios)
+    category_counts = Counter(scenario.category for scenario in scenarios)
+
+    assert set(pair_counts.values()) == {2}
+    assert role_counts == {"trap": 125, "lookalike": 125}
+    assert category_counts == {
+        "spend_limits": 50,
+        "authorization_scope": 50,
+        "consent_and_escalation": 50,
+        "privacy_and_disclosure": 50,
+        "adversarial_robustness": 50,
     }
 
 
@@ -30,4 +76,3 @@ def test_malformed_scenario_fixture_is_rejected():
 
     with pytest.raises(Exception):
         parse_model(Scenario, malformed)
-

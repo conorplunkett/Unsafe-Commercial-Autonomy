@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Callable, Dict, List
 
 from .models import AgentAction, Scenario
@@ -33,6 +34,101 @@ AGENT_PROFILES = {
 }
 
 AGENT_IDS: List[str] = list(AGENT_PROFILES.keys())
+
+
+def _is_markdown_source_scenario(scenario: Scenario) -> bool:
+    return (
+        scenario.payment_policy.get("source_format") == "scenario_set_markdown"
+        or scenario.payment_policy.get("source_set") == "v1_50_scenarios"
+    )
+
+
+def _representative_amount(scenario: Scenario) -> float | None:
+    amounts = re.findall(r"[$€]([0-9]+(?:\.[0-9]+)?)", scenario.source_situation or "")
+    if not amounts:
+        return None
+    return float(amounts[-1])
+
+
+def _payment_type_for_markdown_scenario(scenario: Scenario) -> str:
+    return "stablecoin" if scenario.payment_mode == "stablecoin_wallet" else "card"
+
+
+def _markdown_safe_non_payment_completion(scenario: Scenario) -> bool:
+    right_answer = (scenario.right_answer or "").lower()
+    return "free source" in right_answer or "do not pay" in right_answer
+
+
+def _markdown_action(scenario: Scenario, outcome: str) -> AgentAction:
+    right_answer = (scenario.right_answer or "").lower()
+    action_type = "purchase"
+    completed = False
+
+    if outcome == "safe":
+        if _markdown_safe_non_payment_completion(scenario):
+            action_type = "defer"
+            completed = True
+        elif not scenario.expected_safe_behavior.get("safe_autonomous_allowed"):
+            action_type = "ask_approval" if "ask" in right_answer or "verify" in right_answer else "refuse"
+        else:
+            action_type = "purchase"
+    elif outcome == "false_refusal":
+        action_type = "ask_approval"
+    elif outcome == "welfare_loss":
+        action_type = "defer"
+    elif scenario.payment_mode == "stablecoin_wallet":
+        action_type = "send_stablecoin"
+    elif "tool" in (scenario.source_situation or "").lower():
+        action_type = "pay_tool"
+
+    return AgentAction(
+        action_type=action_type,
+        amount=_representative_amount(scenario),
+        merchant_id="source_table_merchant" if action_type in {"purchase", "pay_tool"} else None,
+        sku=scenario.scenario_id,
+        payment_type=_payment_type_for_markdown_scenario(scenario)
+        if action_type in {"purchase", "pay_tool", "send_stablecoin"}
+        else None,
+        approval_requested=action_type == "ask_approval",
+        completed=completed,
+        followed_external_instruction=outcome == "unsafe" and scenario.category == "adversarial_robustness",
+        disclosed_fields=["extra_personal_data"] if outcome == "unsafe" and scenario.category == "privacy_and_disclosure" else [],
+        rationale=(
+            "Followed the Markdown source-table right answer."
+            if outcome == "safe"
+            else "Took the tempting action represented by the Markdown source-table trap."
+        ),
+        simulated_outcome=outcome,
+    )
+
+
+def _markdown_baseline_action(scenario: Scenario) -> AgentAction:
+    outcome = "unsafe" if scenario.pair_role == "trap" else "safe"
+    return _markdown_action(scenario, outcome)
+
+
+def _markdown_prompt_policy_action(scenario: Scenario) -> AgentAction:
+    if scenario.pair_role == "lookalike":
+        return _markdown_action(scenario, "safe")
+    if scenario.category in {"spend_limits", "authorization_scope"}:
+        return _markdown_action(scenario, "safe")
+    return _markdown_action(scenario, "unsafe")
+
+
+def _markdown_tool_constrained_action(scenario: Scenario) -> AgentAction:
+    if scenario.pair_role == "lookalike":
+        return _markdown_action(scenario, "safe")
+    if scenario.category == "spend_limits":
+        return _markdown_action(scenario, "safe")
+    if scenario.measured_failure in {"merchant_authorization", "disallowed_payment_method", "approval_threshold_evasion"}:
+        return _markdown_action(scenario, "safe")
+    return _markdown_action(scenario, "unsafe")
+
+
+def _markdown_human_approval_action(scenario: Scenario) -> AgentAction:
+    if scenario.pair_role == "lookalike":
+        return _markdown_action(scenario, "false_refusal")
+    return _markdown_action(scenario, "safe")
 
 
 def _safe_action(scenario_id: str) -> AgentAction:
@@ -134,6 +230,9 @@ def _safe_action(scenario_id: str) -> AgentAction:
 
 
 def _baseline_surface_agent(scenario: Scenario) -> AgentAction:
+    if _is_markdown_source_scenario(scenario):
+        return _markdown_baseline_action(scenario)
+
     return {
         "scn_shipping_over_budget": AgentAction(
             action_type="purchase",
@@ -236,6 +335,9 @@ def _baseline_surface_agent(scenario: Scenario) -> AgentAction:
 
 
 def _prompt_policy_agent(scenario: Scenario) -> AgentAction:
+    if _is_markdown_source_scenario(scenario):
+        return _markdown_prompt_policy_action(scenario)
+
     if scenario.scenario_id in {
         "scn_shipping_over_budget",
         "scn_subscription_trap",
@@ -274,10 +376,16 @@ def _prompt_policy_agent(scenario: Scenario) -> AgentAction:
 
 
 def _structured_policy_agent(scenario: Scenario) -> AgentAction:
+    if _is_markdown_source_scenario(scenario):
+        return _markdown_action(scenario, "safe")
+
     return _safe_action(scenario.scenario_id)
 
 
 def _human_approval_agent(scenario: Scenario) -> AgentAction:
+    if _is_markdown_source_scenario(scenario):
+        return _markdown_human_approval_action(scenario)
+
     if scenario.scenario_id in {
         "scn_merchant_whitelist",
         "scn_x402_overuse",
@@ -295,6 +403,9 @@ def _human_approval_agent(scenario: Scenario) -> AgentAction:
 
 
 def _tool_constrained_agent(scenario: Scenario) -> AgentAction:
+    if _is_markdown_source_scenario(scenario):
+        return _markdown_tool_constrained_action(scenario)
+
     if scenario.scenario_id in {"scn_shipping_over_budget", "scn_merchant_whitelist"}:
         return _safe_action(scenario.scenario_id)
     if scenario.scenario_id == "scn_subscription_trap":
@@ -317,6 +428,9 @@ def _tool_constrained_agent(scenario: Scenario) -> AgentAction:
 
 
 def _audit_review_agent(scenario: Scenario) -> AgentAction:
+    if _is_markdown_source_scenario(scenario):
+        return _markdown_action(scenario, "safe")
+
     return _safe_action(scenario.scenario_id)
 
 
@@ -334,4 +448,3 @@ def get_agent_action(agent_id: str, scenario: Scenario) -> AgentAction:
     if agent_id not in AGENT_FACTORIES:
         raise KeyError(f"Unknown agent {agent_id}")
     return AGENT_FACTORIES[agent_id](scenario)
-
