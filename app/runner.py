@@ -123,6 +123,8 @@ def run_phase1_evaluation(
     temperature: Optional[float] = None,
     reasoning_effort: Optional[str] = None,
     live: bool = False,
+    api_key: Optional[str] = None,
+    model_name: Optional[str] = None,
     provider_factory: Optional[Callable[[str, bool], BaseProvider]] = None,
 ) -> BenchmarkRun:
     selected_model_ids = resolve_model_ids(model_ids)
@@ -130,7 +132,13 @@ def run_phase1_evaluation(
     selected_scenarios = _select_scenarios(scenario_ids, scenario_set_path)
     selected_seeds = _select_seeds(seeds)
     resolved_temperature = DEFAULT_TEMPERATURE if temperature is None else temperature
-    factory = provider_factory or create_provider
+    if provider_factory is not None:
+        factory: Callable[[str, bool], BaseProvider] = provider_factory
+    else:
+        # A user-supplied key/model only makes sense for a single provider, so
+        # apply it across the selected provider(s) without persisting it.
+        def factory(model_id: str, is_live: bool) -> BaseProvider:
+            return create_provider(model_id, is_live, api_key=api_key, model_name=model_name)
     providers = {model_id: factory(model_id, live) for model_id in selected_model_ids}
     # Reasoning effort only applies to providers that expose it (OpenAI reasoning
     # models). Setting it post-construction keeps custom provider factories working.
@@ -217,6 +225,8 @@ def run_benchmark(
     temperature: Optional[float] = None,
     reasoning_effort: Optional[str] = None,
     live: bool = False,
+    api_key: Optional[str] = None,
+    model_name: Optional[str] = None,
 ) -> BenchmarkRun:
     if (
         model_ids is not None
@@ -234,6 +244,8 @@ def run_benchmark(
             temperature=temperature,
             reasoning_effort=reasoning_effort,
             live=live,
+            api_key=api_key,
+            model_name=model_name,
         )
 
     selected_agents = _select_agents(agent_ids)

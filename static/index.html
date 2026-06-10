@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Unsafe Commercial Autonomy Benchmark</title>
-    <link rel="stylesheet" href="/static/styles.css?v=2">
+    <link rel="stylesheet" href="/static/styles.css?v=3">
   </head>
   <body>
     <div class="app-shell">
@@ -103,6 +103,34 @@
           </label>
         </section>
 
+        <section class="byok-band" aria-label="Bring your own key">
+          <label class="byok-toggle" title="Run one provider live with your own API key. The key is sent only for this run and is never stored.">
+            <input id="byokEnabled" type="checkbox">
+            <span>Test with my own API key</span>
+          </label>
+          <div id="byokFields" class="byok-fields" hidden>
+            <div class="control-group">
+              <label for="byokProvider">Provider</label>
+              <select id="byokProvider">
+                <option value="openai">OpenAI</option>
+                <option value="anthropic">Anthropic</option>
+              </select>
+            </div>
+            <div class="control-group">
+              <label for="byokModel">Model</label>
+              <input id="byokModel" type="text" placeholder="e.g. gpt-4o" autocomplete="off">
+            </div>
+            <div class="control-group byok-key-group">
+              <label for="byokKey">API key</label>
+              <input id="byokKey" type="password" placeholder="sk-..." autocomplete="off" spellcheck="false">
+            </div>
+            <p class="byok-note">
+              You can only test one model at a time with your own key. The key is
+              sent to this server for the run only and is never stored.
+            </p>
+          </div>
+        </section>
+
         <section id="metricTiles" class="metric-grid" aria-label="Benchmark metrics"></section>
 
         <main class="content-grid">
@@ -160,6 +188,6 @@
       </div>
     </div>
 
-    <script src="/static/app.js?v=2"></script>
+    <script src="/static/app.js?v=3"></script>
   </body>
 </html>

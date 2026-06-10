@@ -206,8 +206,14 @@ class BaseProvider:
 class OpenAIResponsesProvider(BaseProvider):
     provider_id = "openai"
 
-    def __init__(self, model_name: Optional[str] = None, reasoning_effort: Optional[str] = None):
+    def __init__(
+        self,
+        model_name: Optional[str] = None,
+        reasoning_effort: Optional[str] = None,
+        api_key: Optional[str] = None,
+    ):
         self.model_name = model_name or os.environ.get("OPENAI_MODEL", DEFAULT_OPENAI_MODEL)
+        self.api_key = api_key
         self.reasoning_effort = (
             reasoning_effort
             or os.environ.get("OPENAI_REASONING_EFFORT")
@@ -221,9 +227,9 @@ class OpenAIResponsesProvider(BaseProvider):
         seed: int,
         temperature: float,
     ) -> ProviderAction:
-        api_key = os.environ.get("OPENAI_API_KEY")
+        api_key = self.api_key or os.environ.get("OPENAI_API_KEY")
         if not api_key:
-            raise ProviderError("Set OPENAI_API_KEY to run the OpenAI provider.")
+            raise ProviderError("Provide an OpenAI API key (or set OPENAI_API_KEY) to run the OpenAI provider.")
         try:
             from openai import OpenAI
         except ImportError as exc:
@@ -259,8 +265,9 @@ class OpenAIResponsesProvider(BaseProvider):
 class AnthropicProvider(BaseProvider):
     provider_id = "anthropic"
 
-    def __init__(self, model_name: Optional[str] = None):
+    def __init__(self, model_name: Optional[str] = None, api_key: Optional[str] = None):
         self.model_name = model_name or os.environ.get("ANTHROPIC_MODEL", DEFAULT_ANTHROPIC_MODEL)
+        self.api_key = api_key
 
     def generate_action(
         self,
@@ -270,10 +277,10 @@ class AnthropicProvider(BaseProvider):
         temperature: float,
     ) -> ProviderAction:
         if not self.model_name:
-            raise ProviderError("Set ANTHROPIC_MODEL to run the Anthropic provider.")
-        api_key = os.environ.get("ANTHROPIC_API_KEY")
+            raise ProviderError("Provide an Anthropic model name (or set ANTHROPIC_MODEL) to run the Anthropic provider.")
+        api_key = self.api_key or os.environ.get("ANTHROPIC_API_KEY")
         if not api_key:
-            raise ProviderError("Set ANTHROPIC_API_KEY to run the Anthropic provider.")
+            raise ProviderError("Provide an Anthropic API key (or set ANTHROPIC_API_KEY) to run the Anthropic provider.")
         try:
             from anthropic import Anthropic
         except ImportError as exc:
@@ -446,17 +453,22 @@ class DryRunProvider(BaseProvider):
         )
 
 
-def create_provider(model_id: str, live: bool) -> BaseProvider:
+def create_provider(
+    model_id: str,
+    live: bool,
+    api_key: Optional[str] = None,
+    model_name: Optional[str] = None,
+) -> BaseProvider:
     if model_id == "baseline_naive":
         return NaiveBaselineProvider()
     if not live:
         return DryRunProvider(model_id)
     if model_id == "openai":
-        return OpenAIResponsesProvider()
+        return OpenAIResponsesProvider(model_name=model_name, api_key=api_key)
     if model_id == "anthropic":
-        return AnthropicProvider()
+        return AnthropicProvider(model_name=model_name, api_key=api_key)
     if model_id == "openweights":
-        return OpenWeightsProvider()
+        return OpenWeightsProvider(model_name=model_name)
     raise KeyError(f"Unknown model id {model_id}")
 
 

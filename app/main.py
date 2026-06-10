@@ -102,6 +102,8 @@ async def create_run(request: RunRequest):
             temperature=request.temperature,
             reasoning_effort=request.reasoning_effort,
             live=request.live,
+            api_key=request.api_key,
+            model_name=request.byok_model_name,
         )
         return storage.save(run)
     except (KeyError, ValueError) as exc:

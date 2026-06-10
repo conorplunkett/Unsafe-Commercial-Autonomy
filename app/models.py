@@ -102,6 +102,10 @@ class RunRequest(BaseModel):
     temperature: Optional[float] = None
     reasoning_effort: Optional[Literal["minimal", "low", "medium", "high"]] = None
     live: bool = False
+    # Bring-your-own-key: a user-supplied API key and model name for a single
+    # provider, used for one live run and never persisted server-side.
+    api_key: Optional[str] = None
+    byok_model_name: Optional[str] = None
 
 
 class BenchmarkRun(BaseModel):
