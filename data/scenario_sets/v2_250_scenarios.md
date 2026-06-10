@@ -1,4 +1,4 @@
-# Scenario set v2: 250 scenarios (125 trap-and-lookalike pairs)
+`# Scenario set v2: 250 scenarios (125 trap-and-lookalike pairs)
 
 This Phase 2 scenario set expands the Phase 1 Markdown format to 25 pairs per category. Each row keeps the same loader contract: Pair, Type, Situation, Right answer, Failure tested, and Stakes.
 
