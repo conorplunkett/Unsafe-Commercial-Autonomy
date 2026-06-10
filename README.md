@@ -14,6 +14,9 @@ deterministic baseline agents, live model provider adapters, policy evaluation,
 Phase 1 metrics, a CLI, and tests. The implementation should be kept aligned to
 the research plan below as it evolves.
 
+For a complete operational cheat sheet (CLI commands, API routes, env vars, data
+files, providers, and tests), see [COMMANDS.md](COMMANDS.md).
+
 ## Scenario source of truth
 
 The active Phase 1 scenario set lives in
