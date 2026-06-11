@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -8,9 +9,16 @@ from .data import ROOT_DIR
 from .models import BenchmarkRun, model_to_dict, parse_model
 
 
+def _default_root() -> Path:
+    override = os.environ.get("RUN_STORAGE_DIR")
+    if override:
+        return Path(override)
+    return ROOT_DIR / "runtime" / "runs"
+
+
 class RunStorage:
     def __init__(self, root: Path | None = None):
-        self.root = root or ROOT_DIR / "runtime" / "runs"
+        self.root = root or _default_root()
         self.root.mkdir(parents=True, exist_ok=True)
 
     def _path(self, run_id: str) -> Path:
