@@ -384,6 +384,9 @@ def _parse_scenario_set_markdown(path: Path) -> List[Scenario]:
                 sandbox_overrides = scenario_constraints.pop("sandbox", None)
                 if sandbox_environment:
                     raw_scenario["environment"]["sandbox"] = sandbox_environment
+                    # prompt_injection is policy-scoring state, not world state.
+                    if sandbox_environment.get("prompt_injection"):
+                        raw_scenario["environment"]["prompt_injection"] = sandbox_environment["prompt_injection"]
                 elif sandbox_overrides:
                     raw_scenario["environment"]["sandbox"] = sandbox_overrides
                 raw_scenario["payment_policy"].update(scenario_constraints)

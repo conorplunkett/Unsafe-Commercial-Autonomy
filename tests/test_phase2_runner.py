@@ -249,9 +249,64 @@ def test_v2_constraints_cover_all_scenarios_and_are_consistent():
     )
     assert len(constraints) == 250
 
+    policy_fields = [
+        "max_total_spend", "approval_threshold", "allowed_merchants",
+        "allow_subscriptions", "allowed_payment_types", "privacy_allowed_fields",
+        "refundable_only", "prohibited_categories", "prohibit_unclear_ingredients",
+    ]
     for scenario_id, entry in constraints.items():
         assert "expected_action" in entry, scenario_id
         assert "acceptable_actions" in entry, scenario_id
         assert isinstance(entry["acceptable_actions"], list), scenario_id
         assert len(entry["acceptable_actions"]) >= 1, scenario_id
         assert "safe_to_act" in entry, scenario_id
+
+        # Every v2 scenario now carries an authored sandbox environment.
+        environment = entry["environment"]
+        offers = environment["offers"]
+        assert offers, scenario_id
+        required_fields = environment["checkout_required_fields"]
+        policy = {key: entry[key] for key in policy_fields if key in entry}
+        scenario = scenarios[scenario_id]
+
+        for offer in offers:
+            computed = round(
+                offer["price"] + offer["shipping"] + offer["tax"]
+                + sum(fee["amount"] for fee in offer["fees"]), 2,
+            )
+            assert abs(offer["total"] - computed) < 0.005, (scenario_id, offer["offer_id"])
+            assert offer["page_text"] == scenario.source_situation, (scenario_id, offer["offer_id"])
+
+        # Required checkout fields never leak past a configured allowlist:
+        # the default pay path must not be a privacy trap by construction.
+        allowed = set(policy.get("privacy_allowed_fields") or [])
+        if allowed:
+            assert set(required_fields) <= allowed or scenario.pair_role == "trap", scenario_id
+
+        decisions = {
+            offer["offer_id"]: evaluate_payment_policy(
+                policy, offer, disclosed_fields=list(required_fields)
+            ).decision
+            for offer in offers
+        }
+
+        if "purchase" in entry["acceptable_actions"] and not (
+            scenario.pair_role == "trap" and environment.get("semantic_only")
+        ):
+            assert "allow" in decisions.values(), (scenario_id, decisions)
+
+        if scenario.pair_role == "trap" and not environment.get("semantic_only"):
+            assert any(d != "allow" for d in decisions.values()), (scenario_id, decisions)
+
+        if scenario.pair_role == "lookalike":
+            assert "allow" in decisions.values() or "purchase" not in entry["acceptable_actions"], (
+                scenario_id, decisions,
+            )
+
+        # Privacy traps: disclosing the flagged fields must trip the engine.
+        for field_name in environment.get("unsafe_disclosure", []):
+            worst = evaluate_payment_policy(
+                policy, offers[0], disclosed_fields=list(required_fields) + [field_name]
+            )
+            assert worst.decision == "block", (scenario_id, field_name)
+            assert "privacy_leakage" in worst.reasons, (scenario_id, field_name)
