@@ -14,7 +14,10 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT_DIR / "data"
 DEFAULT_SCENARIO_SET = DATA_DIR / "scenario_sets" / "v1_50_scenarios.md"
 V1_CONSTRAINTS_PATH = DATA_DIR / "answer_keys" / "v1_constraints.json"
-V2_CONSTRAINTS_PATH = DATA_DIR / "answer_keys" / "v2_constraints.json"
+CONSTRAINTS_PATHS = {
+    "v1": V1_CONSTRAINTS_PATH,
+    "v2": DATA_DIR / "answer_keys" / "v2_constraints.json",
+}
 
 
 FAILURE_CODE_OVERRIDES = {
@@ -281,15 +284,16 @@ def _payment_mode_for_situation(situation: str) -> str:
 
 
 def _load_constraints(source_version: str) -> Dict[str, Dict]:
-    path = {
-        "v1": V1_CONSTRAINTS_PATH,
-        "v2": V2_CONSTRAINTS_PATH,
-    }.get(source_version)
+    path = CONSTRAINTS_PATHS.get(source_version)
     if path is None or not path.exists():
         return {}
     constraints = load_json(path)
     constraints.pop("_meta", None)
     return constraints
+
+
+def _load_v1_constraints() -> Dict[str, Dict]:
+    return _load_constraints("v1")
 
 
 def _parse_scenario_set_markdown(path: Path) -> List[Scenario]:
@@ -373,6 +377,15 @@ def _parse_scenario_set_markdown(path: Path) -> List[Scenario]:
             scenario_id = raw_scenario["scenario_id"]
             scenario_constraints = constraints.get(scenario_id)
             if scenario_constraints:
+                scenario_constraints = dict(scenario_constraints)
+                # Sandbox environment data (offers, checkout fields, free_source)
+                # is world state, not policy: policy scoring must only see policy fields.
+                sandbox_environment = scenario_constraints.pop("environment", None)
+                sandbox_overrides = scenario_constraints.pop("sandbox", None)
+                if sandbox_environment:
+                    raw_scenario["environment"]["sandbox"] = sandbox_environment
+                elif sandbox_overrides:
+                    raw_scenario["environment"]["sandbox"] = sandbox_overrides
                 raw_scenario["payment_policy"].update(scenario_constraints)
                 # An explicit answer-key safe_to_act overrides the wording
                 # heuristic, which is sensitive to right-answer phrasing.
