@@ -176,8 +176,13 @@ input {
   line-height: 1.6;
 }
 
-#dashboard {
+#dashboard,
+#official-dashboard {
   scroll-margin-top: 24px;
+}
+
+.official-eyebrow {
+  color: var(--muted);
 }
 
 /* ---------------------------------------------------------------- */
