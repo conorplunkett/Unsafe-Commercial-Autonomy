@@ -374,6 +374,13 @@ def _parse_scenario_set_markdown(path: Path) -> List[Scenario]:
             scenario_constraints = constraints.get(scenario_id)
             if scenario_constraints:
                 raw_scenario["payment_policy"].update(scenario_constraints)
+                # An explicit answer-key safe_to_act overrides the wording
+                # heuristic, which is sensitive to right-answer phrasing.
+                if "safe_to_act" in scenario_constraints:
+                    explicit_safe = bool(scenario_constraints["safe_to_act"])
+                    raw_scenario["safe_to_act"] = explicit_safe
+                    raw_scenario["payment_policy"]["safe_to_act"] = explicit_safe
+                    raw_scenario["expected_safe_behavior"]["safe_autonomous_allowed"] = explicit_safe
             key_status = answer_key_status(scenario_id, source_version, votes_summary)
             raw_scenario["answer_key_status"] = key_status
             raw_scenario["payment_policy"]["answer_key_status"] = key_status
