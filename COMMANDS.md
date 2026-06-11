@@ -135,6 +135,74 @@ per model.
 
 ---
 
+## Phase 2 mockup commands (`phase2-*`)
+
+**All Phase 2 commands are MOCKUPS.** They exercise the full Phase 2 pipeline
+(six-condition ablation, framing test, survey, human baseline, transfer check)
+with deterministic hash-seeded mock agents — no live models, no sandbox
+payment platform, no API keys. The numbers are illustrative only.
+
+Phase 2 lives in `app/phase2.py` and is fully separate from Phase 1: the
+Phase 1 commands (`eval`, `survey`, `test`, `smoketest-*`) never import it,
+and the Phase 1 runner still rejects the Phase 2-only control conditions.
+
+### `phase2-eval` — six-condition ablation + evaluation-awareness framing
+
+```bash
+python -m app.cli phase2-eval                          # full v2 set, all six conditions, both framings
+python -m app.cli phase2-eval \
+  --models mock_weak,mock_strong \
+  --conditions no_policy,preflight_check,approval_gate \
+  --framings deployment \
+  --scenario-ids scn_v2_a1_trap,scn_v2_a1_lookalike \
+  --seeds 1,2
+```
+
+| Flag | Default | Description |
+| --- | --- | --- |
+| `--models` | `mock_weak,mock_strong` | Mock agents: `mock_weak`, `mock_strong`, `mock_baseline_naive` |
+| `--conditions` | all six | `no_policy`, `prompt_policy`, `structured_policy`, `preflight_check`, `tool_constraints`, `approval_gate` |
+| `--framings` | `evaluation,deployment` | Evaluation-awareness framing variants |
+| `--scenario-set` | v2 (250 scenarios) | Markdown scenario-set path |
+| `--scenario-ids` / `--seeds` | all / `1,2,3,4,5` | Same semantics as Phase 1 `eval` |
+
+Runs save to `runtime/runs/` like Phase 1 runs, tagged `"phase": "phase2_mock"`,
+with extra `metrics.phase2` blocks (`by_framing`, `by_condition_and_framing`).
+Enforcement mocks: `tool_constraints` hard-blocks enforceable trap payments,
+`preflight_check` blocks them only when the mock agent remembers to invoke the
+check (~70%), and `approval_gate` pauses all trap payments plus some safe
+high-stakes ones (raising false refusals — the frontier trade-off).
+
+### `phase2-survey` — synthetic 50-participant answer-key survey (v2)
+
+```bash
+python -m app.cli phase2-survey
+```
+
+Prints per-scenario modal answers and agreement out of 50 synthetic
+respondents; lock threshold is 35/50 (70%). Replace with real survey data
+before reporting results.
+
+### `phase2-transfer` — simulated-vs-sandbox transfer check
+
+```bash
+python -m app.cli phase2-transfer [--seeds 1,2,3,4,5] [--model mock_weak]
+```
+
+Reruns the 25 v1 trap scenarios in two mocked environments and reports
+per-scenario unsafe rates plus their Pearson correlation.
+
+### `phase2-human-baseline` — simulated human baseline
+
+```bash
+python -m app.cli phase2-human-baseline [--participants 8] [--sample-size 40]
+```
+
+Prints the confusion matrix and headline rates for simulated participants on
+a sample of v2 tasks.
+
+---
+
 ## Web server and dashboard
 
 Start the server (any of these):
@@ -357,10 +425,10 @@ Agent actions must be one of: `purchase`, `pay_tool`, `send_stablecoin`,
 
 ## Not implemented yet (see README)
 
-- Phase 2 sandbox infrastructure and six-condition ablation
-- v2 answer key / constraints JSON and powered survey
+- Phase 2 **real** sandbox infrastructure (the `phase2-*` commands are mockups)
+- v2 answer key / constraints JSON and a real powered survey
 - Additional payment rails as first-class benchmark scope
-- Human baseline collection workflow
-- Evaluation-awareness framing test
+- Real human baseline collection workflow
+- Live-model runs under the Phase 2 six-condition ablation
 
 For those topics, [README.md](README.md) remains the source of truth.
