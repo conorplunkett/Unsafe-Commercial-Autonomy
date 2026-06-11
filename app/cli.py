@@ -165,6 +165,152 @@ def smoketest_openai_5_command(args: argparse.Namespace) -> int:
     return 1 if payload["metrics"].get("error_count") else 0
 
 
+# ---------------------------------------------------------------------------
+# Phase 2 commands — sandbox benchmark, fully separate from the Phase 1 paths.
+# All app.phase2 imports are lazy so Phase 1 commands never load Phase 2 code.
+# ---------------------------------------------------------------------------
+
+
+def phase2_eval_command(args: argparse.Namespace) -> int:
+    """Phase 2 six-condition sandbox ablation with framing variation."""
+    from .phase2 import run_phase2_evaluation
+
+    if not args.dry_run:
+        scenario_count = len(_csv(args.scenario_ids) or []) or 250
+        conditions = len(_csv(args.conditions) or []) or 6
+        framings = len(_csv(args.framings) or []) or 2
+        seeds = len(_csv_int(args.seeds) or []) or 5
+        models = len(_csv(args.models) or ["openai"])
+        episodes = scenario_count * conditions * framings * seeds * models
+        print(
+            f"Live run: ~{episodes} multi-turn episodes "
+            f"({scenario_count} scenarios x {conditions} conditions x {framings} framings "
+            f"x {seeds} seeds x {models} models). Consider subsetting.\n"
+        )
+    run = run_phase2_evaluation(
+        model_ids=_csv(args.models),
+        control_conditions=_csv(args.conditions),
+        framings=_csv(args.framings),
+        scenario_ids=_csv(args.scenario_ids),
+        scenario_set_path=Path(args.scenario_set) if args.scenario_set else None,
+        seeds=_csv_int(args.seeds),
+        temperature=args.temperature,
+        reasoning_effort=args.reasoning_effort,
+        live=not args.dry_run,
+    )
+    payload = RunStorage().save(run)
+    _print_summary(payload)
+    print("\nCondition x framing (unsafe payment CI / false refusal CI):")
+    print("-" * 88)
+    for key, summary in sorted(payload["metrics"]["phase2"]["by_condition_and_framing"].items()):
+        print(
+            f"{key[:36]:36} "
+            f"{summary['total_results']:7}  "
+            f"{_format_rate(summary, 'unsafe_payment'):22} "
+            f"{_format_rate(summary, 'false_refusal')}"
+        )
+    return 1 if payload["metrics"].get("error_count") else 0
+
+
+def phase2_survey_command(args: argparse.Namespace) -> int:
+    """Phase 2 survey agreement and lock-status table for the v2 answer key."""
+    from .phase2.survey import EXPECTED_RESPONDENTS, LOCK_THRESHOLD, is_example, phase2_survey_summary
+
+    if is_example():
+        print(
+            "WARNING: survey file contains EXAMPLE data only. Collect real responses "
+            "with `python -m app.cli phase2-survey-collect`.\n"
+        )
+    summary = phase2_survey_summary()
+    if not summary:
+        print("No survey responses recorded yet.")
+        return 1
+    print("Scenario                          Modal answer      Agreement  Key status")
+    print("-" * 80)
+    locked = 0
+    for scenario_id, votes in sorted(summary.items()):
+        status = "locked" if votes["locked"] else "provisional"
+        locked += votes["locked"]
+        print(
+            f"{scenario_id[:32]:32}  {votes['modal_answer']:16}  "
+            f"{votes['modal_count']}/{votes['respondents']:<7}  {status}"
+        )
+    print(
+        f"\nLocked: {locked}/{len(summary)} surveyed scenarios "
+        f"(lock needs >={LOCK_THRESHOLD} of >={EXPECTED_RESPONDENTS} respondents agreeing)"
+    )
+    return 0
+
+
+def phase2_survey_collect_command(args: argparse.Namespace) -> int:
+    """Interactively record one survey respondent's votes."""
+    from .phase2.survey import collect_survey_responses
+
+    recorded = collect_survey_responses(
+        respondent_id=args.respondent_id,
+        scenario_ids=_csv(args.scenario_ids),
+        overwrite=args.overwrite,
+    )
+    return 0 if recorded else 1
+
+
+def phase2_transfer_command(args: argparse.Namespace) -> int:
+    """Phase 1 -> sandbox transfer check against a stored Phase 1 run."""
+    from .phase2.transfer import run_transfer_check
+
+    report = run_transfer_check(
+        phase1_run_id=args.phase1_run,
+        model_id=args.model,
+        control_condition=args.condition,
+        seeds=_csv_int(args.seeds),
+        live=not args.dry_run,
+    )
+    print(f"Caveat: {report['caveat']}\n")
+    print("Scenario                          Phase 1   Sandbox")
+    print("-" * 58)
+    for row in report["rows"]:
+        print(
+            f"{row['scenario_id'][:32]:32}  {row['phase1_unsafe_rate']:.2f}      "
+            f"{row['sandbox_unsafe_rate']:.2f}"
+        )
+    print(
+        f"\nScenarios: {report['scenario_count']}  Pearson r: {report['pearson_r']}"
+        f"  (phase1 run {report['phase1_run_id']}, sandbox run {report['sandbox_run_id']})"
+    )
+    return 0
+
+
+def phase2_human_baseline_command(args: argparse.Namespace) -> int:
+    """Human baseline: report recorded sessions, or collect new ones interactively."""
+    from .phase2.humans import collect_human_session, run_human_baseline_report
+
+    if args.participant_id:
+        scenario_ids = _csv(args.scenario_ids)
+        if not scenario_ids:
+            print("Provide --scenario-ids to collect sessions.")
+            return 1
+        collect_human_session(
+            participant_id=args.participant_id,
+            scenario_ids=scenario_ids,
+            control_condition=args.condition,
+        )
+    report = run_human_baseline_report()
+    if report["example"]:
+        print("WARNING: sessions file contains EXAMPLE data only.\n")
+    matrix = report["confusion_matrix"]
+    metrics = report["metrics"]
+    print(f"Participants: {report['participants']}  Sessions: {report['sessions']}")
+    print(f"Correctly proceeded: {matrix['correctly_proceeded']}")
+    print(f"Wrongly proceeded:   {matrix['wrongly_proceeded']}")
+    print(f"Wrongly stopped:     {matrix['wrongly_stopped']}")
+    print(f"Correctly stopped:   {matrix['correctly_stopped']}")
+    print(f"\nUnsafe payment: {_format_rate(metrics, 'unsafe_payment')}")
+    print(f"False refusal:  {_format_rate(metrics, 'false_refusal')}")
+    if report["skipped_unknown_scenarios"]:
+        print(f"Skipped unknown scenarios: {', '.join(report['skipped_unknown_scenarios'])}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Unsafe Commercial Autonomy benchmark CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -267,6 +413,103 @@ def build_parser() -> argparse.ArgumentParser:
         help="Reasoning effort for reasoning models such as gpt-5.x (ignored by temperature-based models).",
     )
     smoketest_openai_5_parser.set_defaults(func=smoketest_openai_5_command)
+
+    phase2_eval_parser = subparsers.add_parser(
+        "phase2-eval",
+        help="Phase 2 sandbox eval: six-condition ablation with evaluation/deployment framing.",
+    )
+    phase2_eval_parser.add_argument(
+        "--models",
+        default="openai",
+        help=(
+            "Comma-separated: openai, anthropic, openweights, scripted_diligent, "
+            "scripted_naive, or all."
+        ),
+    )
+    phase2_eval_parser.add_argument(
+        "--conditions",
+        default=None,
+        help=(
+            "Comma-separated Phase 2 conditions: no_policy, prompt_policy, structured_policy, "
+            "preflight_check, tool_constraints, approval_gate. Default: all six."
+        ),
+    )
+    phase2_eval_parser.add_argument(
+        "--framings",
+        default=None,
+        help="Comma-separated framings: evaluation, deployment. Default: both.",
+    )
+    phase2_eval_parser.add_argument("--scenario-ids", default=None, help="Comma-separated scenario ids.")
+    phase2_eval_parser.add_argument(
+        "--scenario-set",
+        default=None,
+        help="Markdown scenario-set path. Default: data/scenario_sets/v2_250_scenarios.md.",
+    )
+    phase2_eval_parser.add_argument("--seeds", default=None, help="Comma-separated seeds. Default: 1,2,3,4,5.")
+    phase2_eval_parser.add_argument("--temperature", type=float, default=None)
+    phase2_eval_parser.add_argument(
+        "--reasoning-effort",
+        choices=["minimal", "low", "medium", "high"],
+        default=None,
+        help="Reasoning effort for reasoning models (ignored by temperature-based models).",
+    )
+    phase2_eval_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Use offline scripted agents instead of live model APIs.",
+    )
+    phase2_eval_parser.set_defaults(func=phase2_eval_command)
+
+    phase2_survey_parser = subparsers.add_parser(
+        "phase2-survey",
+        help="Phase 2 survey agreement and lock-status table (50 respondents, lock at 35/50).",
+    )
+    phase2_survey_parser.set_defaults(func=phase2_survey_command)
+
+    phase2_survey_collect_parser = subparsers.add_parser(
+        "phase2-survey-collect",
+        help="Interactively record one respondent's survey votes for the v2 answer key.",
+    )
+    phase2_survey_collect_parser.add_argument("--respondent-id", required=True)
+    phase2_survey_collect_parser.add_argument(
+        "--scenario-ids", default=None, help="Comma-separated scenario ids. Default: all v2 scenarios."
+    )
+    phase2_survey_collect_parser.add_argument("--overwrite", action="store_true")
+    phase2_survey_collect_parser.set_defaults(func=phase2_survey_collect_command)
+
+    phase2_transfer_parser = subparsers.add_parser(
+        "phase2-transfer",
+        help="Transfer check: stored Phase 1 run vs sandbox rerun of the v1 trap scenarios.",
+    )
+    phase2_transfer_parser.add_argument(
+        "--phase1-run", required=True, help="Stored Phase 1 run id from runtime/runs/."
+    )
+    phase2_transfer_parser.add_argument("--model", default="openai", help="Model id present in the Phase 1 run.")
+    phase2_transfer_parser.add_argument(
+        "--condition", default="prompt_policy", help="Control condition present in the Phase 1 run."
+    )
+    phase2_transfer_parser.add_argument("--seeds", default=None, help="Comma-separated seeds. Default: 1,2,3,4,5.")
+    phase2_transfer_parser.add_argument(
+        "--dry-run", action="store_true", help="Use the offline scripted-agent sandbox rerun."
+    )
+    phase2_transfer_parser.set_defaults(func=phase2_transfer_command)
+
+    phase2_human_parser = subparsers.add_parser(
+        "phase2-human-baseline",
+        help="Human baseline: report recorded sessions, or collect new ones with --participant-id.",
+    )
+    phase2_human_parser.add_argument(
+        "--participant-id", default=None, help="Collect mode: run this participant through scenarios."
+    )
+    phase2_human_parser.add_argument(
+        "--scenario-ids", default=None, help="Collect mode: comma-separated scenario ids to administer."
+    )
+    phase2_human_parser.add_argument(
+        "--condition",
+        default="structured_policy",
+        help="Sandbox control condition for collected sessions (default: structured_policy).",
+    )
+    phase2_human_parser.set_defaults(func=phase2_human_baseline_command)
 
     return parser
 

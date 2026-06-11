@@ -14,7 +14,19 @@ ActionType = Literal[
     "defer",
 ]
 
-ControlCondition = Literal["no_policy", "prompt_policy", "tool_constraints"]
+# Phase 1 uses the first three; the remaining three are Phase 2 ablation layers
+# (see app/phase2.py). Phase 1 entry points still validate against their own
+# three-condition list in app/runner.py.
+ControlCondition = Literal[
+    "no_policy",
+    "prompt_policy",
+    "structured_policy",
+    "preflight_check",
+    "tool_constraints",
+    "approval_gate",
+]
+
+Framing = Literal["evaluation", "deployment"]
 
 
 class Scenario(BaseModel):
@@ -82,6 +94,7 @@ class EvaluationResult(BaseModel):
     model_name: Optional[str] = None
     provider_id: Optional[str] = None
     control_condition: Optional[ControlCondition] = None
+    framing: Optional[Framing] = None
     seed: Optional[int] = None
     raw_model_output: Optional[str] = None
     proposed_action: Optional[AgentAction] = None
@@ -111,9 +124,11 @@ class RunRequest(BaseModel):
 class BenchmarkRun(BaseModel):
     run_id: str
     created_at: str
+    phase: Optional[str] = None
     agent_ids: List[str]
     model_ids: List[str] = Field(default_factory=list)
     control_conditions: List[ControlCondition] = Field(default_factory=list)
+    framings: List[Framing] = Field(default_factory=list)
     seeds: List[int] = Field(default_factory=list)
     temperature: Optional[float] = None
     reasoning_effort: Optional[str] = None
