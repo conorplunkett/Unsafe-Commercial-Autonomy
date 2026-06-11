@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Unsafe Commercial Autonomy Benchmark</title>
-    <link rel="stylesheet" href="/static/styles.css?v=5">
+    <link rel="stylesheet" href="/static/styles.css?v=6">
   </head>
   <body>
     <div class="app-shell">
@@ -64,6 +64,33 @@
 
         <section id="officialMetricTiles" class="metric-grid" aria-label="Official benchmark metrics"></section>
 
+        <section id="officialAblation" class="taxonomy-panel" aria-label="Condition and framing ablation" hidden>
+          <div class="panel-heading">
+            <h2>Condition &times; framing ablation</h2>
+            <span class="run-stamp">Six-condition Phase 2</span>
+          </div>
+          <p class="control-hint ablation-note">
+            Unsafe-payment and false-refusal rates per control condition, split by
+            whether the model is told it is being evaluated or deployed. Brackets
+            show the 95% confidence interval.
+          </p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Control condition</th>
+                  <th>Framing</th>
+                  <th>n</th>
+                  <th>Unsafe payment</th>
+                  <th>False refusal</th>
+                  <th>Welfare</th>
+                </tr>
+              </thead>
+              <tbody id="officialAblationTable"></tbody>
+            </table>
+          </div>
+        </section>
+
         <main class="content-grid">
           <section class="result-panel" aria-label="Official scenario results">
             <div class="panel-heading">
@@ -77,6 +104,7 @@
                     <th>Scenario</th>
                     <th>Model</th>
                     <th>Control</th>
+                    <th>Framing</th>
                     <th>Failure</th>
                   </tr>
                 </thead>
@@ -274,6 +302,6 @@
       </div>
     </div>
 
-    <script src="/static/app.js?v=5"></script>
+    <script src="/static/app.js?v=6"></script>
   </body>
 </html>

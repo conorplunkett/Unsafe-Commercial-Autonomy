@@ -2,6 +2,7 @@ const state = {
   models: {},
   controlConditions: {},
   scenarios: [],
+  scenarioIndex: new Map(),
   currentRun: null,
   selectedResultKey: null,
   officialRun: null,
@@ -35,6 +36,8 @@ const els = {
   // official (read-only) dashboard elements
   officialRunStamp: document.querySelector("#officialRunStamp"),
   officialMetricTiles: document.querySelector("#officialMetricTiles"),
+  officialAblation: document.querySelector("#officialAblation"),
+  officialAblationTable: document.querySelector("#officialAblationTable"),
   officialResultsTable: document.querySelector("#officialResultsTable"),
   officialDetailVerdict: document.querySelector("#officialDetailVerdict"),
   officialDetailContent: document.querySelector("#officialDetailContent"),
@@ -259,11 +262,12 @@ function statusPill(verdict) {
   return `<span class="status-pill status-${verdict || "safe"}">${label}</span>`;
 }
 
-function renderResults(results, getKey, setKey, tableEl) {
+function renderResults(results, getKey, setKey, tableEl, showFraming = false) {
+  const colspan = showFraming ? 6 : 5;
   if (!results.length) {
     tableEl.innerHTML = `
       <tr>
-        <td colspan="5" class="empty-state">No matching results.</td>
+        <td colspan="${colspan}" class="empty-state">No matching results.</td>
       </tr>
     `;
     return;
@@ -281,12 +285,14 @@ function renderResults(results, getKey, setKey, tableEl) {
       const conditionLabel = result.control_condition
         ? result.control_condition.replaceAll("_", " ")
         : "legacy";
+      const framingCell = showFraming ? `<td>${result.framing || "—"}</td>` : "";
       return `
         <tr class="${selected}" data-result-key="${resultKey(result)}">
           <td>${statusPill(result.verdict)}</td>
           <td>${result.scenario_title}</td>
           <td>${modelLabel}</td>
           <td>${conditionLabel}</td>
+          ${framingCell}
           <td>${failures}</td>
         </tr>
       `;
@@ -295,7 +301,9 @@ function renderResults(results, getKey, setKey, tableEl) {
 }
 
 function findScenario(scenarioId) {
-  return state.scenarios.find((scenario) => scenario.scenario_id === scenarioId);
+  // Index covers both the v1 set (DIY runs) and the v2 set (Phase 2 official
+  // runs), so detail lookups resolve regardless of which set a result came from.
+  return state.scenarioIndex.get(scenarioId);
 }
 
 function renderDetail(results, selectedKey, verdictEl, contentEl) {
@@ -319,11 +327,23 @@ function renderDetail(results, selectedKey, verdictEl, contentEl) {
         .join("")}</div>`
     : "<p>None</p>";
 
+  // Phase 2 results carry a framing and the tool's block reasons; Phase 1
+  // results leave both empty, so these blocks simply don't render there.
+  const framingMarkup = result.framing
+    ? `<div class="detail-block"><h3>Framing</h3><p>${result.framing}</p></div>`
+    : "";
+  const blockReasonsMarkup = result.block_reasons && result.block_reasons.length
+    ? `<div class="detail-block"><h3>Tool blocks</h3><div class="failure-list">${result.block_reasons
+        .map((reason) => `<span class="failure-chip">${reason.replaceAll("_", " ")}</span>`)
+        .join("")}</div></div>`
+    : "";
+
   const instructionMarkup = scenario
     ? `<p>${scenario.user_instruction}</p>`
     : `<p class="empty-state">Scenario ${result.scenario_id} is not in the loaded scenario set.</p>`;
 
   contentEl.innerHTML = `
+    ${framingMarkup}
     <div class="detail-block">
       <h3>Instruction</h3>
       ${instructionMarkup}
@@ -342,6 +362,7 @@ function renderDetail(results, selectedKey, verdictEl, contentEl) {
       <h3>Failure metrics</h3>
       ${failureMarkup}
     </div>
+    ${blockReasonsMarkup}
     ${
       scenario
         ? `
@@ -460,14 +481,67 @@ function renderAll() {
   }
 }
 
+const PHASE2_CONDITION_ORDER = [
+  "no_policy",
+  "prompt_policy",
+  "structured_policy",
+  "preflight_check",
+  "tool_constraints",
+  "approval_gate",
+];
+const PHASE2_FRAMINGS = ["evaluation", "deployment"];
+
+function rateWithCi(rate, ci) {
+  const label = percent(rate);
+  if (ci && ci.ci_low != null) {
+    return `${label} <span class="ci">[${percent(ci.ci_low)}–${percent(ci.ci_high)}]</span>`;
+  }
+  return label;
+}
+
+function renderAblation(run) {
+  const breakdown =
+    run && run.phase === "phase2" && run.metrics && run.metrics.phase2
+      ? run.metrics.phase2.by_condition_and_framing
+      : null;
+  if (!breakdown) {
+    els.officialAblation.hidden = true;
+    return;
+  }
+  els.officialAblation.hidden = false;
+  const rows = [];
+  for (const condition of PHASE2_CONDITION_ORDER) {
+    PHASE2_FRAMINGS.forEach((framing, framingIndex) => {
+      const entry = breakdown[`${condition}/${framing}`];
+      if (!entry) return;
+      // Show the condition name only on its first framing row so each
+      // condition reads as one grouped block.
+      const conditionCell = framingIndex === 0 ? condition.replaceAll("_", " ") : "";
+      rows.push(`
+        <tr>
+          <td>${conditionCell}</td>
+          <td>${framing}</td>
+          <td>${entry.total_results}</td>
+          <td>${rateWithCi(entry.unsafe_payment_rate, entry.unsafe_payment_ci)}</td>
+          <td>${rateWithCi(entry.false_refusal_rate, entry.false_refusal_ci)}</td>
+          <td>${percent(entry.user_welfare_score)}</td>
+        </tr>
+      `);
+    });
+  }
+  els.officialAblationTable.innerHTML = rows.join("");
+}
+
 function renderOfficialAll() {
   const results = state.officialRun ? state.officialRun.results : [];
   renderMetrics(results, els.officialMetricTiles);
+  renderAblation(state.officialRun);
   renderResults(
     results,
     () => state.officialSelectedKey,
     (k) => { state.officialSelectedKey = k; },
     els.officialResultsTable,
+    true,
   );
   renderDetail(results, state.officialSelectedKey, els.officialDetailVerdict, els.officialDetailContent);
   renderTaxonomy(results, els.officialTaxonomyTable, els.officialTaxonomyCount);
@@ -576,6 +650,13 @@ async function init() {
     state.models = models;
     state.controlConditions = controlConditions;
     state.scenarios = scenarios;
+    // The v2 set backs Phase 2 official runs; tolerate its absence so the DIY
+    // dashboard still works if the endpoint is unavailable.
+    const phase2Scenarios = await fetchJson("/api/phase2/scenarios").catch(() => []);
+    state.scenarioIndex = new Map();
+    for (const scenario of [...scenarios, ...phase2Scenarios]) {
+      state.scenarioIndex.set(scenario.scenario_id, scenario);
+    }
     renderModels();
     renderControlConditions();
     renderScenarioFilters();
