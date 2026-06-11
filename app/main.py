@@ -81,6 +81,15 @@ async def list_scenarios():
     return [model_to_dict(scenario) for scenario in load_scenarios()]
 
 
+@app.get("/api/phase2/scenarios")
+async def list_phase2_scenarios():
+    # The v2 250-scenario set backs Phase 2 runs. Imported lazily so the Phase 1
+    # API path never pulls in Phase 2 modules at startup.
+    from .phase2 import PHASE2_SCENARIO_SET
+
+    return [model_to_dict(scenario) for scenario in load_scenarios(PHASE2_SCENARIO_SET)]
+
+
 @app.get("/api/scenarios/{scenario_id}")
 async def read_scenario(scenario_id: str):
     try:

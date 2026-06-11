@@ -185,6 +185,16 @@ input {
   color: var(--muted);
 }
 
+.ablation-note {
+  margin: 0 0 4px;
+}
+
+.ci {
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
 /* ---------------------------------------------------------------- */
 /* Dashboard chrome (sans-serif)                                     */
 /* ---------------------------------------------------------------- */
