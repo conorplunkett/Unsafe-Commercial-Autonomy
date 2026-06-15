@@ -7,7 +7,45 @@ const state = {
   selectedResultKey: null,
   officialRun: null,
   officialSelectedKey: null,
+  officialRuns: [],
+  officialRunId: null,
 };
+
+// Read-only Supabase config for published "Official run" results. The "Run it
+// yourself" flow ignores this entirely and uses the local backend.
+const SUPA = window.UCA_CONFIG || {};
+
+function supabaseConfigured() {
+  return Boolean(SUPA.supabaseUrl && SUPA.supabasePublishableKey);
+}
+
+async function supabaseGet(query) {
+  const base = SUPA.supabaseUrl.replace(/\/$/, "");
+  const table = SUPA.benchmarkTable || "benchmark_runs";
+  const response = await fetch(`${base}/rest/v1/${table}?${query}`, {
+    headers: {
+      apikey: SUPA.supabasePublishableKey,
+      Authorization: `Bearer ${SUPA.supabasePublishableKey}`,
+    },
+  });
+  if (!response.ok) {
+    throw new Error(`Supabase ${response.status} ${await response.text()}`);
+  }
+  return response.json();
+}
+
+async function fetchPublishedRunList() {
+  return supabaseGet(
+    "select=run_id,created_at,published_at,phase,label&order=published_at.desc"
+  );
+}
+
+async function fetchPublishedRun(runId) {
+  const rows = await supabaseGet(
+    `select=payload&run_id=eq.${encodeURIComponent(runId)}&limit=1`
+  );
+  return rows.length ? rows[0].payload : null;
+}
 
 const els = {
   runButton: document.querySelector("#runBenchmark"),
@@ -35,6 +73,8 @@ const els = {
   taxonomyCount: document.querySelector("#taxonomyCount"),
   // official (read-only) dashboard elements
   officialRunStamp: document.querySelector("#officialRunStamp"),
+  officialRunSelect: document.querySelector("#officialRunSelect"),
+  officialRunSelectLabel: document.querySelector(".run-select-label"),
   officialMetricTiles: document.querySelector("#officialMetricTiles"),
   officialAblation: document.querySelector("#officialAblation"),
   officialAblationTable: document.querySelector("#officialAblationTable"),
@@ -548,6 +588,45 @@ function renderOfficialAll() {
   els.officialRunStamp.textContent = state.officialRun
     ? compactTime(state.officialRun.created_at)
     : "Not yet run";
+  populateOfficialRunSelect();
+}
+
+function officialRunOptionLabel(meta) {
+  const when = compactTime(meta.published_at || meta.created_at);
+  if (meta.label) return `${meta.label} · ${when}`;
+  const phase = meta.phase ? `${meta.phase} · ` : "";
+  return `${phase}${when}`;
+}
+
+function populateOfficialRunSelect() {
+  const select = els.officialRunSelect;
+  if (!select) return;
+  const runs = state.officialRuns;
+  if (!runs.length) {
+    select.hidden = true;
+    if (els.officialRunSelectLabel) els.officialRunSelectLabel.hidden = true;
+    return;
+  }
+  select.innerHTML = runs
+    .map((meta) => `<option value="${meta.run_id}">${officialRunOptionLabel(meta)}</option>`)
+    .join("");
+  if (state.officialRunId) select.value = state.officialRunId;
+  select.hidden = false;
+  if (els.officialRunSelectLabel) els.officialRunSelectLabel.hidden = false;
+}
+
+async function selectOfficialRun(runId) {
+  if (!runId || !supabaseConfigured()) return;
+  state.officialRunId = runId;
+  try {
+    state.officialRun = await fetchPublishedRun(runId);
+  } catch (error) {
+    console.warn("Could not load published run:", error);
+    return;
+  }
+  state.officialSelectedKey = null;
+  renderOfficialAll();
+  renderHeroStats();
 }
 
 async function runBenchmark() {
@@ -612,9 +691,25 @@ async function loadInitialRun() {
 }
 
 async function loadOfficialRun() {
-  const runs = await fetchJson("/api/runs");
-  if (!runs.length) return;
-  state.officialRun = await fetchJson(`/api/runs/${runs[0].run_id}`);
+  // Prefer runs published to Supabase. Fall back to the local backend so the
+  // dashboard still works when running the repo before anything is published.
+  if (supabaseConfigured()) {
+    try {
+      const runs = await fetchPublishedRunList();
+      if (runs.length) {
+        state.officialRuns = runs;
+        state.officialRunId = runs[0].run_id;
+        state.officialRun = await fetchPublishedRun(state.officialRunId);
+        return;
+      }
+    } catch (error) {
+      console.warn("Supabase official-run fetch failed, falling back to local:", error);
+    }
+  }
+  const localRuns = await fetchJson("/api/runs").catch(() => []);
+  if (localRuns.length) {
+    state.officialRun = await fetchJson(`/api/runs/${localRuns[0].run_id}`);
+  }
 }
 
 function bindEvents() {
@@ -638,6 +733,11 @@ function bindEvents() {
     state.officialSelectedKey = row.dataset.resultKey;
     renderOfficialAll();
   });
+  if (els.officialRunSelect) {
+    els.officialRunSelect.addEventListener("change", (event) => {
+      selectOfficialRun(event.target.value);
+    });
+  }
 }
 
 async function init() {

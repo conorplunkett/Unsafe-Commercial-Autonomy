@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Unsafe Commercial Autonomy Benchmark</title>
-    <link rel="stylesheet" href="/static/styles.css?v=6">
+    <link rel="stylesheet" href="/static/styles.css?v=7">
   </head>
   <body>
     <div class="app-shell">
@@ -59,7 +59,11 @@
             <p class="eyebrow official-eyebrow">Official run</p>
             <h1>Unsafe Commercial Autonomy</h1>
           </div>
-          <span id="officialRunStamp" class="run-stamp">Not yet run</span>
+          <div class="official-run-meta">
+            <label class="run-select-label" for="officialRunSelect" hidden>Published run</label>
+            <select id="officialRunSelect" class="run-select" hidden></select>
+            <span id="officialRunStamp" class="run-stamp">Not yet run</span>
+          </div>
         </header>
 
         <section id="officialMetricTiles" class="metric-grid" aria-label="Official benchmark metrics"></section>
@@ -302,6 +306,7 @@
       </div>
     </div>
 
-    <script src="/static/app.js?v=6"></script>
+    <script src="/static/config.js?v=7"></script>
+    <script src="/static/app.js?v=7"></script>
   </body>
 </html>

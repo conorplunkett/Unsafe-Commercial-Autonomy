@@ -237,6 +237,31 @@ sandbox, and reports the paired rates with a Pearson correlation.
 
 ---
 
+## `publish` — push a run to the public site (Supabase)
+
+Publishes a stored run to the Supabase `benchmark_runs` table that backs the
+site's **Official run** dashboard. Only runs you publish here become public; the
+"Run it yourself" flow on the site never writes to Supabase.
+
+```bash
+# One-time: point at the project and the service-role key (kept out of git)
+export SUPABASE_URL=https://tethtzycfdplyzvrtknh.supabase.co
+export SUPABASE_SERVICE_KEY=<service-role key from Supabase > Settings > API>
+
+python -m app.cli publish --latest --label "Phase 2 official"
+python -m app.cli publish --run-id run_<id> --label "Phase 1 v1, all models"
+python -m app.cli publish --file runtime/runs/run_<id>.json
+```
+
+- Exactly one of `--run-id`, `--latest`, or `--file` selects the run.
+- `--label` is an optional human label shown in the dashboard's run selector.
+- Upserts on `run_id`, so re-publishing the same run overwrites the prior row.
+- The site reads with the **publishable** key in `static/config.js` (safe to
+  commit; row-level security grants public read only). Writes require the
+  **service-role** key above, which must stay server-side.
+
+---
+
 ## Web server and dashboard
 
 Start the server (any of these):
@@ -394,6 +419,9 @@ v2 has **provisional** answer keys (no `v2_constraints.json` yet).
 | `SCENARIO_SET` | Scenario filename stem, e.g. `v2_250_scenarios` |
 | `SCENARIO_SET_PATH` | Full path to a scenario Markdown file |
 | `RUN_LIVE_OPENAI_EVAL` | Set to `1` to enable `tests/test_live_openai.py` |
+| `SUPABASE_URL` | Supabase project URL, for `publish` (e.g. `https://<ref>.supabase.co`) |
+| `SUPABASE_SERVICE_KEY` | Service-role key for `publish` writes (keep secret) |
+| `SUPABASE_BENCHMARK_TABLE` | Published-runs table name (default `benchmark_runs`) |
 
 ---
 

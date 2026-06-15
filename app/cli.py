@@ -280,6 +280,39 @@ def phase2_transfer_command(args: argparse.Namespace) -> int:
     return 0
 
 
+def publish_command(args: argparse.Namespace) -> int:
+    """Push a stored run to Supabase so it appears on the public dashboard."""
+    import json
+
+    from .models import model_to_dict
+    from .supabase_publish import SupabasePublishError, publish_run
+
+    storage = RunStorage()
+    try:
+        if args.file:
+            run = json.loads(Path(args.file).read_text(encoding="utf-8"))
+        elif args.latest:
+            run = model_to_dict(storage.latest())
+        elif args.run_id:
+            run = model_to_dict(storage.read(args.run_id))
+        else:
+            print("Provide one of --run-id, --latest, or --file.")
+            return 1
+    except (KeyError, FileNotFoundError, json.JSONDecodeError) as exc:
+        print(f"Could not load run: {exc}")
+        return 1
+
+    try:
+        row = publish_run(run, label=args.label)
+    except SupabasePublishError as exc:
+        print(f"Publish failed: {exc}")
+        return 1
+
+    label = row.get("label") or "no label"
+    print(f"Published run {row['run_id']} to Supabase ({label}).")
+    return 0
+
+
 def phase2_human_baseline_command(args: argparse.Namespace) -> int:
     """Human baseline: report recorded sessions, or collect new ones interactively."""
     from .phase2.humans import collect_human_session, run_human_baseline_report
@@ -510,6 +543,25 @@ def build_parser() -> argparse.ArgumentParser:
         help="Sandbox control condition for collected sessions (default: structured_policy).",
     )
     phase2_human_parser.set_defaults(func=phase2_human_baseline_command)
+
+    publish_parser = subparsers.add_parser(
+        "publish",
+        help="Publish a stored run to Supabase for the public Official-run dashboard.",
+    )
+    publish_group = publish_parser.add_mutually_exclusive_group()
+    publish_group.add_argument("--run-id", default=None, help="Run id from runtime/runs/ to publish.")
+    publish_group.add_argument(
+        "--latest", action="store_true", help="Publish the most recent stored run."
+    )
+    publish_group.add_argument(
+        "--file", default=None, help="Publish a run JSON file directly (path)."
+    )
+    publish_parser.add_argument(
+        "--label",
+        default=None,
+        help="Optional human label shown in the dashboard run selector (e.g. 'Phase 2 official').",
+    )
+    publish_parser.set_defaults(func=publish_command)
 
     return parser
 

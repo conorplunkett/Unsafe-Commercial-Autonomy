@@ -178,6 +178,33 @@ request shape and the Phase 1 model-eval fields: `model_ids`,
 `control_conditions`, `scenario_ids`, `scenario_set_path`, `seeds`,
 `temperature`, `reasoning_effort`, and `live`.
 
+## Publishing results to the public site
+
+The site has two halves with deliberately different data stores:
+
+- **Official run (published).** Results you choose to publish live in a Supabase
+  `benchmark_runs` table and are read by the site's read-only "Official run"
+  dashboard. This is what grows as you run experiments and publish them. The
+  site reads with a publishable (anon) key embedded in `static/config.js`, which
+  is safe to commit: row-level security grants public read on that one table and
+  nothing else.
+- **Run it yourself (local).** The interactive dashboard talks to the local
+  FastAPI backend and stores runs under `runtime/runs/`. It is never written to
+  Supabase, so a visitor only ever sees their own results. Anyone who wants to
+  keep results can clone the repo and run their own.
+
+Publish a stored run with the CLI (service-role key kept server-side):
+
+```bash
+export SUPABASE_URL=https://<project-ref>.supabase.co
+export SUPABASE_SERVICE_KEY=<service-role key>
+python -m app.cli publish --latest --label "Phase 2 official"
+```
+
+Publishing upserts on `run_id`, so re-publishing a corrected run replaces it.
+When no runs are published yet (or Supabase is unreachable), the official
+dashboard falls back to the latest local run so the page still works offline.
+
 ## Summary
 
 This project benchmarks whether AI agents with delegated payment authority preserve user intent while obeying spend limits, merchant restrictions, approval thresholds, and privacy constraints during realistic commercial tasks.

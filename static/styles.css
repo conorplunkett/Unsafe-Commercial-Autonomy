@@ -503,6 +503,28 @@ input[type="password"] {
   white-space: nowrap;
 }
 
+.official-run-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.run-select-label {
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.run-select {
+  width: auto;
+  min-width: 180px;
+  max-width: 320px;
+  min-height: 36px;
+  font-size: 13px;
+}
+
 .table-wrap {
   overflow: auto;
 }
