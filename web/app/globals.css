@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+/* ai-2027-style warm editorial palette, sharing the benchmark's green accent. */
+@theme {
+  --color-paper: #fbf7ec;
+  --color-paper-2: #f2ead6;
+  --color-ink: #1b1713;
+  --color-muted: #7c7163;
+  --color-border: #e5dcc7;
+  --color-accent: #1a6b59;
+  --color-accent-2: #2f8f74;
+  --color-danger: #b4472b;
+  --color-warn: #bf8a2d;
+  --color-block: #15110d;
+
+  --font-serif: var(--font-newsreader), Georgia, "Times New Roman", serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, "SFMono-Regular", monospace;
+}
+
+html {
+  background: var(--color-paper);
+}
+
+body {
+  color: var(--color-ink);
+  font-family: var(--font-serif);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-accent) 22%, transparent);
+}
+
+/* Monospace eyebrow/label treatment used throughout the page. */
+.label {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+html {
+  scroll-behavior: smooth;
+}
