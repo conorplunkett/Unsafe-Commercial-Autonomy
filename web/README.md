@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PayBench — website
 
-## Getting Started
+The public site for **PayBench**, a benchmark for unsafe commercial autonomy in
+AI agents with delegated payment authority. Deployed at
+[paybench.org](https://paybench.org).
 
-First, run the development server:
+A long-form, explanatory benchmark page (Next.js 16 App Router, Tailwind v4,
+Newsreader + IBM Plex Mono) that reads results **live** from Supabase and falls
+back to a bundled sample when no run is published.
+
+> **Heads up:** this repo pins Next.js 16, which has breaking changes vs. older
+> versions. See `AGENTS.md` — read `node_modules/next/dist/docs/` before editing.
+
+## Develop
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev      # http://localhost:3000
+npm run build    # production build + type check
+npm run lint
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Structure
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- `app/page.tsx` — the single long-form landing page (hero → abstract →
+  motivation → design → categories → taxonomy → control ladder → method →
+  live results → leaderboard → dataset teaser → roadmap → limitations →
+  citation → authors).
+- `app/scenarios/page.tsx` — `/scenarios`, the full Phase-1 dataset browser.
+- `components/` — one component per section. `DataProvider` is the single
+  source of live/sample data; `Findings`, `StatRow`, `Donut`, `HeroChart`, and
+  `Leaderboard` read from it via `useData()`.
+- `lib/metrics.ts` — all aggregations (`summarize`, `byCondition`,
+  `byCategory`, `confusion`, `byModel`). Everything reuses `summarize`, so the
+  leaderboard can never disagree with the headline stats.
+- `lib/config.ts` — Supabase + links. Set `NEXT_PUBLIC_PAPER_URL` to wire the
+  "Read the paper" button to a public PDF/arXiv; otherwise it links to the
+  on-page abstract.
+- `lib/scenarios.ts` — **generated** bundle of the locked Phase-1 (v1, 50)
+  scenarios for the dataset browser.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Live data
 
-## Learn More
+`DataProvider` fetches published runs from Supabase (`benchmark_runs`) using a
+read-only publishable key, with a deterministic sample fallback. Override at
+build time with `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`,
+`NEXT_PUBLIC_BENCHMARK_TABLE`.
 
-To learn more about Next.js, take a look at the following resources:
+## Regenerating the scenario dataset
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+`lib/scenarios.ts` is generated from the Phase-1 source set. Re-run from the
+**repo root** (with the project's Python env) whenever the v1 scenarios change:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+python3 - <<'PY'
+import json
+from app.data import load_scenarios
+from app.models import model_to_dict
+keep=('scenario_id','title','category','user_instruction','pair_id','pair_role','stakes','safe_to_act','right_answer','failure_tested','source_situation')
+out=[{('situation' if k=='source_situation' else k): model_to_dict(s).get(k) for k in keep} for s in load_scenarios()]
+header='''// AUTO-GENERATED from data/scenario_sets/v1_50_scenarios.md. Do not edit by hand.
 
-## Deploy on Vercel
+export interface ScenarioCard {
+  scenario_id: string; title: string; category: string; user_instruction: string;
+  pair_id: string; pair_role: "trap" | "lookalike"; stakes: "low" | "high";
+  safe_to_act: boolean | null; right_answer: string | null;
+  failure_tested: string | null; situation: string;
+}
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+export const SCENARIOS: ScenarioCard[] = '''
+open('web/lib/scenarios.ts','w').write(header + json.dumps(out, indent=2, ensure_ascii=False) + ';\n')
+print('wrote web/lib/scenarios.ts:', len(out))
+PY
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Only the **locked** Phase-1 set is published. The provisional 250-scenario set
+stays in the repo to preserve benchmark integrity.

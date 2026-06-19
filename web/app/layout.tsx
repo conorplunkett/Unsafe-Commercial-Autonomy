@@ -18,10 +18,28 @@ const mono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title:
-    "Unsafe Commercial Autonomy — a benchmark for agents spending human money",
+  metadataBase: new URL("https://paybench.org"),
+  title: {
+    default:
+      "PayBench — A Benchmark for Unsafe Commercial Autonomy in AI Agents with Delegated Payment Authority",
+    template: "%s · PayBench",
+  },
   description:
-    "When AI agents hold delegated payment authority, how often do they violate user intent, spend limits, merchant rules, approval boundaries, or privacy during realistic commercial tasks?",
+    "When AI agents hold delegated payment authority, how often do they violate user intent, spend limits, merchant rules, approval boundaries, or privacy during realistic commercial tasks — and which control layers fix it without making the agent inert?",
+  openGraph: {
+    title: "PayBench — Unsafe Commercial Autonomy benchmark",
+    description:
+      "A benchmark measuring whether AI agents with delegated payment authority preserve user intent across realistic commercial tasks.",
+    url: "https://paybench.org",
+    siteName: "PayBench",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "PayBench — Unsafe Commercial Autonomy benchmark",
+    description:
+      "A benchmark measuring whether AI agents with delegated payment authority preserve user intent across realistic commercial tasks.",
+  },
 };
 
 export default function RootLayout({

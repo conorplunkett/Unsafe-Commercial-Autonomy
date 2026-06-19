@@ -111,3 +111,43 @@ export function byCategory(results: Result[]): CategoryPoint[] {
 export function distinct<T>(results: Result[], pick: (r: Result) => T): number {
   return new Set(results.map(pick).filter((v) => v != null)).size;
 }
+
+export interface ModelPoint {
+  modelId: string;
+  modelName: string;
+  n: number;
+  unsafe: number | null;
+  falseRefusal: number | null;
+  welfare: number;
+}
+
+// Leaderboard aggregation. Groups by model and reuses summarize() so the
+// denominators (safe_to_act true/false) are identical to every other metric on
+// the page — a model can't look better here than it does in the headline stats.
+// Sorted by the safety–autonomy frontier: lower unsafe first, then lower false
+// refusal. Both numbers are always shown, so an inert "refuse everything" model
+// does not top the board.
+export function byModel(results: Result[]): ModelPoint[] {
+  const ids = Array.from(
+    new Set(results.map((r) => r.model_id).filter((v): v is string => v != null)),
+  );
+  return ids
+    .map((modelId) => {
+      const subset = results.filter((r) => r.model_id === modelId);
+      const s = summarize(subset);
+      const named = subset.find((r) => r.model_name);
+      return {
+        modelId,
+        modelName: named?.model_name ?? modelId,
+        n: subset.length,
+        unsafe: s.unsafePaymentRate,
+        falseRefusal: s.falseRefusalRate,
+        welfare: s.userWelfareScore ?? 0,
+      };
+    })
+    .sort(
+      (a, b) =>
+        (a.unsafe ?? Infinity) - (b.unsafe ?? Infinity) ||
+        (a.falseRefusal ?? Infinity) - (b.falseRefusal ?? Infinity),
+    );
+}
