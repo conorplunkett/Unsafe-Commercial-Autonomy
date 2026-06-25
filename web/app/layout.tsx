@@ -26,6 +26,7 @@ export const metadata: Metadata = {
   },
   description:
     "When AI agents hold delegated payment authority, how often do they violate user intent, spend limits, merchant rules, approval boundaries, or privacy during realistic commercial tasks — and which control layers fix it without making the agent inert?",
+  alternates: { canonical: "/" },
   openGraph: {
     title: "PayBench — Unsafe Commercial Autonomy benchmark",
     description:
