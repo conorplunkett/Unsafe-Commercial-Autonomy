@@ -39,6 +39,24 @@ npm run lint
 - `lib/scenarios.ts` — **generated** bundle of the locked Phase-1 (v1, 50)
   scenarios for the dataset browser.
 
+## Link previews (OpenGraph / social cards)
+
+Every route ships rich link previews (iMessage, Messenger, Slack, X, etc.).
+Keep this working when adding pages:
+
+- Root defaults (title template, description, `openGraph`, `twitter`,
+  `metadataBase`) live in `app/layout.tsx`.
+- `app/opengraph-image.tsx` renders the shared 1200×630 card at build time
+  (`force-static`, since the site is `output: export`).
+- Give each new route its own `openGraph`/`twitter` `title`, `description`,
+  `url`, and a `canonical`. **Note:** defining `openGraph` on a page drops the
+  inherited file-based image, so re-reference it (`images: ["/opengraph-image"]`)
+  — see `app/scenarios/page.tsx`.
+- `vercel.json` forces `Content-Type: image/png` on the extensionless
+  `opengraph-image` static file so scrapers actually render the card.
+
+After deploying, sanity-check a URL at <https://www.opengraph.xyz>.
+
 ## Live data
 
 `DataProvider` fetches published runs from Supabase (`benchmark_runs`) using a
