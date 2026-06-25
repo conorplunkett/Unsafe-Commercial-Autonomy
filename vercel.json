@@ -4,5 +4,11 @@
   "buildCommand": "cd web && npm run build",
   "outputDirectory": "web/out",
   "cleanUrls": true,
-  "trailingSlash": false
+  "trailingSlash": false,
+  "headers": [
+    {
+      "source": "/(.*)opengraph-image",
+      "headers": [{ "key": "Content-Type", "value": "image/png" }]
+    }
+  ]
 }
