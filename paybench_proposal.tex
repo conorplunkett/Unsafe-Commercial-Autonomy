@@ -22,7 +22,7 @@
 
 \usepackage[utf8]{inputenc} % allow utf-8 input
 \usepackage[T1]{fontenc}    % use 8-bit T1 fonts
-\usepackage{hyperref}       % hyperlinks
+\usepackage[hidelinks]{hyperref} % hyperlinks (no colored boxes around links/citations)
 \usepackage{url}            % simple URL typesetting
 \usepackage{booktabs}       % professional-quality tables
 \usepackage{amsfonts}       % blackboard math symbols
@@ -35,7 +35,7 @@
 \title{PayBench: A Benchmark for Unsafe Commercial Autonomy in\\AI Agents with Delegated Payment Authority}
 
 \author{%
-  \textbf{Conor Plunkett}\thanks{Research proposal, draft. This document describes a planned benchmark and study design; no experimental results are reported yet.} \\
+  \textbf{Conor Plunkett}\thanks{Research proposal, draft.} \\
   Independent Researcher \\
   \texttt{conor.p43@gmail.com} \\
 }
@@ -45,14 +45,14 @@
 \maketitle
 
 \begin{abstract}
-AI agents are moving from recommending actions to executing them, including paying, subscribing, and booking on a user's behalf. Agentic payment systems increasingly solve \emph{authorization} through scoped cards, spend caps, and approval flows, but not the prior question of whether the agent should attempt a payment at all, or whether it preserves the user's commercial intent when a task is ambiguous, adversarial, or economically tempting. We propose \textbf{PayBench}, a benchmark of controlled commercial scenarios that measures how often agents with delegated payment authority violate user intent, spend limits, merchant rules, approval boundaries, or privacy. Scenarios are matched pairs: each unsafe-to-act case is twinned with a safe-to-act lookalike, so blanket refusal is penalized rather than rewarded. PayBench reports a safety-autonomy frontier, the unsafe payment rate against the false refusal rate, and isolates which control layer moves it. This is a proposal: we present the design and hypotheses, not results.
+AI agents are moving from recommending actions to executing them, including paying, subscribing, and booking on a user's behalf. Agentic payment systems increasingly solve \emph{authorization} through scoped cards, spend caps, and approval flows, but not the prior question of whether the agent should attempt a payment at all, or whether it preserves the user's commercial intent when a task is ambiguous, adversarial, or economically tempting. We propose \textbf{PayBench}, a benchmark of controlled commercial scenarios that measures how often agents with delegated payment authority violate user intent, spend limits, merchant rules, approval boundaries, or privacy. Scenarios are matched pairs: each unsafe-to-act case is twinned with a safe-to-act lookalike, so blanket refusal is penalized rather than rewarded. PayBench reports a safety-autonomy frontier, the unsafe payment rate against the false refusal rate, and isolates which control layer moves it. This is a proposal for research; only preliminary results exist.
 \end{abstract}
 
 \section{Introduction}
 
 AI agents are crossing from recommendation into execution. Systems are beginning to buy, pay, subscribe, book, refund, and transfer money on a user's behalf. The supporting infrastructure is arriving quickly: delegated payment methods, scoped cards, stablecoin wallets, card-based checkout, x402 payments, agent credentials, spend controls, and human approval flows.
 
-Payment authorization is relatively well understood. The harder, unsolved question is whether the agent should attempt the payment in the first place, and whether it can preserve the user's commercial intent when the task becomes ambiguous, adversarial, or economically tempting. A user may say:
+Payment authorization is relatively well understood. The harder, unresolved question is whether the agent should attempt the payment in the first place, and whether it can preserve the user's commercial intent when the task becomes ambiguous, adversarial, or economically tempting. A user may say:
 \begin{itemize}
     \item ``Book the cheapest reasonable flight.''
     \item ``Buy replacement printer ink under \$80.''
@@ -64,7 +64,9 @@ Payment authorization is relatively well understood. The harder, unsolved questi
 Each instruction hides policy choices. What counts as reasonable? Can the agent pay for shipping? Buy from a marketplace seller? Choose a subscription over a one-time purchase? Split one purchase to dodge an approval threshold? Switch merchants when the preferred one is out of stock? Reveal private user context to complete checkout? Can prompt injection in a merchant page or tool output override the user's spending policy?
 
 \paragraph{Why this is an AI safety problem.}
-Traditional fintech quality assurance checks whether a payment system correctly authorizes, declines, settles, or logs a transaction. This project studies whether an AI agent should have attempted the transaction at all. The relevant failure is behavioral: the agent misinterprets human intent, over-optimizes for task completion, responds to adversarial instructions, or bypasses approval boundaries while acting with delegated authority. Standard fintech QA cannot catch this, because the payment itself executes correctly. A chatbot giving bad shopping advice is low stakes. An agent buying the wrong thing, overspending, subscribing the user, leaking personal data, or paying the wrong counterparty causes real-world harm. Delegated payment is also a tractable proxy for delegated resource control: the same failure modes appear when agents manage compute, credentials, API budgets, procurement, or other scarce resources. Payment gives us a measurable near-term environment for studying whether models preserve human intent under real-world action constraints.
+A chatbot giving bad shopping advice is low stakes. An agent buying the wrong thing, overspending, subscribing the user, leaking personal data, or paying the wrong counterparty causes real-world harm. Traditional fintech quality assurance checks whether a payment system correctly authorizes, declines, settles, or logs a transaction. This project studies whether an AI agent should have attempted the transaction at all. The relevant failure is behavioral: the agent misinterprets human intent, over-optimizes for task completion, responds to adversarial instructions, or bypasses approval boundaries while acting with delegated authority. Standard fintech QA cannot catch this, because the payment itself executes correctly.
+
+Delegated payment is also a tractable proxy for delegated resource control: the same failure modes appear when agents manage compute, credentials, API budgets, procurement, or other scarce resources. Payment gives us a measurable near-term environment for studying whether models preserve human intent under real-world action constraints.
 
 \paragraph{Contributions.}
 This proposal sets out:
@@ -130,7 +132,7 @@ Each scenario specifies four things:
     \item \textbf{The situation.} What the user asked for, the rule in force (budget, allowed merchants, approval limit), and what the agent sees (prices, shipping, the checkout page).
     \item \textbf{Right answer.} Buy, ask for approval, or refuse.
     \item \textbf{Stakes.} High or low. High is an irreversible or expensive mistake; low is a small waste. The two are reported separately so a cheap slip and an expensive one are never averaged together.
-    \item \textbf{Payment capability.} Phase 1 focuses on card-like online payment authority: the agent can attempt purchases using a simulated card credential under policy constraints. Additional rails, including stablecoin wallets, x402 payments, and paid tool access, are deferred to future work.
+    \item \textbf{Payment capability.} Phases 1 and 2 focus on card-like online payment authority: the agent can attempt purchases using a simulated card credential under policy constraints. Additional rails, including stablecoin wallets, x402 payments, and paid tool access, are deferred to future work.
 \end{itemize}
 Where relevant, scenarios compare two placements of the same constraint, a surrounding policy layer versus a scoped payment credential, to test whether enforcement location changes agent behavior.
 
@@ -204,7 +206,16 @@ Two numbers are reported together and never separately:
 
 The central claim becomes which control layer moves the frontier: lower unsafe payments at the same or better false-refusal rate. A control layer that only lowers unsafe payments by making the agent inert does not move the frontier, and the metric will show it.
 
-Supporting metrics, each reported per category with confidence intervals: cost discipline (final total including tax, shipping, and fees at or under the cap), policy robustness (failure rate under adversarial pages versus clean scenarios), privacy leakage rate, prompt-injection compliance rate, unnecessary payment rate, failure-to-pay-when-beneficial rate, and whether audit logs are sufficient to reconstruct why a payment happened.
+Supporting metrics, each reported per category with confidence intervals:
+\begin{enumerate}
+    \item \textbf{Cost discipline.} Final total, including tax, shipping, and fees, at or under the cap.
+    \item \textbf{Policy robustness.} Failure rate under adversarial pages versus clean scenarios.
+    \item \textbf{Privacy leakage rate.}
+    \item \textbf{Prompt-injection compliance rate.}
+    \item \textbf{Unnecessary payment rate.}
+    \item \textbf{Failure-to-pay-when-beneficial rate.}
+    \item \textbf{Audit-log sufficiency.} Whether logs are enough to reconstruct why a payment happened.
+\end{enumerate}
 
 \section{Research plan}
 
@@ -226,6 +237,7 @@ The environment is fully mocked: payment tools, merchants, checkout pages, a car
 The benchmark moves to staging or sandbox infrastructure from an agentic payment platform.
 \begin{itemize}
     \item \textbf{Dataset.} Grows to 250 scenarios, 50 per category, with much higher variance in merchant types, adversarial pressure, edge cases, and instruction ambiguity.
+    \item \textbf{Models.} The full evaluation set spans every major provider: Anthropic (Claude Opus 4.8, Claude Sonnet 4.6, Claude Haiku 4.5), OpenAI (GPT-5.5, GPT-5.4, GPT-5.4-mini), Google (Gemini 3 Pro, Gemini 3 Flash), and open-weights (Llama, DeepSeek, Qwen).
     \item \textbf{Survey.} Expands to 50 participants with demographic stratification, putting the implied-preference answer key on a sounder base.
     \item \textbf{Full control ablation.} Six conditions, varying one layer at a time while holding scenario set, models, and seeds fixed:
     \begin{enumerate}
@@ -260,7 +272,7 @@ Prompt-only controls are expected to fail often: the agent may understand a rule
 \section{Failure taxonomy}
 \label{sec:taxonomy}
 These twelve failure modes are the fine-grained errors the scorer records. Each falls under one of the five categories used to organize the dataset (spend limits, authorization scope, consent and escalation, privacy and disclosure, and adversarial robustness), and the per-category rates aggregate them.
-\begin{itemize}
+\begin{enumerate}
     \item \textbf{Budget failures.} Agent exceeds item-level or total-level budget.
     \item \textbf{Fee blindness.} Agent ignores shipping, tax, service fees, subscription renewals, or foreign exchange.
     \item \textbf{Recurring-payment failures.} Agent signs the user up for a subscription or trial without explicit approval.
@@ -273,7 +285,7 @@ These twelve failure modes are the fine-grained errors the scorer records. Each 
     \item \textbf{Settlement and counterparty failures.} Agent pays before verification, delivery, or contract conditions are met.
     \item \textbf{User-welfare failures.} Agent technically follows the task but makes an obviously bad commercial decision.
     \item \textbf{Audit failures.} Agent completes payment without enough reasoning or logs to inspect the decision.
-\end{itemize}
+\end{enumerate}
 
 \section{Limitations}
 Phase 1 ground truth comes from the project team plus a 10-person survey rather than a powered study. Five seeds per scenario give wide confidence intervals, so Phase 1 findings are reported as preliminary. Phase 1 results come from a simulated environment whose transfer to real infrastructure is untested until the Phase 2 sandbox check.
@@ -300,7 +312,7 @@ Phase 1 ground truth comes from the project team plus a 10-person survey rather 
 \end{itemize}
 
 \begin{ack}
-This research was conducted independently and received no external funding. The author declares no competing financial interests. The benchmark dataset, evaluation harness, and mock merchant and payment environment will be released as open source.
+This research was conducted independently and has received no external funding as of June 29, 2026. The author declares no competing financial interests. The benchmark dataset, evaluation harness, and mock merchant and payment environment will be released as open source.
 \end{ack}
 
 % ----------------------------------------------------------------------------
