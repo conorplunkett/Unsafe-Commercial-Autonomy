@@ -7,6 +7,28 @@ from typing import Any, Callable, Dict, Iterable, List
 from .models import EvaluationResult
 
 
+def model_label(result: EvaluationResult) -> str:
+    """Stable per-model identity for ranking.
+
+    The leaderboard ranks individual models (``gpt-5.4-mini``, ``gpt-5.5``), not
+    providers, so the model *name* is the grouping key. ``model_id`` is only the
+    provider/config selector (``openai``) and would collapse every OpenAI model
+    into one row. Fall back to the provider id, then to ``"unknown"``, so a
+    result is never silently dropped from the board.
+    """
+    return result.model_name or result.model_id or "unknown"
+
+
+def distinct_model_names(results: Iterable[EvaluationResult]) -> List[str]:
+    """Distinct model names across results, in first-seen order."""
+    seen: Dict[str, None] = {}
+    for result in results:
+        name = result.model_name
+        if name and name not in seen:
+            seen[name] = None
+    return list(seen)
+
+
 def _rate(results: List[EvaluationResult], predicate: Callable[[EvaluationResult], bool]) -> float:
     if not results:
         return 0.0
@@ -103,6 +125,7 @@ def compute_metrics(results: Iterable[EvaluationResult]) -> Dict[str, Any]:
 
     by_agent: Dict[str, List[EvaluationResult]] = defaultdict(list)
     by_model: Dict[str, List[EvaluationResult]] = defaultdict(list)
+    by_model_name: Dict[str, List[EvaluationResult]] = defaultdict(list)
     by_control_condition: Dict[str, List[EvaluationResult]] = defaultdict(list)
     by_category: Dict[str, List[EvaluationResult]] = defaultdict(list)
     by_stakes: Dict[str, List[EvaluationResult]] = defaultdict(list)
@@ -112,6 +135,7 @@ def compute_metrics(results: Iterable[EvaluationResult]) -> Dict[str, Any]:
         by_agent[result.agent_id].append(result)
         if result.model_id:
             by_model[result.model_id].append(result)
+        by_model_name[model_label(result)].append(result)
         if result.control_condition:
             by_control_condition[result.control_condition].append(result)
         by_category[result.category].append(result)
@@ -131,6 +155,13 @@ def compute_metrics(results: Iterable[EvaluationResult]) -> Dict[str, Any]:
         "by_model": {
             model_id: _summarize_group(model_results)
             for model_id, model_results in sorted(by_model.items())
+        },
+        # Per-model (not per-provider) breakdown. This is what the leaderboard
+        # ranks, and the count/total in each summary's CI lets runs be pooled by
+        # model name across the whole published set without double counting.
+        "by_model_name": {
+            model_name: _summarize_group(model_results)
+            for model_name, model_results in sorted(by_model_name.items())
         },
         "by_control_condition": {
             condition: _summarize_group(condition_results)

@@ -14,6 +14,9 @@ import { SAMPLE_RUN } from "@/lib/sampleRun";
 interface DataState {
   run: Run | null;
   results: Result[];
+  // Results pooled across every published run, for the per-model leaderboard so
+  // a model is ranked on all its episodes, not just the selected run's.
+  allResults: Result[];
   runs: RunMeta[];
   runId: string | null;
   setRunId: (id: string) => void;
@@ -37,6 +40,7 @@ async function sget(query: string) {
 export function DataProvider({ children }: { children: ReactNode }) {
   const [runs, setRuns] = useState<RunMeta[]>([]);
   const [run, setRun] = useState<Run | null>(null);
+  const [allResults, setAllResults] = useState<Result[]>([]);
   const [runId, setRunId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSample, setIsSample] = useState(false);
@@ -54,12 +58,26 @@ export function DataProvider({ children }: { children: ReactNode }) {
         if (list.length) {
           setRuns(list);
           setRunId(list[0].run_id);
+          // Pool results across all published runs for the per-model leaderboard.
+          // Best-effort: if it fails, the leaderboard falls back to the selected
+          // run's results.
+          try {
+            const all: { payload: Run }[] = await sget(
+              "select=payload&order=published_at.desc",
+            );
+            if (active) {
+              setAllResults(all.flatMap((r) => r.payload?.results ?? []));
+            }
+          } catch {
+            /* leave allResults empty; Leaderboard falls back to the run */
+          }
           return;
         }
         throw new Error("no published runs");
       } catch {
         if (!active) return;
         setRun(SAMPLE_RUN);
+        setAllResults(SAMPLE_RUN.results);
         setRuns([
           {
             run_id: SAMPLE_RUN.run_id,
@@ -112,6 +130,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       value={{
         run,
         results: run?.results ?? [],
+        allResults,
         runs,
         runId,
         setRunId,

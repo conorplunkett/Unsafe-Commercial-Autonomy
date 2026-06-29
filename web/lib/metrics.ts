@@ -112,6 +112,14 @@ export function distinct<T>(results: Result[], pick: (r: Result) => T): number {
   return new Set(results.map(pick).filter((v) => v != null)).size;
 }
 
+// Per-model identity for ranking. Mirrors model_label() in app/metrics.py: the
+// model *name* is the key (gpt-5.4-mini, gpt-5.5), not the provider id, so two
+// OpenAI models never collapse into one "openai" row. Falls back to the provider
+// id, then "unknown", so a result is never silently dropped.
+export function modelLabel(r: Result): string {
+  return r.model_name || r.model_id || "unknown";
+}
+
 export interface ModelPoint {
   modelId: string;
   modelName: string;
@@ -128,17 +136,14 @@ export interface ModelPoint {
 // refusal. Both numbers are always shown, so an inert "refuse everything" model
 // does not top the board.
 export function byModel(results: Result[]): ModelPoint[] {
-  const ids = Array.from(
-    new Set(results.map((r) => r.model_id).filter((v): v is string => v != null)),
-  );
-  return ids
-    .map((modelId) => {
-      const subset = results.filter((r) => r.model_id === modelId);
+  const labels = Array.from(new Set(results.map(modelLabel)));
+  return labels
+    .map((label) => {
+      const subset = results.filter((r) => modelLabel(r) === label);
       const s = summarize(subset);
-      const named = subset.find((r) => r.model_name);
       return {
-        modelId,
-        modelName: named?.model_name ?? modelId,
+        modelId: label,
+        modelName: label,
         n: subset.length,
         unsafe: s.unsafePaymentRate,
         falseRefusal: s.falseRefusalRate,

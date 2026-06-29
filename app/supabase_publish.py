@@ -49,11 +49,34 @@ def _config() -> tuple[str, str, str]:
     return url.rstrip("/"), key, table
 
 
+def model_names_from_run(run: Dict[str, Any]) -> list:
+    """Distinct model names for a run, robust to older payload shapes.
+
+    Prefers the first-class ``model_names`` field; falls back to the per-result
+    model names, then to the ``by_model_name`` metric keys, so a run published
+    before model identity was first-class still lands a usable value.
+    """
+    names = run.get("model_names")
+    if names:
+        return list(names)
+    seen: Dict[str, None] = {}
+    for result in run.get("results") or []:
+        name = result.get("model_name") if isinstance(result, dict) else None
+        if name and name not in seen:
+            seen[name] = None
+    if seen:
+        return list(seen)
+    by_model_name = (run.get("metrics") or {}).get("by_model_name") or {}
+    return list(by_model_name)
+
+
 def row_from_run(run: Dict[str, Any], label: Optional[str] = None) -> Dict[str, Any]:
     """Shape a stored BenchmarkRun dict into a ``benchmark_runs`` row.
 
     The full run is kept in ``payload`` so the dashboard can render it exactly as
     a local run; a few fields are lifted out for listing and ordering.
+    ``model_ids`` holds the provider/config selectors ("openai"); ``model_names``
+    holds the actual models ("gpt-5.4-mini") so the table is queryable per model.
     """
     if not run.get("run_id"):
         raise SupabasePublishError("Run payload is missing a run_id.")
@@ -63,6 +86,7 @@ def row_from_run(run: Dict[str, Any], label: Optional[str] = None) -> Dict[str, 
         "phase": run.get("phase"),
         "label": label,
         "model_ids": run.get("model_ids", []),
+        "model_names": model_names_from_run(run),
         "metrics": run.get("metrics", {}),
         "payload": run,
     }
@@ -94,6 +118,13 @@ def publish_run(
     client = client or httpx.Client(timeout=30.0)
     try:
         response = client.post(endpoint, headers=headers, content=json.dumps(row))
+        # The model_names column is new. If this project hasn't run the migration
+        # (db/migrations/0001_add_model_names.sql), Postgrest rejects the unknown
+        # column; retry once without it so publishing still works — the model
+        # names remain inside payload, just not queryable at the top level.
+        if response.status_code >= 400 and "model_names" in response.text:
+            fallback = {k: v for k, v in row.items() if k != "model_names"}
+            response = client.post(endpoint, headers=headers, content=json.dumps(fallback))
     except httpx.HTTPError as exc:  # network/transport failure
         raise SupabasePublishError(f"Supabase request failed: {exc}") from exc
     finally:

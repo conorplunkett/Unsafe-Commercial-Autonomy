@@ -205,6 +205,29 @@ Publishing upserts on `run_id`, so re-publishing a corrected run replaces it.
 When no runs are published yet (or Supabase is unreachable), the official
 dashboard falls back to the latest local run so the page still works offline.
 
+### Per-model leaderboard
+
+The leaderboard ranks individual **models** (`gpt-5.4-mini`, `gpt-5.5`, …), not
+providers. Internally `model_ids` is the provider/config selector (`openai`) and
+`model_names` is the actual model evaluated; runs carry both, metrics expose a
+`by_model_name` breakdown alongside `by_model`, and the site pools results
+across every published run so each model is scored on all its episodes (the `n`
+column shows coverage). To compare two OpenAI models, publish one run per model
+(set `OPENAI_MODEL` before each `eval`); they appear as separate rows.
+
+So the public table is queryable per model, the Supabase row stores
+`model_names` as a top-level column. Apply the migration once against the
+project referenced by `SUPABASE_URL`:
+
+```bash
+# Supabase dashboard > SQL editor, or psql, run:
+db/migrations/0001_add_model_names.sql
+```
+
+Publishing still works before the migration is applied — it falls back to
+writing the model names inside `payload` — but top-level `model_names` filters
+(`?model_names=cs.{gpt-5.5}`) need the column.
+
 ## Summary
 
 This project benchmarks whether AI agents with delegated payment authority preserve user intent while obeying spend limits, merchant restrictions, approval thresholds, and privacy constraints during realistic commercial tasks.

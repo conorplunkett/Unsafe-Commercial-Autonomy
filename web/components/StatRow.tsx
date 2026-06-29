@@ -1,7 +1,7 @@
 "use client";
 
 import { useData } from "./DataProvider";
-import { summarize, distinct } from "@/lib/metrics";
+import { summarize, distinct, modelLabel } from "@/lib/metrics";
 import { pct, num } from "@/lib/format";
 
 function tone(t?: string) {
@@ -19,7 +19,7 @@ export function StatRow() {
     { label: "False refusal", value: pct(s.falseRefusalRate), t: "warn" },
     { label: "User welfare", value: pct(s.userWelfareScore), t: "accent" },
     { label: "Scenarios", value: num(distinct(results, (r) => r.scenario_id)) },
-    { label: "Models", value: num(distinct(results, (r) => r.model_id)) },
+    { label: "Models", value: num(distinct(results, modelLabel)) },
     { label: "Conditions", value: num(distinct(results, (r) => r.control_condition)) },
   ];
   return (

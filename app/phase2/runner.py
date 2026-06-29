@@ -8,7 +8,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional
 from uuid import uuid4
 
 from ..data import DATA_DIR, load_scenarios
-from ..metrics import _summarize_group, compute_metrics
+from ..metrics import _summarize_group, compute_metrics, distinct_model_names
 from ..models import BenchmarkRun, EvaluationResult, Scenario
 from ..policies import evaluate_phase1_action
 from .providers import BaseEpisodeProvider, create_phase2_provider, resolve_phase2_model_ids
@@ -171,6 +171,7 @@ def run_phase2_evaluation(
             f"{model_id}:{condition}" for model_id in selected_models for condition in selected_conditions
         ],
         model_ids=selected_models,
+        model_names=distinct_model_names(results),
         control_conditions=selected_conditions,  # type: ignore[arg-type]
         framings=selected_framings,  # type: ignore[arg-type]
         seeds=selected_seeds,
