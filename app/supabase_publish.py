@@ -24,6 +24,11 @@ import httpx
 
 DEFAULT_TABLE = "benchmark_runs"
 
+# The public project URL is not a secret (the site embeds it client-side), so we
+# default to it. Only the service-role *key* must be supplied via the
+# environment. Override SUPABASE_URL to publish to a different project.
+DEFAULT_URL = "https://tethtzycfdplyzvrtknh.supabase.co"
+
 
 class SupabasePublishError(RuntimeError):
     """Raised when a run cannot be published (missing config or API error)."""
@@ -31,16 +36,14 @@ class SupabasePublishError(RuntimeError):
 
 def _config() -> tuple[str, str, str]:
     """Resolve (base_url, service_key, table) from the environment."""
-    url = os.environ.get("SUPABASE_URL")
+    # The URL is public, so fall back to the project default; only the key is
+    # secret and must be provided.
+    url = os.environ.get("SUPABASE_URL") or DEFAULT_URL
     # Accept either name; the service-role key is the secret write credential.
     key = os.environ.get("SUPABASE_SERVICE_KEY") or os.environ.get(
         "SUPABASE_SERVICE_ROLE_KEY"
     )
     table = os.environ.get("SUPABASE_BENCHMARK_TABLE", DEFAULT_TABLE)
-    if not url:
-        raise SupabasePublishError(
-            "SUPABASE_URL is not set. Export it (and SUPABASE_SERVICE_KEY) before publishing."
-        )
     if not key:
         raise SupabasePublishError(
             "SUPABASE_SERVICE_KEY is not set. Use the service-role key from "
