@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import argparse
+import shutil
+import sys
 from pathlib import Path
-from typing import Iterable, List, Optional
+from typing import Iterable, List, Optional, TextIO
 
 from .models import ControlCondition
 from .providers import ProviderError
@@ -24,6 +26,42 @@ def _csv_int(value: Optional[str]) -> Optional[List[int]]:
 def _csv_conditions(value: Optional[str]) -> Optional[List[ControlCondition]]:
     items = _csv(value)
     return items if items is not None else None  # type: ignore[return-value]
+
+
+class _ProgressBar:
+    """Render a determinate, single-line progress bar for a CLI eval run.
+
+    Driven by ``run_phase1_evaluation``'s ``progress_cb`` (completed, total,
+    label). Only draws when the stream is a TTY so redirected/piped output and
+    the test suite stay clean. Uses ``\\r`` to redraw in place and clears the
+    line when the run finishes, leaving the summary table untouched.
+    """
+
+    def __init__(self, stream: Optional[TextIO] = None, width: int = 24) -> None:
+        self._stream = stream if stream is not None else sys.stderr
+        self._width = width
+        self._active = bool(getattr(self._stream, "isatty", lambda: False)())
+
+    def update(self, completed: int, total: int, label: str) -> None:
+        if not self._active:
+            return
+        frac = completed / total if total else 1.0
+        filled = int(round(self._width * frac))
+        bar = "█" * filled + "░" * (self._width - filled)
+        verb = "done" if completed >= total else "running"
+        line = f"[{bar}] {int(frac * 100):3d}% ({completed}/{total}) {verb} {label}"
+        cols = shutil.get_terminal_size((80, 20)).columns
+        # Pad to the terminal width so a shorter label can't leave stale text
+        # behind from the previous, longer line.
+        self._stream.write("\r" + line[: cols - 1].ljust(cols - 1))
+        self._stream.flush()
+
+    def finish(self) -> None:
+        if not self._active:
+            return
+        cols = shutil.get_terminal_size((80, 20)).columns
+        self._stream.write("\r" + " " * (cols - 1) + "\r")
+        self._stream.flush()
 
 
 def _format_rate(summary: dict, key: str) -> str:
@@ -56,6 +94,7 @@ def eval_command(args: argparse.Namespace) -> int:
     control_conditions = _csv_conditions(args.conditions) or DEFAULT_CONTROL_CONDITIONS
     scenario_ids = _csv(args.scenario_ids)
     seeds = _csv_int(args.seeds) or DEFAULT_SEEDS
+    progress = _ProgressBar()
     try:
         run = run_phase1_evaluation(
             model_ids=model_ids,
@@ -66,12 +105,15 @@ def eval_command(args: argparse.Namespace) -> int:
             temperature=args.temperature,
             reasoning_effort=args.reasoning_effort,
             live=not args.dry_run,
+            progress_cb=progress.update,
         )
     except ProviderError as exc:
         # Pre-run validation failed (e.g. bad model id) — abort before saving a
         # junk run, with the actionable message instead of a traceback.
         print(f"Cannot start eval: {exc}")
         return 2
+    finally:
+        progress.finish()
     payload = RunStorage().save(run)
     _print_summary(payload)
     return 1 if payload["metrics"].get("error_count") else 0

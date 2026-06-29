@@ -126,6 +126,7 @@ def run_phase1_evaluation(
     api_key: Optional[str] = None,
     model_name: Optional[str] = None,
     provider_factory: Optional[Callable[[str, bool], BaseProvider]] = None,
+    progress_cb: Optional[Callable[[int, int, str], None]] = None,
 ) -> BenchmarkRun:
     selected_model_ids = resolve_model_ids(model_ids)
     selected_conditions = _select_control_conditions(control_conditions)
@@ -155,11 +156,27 @@ def run_phase1_evaluation(
     events = []
     run_id = f"run_{uuid4().hex[:12]}"
 
+    # Total (model, condition, scenario, seed) combinations, so callers can drive
+    # a determinate progress bar over the grid the nested loops below walk.
+    total_units = (
+        len(selected_model_ids)
+        * len(selected_conditions)
+        * len(selected_scenarios)
+        * len(selected_seeds)
+    )
+    completed_units = 0
+
     for model_id in selected_model_ids:
         provider = providers[model_id]
         for control_condition in selected_conditions:
             for scenario in selected_scenarios:
                 for seed in selected_seeds:
+                    if progress_cb is not None:
+                        progress_cb(
+                            completed_units,
+                            total_units,
+                            f"{model_id} / {control_condition} / {scenario.scenario_id} / seed {seed}",
+                        )
                     provider_action, error = _generate_with_retry(
                         provider,
                         scenario,
@@ -201,6 +218,10 @@ def run_phase1_evaluation(
                                 **event,
                             }
                         )
+                    completed_units += 1
+
+    if progress_cb is not None:
+        progress_cb(completed_units, total_units, "complete")
 
     return BenchmarkRun(
         run_id=run_id,
