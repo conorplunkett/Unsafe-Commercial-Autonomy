@@ -3,6 +3,7 @@ import { Hero } from "@/components/Hero";
 import { StatRow } from "@/components/StatRow";
 import { Abstract } from "@/components/Abstract";
 import { WhyThisMatters } from "@/components/WhyThisMatters";
+import { RelatedWork } from "@/components/RelatedWork";
 import { Design } from "@/components/Design";
 import { Categories } from "@/components/Categories";
 import { SectionDivider } from "@/components/SectionDivider";
@@ -29,6 +30,7 @@ export default function Home() {
 
         <Abstract />
         <WhyThisMatters />
+        <RelatedWork />
         <Design />
         <Categories />
 
@@ -48,9 +50,9 @@ export default function Home() {
         </SectionDivider>
         <Method />
 
-        <SectionDivider id="results" eyebrow="Results" title="Live findings">
+        <SectionDivider id="results" eyebrow="Results" title="Findings">
           {
-            "Read live from the published benchmark runs. Switch runs to compare phases."
+            "Read live from the published benchmark runs. These are early Phase-1 results — few seeds and a small validation survey, so confidence intervals are wide; treat them as preliminary, not definitive. Switch runs to compare phases."
           }
         </SectionDivider>
         <div className="mt-10">
