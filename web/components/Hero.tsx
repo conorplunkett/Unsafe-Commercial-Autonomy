@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { HeroChart } from "./HeroChart";
 import { CONFIG, HAS_PAPER } from "@/lib/config";
 
@@ -35,6 +36,12 @@ export function Hero() {
         >
           {HAS_PAPER ? "Read the paper" : "Read the abstract"}
         </a>
+        <Link
+          href="/run"
+          className="rounded-md border border-accent bg-accent/10 px-4 py-2 text-accent transition-colors hover:bg-accent hover:text-paper"
+        >
+          Run it yourself with your own key →
+        </Link>
         <a
           href={CONFIG.repoUrl}
           target="_blank"

@@ -56,6 +56,12 @@ export function Nav() {
 
         <div className="flex items-center gap-3">
           <Link
+            href="/run"
+            className="hidden font-serif text-[1.05rem] transition-colors hover:text-accent sm:inline"
+          >
+            Run it yourself
+          </Link>
+          <Link
             href="/scenarios"
             className="hidden font-serif text-[1.05rem] transition-colors hover:text-accent sm:inline"
           >

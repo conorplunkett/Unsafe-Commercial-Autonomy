@@ -10,5 +10,11 @@
       "source": "/(.*)opengraph-image",
       "headers": [{ "key": "Content-Type", "value": "image/png" }]
     }
-  ]
+  ],
+  "functions": {
+    "api/run.py": {
+      "includeFiles": "{app,data}/**",
+      "maxDuration": 60
+    }
+  }
 }
