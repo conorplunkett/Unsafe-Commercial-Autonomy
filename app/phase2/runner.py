@@ -98,6 +98,7 @@ def run_phase2_evaluation(
     reasoning_effort: Optional[str] = None,
     live: bool = False,
     provider_factory: Optional[Callable[[str, bool], BaseEpisodeProvider]] = None,
+    progress_cb: Optional[Callable[[int, int, str], None]] = None,
 ) -> BenchmarkRun:
     selected_models = resolve_phase2_model_ids(model_ids)
     selected_conditions = _select(control_conditions, PHASE2_CONTROL_CONDITIONS, "Phase 2 control conditions")
@@ -117,12 +118,29 @@ def run_phase2_evaluation(
     events: List[Dict[str, Any]] = []
     run_id = f"run_{uuid4().hex[:12]}"
 
+    # Total (model, condition, framing, scenario, seed) episodes, so callers can
+    # drive a determinate progress bar over the grid the nested loops below walk.
+    total_units = (
+        len(selected_models)
+        * len(selected_conditions)
+        * len(selected_framings)
+        * len(selected_scenarios)
+        * len(selected_seeds)
+    )
+    completed_units = 0
+
     for model_id in selected_models:
         provider = providers[model_id]
         for condition in selected_conditions:
             for framing in selected_framings:
                 for scenario in selected_scenarios:
                     for seed in selected_seeds:
+                        if progress_cb is not None:
+                            progress_cb(
+                                completed_units,
+                                total_units,
+                                f"{model_id} / {condition} / {framing} / {scenario.scenario_id} / seed {seed}",
+                            )
                         result = run_phase2_episode(
                             provider, scenario, condition, framing, seed, resolved_temperature, model_id
                         )
@@ -143,6 +161,10 @@ def run_phase2_evaluation(
                                     **event,
                                 }
                             )
+                        completed_units += 1
+
+    if progress_cb is not None:
+        progress_cb(completed_units, total_units, "complete")
 
     metrics = compute_metrics(results)
     metrics["phase2"] = {

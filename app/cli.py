@@ -166,15 +166,20 @@ def survey_command(args: argparse.Namespace) -> int:
 def test_command(args: argparse.Namespace) -> int:
     """Quick smoke test: 1 model, 1 condition, 2 scenarios, 2 seeds."""
     model_ids = _csv(args.models) or ["openai"]
-    run = run_phase1_evaluation(
-        model_ids=model_ids,
-        control_conditions=["no_policy"],
-        scenario_ids=["scn_v1_a1_trap", "scn_v1_a1_lookalike"],
-        seeds=[1, 2],
-        temperature=args.temperature,
-        reasoning_effort=args.reasoning_effort,
-        live=not args.dry_run,
-    )
+    progress = _ProgressBar()
+    try:
+        run = run_phase1_evaluation(
+            model_ids=model_ids,
+            control_conditions=["no_policy"],
+            scenario_ids=["scn_v1_a1_trap", "scn_v1_a1_lookalike"],
+            seeds=[1, 2],
+            temperature=args.temperature,
+            reasoning_effort=args.reasoning_effort,
+            live=not args.dry_run,
+            progress_cb=progress.update,
+        )
+    finally:
+        progress.finish()
     payload = RunStorage().save(run)
     _print_summary(payload)
     return 1 if payload["metrics"].get("error_count") else 0
@@ -187,16 +192,21 @@ def smoketest_openai_command(args: argparse.Namespace) -> int:
     def _factory(model_id: str, live: bool):
         return OpenAIResponsesProvider(model_name="gpt-5.4-mini")
 
-    run = run_phase1_evaluation(
-        model_ids=["openai"],
-        control_conditions=["no_policy"],
-        scenario_ids=["scn_v1_a1_trap"],
-        seeds=[1],
-        temperature=args.temperature,
-        reasoning_effort=args.reasoning_effort,
-        live=True,
-        provider_factory=_factory,
-    )
+    progress = _ProgressBar()
+    try:
+        run = run_phase1_evaluation(
+            model_ids=["openai"],
+            control_conditions=["no_policy"],
+            scenario_ids=["scn_v1_a1_trap"],
+            seeds=[1],
+            temperature=args.temperature,
+            reasoning_effort=args.reasoning_effort,
+            live=True,
+            provider_factory=_factory,
+            progress_cb=progress.update,
+        )
+    finally:
+        progress.finish()
     payload = RunStorage().save(run)
     _print_summary(payload)
     return 1 if payload["metrics"].get("error_count") else 0
@@ -209,22 +219,27 @@ def smoketest_openai_5_command(args: argparse.Namespace) -> int:
     def _factory(model_id: str, live: bool):
         return OpenAIResponsesProvider(model_name="gpt-5.4-mini")
 
-    run = run_phase1_evaluation(
-        model_ids=["openai"],
-        control_conditions=["no_policy"],
-        scenario_ids=[
-            "scn_v1_a1_trap",
-            "scn_v1_a2_lookalike",
-            "scn_v1_b1_trap",
-            "scn_v1_b2_lookalike",
-            "scn_v1_a5_trap",
-        ],
-        seeds=[1],
-        temperature=args.temperature,
-        reasoning_effort=args.reasoning_effort,
-        live=True,
-        provider_factory=_factory,
-    )
+    progress = _ProgressBar()
+    try:
+        run = run_phase1_evaluation(
+            model_ids=["openai"],
+            control_conditions=["no_policy"],
+            scenario_ids=[
+                "scn_v1_a1_trap",
+                "scn_v1_a2_lookalike",
+                "scn_v1_b1_trap",
+                "scn_v1_b2_lookalike",
+                "scn_v1_a5_trap",
+            ],
+            seeds=[1],
+            temperature=args.temperature,
+            reasoning_effort=args.reasoning_effort,
+            live=True,
+            provider_factory=_factory,
+            progress_cb=progress.update,
+        )
+    finally:
+        progress.finish()
     payload = RunStorage().save(run)
     _print_summary(payload)
     return 1 if payload["metrics"].get("error_count") else 0
@@ -252,17 +267,22 @@ def phase2_eval_command(args: argparse.Namespace) -> int:
             f"({scenario_count} scenarios x {conditions} conditions x {framings} framings "
             f"x {seeds} seeds x {models} models). Consider subsetting.\n"
         )
-    run = run_phase2_evaluation(
-        model_ids=_csv(args.models),
-        control_conditions=_csv(args.conditions),
-        framings=_csv(args.framings),
-        scenario_ids=_csv(args.scenario_ids),
-        scenario_set_path=Path(args.scenario_set) if args.scenario_set else None,
-        seeds=_csv_int(args.seeds),
-        temperature=args.temperature,
-        reasoning_effort=args.reasoning_effort,
-        live=not args.dry_run,
-    )
+    progress = _ProgressBar()
+    try:
+        run = run_phase2_evaluation(
+            model_ids=_csv(args.models),
+            control_conditions=_csv(args.conditions),
+            framings=_csv(args.framings),
+            scenario_ids=_csv(args.scenario_ids),
+            scenario_set_path=Path(args.scenario_set) if args.scenario_set else None,
+            seeds=_csv_int(args.seeds),
+            temperature=args.temperature,
+            reasoning_effort=args.reasoning_effort,
+            live=not args.dry_run,
+            progress_cb=progress.update,
+        )
+    finally:
+        progress.finish()
     payload = RunStorage().save(run)
     _print_summary(payload)
     print("\nCondition x framing (unsafe payment CI / false refusal CI):")
