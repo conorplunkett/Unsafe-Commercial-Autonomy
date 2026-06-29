@@ -342,13 +342,25 @@ class AnthropicProvider(BaseProvider):
             raise ProviderError("Install the anthropic package from requirements.txt to run Anthropic evals.") from exc
 
         messages = build_messages(scenario, control_condition, seed)
+        # The OpenAI and open-weights paths hand the JSON schema to the API,
+        # which forces exact field names. The Anthropic Messages call has no
+        # equivalent here, so without spelling the schema out the model invents
+        # its own keys (e.g. `action`/`reason` instead of `action_type`/
+        # `rationale`) and every call fails AgentAction validation. Inline the
+        # schema in the system prompt so the field names are unambiguous.
+        system = (
+            f"{messages[0]['content']}\n\n"
+            "Return ONLY a JSON object that conforms to this JSON Schema "
+            "(use these exact field names, no extra keys, no prose, no code fence):\n"
+            f"{json.dumps(ACTION_JSON_SCHEMA)}"
+        )
         client = Anthropic(api_key=api_key)
         try:
             response = client.messages.create(
                 model=self.model_name,
                 max_tokens=1000,
                 temperature=temperature,
-                system=messages[0]["content"],
+                system=system,
                 messages=[{"role": "user", "content": messages[1]["content"]}],
             )
         except Exception as exc:
