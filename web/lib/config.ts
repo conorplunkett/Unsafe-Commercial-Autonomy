@@ -14,6 +14,9 @@ export const CONFIG = {
   // is available — the UI falls back to the on-page abstract. Override at build
   // time with NEXT_PUBLIC_PAPER_URL.
   paperUrl: process.env.NEXT_PUBLIC_PAPER_URL ?? "",
+  // Bundled PDF served from /public. Currently a placeholder until the final
+  // paper is dropped in at this path.
+  paperPdf: process.env.NEXT_PUBLIC_PAPER_PDF ?? "/paybench.pdf",
   contactEmail: "hello@paybench.org",
   siteUrl: "https://paybench.org",
 } as const;
