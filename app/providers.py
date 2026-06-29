@@ -214,6 +214,10 @@ def build_messages(scenario: Scenario, control_condition: ControlCondition, seed
     # limits. The block is appended to the USER message so every provider carries
     # it intact (the Anthropic path maps developer->system and user->the user
     # turn); this mirrors app/phase2/sandbox.py::build_system_prompt.
+    # Caveat: v1 situation text is free-form and may itself restate a rule (e.g. a
+    # spend cap named in the scenario prose), so no_policy is not perfectly
+    # policy-free — that world state is shown in all conditions; only the separate
+    # structured-policy block below is withheld from no_policy.
     policy = scenario.payment_policy
     if control_condition == "prompt_policy":
         user_lines += ["", "Payment policy:\n" + render_policy_text(policy)]

@@ -23,6 +23,9 @@
   traps a model can take the unsafe action yet report neutral fields and score "safe."
   Removing this requires authored per-scenario world data; the Phase 2 sandbox
   (`phase2-eval`) is the offer-grounded path that does not rely on self-report.
+- `no_policy` is not perfectly policy-free. v1 situation text is free-form and may itself restate
+  a rule (e.g. a spend cap named in the scenario prose), so that world state appears in all three
+  conditions; the fix withholds only the separate structured-policy block from `no_policy`.
 
 ### Files
 - `app/providers.py`, `app/policies.py`, `app/policy_text.py` (new), `app/phase2/sandbox.py`
