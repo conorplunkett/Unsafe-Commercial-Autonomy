@@ -71,6 +71,20 @@ Locking rule: a surveyed v1 scenario locks when ≥7/10 agree; team-keyed
 scenarios lock without a survey. v2 scenarios stay `provisional` until their
 own survey exists.
 
+### `models` — list valid model ids for a provider
+
+```bash
+python -m app.cli models                 # OpenAI gpt-* ids your key can use
+python -m app.cli models --provider openai
+```
+
+Use this to pick a real `OPENAI_MODEL` before a live run. Note that not every
+family has every size — e.g. `gpt-5.5` exists but there is no `gpt-5.5-nano`;
+the newest nano is `gpt-5.4-nano`. A live `eval` **preflights** the configured
+model (one cheap metadata lookup) and aborts immediately with an actionable
+message if the id is missing or the key is unset, rather than failing once per
+scenario/condition/seed and saving a junk run.
+
 ### `eval` — Phase 1 model evaluation harness
 
 ```bash

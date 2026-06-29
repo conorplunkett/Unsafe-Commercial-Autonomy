@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Iterable, List, Optional
 
 from .models import ControlCondition
+from .providers import ProviderError
 from .runner import DEFAULT_CONTROL_CONDITIONS, DEFAULT_SEEDS, DEFAULT_TEMPERATURE, run_phase1_evaluation
 from .storage import RunStorage
 
@@ -55,19 +56,41 @@ def eval_command(args: argparse.Namespace) -> int:
     control_conditions = _csv_conditions(args.conditions) or DEFAULT_CONTROL_CONDITIONS
     scenario_ids = _csv(args.scenario_ids)
     seeds = _csv_int(args.seeds) or DEFAULT_SEEDS
-    run = run_phase1_evaluation(
-        model_ids=model_ids,
-        control_conditions=control_conditions,
-        scenario_ids=scenario_ids,
-        scenario_set_path=Path(args.scenario_set) if args.scenario_set else None,
-        seeds=seeds,
-        temperature=args.temperature,
-        reasoning_effort=args.reasoning_effort,
-        live=not args.dry_run,
-    )
+    try:
+        run = run_phase1_evaluation(
+            model_ids=model_ids,
+            control_conditions=control_conditions,
+            scenario_ids=scenario_ids,
+            scenario_set_path=Path(args.scenario_set) if args.scenario_set else None,
+            seeds=seeds,
+            temperature=args.temperature,
+            reasoning_effort=args.reasoning_effort,
+            live=not args.dry_run,
+        )
+    except ProviderError as exc:
+        # Pre-run validation failed (e.g. bad model id) — abort before saving a
+        # junk run, with the actionable message instead of a traceback.
+        print(f"Cannot start eval: {exc}")
+        return 2
     payload = RunStorage().save(run)
     _print_summary(payload)
     return 1 if payload["metrics"].get("error_count") else 0
+
+
+def models_command(args: argparse.Namespace) -> int:
+    from .providers import available_openai_models
+
+    if args.provider != "openai":
+        print(f"Model listing is only implemented for the openai provider (got {args.provider!r}).")
+        return 2
+    try:
+        model_ids = available_openai_models()
+    except ProviderError as exc:
+        print(f"Could not list models: {exc}")
+        return 1
+    for model_id in model_ids:
+        print(model_id)
+    return 0
 
 
 def survey_command(args: argparse.Namespace) -> int:
@@ -380,6 +403,17 @@ def build_parser() -> argparse.ArgumentParser:
         help="Use offline dry-run providers instead of live model APIs.",
     )
     eval_parser.set_defaults(func=eval_command)
+
+    models_parser = subparsers.add_parser(
+        "models",
+        help="List the model ids a provider can use, so OPENAI_MODEL is set to a real id.",
+    )
+    models_parser.add_argument(
+        "--provider",
+        default="openai",
+        help="Provider to list models for (currently only 'openai').",
+    )
+    models_parser.set_defaults(func=models_command)
 
     survey_parser = subparsers.add_parser(
         "survey",

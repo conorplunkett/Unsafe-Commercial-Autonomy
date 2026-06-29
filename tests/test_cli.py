@@ -23,7 +23,9 @@ def test_cli_eval_dry_run_prints_saved_summary(capsys):
     assert "openai:no_policy" in output
 
 
-def test_cli_eval_live_without_openai_key_reports_error(capsys, monkeypatch):
+def test_cli_eval_live_without_openai_key_aborts_before_running(capsys, monkeypatch):
+    # Missing key is caught by preflight, so the run aborts up front with an
+    # actionable message instead of saving a junk run full of errored combos.
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
 
     status = main(
@@ -41,8 +43,9 @@ def test_cli_eval_live_without_openai_key_reports_error(capsys, monkeypatch):
     )
 
     output = capsys.readouterr().out
-    assert status == 1
-    assert "Errors: 1" in output
+    assert status == 2
+    assert "Cannot start eval" in output
+    assert "Run saved:" not in output
 
 
 def test_cli_eval_accepts_v2_scenario_set(capsys):

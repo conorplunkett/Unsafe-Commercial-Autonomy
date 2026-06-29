@@ -97,6 +97,23 @@ def resolve_model_ids(model_ids: Optional[Iterable[str]]) -> list[str]:
     return selected
 
 
+def available_openai_models(api_key: Optional[str] = None, prefix: str = "gpt") -> list[str]:
+    """List OpenAI model ids this account can use, for picking a valid id.
+
+    Filters to `prefix` (the chat/reasoning families) so the output is the set
+    you'd actually set OPENAI_MODEL to, not embeddings/audio/image variants.
+    """
+    key = api_key or os.environ.get("OPENAI_API_KEY")
+    if not key:
+        raise ProviderError("Provide an OpenAI API key (or set OPENAI_API_KEY) to list OpenAI models.")
+    try:
+        from openai import OpenAI
+    except ImportError as exc:
+        raise ProviderError("Install the openai package from requirements.txt to list OpenAI models.") from exc
+    client = OpenAI(api_key=key)
+    return sorted(model.id for model in client.models.list() if prefix in model.id)
+
+
 def model_display_name(model_id: str) -> str:
     if model_id == "openai":
         return os.environ.get("OPENAI_MODEL", DEFAULT_OPENAI_MODEL)
@@ -196,6 +213,18 @@ class BaseProvider:
     provider_id: str
     model_name: str
 
+    def preflight(self) -> None:
+        """Validate the provider can run before the scenario grid executes.
+
+        Called once per provider by the runner. A wrong or unavailable model id
+        (a typo, the wrong model generation, or a model the account can't
+        access) otherwise fails once *per* (scenario, condition, seed) call —
+        burning real API requests and producing misleading fallback verdicts.
+        Raising here turns that into a single clear pre-run error. Offline
+        providers leave this a no-op.
+        """
+        return None
+
     def generate_action(
         self,
         scenario: Scenario,
@@ -223,6 +252,31 @@ class OpenAIResponsesProvider(BaseProvider):
             or DEFAULT_REASONING_EFFORT
         )
 
+    def _resolved_api_key(self) -> str:
+        if not self.model_name:
+            raise ProviderError("Provide an OpenAI model name (or set OPENAI_MODEL) to run the OpenAI provider.")
+        api_key = self.api_key or os.environ.get("OPENAI_API_KEY")
+        if not api_key:
+            raise ProviderError("Provide an OpenAI API key (or set OPENAI_API_KEY) to run the OpenAI provider.")
+        return api_key
+
+    def preflight(self) -> None:
+        api_key = self._resolved_api_key()
+        try:
+            from openai import OpenAI
+        except ImportError as exc:
+            raise ProviderError("Install the openai package from requirements.txt to run OpenAI evals.") from exc
+        client = OpenAI(api_key=api_key)
+        # One cheap metadata lookup confirms the id exists and is reachable by
+        # this account before the grid spends real generation calls on it.
+        try:
+            client.models.retrieve(self.model_name)
+        except Exception as exc:
+            raise ProviderError(
+                f"OpenAI model {self.model_name!r} is not available to this account: {exc}. "
+                "List valid ids with `python -m app.cli models` and set OPENAI_MODEL to one of them."
+            ) from exc
+
     def generate_action(
         self,
         scenario: Scenario,
@@ -230,11 +284,7 @@ class OpenAIResponsesProvider(BaseProvider):
         seed: int,
         temperature: float,
     ) -> ProviderAction:
-        if not self.model_name:
-            raise ProviderError("Provide an OpenAI model name (or set OPENAI_MODEL) to run the OpenAI provider.")
-        api_key = self.api_key or os.environ.get("OPENAI_API_KEY")
-        if not api_key:
-            raise ProviderError("Provide an OpenAI API key (or set OPENAI_API_KEY) to run the OpenAI provider.")
+        api_key = self._resolved_api_key()
         try:
             from openai import OpenAI
         except ImportError as exc:

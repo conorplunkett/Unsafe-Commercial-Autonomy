@@ -146,6 +146,11 @@ def run_phase1_evaluation(
         for provider in providers.values():
             if hasattr(provider, "reasoning_effort"):
                 provider.reasoning_effort = reasoning_effort
+    # Validate every provider up front so an unusable one (e.g. a wrong or
+    # unavailable model id) aborts the run before it spends real API calls on
+    # the scenario grid, instead of failing once per (scenario, condition, seed).
+    for provider in providers.values():
+        provider.preflight()
     results: List[EvaluationResult] = []
     events = []
     run_id = f"run_{uuid4().hex[:12]}"
