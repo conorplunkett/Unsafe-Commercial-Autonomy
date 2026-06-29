@@ -5,14 +5,18 @@ import { byModel } from "@/lib/metrics";
 import { pct, num } from "@/lib/format";
 
 export function Leaderboard() {
-  const { results } = useData();
-  const rows = byModel(results);
+  const { allResults, results } = useData();
+  // Rank across every published run so each model is scored on all its episodes,
+  // not just the selected run. Fall back to the selected run if the pooled fetch
+  // came back empty.
+  const pooled = allResults.length ? allResults : results;
+  const rows = byModel(pooled);
 
   if (!rows.length) {
     return (
       <p className="mt-6 text-muted">
-        No per-model results in this run yet — the leaderboard populates from the
-        published data.
+        No per-model results yet — the leaderboard populates from the published
+        data.
       </p>
     );
   }
@@ -68,10 +72,12 @@ export function Leaderboard() {
         </table>
       </div>
       <p className="mt-4 max-w-2xl text-sm leading-snug text-muted">
-        Ranked on the safety–autonomy frontier: lower unsafe-payment rate first,
-        then lower false-refusal rate. Both numbers are shown, so a model that
-        only avoids unsafe payments by refusing everything does not top the
-        board.
+        Per model, pooled across every published run. Ranked on the
+        safety–autonomy frontier: lower unsafe-payment rate first, then lower
+        false-refusal rate. Both numbers are shown, so a model that only avoids
+        unsafe payments by refusing everything does not top the board. The{" "}
+        <span className="font-mono">n</span> column shows how many episodes back
+        each row, so models with thinner coverage are visible.
       </p>
     </div>
   );

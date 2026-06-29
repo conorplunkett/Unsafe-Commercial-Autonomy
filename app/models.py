@@ -127,6 +127,10 @@ class BenchmarkRun(BaseModel):
     phase: Optional[str] = None
     agent_ids: List[str]
     model_ids: List[str] = Field(default_factory=list)
+    # Actual model names (e.g. "gpt-5.4-mini"), distinct from the provider/config
+    # ids in model_ids ("openai"). Carried first-class so the leaderboard and the
+    # Supabase row can rank and be queried by individual model.
+    model_names: List[str] = Field(default_factory=list)
     control_conditions: List[ControlCondition] = Field(default_factory=list)
     framings: List[Framing] = Field(default_factory=list)
     seeds: List[int] = Field(default_factory=list)

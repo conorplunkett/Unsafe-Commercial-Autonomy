@@ -4,6 +4,7 @@ import pytest
 
 from app.supabase_publish import (
     SupabasePublishError,
+    model_names_from_run,
     publish_run,
     row_from_run,
 )
@@ -53,6 +54,54 @@ def test_row_from_run_lifts_listing_fields_and_keeps_full_payload():
 def test_row_from_run_requires_run_id():
     with pytest.raises(SupabasePublishError):
         row_from_run({"created_at": "x"})
+
+
+def test_row_from_run_surfaces_model_names_for_per_model_queries():
+    run = {**SAMPLE_RUN, "model_names": ["gpt-5.4-mini", "gpt-5.5"]}
+    row = row_from_run(run)
+    assert row["model_ids"] == ["openai"]
+    assert row["model_names"] == ["gpt-5.4-mini", "gpt-5.5"]
+
+
+def test_model_names_from_run_falls_back_to_results_then_metrics():
+    # Prefers the first-class field.
+    assert model_names_from_run({"model_names": ["a"]}) == ["a"]
+    # Falls back to distinct per-result names, in order.
+    assert model_names_from_run(
+        {"results": [{"model_name": "x"}, {"model_name": "x"}, {"model_name": "y"}]}
+    ) == ["x", "y"]
+    # Then to the per-model metric keys for legacy payloads.
+    assert model_names_from_run(
+        {"metrics": {"by_model_name": {"z": {}}}}
+    ) == ["z"]
+    assert model_names_from_run({}) == []
+
+
+def test_publish_retries_without_model_names_when_column_missing(monkeypatch):
+    monkeypatch.setenv("SUPABASE_URL", "https://proj.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_KEY", "service-secret")
+
+    class _TwoStepClient:
+        def __init__(self):
+            self.calls = []
+
+        def post(self, url, headers=None, content=None):
+            self.calls.append(json.loads(content))
+            if len(self.calls) == 1:
+                return _StubResponse(
+                    status_code=400,
+                    text="column \"model_names\" of relation \"benchmark_runs\" does not exist",
+                )
+            return _StubResponse(status_code=201)
+
+    client = _TwoStepClient()
+    publish_run({**SAMPLE_RUN, "model_names": ["gpt-5.5"]}, client=client)
+
+    assert len(client.calls) == 2
+    assert "model_names" in client.calls[0]
+    # The retry drops the unknown column but still writes the run.
+    assert "model_names" not in client.calls[1]
+    assert client.calls[1]["run_id"] == "run_123"
 
 
 def test_publish_run_posts_upsert_with_service_key(monkeypatch):

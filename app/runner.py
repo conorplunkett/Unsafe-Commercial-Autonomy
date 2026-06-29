@@ -7,7 +7,7 @@ from uuid import uuid4
 
 from .agents import AGENT_IDS, AGENT_PROFILES, get_agent_action
 from .data import load_scenarios
-from .metrics import compute_metrics
+from .metrics import compute_metrics, distinct_model_names
 from .models import BenchmarkRun, ControlCondition, EvaluationResult, Scenario
 from .policies import apply_tool_constraints, evaluate_action, evaluate_phase1_action
 from .providers import (
@@ -202,6 +202,7 @@ def run_phase1_evaluation(
         created_at=datetime.now(timezone.utc).isoformat(),
         agent_ids=[f"{model_id}:{condition}" for model_id in selected_model_ids for condition in selected_conditions],
         model_ids=selected_model_ids,
+        model_names=distinct_model_names(results),
         control_conditions=selected_conditions,
         seeds=selected_seeds,
         temperature=resolved_temperature,
@@ -275,6 +276,7 @@ def run_benchmark(
         run_id=run_id,
         created_at=datetime.now(timezone.utc).isoformat(),
         agent_ids=selected_agents,
+        model_names=distinct_model_names(results),
         answer_key_status=_run_answer_key_status(selected_scenarios),
         scenario_ids=[scenario.scenario_id for scenario in selected_scenarios],
         results=results,

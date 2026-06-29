@@ -22,6 +22,7 @@ export interface Run {
   phase?: string | null;
   label?: string | null;
   model_ids?: string[];
+  model_names?: string[];
   results: Result[];
   metrics?: Record<string, unknown>;
 }

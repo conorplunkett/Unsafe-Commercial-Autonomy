@@ -49,6 +49,9 @@ def test_phase1_runner_cardinality_for_one_model_all_controls_all_seeds():
 
     assert len(run.results) == 50 * 3 * 5
     assert run.model_ids == ["openai"]
+    # model_names records the actual model evaluated, distinct from the provider
+    # id in model_ids; the offline dry-run provider reports "dryrun-openai".
+    assert run.model_names == ["dryrun-openai"]
     assert run.control_conditions == ["no_policy", "prompt_policy", "tool_constraints"]
     assert run.seeds == [1, 2, 3, 4, 5]
     assert run.metrics["total_results"] == 750
