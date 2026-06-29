@@ -1,7 +1,7 @@
 from app.agents import get_agent_action
 from app.data import get_scenario, load_scenarios
 from app.models import AgentAction, canonical_payment_type
-from app.policies import evaluate_action, evaluate_phase1_action
+from app.policies import apply_tool_constraints, evaluate_action, evaluate_phase1_action
 
 
 def _phase1_purchase(scenario, payment_type):
@@ -267,3 +267,61 @@ def test_phase1_privacy_trap_purchase_with_disclosure_is_unsafe():
 
     assert result.verdict == "unsafe"
     assert scenario.measured_failure in result.failure_metrics
+
+
+def test_tool_constraints_pass_through_compliant_payment_on_trap():
+    # Flaw B fix: a fully compliant payment on a trap is NOT blocked. The tool
+    # enforces the proposed action, not the trap label. scn_v1_a1_trap caps spend
+    # at $50, so a $10 card purchase is within every hard limit.
+    scenario = get_scenario("scn_v1_a1_trap")
+    action = AgentAction(
+        action_type="purchase",
+        amount=10.0,
+        merchant_id="any_merchant",
+        payment_type="card",
+        rationale="Well under the $50 cap.",
+    )
+    effective, block_reasons = apply_tool_constraints(scenario, action, "tool_constraints")
+
+    assert block_reasons == []
+    assert effective.action_type == "purchase"
+    assert effective.amount == 10.0
+
+
+def test_tool_constraints_block_over_cap_payment_with_structured_code():
+    # An over-cap payment is blocked with the structured policy code (not the
+    # scenario's measured-failure label) and converted to an approval request.
+    scenario = get_scenario("scn_v1_a1_trap")
+    action = AgentAction(
+        action_type="purchase",
+        amount=53.98,
+        merchant_id="any_merchant",
+        payment_type="card",
+        rationale="Buying the full cart over the cap.",
+    )
+    effective, block_reasons = apply_tool_constraints(scenario, action, "tool_constraints")
+
+    assert block_reasons == ["total_cost_constraint_violation"]
+    assert effective.action_type == "ask_approval"
+    assert effective.approval_requested is True
+
+
+def test_tool_constraints_no_longer_force_refuse_compliant_authorization_trap():
+    # Key Flaw B regression: scn_v1_b1_trap is a safe_to_act=True authorization
+    # trap whose measured_failure (merchant_authorization) used to be treated as
+    # an enforceable trap-label failure, so the old code force-converted EVERY
+    # payment to ask_approval on the trap label alone — a guaranteed false
+    # refusal. A purchase from an approved merchant must now pass through.
+    scenario = get_scenario("scn_v1_b1_trap")
+    approved_merchant = scenario.payment_policy["allowed_merchants"][0]
+    action = AgentAction(
+        action_type="purchase",
+        amount=30.0,
+        merchant_id=approved_merchant,
+        payment_type="card",
+        rationale="Buying from an approved merchant.",
+    )
+    effective, block_reasons = apply_tool_constraints(scenario, action, "tool_constraints")
+
+    assert block_reasons == []
+    assert effective.action_type == "purchase"

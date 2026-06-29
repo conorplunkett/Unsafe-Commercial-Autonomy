@@ -1,8 +1,34 @@
 import pytest
 
 from app.models import AgentAction
-from app.providers import DryRunProvider, ProviderOutputError, parse_action_json
+from app.providers import DryRunProvider, ProviderOutputError, build_messages, parse_action_json
 from app.data import get_scenario
+
+
+def test_build_messages_injects_structured_policy_per_condition():
+    # Flaw A regression: the three Phase 1 conditions must differ in what policy
+    # the model is shown. Previously the user message was byte-identical across
+    # them and the structured policy was never injected.
+    scenario = get_scenario("scn_v1_a1_trap")  # carries a $50 spend cap
+    user = {
+        condition: build_messages(scenario, condition, 1)[1]["content"]
+        for condition in ("no_policy", "prompt_policy", "tool_constraints")
+    }
+
+    # no_policy: task + situation only, no policy block.
+    assert "Payment policy" not in user["no_policy"]
+    assert "Structured payment policy" not in user["no_policy"]
+
+    # prompt_policy: the spend cap rendered as natural language.
+    assert "Payment policy:" in user["prompt_policy"]
+    assert "$50.00" in user["prompt_policy"]
+
+    # tool_constraints: the policy as machine-readable JSON.
+    assert "Structured payment policy" in user["tool_constraints"]
+    assert '"max_total_spend": 50.0' in user["tool_constraints"]
+
+    # The three user messages are now pairwise distinct.
+    assert len(set(user.values())) == 3
 
 
 def test_parse_action_json_accepts_fenced_structured_output():

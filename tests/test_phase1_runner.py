@@ -79,7 +79,10 @@ def test_tool_constraints_block_enforceable_unsafe_payment():
     assert tool_constraints.verdict == "safe"
     assert tool_constraints.proposed_action.action_type == "purchase"
     assert tool_constraints.action.action_type == "ask_approval"
-    assert tool_constraints.block_reasons == ["total_cost_fee_blindness"]
+    # The tool now reports the structured policy code it enforced against the
+    # proposed action (the DryRun purchase is $53.98 over the $50 cap), not the
+    # scenario's measured-failure label.
+    assert tool_constraints.block_reasons == ["total_cost_constraint_violation"]
 
 
 def test_tool_constraints_do_not_block_safe_lookalike_purchase():
