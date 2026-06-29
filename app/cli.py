@@ -72,21 +72,119 @@ def _format_rate(summary: dict, key: str) -> str:
     return f"{rate:.3f}"
 
 
+# How many per-result rows the detail table prints before collapsing into a
+# pointer to the saved JSON, so a 250-scenario sweep doesn't flood the terminal
+# while a handful of debug scenarios still print in full.
+_DETAIL_ROW_CAP = 60
+
+# Verdicts that mean the run did something other than the safe thing — these are
+# the rows worth reading first when debugging.
+_PROBLEM_VERDICTS = ("error", "unsafe", "false_refusal", "welfare_loss")
+
+
+def _format_action(action: Optional[dict]) -> str:
+    """One-line description of the action a model took, for the detail table."""
+    if not action:
+        return "-"
+    parts = [str(action.get("action_type") or "?")]
+    amount = action.get("amount")
+    if amount is not None:
+        parts.append(f"${amount:.2f}")
+    payment_type = action.get("payment_type")
+    if payment_type:
+        parts.append(str(payment_type))
+    if action.get("approval_requested"):
+        parts.append("(approval req)")
+    return " ".join(parts)
+
+
+def _result_notes(result: dict) -> str:
+    """Why a result landed where it did: error, failure codes, or a block."""
+    if result.get("error"):
+        return f"ERROR: {result['error']}"
+    failures = result.get("failure_metrics") or []
+    if failures:
+        return ", ".join(failures)
+    blocks = result.get("block_reasons") or []
+    if blocks:
+        return "blocked: " + ", ".join(blocks)
+    return "-"
+
+
+def _print_verdicts_and_failures(metrics: dict) -> None:
+    verdict_counts = metrics.get("verdict_counts") or {}
+    if verdict_counts:
+        ordered = sorted(verdict_counts.items(), key=lambda item: (-item[1], item[0]))
+        print("Verdicts:     " + "  ".join(f"{verdict}={count}" for verdict, count in ordered))
+    failure_counts = metrics.get("failure_counts") or {}
+    if failure_counts:
+        ordered = sorted(failure_counts.items(), key=lambda item: (-item[1], item[0]))
+        print("Failure types: " + "  ".join(f"{name}={count}" for name, count in ordered))
+    else:
+        print("Failure types: (none)")
+
+
+def _print_result_details(results: List[dict]) -> None:
+    if not results:
+        return
+    # Surface problem verdicts first, then by scenario/seed, so the rows you most
+    # want when debugging are at the top regardless of grid iteration order.
+    def sort_key(result: dict):
+        verdict = result.get("verdict", "")
+        problem_rank = _PROBLEM_VERDICTS.index(verdict) if verdict in _PROBLEM_VERDICTS else len(_PROBLEM_VERDICTS)
+        return (problem_rank, result.get("scenario_id", ""), result.get("seed") or 0)
+
+    ordered = sorted(results, key=sort_key)
+    print("")
+    print("Per-result detail (problems first):")
+    header = f"{'Scenario':26} {'Condition':16} {'Sd':>2} {'Verdict':13} {'Action':32} Notes"
+    print(header)
+    print("-" * max(len(header), 96))
+    for result in ordered[:_DETAIL_ROW_CAP]:
+        print(
+            f"{(result.get('scenario_id') or '-')[:26]:26} "
+            f"{(result.get('control_condition') or '-')[:16]:16} "
+            f"{(str(result.get('seed')) if result.get('seed') is not None else '-'):>2} "
+            f"{(result.get('verdict') or '-')[:13]:13} "
+            f"{_format_action(result.get('action'))[:32]:32} "
+            f"{_result_notes(result)}"
+        )
+    if len(ordered) > _DETAIL_ROW_CAP:
+        print(f"... {len(ordered) - _DETAIL_ROW_CAP} more (see the saved run JSON).")
+
+    # Rationales are the most useful debugging signal for non-safe verdicts, so
+    # print them in full(ish) instead of cramming them into the table.
+    problems = [result for result in ordered if result.get("verdict") in _PROBLEM_VERDICTS]
+    if problems:
+        print("")
+        print("Rationales for non-safe verdicts:")
+        for result in problems[:_DETAIL_ROW_CAP]:
+            scenario = result.get("scenario_id") or "-"
+            seed = result.get("seed")
+            rationale = (result.get("action") or {}).get("rationale") or "(none)"
+            rationale = " ".join(rationale.split())
+            print(f"  [{result.get('verdict')}] {scenario} seed={seed}: {rationale[:300]}")
+
+
 def _print_summary(run_payload: dict) -> None:
+    metrics = run_payload["metrics"]
     print(f"Run saved: runtime/runs/{run_payload['run_id']}.json")
-    print(f"Results: {run_payload['metrics']['total_results']}")
-    if run_payload["metrics"].get("error_count"):
-        print(f"Errors: {run_payload['metrics']['error_count']}")
+    print(f"Results: {metrics['total_results']}")
+    if metrics.get("error_count"):
+        print(f"Errors: {metrics['error_count']}")
+    print("")
+    _print_verdicts_and_failures(metrics)
     print("")
     print("Model/control                         Results  Unsafe payment CI      False refusal CI")
     print("-" * 88)
-    for agent_id, summary in sorted(run_payload["metrics"].get("by_agent", {}).items()):
+    for agent_id, summary in sorted(metrics.get("by_agent", {}).items()):
         print(
             f"{agent_id[:36]:36} "
             f"{summary['total_results']:7}  "
             f"{_format_rate(summary, 'unsafe_payment'):22} "
             f"{_format_rate(summary, 'false_refusal')}"
         )
+    _print_result_details(run_payload.get("results") or [])
 
 
 def eval_command(args: argparse.Namespace) -> int:
