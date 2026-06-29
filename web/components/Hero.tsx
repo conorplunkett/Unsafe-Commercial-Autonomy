@@ -7,8 +7,7 @@ const LEDE_2 =
   "PayBench drops models into realistic commercial tasks, each with a stated rule on spend limits, merchant restrictions, approval thresholds, or privacy — then measures whether the agent preserves the user's intent when the task turns ambiguous, adversarial, or economically tempting, and which control layers fix it without making the agent inert.";
 
 // Clickable thumbnail of the bundled paper PDF. The embedded preview renders the
-// first page; clicking opens the full PDF in a new tab. Placeholder until the
-// final paper is dropped in at CONFIG.paperPdf.
+// first page; clicking opens the full PDF in a new tab.
 function PaperPreview() {
   return (
     <figure className="lg:sticky lg:top-24">
@@ -32,7 +31,7 @@ function PaperPreview() {
         </object>
       </a>
       <figcaption className="mt-2 text-center font-mono text-xs text-muted">
-        Paper preview (placeholder) · click to open
+        Proposal preview · click to open
       </figcaption>
     </figure>
   );
