@@ -173,7 +173,9 @@ Coverage caveats:
   detect (ambiguity, missing consent) are flagged `semantic_only` and are
   scored via `safe_to_act`/`acceptable_actions` only.
 - The survey and human-baseline data files ship with **example entries
-  only** (`_meta.example: true`); collect real data before reporting.
+  only** (`_meta.example: true`); collect real data before reporting. Human
+  responses load from a Google Form CSV via `phase2-human-import`, then publish
+  with `publish-human-baseline`.
 
 ### `phase2-eval` — six-condition sandbox ablation + framing test
 
@@ -236,7 +238,48 @@ Collection presents the same SandboxWorld as a text menu (search / view /
 check / pay / approve / refuse / done / finish), so humans use exactly the
 tools models use. Sessions store a plain `AgentAction` in
 `data/human_baseline/phase2_sessions.json` and are scored by the same
-pipeline as model runs.
+pipeline as model runs. The report breaks the confusion matrix and rates down
+**by demographic** (age, country, occupation, purchasing role, AI familiarity)
+whenever those fields are present.
+
+### `phase2-human-import` — load human responses from a Google Form CSV
+
+Running 5–10 remote participants through the text menu doesn't scale, so the
+realistic path is a Google Form exported to CSV:
+
+```bash
+python -m app.cli phase2-human-import --csv responses.csv   # import + report
+```
+
+CSV contract (one row per form response = one participant), template at
+[`data/human_baseline/google_form_template.csv`](data/human_baseline/google_form_template.csv):
+
+- **Identity** — a `participant_id` column (or `email`, which is **pseudonymized**
+  — raw addresses are never stored — or an auto `p01`, `p02`… fallback).
+- **Demographics** — any of `age_band`/`age`, `gender`, `country`,
+  `occupation`/`job`, `purchasing_role`/`role`, `education`, `ai_familiarity`.
+  Unrecognized non-scenario columns are kept verbatim in `demographics`.
+- **Decisions** — every column whose header *contains* a scenario id (a question
+  titled `[scn_v2_a1_trap] You're asked to …`, or just the bare id
+  `scn_v2_a1_trap`). The cell value is a coarse verb that scores the safe/unsafe
+  confusion matrix:
+
+  | Verb | Aliases | Scored action |
+  | --- | --- | --- |
+  | `proceed` | buy, pay, purchase | purchase |
+  | `ask` | approve, approval, escalate, request approval | ask_approval |
+  | `refuse` | decline, reject, deny | refuse |
+  | `done` | complete, task complete | defer (task done, no payment) |
+  | `skip` | abandon, do nothing, none | defer (abandoned) |
+
+- **Optional detail** — `scn_v2_a1_trap:amount` columns (also `:merchant`, `:sku`,
+  `:payment_type`, `:disclosed_fields` (`;`-separated), `:rationale`,
+  `:recurring`, `:refundable`); `__` works in place of `:`.
+
+Importing real data clears the `_meta.example` flag and upserts sessions by id
+(re-importing a corrected export is safe). Unknown scenario ids and stray
+columns are reported, not silently dropped. Use `--sessions-file` to write a
+separate cohort file.
 
 ### `phase2-transfer` — Phase 1 → sandbox transfer check
 
@@ -273,6 +316,26 @@ python -m app.cli publish --file runtime/runs/run_<id>.json
 - The site reads with the **publishable** key in `static/config.js` (safe to
   commit; row-level security grants public read only). Writes require the
   **service-role** key above, which must stay server-side.
+
+## `publish-human-baseline` — push human sessions to Supabase
+
+Publishes one scored row per recorded human session to the
+`human_baseline_sessions` table (migration
+`db/migrations/0002_add_human_baseline.sql`), so the human calibration line and
+its demographics sit alongside the model leaderboard. Uses the same
+service-role key as `publish`.
+
+```bash
+python -m app.cli publish-human-baseline --label "Phase 2 human baseline"
+```
+
+- Reads `data/human_baseline/phase2_sessions.json` (override with `--file`).
+- **Refuses to publish example data** — import real sessions first; pass
+  `--allow-example` only to deliberately override.
+- Upserts on `session_id` (idempotent). Each row carries the scored verdict and
+  confusion-matrix `outcome`, the full `action`/`demographics` JSON, and the
+  canonical demographics lifted to columns for SQL filtering. No raw emails or
+  names are stored. Public SELECT via RLS, like `benchmark_runs`.
 
 ---
 
@@ -509,7 +572,9 @@ Agent actions must be one of: `purchase`, `pay_tool`, `send_stablecoin`,
 ## Not implemented yet (see README)
 
 - Real survey responses (50 respondents) and real human-baseline sessions —
-  the data files ship with example entries; collection CLIs exist
+  the data files ship with example entries; collection/import CLIs exist
+  (`phase2-human-import` ingests a Google Form CSV; `publish-human-baseline`
+  pushes scored sessions + demographics to Supabase)
 - Wiring v2 survey lock status into scenario `answer_key_status`
 - Additional payment rails as first-class benchmark scope
 - Phase 3 real-money validation

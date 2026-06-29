@@ -18,11 +18,15 @@ from __future__ import annotations
 
 import json
 import os
-from typing import Any, Dict, Optional
+import re
+from typing import Any, Dict, List, Optional
 
 import httpx
 
 DEFAULT_TABLE = "benchmark_runs"
+DEFAULT_HUMAN_TABLE = "human_baseline_sessions"
+
+_MISSING_COLUMN_RE = re.compile(r"column \"([^\"]+)\"")
 
 # The public project URL is not a secret (the site embeds it client-side), so we
 # default to it. Only the service-role *key* must be supplied via the
@@ -34,7 +38,9 @@ class SupabasePublishError(RuntimeError):
     """Raised when a run cannot be published (missing config or API error)."""
 
 
-def _config() -> tuple[str, str, str]:
+def _config(
+    table_env: str = "SUPABASE_BENCHMARK_TABLE", default_table: str = DEFAULT_TABLE
+) -> tuple[str, str, str]:
     """Resolve (base_url, service_key, table) from the environment."""
     # The URL is public, so fall back to the project default; only the key is
     # secret and must be provided.
@@ -43,13 +49,24 @@ def _config() -> tuple[str, str, str]:
     key = os.environ.get("SUPABASE_SERVICE_KEY") or os.environ.get(
         "SUPABASE_SERVICE_ROLE_KEY"
     )
-    table = os.environ.get("SUPABASE_BENCHMARK_TABLE", DEFAULT_TABLE)
+    table = os.environ.get(table_env, default_table)
     if not key:
         raise SupabasePublishError(
             "SUPABASE_SERVICE_KEY is not set. Use the service-role key from "
             "Supabase > Project Settings > API; keep it out of version control."
         )
     return url.rstrip("/"), key, table
+
+
+def _missing_column(response: httpx.Response) -> Optional[str]:
+    """Return the column name PostgREST reports as missing, if that's the error."""
+    if response.status_code < 400:
+        return None
+    text = response.text or ""
+    match = _MISSING_COLUMN_RE.search(text)
+    if match and "does not exist" in text:
+        return match.group(1)
+    return None
 
 
 def model_names_from_run(run: Dict[str, Any]) -> list:
@@ -139,3 +156,53 @@ def publish_run(
             f"Supabase publish failed ({response.status_code}): {response.text}"
         )
     return row
+
+
+def publish_human_baseline(
+    rows: List[Dict[str, Any]],
+    *,
+    client: Optional[httpx.Client] = None,
+) -> int:
+    """Bulk-upsert scored human-baseline session rows, keyed on ``session_id``.
+
+    Rows come from ``app.phase2.humans.human_baseline_rows`` (scored with the
+    same pipeline as models). Re-publishing the same ``session_id`` overwrites
+    its row, so re-importing and re-publishing is idempotent. Returns the number
+    of rows sent. Writes to the ``human_baseline_sessions`` table (override with
+    ``SUPABASE_HUMAN_BASELINE_TABLE``).
+    """
+    rows = list(rows)
+    if not rows:
+        return 0
+    base_url, key, table = _config("SUPABASE_HUMAN_BASELINE_TABLE", DEFAULT_HUMAN_TABLE)
+    endpoint = f"{base_url}/rest/v1/{table}"
+    headers = {
+        "apikey": key,
+        "Authorization": f"Bearer {key}",
+        "Content-Type": "application/json",
+        # Upsert on the session_id primary key, and skip echoing rows back.
+        "Prefer": "resolution=merge-duplicates,return=minimal",
+    }
+
+    owns_client = client is None
+    client = client or httpx.Client(timeout=30.0)
+    try:
+        response = client.post(endpoint, headers=headers, content=json.dumps(rows))
+        # Tolerate a schema that predates an added column: strip the offending
+        # column from every row and retry once. The value still lives inside the
+        # demographics/action jsonb where it matters, so the publish survives.
+        missing = _missing_column(response)
+        if missing:
+            rows = [{k: v for k, v in row.items() if k != missing} for row in rows]
+            response = client.post(endpoint, headers=headers, content=json.dumps(rows))
+    except httpx.HTTPError as exc:  # network/transport failure
+        raise SupabasePublishError(f"Supabase request failed: {exc}") from exc
+    finally:
+        if owns_client:
+            client.close()
+
+    if response.status_code >= 400:
+        raise SupabasePublishError(
+            f"Supabase human-baseline publish failed ({response.status_code}): {response.text}"
+        )
+    return len(rows)

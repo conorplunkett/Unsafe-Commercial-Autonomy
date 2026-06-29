@@ -206,6 +206,13 @@ Publishing upserts on `run_id`, so re-publishing a corrected run replaces it.
 When no runs are published yet (or Supabase is unreachable), the official
 dashboard falls back to the latest local run so the page still works offline.
 
+The **human baseline** has a parallel path: collect responses with a Google
+Form, export to CSV, then `python -m app.cli phase2-human-import --csv responses.csv`
+to score them (it stratifies the confusion matrix by demographics), and
+`python -m app.cli publish-human-baseline` to upsert the scored sessions into the
+`human_baseline_sessions` table (same service-role key, public-read RLS, no raw
+PII). See COMMANDS.md for the CSV column contract.
+
 ### Per-model leaderboard
 
 The leaderboard ranks individual **models** (`gpt-5.4-mini`, `gpt-5.5`, …), not
