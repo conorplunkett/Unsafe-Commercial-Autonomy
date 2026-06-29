@@ -30,9 +30,6 @@ function PaperPreview() {
           </div>
         </object>
       </a>
-      <figcaption className="mt-2 text-center font-mono text-xs text-muted">
-        Proposal preview · click to open
-      </figcaption>
     </figure>
   );
 }
@@ -62,7 +59,7 @@ export function Hero() {
           <div className="mt-7 flex flex-wrap items-center gap-3 font-serif text-[1.05rem]">
             <a
               href={CONFIG.paperPdf}
-              download
+              download="PayBench - A Benchmark for Unsafe Commercial Autonomy.pdf"
               className="rounded-md bg-ink px-4 py-2 text-paper transition-colors hover:bg-accent"
             >
               Download PDF
