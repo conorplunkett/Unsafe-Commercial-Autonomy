@@ -370,7 +370,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     eval_parser.add_argument(
         "--reasoning-effort",
-        choices=["minimal", "low", "medium", "high"],
+        choices=["none", "low", "medium", "high", "xhigh"],
         default=None,
         help="Reasoning effort for reasoning models such as gpt-5.x (ignored by temperature-based models).",
     )
@@ -400,7 +400,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     test_parser.add_argument(
         "--reasoning-effort",
-        choices=["minimal", "low", "medium", "high"],
+        choices=["none", "low", "medium", "high", "xhigh"],
         default=None,
         help="Reasoning effort for reasoning models such as gpt-5.x (ignored by temperature-based models).",
     )
@@ -423,7 +423,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     smoketest_openai_parser.add_argument(
         "--reasoning-effort",
-        choices=["minimal", "low", "medium", "high"],
+        choices=["none", "low", "medium", "high", "xhigh"],
         default=None,
         help="Reasoning effort for reasoning models such as gpt-5.x (ignored by temperature-based models).",
     )
@@ -441,7 +441,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     smoketest_openai_5_parser.add_argument(
         "--reasoning-effort",
-        choices=["minimal", "low", "medium", "high"],
+        choices=["none", "low", "medium", "high", "xhigh"],
         default=None,
         help="Reasoning effort for reasoning models such as gpt-5.x (ignored by temperature-based models).",
     )
@@ -482,7 +482,7 @@ def build_parser() -> argparse.ArgumentParser:
     phase2_eval_parser.add_argument("--temperature", type=float, default=None)
     phase2_eval_parser.add_argument(
         "--reasoning-effort",
-        choices=["minimal", "low", "medium", "high"],
+        choices=["none", "low", "medium", "high", "xhigh"],
         default=None,
         help="Reasoning effort for reasoning models (ignored by temperature-based models).",
     )

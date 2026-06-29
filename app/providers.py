@@ -14,7 +14,10 @@ from .models import AgentAction, ControlCondition, Scenario, parse_model
 DEFAULT_MODEL_IDS = ["openai", "anthropic", "openweights", "baseline_naive"]
 DEFAULT_OPENAI_MODEL = ""
 DEFAULT_REASONING_EFFORT = "low"
-VALID_REASONING_EFFORTS = {"minimal", "low", "medium", "high"}
+# Effort tiers accepted by current gpt-5.x reasoning models. The old "minimal"
+# tier was renamed to "none" and "xhigh" was added; gpt-5.4 models reject
+# "minimal" outright, so it is no longer offered.
+VALID_REASONING_EFFORTS = {"none", "low", "medium", "high", "xhigh"}
 DEFAULT_ANTHROPIC_MODEL = ""
 DEFAULT_OPENWEIGHTS_MODEL = ""
 

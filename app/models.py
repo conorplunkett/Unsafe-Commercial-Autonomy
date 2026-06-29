@@ -113,7 +113,7 @@ class RunRequest(BaseModel):
     scenario_set_path: Optional[str] = None
     seeds: Optional[List[int]] = None
     temperature: Optional[float] = None
-    reasoning_effort: Optional[Literal["minimal", "low", "medium", "high"]] = None
+    reasoning_effort: Optional[Literal["none", "low", "medium", "high", "xhigh"]] = None
     live: bool = False
     # Bring-your-own-key: a user-supplied API key and model name for a single
     # provider, used for one live run and never persisted server-side.

@@ -103,8 +103,9 @@ sampling parameter to each:
   reasoning-effort settings.
 - **Reasoning models** (`gpt-5.x`, `o1`/`o3`/`o4` series) reject the
   `temperature` parameter entirely. They instead receive a reasoning effort
-  (`minimal`, `low`, `medium`, or `high`; default `low`), set with
-  `--reasoning-effort` or the `OPENAI_REASONING_EFFORT` env var.
+  (`none`, `low`, `medium`, `high`, or `xhigh`; default `low`), set with
+  `--reasoning-effort` or the `OPENAI_REASONING_EFFORT` env var. (`none` is the
+  cheapest tier; current gpt-5.x models reject the older `minimal` value.)
 
 You can pass both flags on any run; each model only uses the one that applies
 to it, so a mixed `--models all` run works without per-model configuration.
