@@ -6,11 +6,12 @@ export interface SectionLink {
   label: string;
 }
 
+// "Summary" is intentionally omitted — the PayBench logo links to the top of the
+// page, which is the summary. "Scenarios" is omitted too: the "Dataset" link in
+// the nav covers the scenario set.
 export const SECTIONS: SectionLink[] = [
-  { id: "summary", label: "Summary" },
   { id: "benchmark", label: "Benchmark" },
   { id: "results", label: "Results" },
   { id: "leaderboard", label: "Leaderboard" },
-  { id: "scenarios", label: "Scenarios" },
   { id: "cite", label: "Cite" },
 ];
