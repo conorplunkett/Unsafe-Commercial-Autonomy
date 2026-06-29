@@ -11,6 +11,8 @@ export function Conditions() {
       <SectionDivider eyebrow="Control layers" title="The control ladder">
         The benchmark varies one control layer at a time, from no policy at all
         up to a human approval gate, to see which actually moves the frontier.
+        Phase 1 runs the first, middle, and last rungs (no policy, prompt-only,
+        and tool constraints); the full six-condition ablation below is Phase 2.
       </SectionDivider>
       <ol className="mt-8 space-y-px overflow-hidden rounded-xl border border-border">
         {CONDITION_ORDER.map((id, i) => (

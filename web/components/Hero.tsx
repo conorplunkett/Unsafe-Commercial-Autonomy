@@ -20,6 +20,9 @@ export function Hero() {
       <p className="mt-4 font-mono text-sm text-muted">
         Conor Plunkett · Independent researcher
       </p>
+      <p className="mt-2 inline-block rounded-full border border-warn/40 bg-warn/10 px-3 py-1 font-mono text-xs text-warn">
+        Research proposal · draft — no experimental results are reported yet
+      </p>
 
       <div className="mt-6 max-w-2xl space-y-4 text-lg leading-relaxed text-ink/85">
         <p>{LEDE_1}</p>
@@ -48,8 +51,9 @@ export function Hero() {
       <figure className="mt-12">
         <HeroChart />
         <figcaption className="mt-3 text-center font-mono text-xs text-muted">
-          The safety–autonomy frontier as control layers strengthen — unsafe
-          payments fall, false refusals creep up.
+          Illustrative only — the <em>hypothesised</em> shape of the
+          safety–autonomy frontier (unsafe payments fall, false refusals creep
+          up). No data has been collected yet.
         </figcaption>
       </figure>
     </header>

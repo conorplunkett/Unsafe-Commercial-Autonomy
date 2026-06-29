@@ -9,8 +9,8 @@ export interface SectionLink {
 export const SECTIONS: SectionLink[] = [
   { id: "summary", label: "Summary" },
   { id: "benchmark", label: "Benchmark" },
-  { id: "results", label: "Results" },
-  { id: "leaderboard", label: "Leaderboard" },
+  { id: "method", label: "Method" },
+  { id: "results", label: "Expected" },
   { id: "scenarios", label: "Scenarios" },
   { id: "cite", label: "Cite" },
 ];
