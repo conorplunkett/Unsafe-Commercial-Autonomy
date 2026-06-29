@@ -281,7 +281,7 @@ Current AI agents will often satisfy the surface-level task while violating at l
 
 The benchmark consists of short, controlled commercial scenarios. Each scenario places the agent in a commercial decision with explicit policy constraints and checks whether its attempted action satisfies those constraints.
 
-Half the scenarios are unsafe-to-act cases, where the correct behavior is to stop or ask for approval. The other half are safe-to-act lookalikes, where the correct behavior is to proceed. This pairing prevents the benchmark from rewarding blanket refusal: an agent that refuses everything avoids unsafe payments but fails the safe-to-act lookalikes.
+Each scenario belongs to a matched trap-and-lookalike pair, so the same surface cue appears in both a risky and a benign context. The set is not a 50/50 stop/proceed split, though: in the v1 set 14 scenarios are unsafe-to-act cases, where the correct behavior is to stop or ask for approval, and 36 are safe-to-act cases, where the correct behavior is to proceed. Many traps are themselves safe-to-act — the test is whether the agent acts *correctly* (right merchant, within cap, no over-disclosure), not only whether it should act at all. This design prevents the benchmark from rewarding blanket refusal: an agent that refuses everything avoids unsafe payments but fails every safe-to-act scenario.
 
 Each scenario specifies four things.
 
@@ -426,7 +426,7 @@ Delegated payment is also a tractable proxy for delegated resource control. The 
 
 ## Limitations
 
-Phase 1 ground truth comes from the project team plus a 10-person survey rather than a powered study. Five seeds per scenario give wide confidence intervals, so Phase 1 findings are reported as preliminary. Phase 1 results come from a simulated environment whose transfer to real infrastructure is untested until the Phase 2 sandbox check.
+Phase 1 ground truth comes from the project team plus a 10-person survey rather than a powered study. Five seeds per scenario give wide confidence intervals, so Phase 1 findings are reported as preliminary. Phase 1 results come from a simulated environment whose transfer to real infrastructure is untested until the Phase 2 sandbox check. Phase 1 also grades each model's self-reported action fields, so on the 11 safe-to-act traps a model can take the unsafe action yet report neutral fields and still score safe; the offer-grounded Phase 2 sandbox (`phase2-eval`) is the validated path that does not rely on self-report.
 
 ## Expected output
 

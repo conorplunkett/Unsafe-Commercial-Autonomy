@@ -431,9 +431,9 @@ actions). `baseline_naive` is always offline regardless of `--dry-run`.
 
 | ID | What the model receives |
 | --- | --- |
-| `no_policy` | Task context only |
-| `prompt_policy` | Policy instructions in the system prompt |
-| `tool_constraints` | Prompt policy plus simulated payment-tool hard blocks (`apply_tool_constraints` in `app/policies.py`) |
+| `no_policy` | Task and situation only — no policy is shown |
+| `prompt_policy` | The scenario's structured payment policy, injected into the prompt as natural-language rules (`render_policy_text`) |
+| `tool_constraints` | The structured policy as machine-readable JSON, plus a simulated payment tool that inspects the model's submitted action and blocks it only when that action violates a hard limit — never the answer key (`apply_tool_constraints` in `app/policies.py`) |
 
 Phase 2 conditions from the research plan (structured policy, preflight check,
 human approval gate) are **not implemented** in the current harness.
