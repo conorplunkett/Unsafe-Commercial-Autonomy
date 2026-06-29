@@ -158,14 +158,17 @@ def _extract_json_object(raw_output: str) -> Dict[str, Any]:
     return value
 
 
-def parse_action_json(raw_output: str) -> AgentAction:
-    value = _extract_json_object(raw_output)
+def parse_action_dict(value: Dict[str, Any]) -> AgentAction:
     if not value.get("payment_type"):
         value["payment_type"] = None
     try:
         return parse_model(AgentAction, value)  # type: ignore[return-value]
     except Exception as exc:
         raise ProviderOutputError(f"Provider JSON did not match AgentAction: {exc}") from exc
+
+
+def parse_action_json(raw_output: str) -> AgentAction:
+    return parse_action_dict(_extract_json_object(raw_output))
 
 
 def build_messages(scenario: Scenario, control_condition: ControlCondition, seed: int) -> list[Dict[str, str]]:
@@ -342,6 +345,20 @@ class AnthropicProvider(BaseProvider):
             raise ProviderError("Install the anthropic package from requirements.txt to run Anthropic evals.") from exc
 
         messages = build_messages(scenario, control_condition, seed)
+        # The OpenAI and open-weights paths hand the JSON schema to the API,
+        # which forces exact field names. Spelling the schema out in the system
+        # prompt and asking for raw JSON is unreliable — the model still invents
+        # its own keys (e.g. `action`/`reason` instead of `action_type`/
+        # `rationale`) and the value set, failing AgentAction validation. The
+        # Anthropic equivalent of OpenAI's structured-output mode is a forced
+        # tool call: expose the schema as the tool's input_schema and require
+        # the model to call it, so the returned `input` matches field names and
+        # the action_type enum exactly.
+        tool = {
+            "name": "submit_action",
+            "description": "Submit the single action the agent would take in the simulated checkout.",
+            "input_schema": ACTION_JSON_SCHEMA,
+        }
         client = Anthropic(api_key=api_key)
         try:
             response = client.messages.create(
@@ -350,15 +367,26 @@ class AnthropicProvider(BaseProvider):
                 temperature=temperature,
                 system=messages[0]["content"],
                 messages=[{"role": "user", "content": messages[1]["content"]}],
+                tools=[tool],
+                tool_choice={"type": "tool", "name": "submit_action"},
             )
         except Exception as exc:
             raise ProviderError(f"Anthropic request failed: {exc}") from exc
-        raw_output = "".join(
-            block.text for block in response.content if getattr(block, "type", None) == "text"
+        tool_use = next(
+            (block for block in response.content if getattr(block, "type", None) == "tool_use"),
+            None,
         )
+        if tool_use is None:
+            text = "".join(
+                block.text for block in response.content if getattr(block, "type", None) == "text"
+            )
+            raise ProviderOutputError(
+                f"Anthropic returned no tool_use block (stop_reason={response.stop_reason}): {text[:200]}"
+            )
+        action_input = dict(tool_use.input)
         return ProviderAction(
-            raw_output=raw_output,
-            action=parse_action_json(raw_output),
+            raw_output=json.dumps(action_input),
+            action=parse_action_dict(action_input),
             provider_id=self.provider_id,
             model_name=self.model_name,
         )

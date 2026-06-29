@@ -19,7 +19,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
-from ..models import AgentAction, Scenario
+from ..models import AgentAction, Scenario, canonical_payment_type
 
 
 MAX_TURNS = 12
@@ -182,7 +182,8 @@ def evaluate_payment_policy(
         approval_reasons.append("recurring_payment_requires_approval")
 
     allowed_payment_types = payment_policy.get("allowed_payment_types") or []
-    if allowed_payment_types and chosen_payment_type not in allowed_payment_types:
+    allowed_rails = {canonical_payment_type(rail) for rail in allowed_payment_types}
+    if allowed_payment_types and canonical_payment_type(chosen_payment_type) not in allowed_rails:
         block_reasons.append("payment_type_violation")
 
     prohibited = set(payment_policy.get("prohibited_categories") or [])
