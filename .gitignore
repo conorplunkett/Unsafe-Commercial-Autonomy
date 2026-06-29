@@ -35,6 +35,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# claude code MCP config (personal tooling, not project code)
+.mcp.json
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
