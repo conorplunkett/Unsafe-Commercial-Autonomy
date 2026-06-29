@@ -496,6 +496,35 @@ def publish_command(args: argparse.Namespace) -> int:
     return 0
 
 
+def _print_human_baseline_report(report: dict) -> None:
+    """Render a scored human-baseline report: confusion matrix, rates, strata."""
+    if report["example"]:
+        print("WARNING: sessions file contains EXAMPLE data only.\n")
+    matrix = report["confusion_matrix"]
+    metrics = report["metrics"]
+    print(f"Participants: {report['participants']}  Sessions: {report['sessions']}")
+    print(f"Correctly proceeded: {matrix['correctly_proceeded']}")
+    print(f"Wrongly proceeded:   {matrix['wrongly_proceeded']}")
+    print(f"Wrongly stopped:     {matrix['wrongly_stopped']}")
+    print(f"Correctly stopped:   {matrix['correctly_stopped']}")
+    print(f"\nUnsafe payment: {_format_rate(metrics, 'unsafe_payment')}")
+    print(f"False refusal:  {_format_rate(metrics, 'false_refusal')}")
+    by_demographic = report.get("by_demographic") or {}
+    if by_demographic:
+        print("\nBy demographic (unsafe payment / false refusal):")
+        for field, groups in by_demographic.items():
+            print(f"  {field}:")
+            for value, stratum in groups.items():
+                stratum_metrics = stratum["metrics"]
+                print(
+                    f"    {value:<16} n={stratum['sessions']:<3} "
+                    f"unsafe {_format_rate(stratum_metrics, 'unsafe_payment')}  "
+                    f"false-refusal {_format_rate(stratum_metrics, 'false_refusal')}"
+                )
+    if report["skipped_unknown_scenarios"]:
+        print(f"\nSkipped unknown scenarios: {', '.join(report['skipped_unknown_scenarios'])}")
+
+
 def phase2_human_baseline_command(args: argparse.Namespace) -> int:
     """Human baseline: report recorded sessions, or collect new ones interactively."""
     from .phase2.humans import collect_human_session, run_human_baseline_report
@@ -510,20 +539,67 @@ def phase2_human_baseline_command(args: argparse.Namespace) -> int:
             scenario_ids=scenario_ids,
             control_condition=args.condition,
         )
-    report = run_human_baseline_report()
-    if report["example"]:
-        print("WARNING: sessions file contains EXAMPLE data only.\n")
-    matrix = report["confusion_matrix"]
-    metrics = report["metrics"]
-    print(f"Participants: {report['participants']}  Sessions: {report['sessions']}")
-    print(f"Correctly proceeded: {matrix['correctly_proceeded']}")
-    print(f"Wrongly proceeded:   {matrix['wrongly_proceeded']}")
-    print(f"Wrongly stopped:     {matrix['wrongly_stopped']}")
-    print(f"Correctly stopped:   {matrix['correctly_stopped']}")
-    print(f"\nUnsafe payment: {_format_rate(metrics, 'unsafe_payment')}")
-    print(f"False refusal:  {_format_rate(metrics, 'false_refusal')}")
-    if report["skipped_unknown_scenarios"]:
-        print(f"Skipped unknown scenarios: {', '.join(report['skipped_unknown_scenarios'])}")
+    _print_human_baseline_report(run_human_baseline_report())
+    return 0
+
+
+def phase2_human_import_command(args: argparse.Namespace) -> int:
+    """Import a Google Form CSV export of human-baseline responses, then report."""
+    from .phase2.human_import import import_google_form_csv
+    from .phase2.humans import run_human_baseline_report
+
+    sessions_path = Path(args.sessions_file) if args.sessions_file else None
+    try:
+        stats = import_google_form_csv(
+            args.csv, condition=args.condition, sessions_path=sessions_path
+        )
+    except (FileNotFoundError, ValueError) as exc:
+        print(f"Import failed: {exc}")
+        return 1
+
+    print(
+        f"Imported {stats['sessions_imported']} session(s) from "
+        f"{stats['participants']} participant(s) -> {stats['sessions_path']}"
+    )
+    print(f"Scenarios covered: {len(stats['scenarios'])}")
+    if stats["unknown_scenarios"]:
+        print(f"WARNING: unknown scenario ids skipped: {', '.join(stats['unknown_scenarios'])}")
+    if stats["unknown_columns"]:
+        print(
+            "WARNING: unrecognized scenario-detail columns ignored: "
+            f"{', '.join(stats['unknown_columns'])}"
+        )
+    if stats["blank_cells"]:
+        print(f"Blank decision cells skipped: {stats['blank_cells']}")
+    print()
+    _print_human_baseline_report(run_human_baseline_report(sessions_path))
+    return 0
+
+
+def publish_human_baseline_command(args: argparse.Namespace) -> int:
+    """Publish scored human-baseline sessions to Supabase for the public dashboard."""
+    from .phase2.humans import human_baseline_rows, is_example
+    from .supabase_publish import SupabasePublishError, publish_human_baseline
+
+    path = Path(args.file) if args.file else None
+    if is_example(path) and not args.allow_example:
+        print(
+            "Refusing to publish EXAMPLE data. Import real sessions first "
+            "(phase2-human-import --csv ...), or pass --allow-example to override."
+        )
+        return 1
+
+    rows = human_baseline_rows(path, label=args.label)
+    if not rows:
+        print("No sessions to publish.")
+        return 1
+    try:
+        count = publish_human_baseline(rows)
+    except SupabasePublishError as exc:
+        print(f"Publish failed: {exc}")
+        return 1
+
+    print(f"Published {count} human-baseline session(s) to Supabase ({args.label or 'no label'}).")
     return 0
 
 
@@ -738,6 +814,25 @@ def build_parser() -> argparse.ArgumentParser:
     )
     phase2_human_parser.set_defaults(func=phase2_human_baseline_command)
 
+    phase2_human_import_parser = subparsers.add_parser(
+        "phase2-human-import",
+        help="Import a Google Form CSV of human-baseline responses into the sessions file.",
+    )
+    phase2_human_import_parser.add_argument(
+        "--csv", required=True, help="Path to the Google Form CSV export."
+    )
+    phase2_human_import_parser.add_argument(
+        "--condition",
+        default="structured_policy",
+        help="Sandbox control condition recorded for imported sessions (default: structured_policy).",
+    )
+    phase2_human_import_parser.add_argument(
+        "--sessions-file",
+        default=None,
+        help="Sessions JSON to write (default: data/human_baseline/phase2_sessions.json).",
+    )
+    phase2_human_import_parser.set_defaults(func=phase2_human_import_command)
+
     publish_parser = subparsers.add_parser(
         "publish",
         help="Publish a stored run to Supabase for the public Official-run dashboard.",
@@ -756,6 +851,25 @@ def build_parser() -> argparse.ArgumentParser:
         help="Optional human label shown in the dashboard run selector (e.g. 'Phase 2 official').",
     )
     publish_parser.set_defaults(func=publish_command)
+
+    publish_human_parser = subparsers.add_parser(
+        "publish-human-baseline",
+        help="Publish scored human-baseline sessions to Supabase for the public dashboard.",
+    )
+    publish_human_parser.add_argument(
+        "--label", default=None, help="Optional label stored on each published row."
+    )
+    publish_human_parser.add_argument(
+        "--file",
+        default=None,
+        help="Sessions JSON to publish (default: data/human_baseline/phase2_sessions.json).",
+    )
+    publish_human_parser.add_argument(
+        "--allow-example",
+        action="store_true",
+        help="Allow publishing the shipped EXAMPLE sessions (off by default).",
+    )
+    publish_human_parser.set_defaults(func=publish_human_baseline_command)
 
     return parser
 
