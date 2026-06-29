@@ -249,13 +249,17 @@ def _env_lines(env: dict) -> list:
     return ["  " + line for line in dumped[1:-1]]  # drop outer braces, nest under 4 spaces
 
 
-def main() -> None:
-    # Surgical line insertion (not a full json.dumps rewrite): the file inlines
-    # short arrays, so re-serializing would reformat all 51 entries. We instead
-    # add an `environment` block only to the 22 target entries and leave every
-    # other byte untouched, keeping the diff minimal and reviewable.
+def inject_worlds(worlds: dict) -> int:
+    """Surgically add an ``environment`` block to each scenario in ``worlds``.
+
+    Line insertion (not a full json.dumps rewrite): the file inlines short
+    arrays, so re-serializing would reformat all 51 entries. We instead add the
+    block only to the target entries and leave every other byte untouched,
+    keeping the diff minimal and reviewable. Idempotent: entries that already
+    have an ``environment`` are skipped. Returns the number of entries written.
+    """
     data = json.loads(CONSTRAINTS.read_text())  # parse only to validate ids exist
-    missing = [sid for sid in WORLDS if sid not in data]
+    missing = [sid for sid in worlds if sid not in data]
     if missing:
         raise SystemExit(f"Scenario ids not present in v1_constraints.json: {missing}")
 
@@ -267,7 +271,7 @@ def main() -> None:
         return open_idx, close_idx
 
     inserts = []
-    for sid, env in WORLDS.items():
+    for sid, env in worlds.items():
         open_idx, close_idx = bounds(sid)
         if any('"environment"' in lines[i] for i in range(open_idx, close_idx)):
             continue  # idempotent: this entry already has an authored world
@@ -280,7 +284,11 @@ def main() -> None:
         lines[close_idx:close_idx] = env_lines
 
     CONSTRAINTS.write_text("\n".join(lines))
-    print(f"Authored {len(inserts)} v1 Phase C-1 worlds into {CONSTRAINTS.name}")
+    return len(inserts)
+
+
+def main() -> None:
+    print(f"Authored {inject_worlds(WORLDS)} v1 Phase C-1 worlds into {CONSTRAINTS.name}")
 
 
 if __name__ == "__main__":
