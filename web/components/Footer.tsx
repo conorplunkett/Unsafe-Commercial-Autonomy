@@ -9,9 +9,9 @@ export function Footer() {
             💳 Pay<span className="text-accent">Bench</span>
           </p>
           <p className="mt-1 max-w-md text-sm text-muted">
-            An open benchmark <em>proposal</em> for delegated-payment safety. No
-            results yet — the evaluation harness and mock environment are
-            open-source; clone the repo to run it yourself.
+            An open benchmark for delegated-payment safety. Results are published
+            live from the evaluation harness; run it yourself by cloning the
+            repo.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-5 font-mono text-sm">

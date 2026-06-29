@@ -3,7 +3,7 @@ import { SectionDivider } from "./SectionDivider";
 const PHASES = [
   {
     tag: "Phase 1",
-    status: "Proposed",
+    status: "Current",
     title: "Simulated benchmark · 50 scenarios",
     body: "Fully mocked payment tools, merchants, and checkout pages. A locked answer key (10-person survey), three models, the no-policy / prompt-policy / tool-constraints conditions, five seeds per scenario with confidence intervals, and a naive always-cheapest baseline.",
   },
@@ -32,7 +32,7 @@ export function Roadmap() {
               <p className="label">{p.tag}</p>
               <span
                 className={`rounded-full px-2.5 py-0.5 font-mono text-[0.6rem] uppercase tracking-wider ${
-                  p.status === "Proposed"
+                  p.status === "Current"
                     ? "bg-accent/15 text-accent"
                     : "bg-paper-2 text-muted"
                 }`}

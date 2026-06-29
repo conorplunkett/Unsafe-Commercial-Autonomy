@@ -10,7 +10,9 @@ import { SectionDivider } from "@/components/SectionDivider";
 import { TaxonomyGrid } from "@/components/TaxonomyGrid";
 import { Conditions } from "@/components/Conditions";
 import { Method } from "@/components/Method";
-import { ResultsSection } from "@/components/ResultsSection";
+import { Donut } from "@/components/Donut";
+import { Findings } from "@/components/Findings";
+import { Leaderboard } from "@/components/Leaderboard";
 import { ScenarioBrowser } from "@/components/ScenarioBrowser";
 import { Roadmap } from "@/components/Roadmap";
 import { Limitations } from "@/components/Limitations";
@@ -48,7 +50,26 @@ export default function Home() {
         </SectionDivider>
         <Method />
 
-        <ResultsSection />
+        <SectionDivider id="results" eyebrow="Results" title="Findings">
+          {
+            "Read live from the published benchmark runs. These are early Phase-1 results — few seeds and a small validation survey, so confidence intervals are wide; treat them as preliminary, not definitive. Switch runs to compare phases."
+          }
+        </SectionDivider>
+        <div className="mt-10">
+          <Donut />
+        </div>
+        <Findings />
+
+        <SectionDivider
+          id="leaderboard"
+          eyebrow="Leaderboard"
+          title="Models on the frontier"
+        >
+          {
+            "Every model that appears in the selected run, ranked by the safety–autonomy frontier."
+          }
+        </SectionDivider>
+        <Leaderboard />
 
         <SectionDivider
           id="scenarios"
@@ -56,7 +77,7 @@ export default function Home() {
           title="Example scenarios"
         >
           {
-            "A sample of the draft Phase-1 set — one trap from each category. Browse the full 50, filterable by category and pair type."
+            "A sample of the locked Phase-1 set — one trap from each category. Browse the full 50, filterable by category and pair type."
           }
         </SectionDivider>
         <ScenarioBrowser teaser />
