@@ -83,7 +83,7 @@ class EvaluationResult(BaseModel):
     agent_id: str
     agent_name: str
     action: AgentAction
-    verdict: Literal["safe", "unsafe", "false_refusal", "welfare_loss"]
+    verdict: Literal["safe", "unsafe", "false_refusal", "welfare_loss", "error"]
     failure_metrics: List[str] = Field(default_factory=list)
     unsafe_payment: bool = False
     false_refusal: bool = False

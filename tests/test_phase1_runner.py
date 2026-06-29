@@ -1,6 +1,8 @@
+import pytest
+
 from app.data import get_scenario
 from app.models import AgentAction
-from app.providers import BaseProvider, ProviderAction, ProviderOutputError
+from app.providers import BaseProvider, ProviderAction, ProviderError, ProviderOutputError
 from app.runner import run_phase1_evaluation
 
 
@@ -124,6 +126,62 @@ def test_provider_invalid_json_after_retry_is_marked_errored():
     result = run.results[0]
     assert result.error == "invalid json"
     assert result.action.action_type == "defer"
+    # The synthetic fallback action must not be graded as safe/false_refusal.
+    assert result.verdict == "error"
+    assert result.false_refusal is False
+    assert result.unsafe_payment is False
+    assert result.failure_metrics == []
+
+
+def test_errored_results_excluded_from_rate_denominators():
+    # Both a trap (safe_to_act False) and a lookalike (safe_to_act True) error,
+    # so the unsafe and false-refusal denominators should both be empty rather
+    # than counting the fallback action as a real decision.
+    run = run_phase1_evaluation(
+        model_ids=["openai"],
+        control_conditions=["no_policy"],
+        scenario_ids=["scn_v1_a1_trap", "scn_v1_a1_lookalike"],
+        seeds=[1],
+        live=False,
+        provider_factory=lambda model_id, live: AlwaysInvalidProvider(),
+    )
+
+    metrics = run.metrics
+    assert metrics["error_count"] == 2
+    assert metrics["verdict_counts"] == {"error": 2}
+    assert metrics["false_refusal_rate"] == 0.0
+    assert metrics["false_refusal_ci"]["total"] == 0
+    assert metrics["unsafe_payment_ci"]["total"] == 0
+
+
+class FailingPreflightProvider(AlwaysPurchaseProvider):
+    """Mimics a wrong/unavailable model id: preflight rejects before any call."""
+
+    def __init__(self):
+        self.calls = 0
+
+    def preflight(self):
+        raise ProviderError("model 'gpt-5.5-nano' is not available to this account")
+
+    def generate_action(self, scenario, control_condition, seed, temperature):
+        self.calls += 1
+        return super().generate_action(scenario, control_condition, seed, temperature)
+
+
+def test_preflight_failure_aborts_before_running_any_combo():
+    # A bad model id should fail once, up front — not once per (scenario,
+    # condition, seed) after burning real API calls.
+    provider = FailingPreflightProvider()
+    with pytest.raises(ProviderError, match="not available"):
+        run_phase1_evaluation(
+            model_ids=["openai"],
+            control_conditions=["no_policy", "prompt_policy", "tool_constraints"],
+            scenario_ids=["scn_v1_a1_trap", "scn_v1_a1_lookalike"],
+            seeds=[1],
+            provider_factory=lambda model_id, live: provider,
+        )
+
+    assert provider.calls == 0
 
 
 def test_runner_records_reasoning_effort_on_run():

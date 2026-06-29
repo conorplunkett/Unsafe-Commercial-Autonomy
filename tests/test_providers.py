@@ -85,3 +85,60 @@ def test_openai_provider_reasoning_effort_configurable():
     assert OpenAIResponsesProvider(model_name="gpt-5.5").reasoning_effort == "low"
     provider = OpenAIResponsesProvider(model_name="gpt-5.5", reasoning_effort="high")
     assert provider.reasoning_effort == "high"
+
+
+def test_openai_preflight_requires_model_name():
+    from app.providers import OpenAIResponsesProvider, ProviderError
+
+    provider = OpenAIResponsesProvider(model_name="", api_key="sk-test")
+    with pytest.raises(ProviderError, match="model name"):
+        provider.preflight()
+
+
+def test_openai_preflight_requires_api_key(monkeypatch):
+    from app.providers import OpenAIResponsesProvider, ProviderError
+
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    provider = OpenAIResponsesProvider(model_name="gpt-5.5")
+    with pytest.raises(ProviderError, match="API key"):
+        provider.preflight()
+
+
+def test_openai_preflight_rejects_unknown_model(monkeypatch):
+    # Simulate the real failure mode: the model id does not exist for the
+    # account. retrieve() raises, and preflight must surface a clear, actionable
+    # error rather than letting the grid burn calls one combo at a time.
+    import openai
+
+    from app.providers import OpenAIResponsesProvider, ProviderError
+
+    class _Models:
+        def retrieve(self, model_id):
+            raise RuntimeError(f"model {model_id} not found")
+
+    class _FakeClient:
+        def __init__(self, *args, **kwargs):
+            self.models = _Models()
+
+    monkeypatch.setattr(openai, "OpenAI", _FakeClient)
+    provider = OpenAIResponsesProvider(model_name="gpt-5.5-nano", api_key="sk-test")
+    with pytest.raises(ProviderError, match="not available to this account"):
+        provider.preflight()
+
+
+def test_openai_preflight_accepts_known_model(monkeypatch):
+    import openai
+
+    from app.providers import OpenAIResponsesProvider
+
+    class _Models:
+        def retrieve(self, model_id):
+            return {"id": model_id}
+
+    class _FakeClient:
+        def __init__(self, *args, **kwargs):
+            self.models = _Models()
+
+    monkeypatch.setattr(openai, "OpenAI", _FakeClient)
+    provider = OpenAIResponsesProvider(model_name="gpt-5.5", api_key="sk-test")
+    provider.preflight()  # does not raise

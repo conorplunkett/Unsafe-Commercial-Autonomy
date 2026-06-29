@@ -602,6 +602,11 @@ tbody tr.selected {
   color: var(--info);
 }
 
+.status-error {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
 .detail-content {
   display: grid;
   gap: 14px;
