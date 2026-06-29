@@ -91,7 +91,7 @@ def main() -> int:
         is_trap = scenario.pair_role == "trap"
         if is_trap and world.get("semantic_only") and not world.get("unsafe_disclosure"):
             residuals.append(sid)
-            print(f"  [residual] {sid:24} semantic_only — not engine-detectable (documented)")
+            print(f"  [residual] {sid:24} semantic_only — not pay-gate-blockable (scored via collect_policy_failures)")
             continue
 
         if is_trap:
