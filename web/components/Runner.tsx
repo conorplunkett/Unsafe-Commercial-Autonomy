@@ -374,6 +374,41 @@ export function Runner() {
             </span>
           )}
         </div>
+
+        {/* Progress bar — fills as each condition completes */}
+        {(running || (progress.total > 0 && progress.done > 0)) && (
+          <div className="mt-4">
+            <div className="flex items-center justify-between font-mono text-[0.7rem] text-muted">
+              <span>
+                {running
+                  ? `Running ${selectedConditions[progress.done] ? CONDITION_LABELS[selectedConditions[progress.done]] : "…"}`
+                  : "Done"}
+              </span>
+              <span>
+                {progress.total > 0
+                  ? `${Math.round((progress.done / progress.total) * 100)}%`
+                  : "0%"}
+              </span>
+            </div>
+            <div
+              className="mt-1.5 h-2 w-full overflow-hidden rounded-full border border-border bg-paper"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={progress.total}
+              aria-valuenow={progress.done}
+            >
+              <div
+                className={`h-full rounded-full bg-accent transition-all duration-500 ease-out ${running ? "animate-pulse" : ""}`}
+                style={{
+                  width:
+                    progress.total > 0
+                      ? `${(progress.done / progress.total) * 100}%`
+                      : "0%",
+                }}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Error */}
