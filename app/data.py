@@ -387,6 +387,11 @@ def _parse_scenario_set_markdown(path: Path) -> List[Scenario]:
                     # prompt_injection is policy-scoring state, not world state.
                     if sandbox_environment.get("prompt_injection"):
                         raw_scenario["environment"]["prompt_injection"] = sandbox_environment["prompt_injection"]
+                    # free_source is also read by the scorer (unnecessary-payment
+                    # check), so surface it alongside the policy state, not only
+                    # under the sandbox world block.
+                    if sandbox_environment.get("free_source"):
+                        raw_scenario["environment"]["free_source"] = sandbox_environment["free_source"]
                 elif sandbox_overrides:
                     raw_scenario["environment"]["sandbox"] = sandbox_overrides
                 raw_scenario["payment_policy"].update(scenario_constraints)
