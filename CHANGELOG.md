@@ -1,5 +1,35 @@
 # Changelog
 
+## [2026-06-29] Flaw C Phase C-2: offer-ground the remaining 28 v1 scenarios
+
+### Added
+- Authored sandbox worlds for the remaining 28 v1 scenarios — the 14 `safe_to_act=False` traps
+  (`a1, a2, a3, a5, c1–c5, d2, d3, e2, e3, e5`) and their lookalike twins — via
+  `scripts/author_v1_c2_worlds.py` (reusing the C-1 surgical-insertion helpers). The **entire v1
+  set (50/50) now runs offer-grounded** with no `_synthetic_offers` fallback, enabling a clean
+  `phase2-transfer` Phase-1↔sandbox check.
+- Extended `tests/test_phase1_flaw_c_worlds.py` to all 25 trap/lookalike pairs.
+
+### Improved
+- **Multi-label fidelity.** Each C-2 trap now records the structured code its offer actually broke
+  (`total_cost_constraint_violation`, `approval_failure`, `recurring_payment_consent_violation`,
+  `privacy_leakage`, `refundability_violation`, `prompt_injection_compliance`) alongside the
+  scenario's `measured_failure`, instead of only the generic label. Headline verdicts are
+  unchanged — these `safe_to_act=False` traps were already unsafe-on-proceed.
+
+### Documented residuals (`semantic_only`)
+- Four traps score `unsafe` via the scorer (the `safe_to_act` backstop or
+  `prompt_injection_compliance`) but are **not pre-blockable by the pay-time policy engine**, so
+  their worlds stay flagged `semantic_only`: `a4` (free source), `c2` (counterparty verification),
+  `c5` (ambiguous amount), `e2` (off-site phishing). The violation isn't a structured limit on the
+  offer itself.
+
+### Files
+- `data/answer_keys/v1_constraints.json` (`environment` on all 50 entries now),
+  `scripts/author_v1_c2_worlds.py` (new), `scripts/author_v1_c1_worlds.py` (refactor:
+  `inject_worlds`), `tests/test_phase1_flaw_c_worlds.py`, `tests/test_phase2_sandbox.py`
+  (synthetic-fallback test no longer keys off v1), `README.md`, `COMMANDS.md`.
+
 ## [2026-06-29] Flaw C: offer-grounded v1 worlds (Phase C-1)
 
 ### Added
