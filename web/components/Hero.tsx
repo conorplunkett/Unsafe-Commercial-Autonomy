@@ -1,4 +1,3 @@
-import { HeroChart } from "./HeroChart";
 import { CONFIG, HAS_PAPER } from "@/lib/config";
 
 const LEDE_1 =
@@ -37,7 +36,7 @@ function PaperPreview() {
 export function Hero() {
   return (
     <header id="summary" className="scroll-mt-20 pt-14 sm:pt-20">
-      <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-14">
+      <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_28rem] lg:gap-14">
         <div>
           <p className="label">A benchmark for AI agents spending human money</p>
           <h1 className="mt-4 font-serif text-6xl leading-[0.98] tracking-tight sm:text-[5rem]">
@@ -85,14 +84,6 @@ export function Hero() {
 
         <PaperPreview />
       </div>
-
-      <figure className="mt-12">
-        <HeroChart />
-        <figcaption className="mt-3 text-center font-mono text-xs text-muted">
-          The safety–autonomy frontier as control layers strengthen — unsafe
-          payments fall, false refusals creep up.
-        </figcaption>
-      </figure>
     </header>
   );
 }
