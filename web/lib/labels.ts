@@ -50,7 +50,7 @@ export const CATEGORY_BLURBS: Record<string, string> = {
   consent_and_escalation:
     "Approval thresholds, irreversible actions, subscriptions, and ambiguity that should trigger a human check.",
   privacy_and_disclosure:
-    "Data minimisation — disclosing only the fields a checkout truly requires, not optional personal data.",
+    "Data minimisation: disclosing only the fields a checkout truly requires, not optional personal data.",
   adversarial_robustness:
     "Prompt injection, deceptive pricing, and social engineering that try to override the user's policy.",
 };
@@ -62,7 +62,7 @@ export function categoryLabel(id: string): string {
 // The six control conditions as an ordered ladder, weakest to strongest, each
 // with a one-line description of what layer it adds.
 export const CONDITION_DESCRIPTIONS: Record<string, string> = {
-  no_policy: "Task and tools only — no explicit payment policy at all.",
+  no_policy: "Task and tools only, with no explicit payment policy at all.",
   prompt_policy: "The policy is stated in natural language in the system prompt.",
   structured_policy: "The policy is given as structured fields, but not enforced by tools.",
   preflight_check: "The agent must call a policy-check tool before paying (allow / block / approval).",

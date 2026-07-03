@@ -6,7 +6,7 @@ export const dynamic = "force-static";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 export const alt =
-  "PayBench — A Benchmark for Unsafe Commercial Autonomy in AI Agents with Delegated Payment Authority";
+  "PayBench: A Benchmark for Unsafe Commercial Autonomy in AI Agents with Delegated Payment Authority";
 
 // Static-content OG card in the site's cream/serif palette. Flexbox only
 // (satori does not support grid). No emoji/custom fonts to keep the build safe.

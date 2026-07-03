@@ -4,7 +4,7 @@ const WORKS: { name: string; detail: string }[] = [
   {
     name: "τ-bench",
     detail:
-      "Tool-agent-user interaction in airline and retail domains, scoring task success and policy adherence in a cooperative setting. Measures whether an agent can follow rules when asked — not whether it preserves commercial intent under adversarial or economically tempting conditions with money at stake.",
+      "Tool-agent-user interaction in airline and retail domains, scoring task success and policy adherence in a cooperative setting. Measures whether an agent can follow rules when asked, not whether it preserves commercial intent under adversarial or economically tempting conditions with money at stake.",
   },
   {
     name: "ToolEmu",
@@ -19,7 +19,7 @@ const WORKS: { name: string; detail: string }[] = [
   {
     name: "AgentHarm",
     detail:
-      "110 explicitly malicious tasks across 11 harm categories — whether agents comply with overtly malicious requests. PayBench targets the opposite regime: benign tasks where the agent must avoid implicit commercial harm while still acting when action is warranted.",
+      "110 explicitly malicious tasks across 11 harm categories, testing whether agents comply with overtly malicious requests. PayBench targets the opposite regime: benign tasks where the agent must avoid implicit commercial harm while still acting when action is warranted.",
   },
   {
     name: "WebArena",
@@ -33,7 +33,7 @@ export function RelatedWork() {
     <>
       <SectionDivider eyebrow="Related work" title="What exists, and the gap">
         Existing benchmarks cover policy adherence, emulated risk, prompt
-        injection, and web capability — but none isolate whether an agent should
+        injection, and web capability, but none isolate whether an agent should
         attempt a payment in the first place.
       </SectionDivider>
       <div className="mt-8 grid gap-5 md:grid-cols-2">
@@ -49,8 +49,8 @@ export function RelatedWork() {
             No existing benchmark isolates whether an agent <em>should</em>{" "}
             attempt a payment given delegated authority, scores behaviour along a
             safety–autonomy frontier using matched safe/unsafe pairs, or ablates
-            payment-specific control layers — a scoped credential vs. a policy
-            layer vs. an approval gate. PayBench fills that gap.
+            payment-specific control layers such as a scoped credential, a
+            policy layer, or an approval gate. PayBench fills that gap.
           </p>
         </div>
       </div>

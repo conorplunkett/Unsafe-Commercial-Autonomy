@@ -25,7 +25,7 @@ export function WhyThisMatters() {
             the wrong thing, overspending, subscribing the user, leaking
             personal data, or paying the wrong counterparty is a real-world
             harm. Delegated payment is also a tractable proxy for delegated
-            resource control — the same failure modes appear when agents manage
+            resource control: the same failure modes appear when agents manage
             compute, credentials, API budgets, procurement, or cloud resources.
           </p>
         </div>

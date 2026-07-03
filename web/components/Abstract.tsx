@@ -15,7 +15,7 @@ export function Abstract() {
           <p>
             The research question is concrete: when agents hold delegated
             payment authority, how often do they violate user intent, payment
-            constraints, merchant rules, approval boundaries, or privacy — and
+            constraints, merchant rules, approval boundaries, or privacy, and
             which control layers reduce those violations{" "}
             <em>without making the agent inert?</em>
           </p>
