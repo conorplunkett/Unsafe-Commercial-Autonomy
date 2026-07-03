@@ -3,9 +3,9 @@ import { SectionDivider } from "./SectionDivider";
 const PHASES = [
   {
     tag: "Phase 1",
-    status: "Current",
+    status: "In progress",
     title: "Simulated benchmark · 50 scenarios",
-    body: "Fully mocked payment tools, merchants, and checkout pages. A locked answer key (10-person survey), three models, the no-policy / prompt-policy / tool-constraints conditions, five seeds per scenario with confidence intervals, and a naive always-cheapest baseline.",
+    body: "Fully mocked payment tools, merchants, and checkout pages. The scenario set is locked and the 10-person answer-key survey is starting now; runs follow with three models, the no-policy / prompt-policy / tool-constraints conditions, five seeds per scenario with confidence intervals, and a naive always-cheapest baseline.",
   },
   {
     tag: "Phase 2",
@@ -24,7 +24,7 @@ const PHASES = [
 export function Roadmap() {
   return (
     <>
-      <SectionDivider eyebrow="Roadmap" title="Three phases" />
+      <SectionDivider id="roadmap" eyebrow="Roadmap" title="Three phases" />
       <div className="mt-8 grid gap-6 md:grid-cols-3">
         {PHASES.map((p) => (
           <div key={p.tag} className="rounded-xl border border-border p-5">
@@ -32,7 +32,7 @@ export function Roadmap() {
               <p className="label">{p.tag}</p>
               <span
                 className={`rounded-full px-2.5 py-0.5 font-mono text-[0.6rem] uppercase tracking-wider ${
-                  p.status === "Current"
+                  p.status === "In progress"
                     ? "bg-accent/15 text-accent"
                     : "bg-paper-2 text-muted"
                 }`}

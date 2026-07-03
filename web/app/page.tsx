@@ -1,6 +1,6 @@
 import { Nav } from "@/components/Nav";
 import { Hero } from "@/components/Hero";
-import { StatRow } from "@/components/StatRow";
+import { DesignFacts } from "@/components/DesignFacts";
 import { Abstract } from "@/components/Abstract";
 import { WhyThisMatters } from "@/components/WhyThisMatters";
 import { RelatedWork } from "@/components/RelatedWork";
@@ -10,15 +10,19 @@ import { SectionDivider } from "@/components/SectionDivider";
 import { TaxonomyGrid } from "@/components/TaxonomyGrid";
 import { Conditions } from "@/components/Conditions";
 import { Method } from "@/components/Method";
-import { Donut } from "@/components/Donut";
-import { Findings } from "@/components/Findings";
-import { Leaderboard } from "@/components/Leaderboard";
 import { ScenarioBrowser } from "@/components/ScenarioBrowser";
 import { Roadmap } from "@/components/Roadmap";
 import { Limitations } from "@/components/Limitations";
 import { Citation } from "@/components/Citation";
 import { Authors } from "@/components/Authors";
 import { Footer } from "@/components/Footer";
+import { RESULTS_LIVE } from "@/lib/config";
+// Once results are live (RESULTS_LIVE in lib/config.ts — see
+// components/results/README.md), these render again:
+import { StatRow } from "@/components/results/StatRow";
+import { Donut } from "@/components/results/Donut";
+import { Findings } from "@/components/results/Findings";
+import { Leaderboard } from "@/components/results/Leaderboard";
 
 export default function Home() {
   return (
@@ -26,7 +30,8 @@ export default function Home() {
       <Nav />
       <main className="mx-auto w-full max-w-5xl px-5 pb-10 sm:px-8">
         <Hero />
-        <StatRow />
+        {/* Once results are live: StatRow (measured rates) replaces DesignFacts. */}
+        {RESULTS_LIVE ? <StatRow /> : <DesignFacts />}
 
         <Abstract />
         <WhyThisMatters />
@@ -43,33 +48,38 @@ export default function Home() {
 
         <Conditions />
 
-        <SectionDivider id="method" eyebrow="Method" title="How it is scored">
+        <SectionDivider id="method" eyebrow="Method" title="How it will be scored">
           {
             "Each setup is summarised by a confusion matrix over matched trap-and-lookalike pairs."
           }
         </SectionDivider>
         <Method />
 
-        <SectionDivider id="results" eyebrow="Results" title="Findings">
-          {
-            "Read live from the published benchmark runs. These are early Phase-1 results — few seeds and a small validation survey, so confidence intervals are wide; treat them as preliminary, not definitive. Switch runs to compare phases."
-          }
-        </SectionDivider>
-        <div className="mt-10">
-          <Donut />
-        </div>
-        <Findings />
+        {/* Once results are live: the Results and Leaderboard sections return here. */}
+        {RESULTS_LIVE && (
+          <>
+            <SectionDivider id="results" eyebrow="Results" title="Findings">
+              {
+                "Read live from the published benchmark runs. These are early Phase-1 results — few seeds and a small validation survey, so confidence intervals are wide; treat them as preliminary, not definitive. Switch runs to compare phases."
+              }
+            </SectionDivider>
+            <div className="mt-10">
+              <Donut />
+            </div>
+            <Findings />
 
-        <SectionDivider
-          id="leaderboard"
-          eyebrow="Leaderboard"
-          title="Models on the frontier"
-        >
-          {
-            "Every model that appears in the selected run, ranked by the safety–autonomy frontier."
-          }
-        </SectionDivider>
-        <Leaderboard />
+            <SectionDivider
+              id="leaderboard"
+              eyebrow="Leaderboard"
+              title="Models on the frontier"
+            >
+              {
+                "Every model that appears in the selected run, ranked by the safety–autonomy frontier."
+              }
+            </SectionDivider>
+            <Leaderboard />
+          </>
+        )}
 
         <SectionDivider
           id="scenarios"

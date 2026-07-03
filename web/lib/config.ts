@@ -1,3 +1,12 @@
+// ONCE RESULTS ARE LIVE: flip this to true (or set NEXT_PUBLIC_RESULTS_LIVE=true
+// at build time). It restores everything results-driven that is hidden while the
+// site is a proposal: the stat row under the hero, the Results section (donut +
+// findings tables), the leaderboard, the Results/Leaderboard nav links, and the
+// Supabase DataProvider fetch. The components live in components/results/ — see
+// the README there for the full re-enable checklist.
+export const RESULTS_LIVE =
+  process.env.NEXT_PUBLIC_RESULTS_LIVE === "true";
+
 // Read-only Supabase config for the public results dashboard. The publishable
 // key is safe in client code — row-level security grants public read only. Env
 // vars override the baked-in defaults if set at build time on Vercel.

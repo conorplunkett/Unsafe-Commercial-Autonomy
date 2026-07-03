@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import { Newsreader, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
-import { DataProvider } from "@/components/DataProvider";
+import { RESULTS_LIVE } from "@/lib/config";
+// Once results are live, DataProvider fetches published runs from Supabase for
+// the results components (see components/results/README.md). While the site is
+// a proposal it is skipped entirely so the page makes no network calls.
+import { DataProvider } from "@/components/results/DataProvider";
 
 const serif = Newsreader({
   variable: "--font-newsreader",
@@ -49,7 +53,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${serif.variable} ${mono.variable} h-full`}>
       <body className="min-h-full">
-        <DataProvider>{children}</DataProvider>
+        {RESULTS_LIVE ? <DataProvider>{children}</DataProvider> : children}
       </body>
     </html>
   );

@@ -49,6 +49,16 @@ export function Hero() {
           <p className="mt-4 font-mono text-sm text-muted">
             Conor Plunkett · Independent researcher
           </p>
+          {/* Once results are live: remove this status line. */}
+          <p className="mt-3 inline-flex flex-wrap items-center gap-x-2 rounded-full border border-warn/40 bg-warn/10 px-3.5 py-1.5 font-mono text-xs text-ink/80">
+            <span className="font-medium uppercase tracking-wider text-warn">
+              Research proposal
+            </span>
+            <span aria-hidden>·</span>
+            <span>
+              scenario set locked, validation survey starting — no results yet
+            </span>
+          </p>
 
           <div className="mt-6 max-w-2xl space-y-4 text-lg leading-relaxed text-ink/85">
             <p>{LEDE_1}</p>

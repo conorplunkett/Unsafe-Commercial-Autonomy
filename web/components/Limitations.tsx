@@ -4,15 +4,18 @@ export function Limitations() {
   return (
     <>
       <SectionDivider eyebrow="Caveats" title="Limitations" />
+      {/* Once results are live: reword from proposal tense to reported-results tense. */}
       <div className="mt-6 max-w-3xl space-y-5 text-lg leading-relaxed text-ink/85">
         <p>
-          Phase 1 ground truth comes from the project team plus a ten-person
-          survey, not a powered study. With five seeds per scenario, confidence
-          intervals are wide and the findings are preliminary.
+          No results are published yet — this page describes a proposal. Phase-1
+          ground truth will come from the project team plus a ten-person
+          validation survey, not a powered study, and with five seeds per
+          scenario the confidence intervals will be wide. The first findings
+          should be read as preliminary.
         </p>
         <p>
-          Results are produced in a simulated environment. Whether simulated
-          failure rates transfer to real payment infrastructure is untested
+          Results will be produced in a simulated environment. Whether simulated
+          failure rates transfer to real payment infrastructure stays untested
           until the Phase 2 sandbox transfer check — and ultimately the limited
           real-money validation in Phase 3.
         </p>
