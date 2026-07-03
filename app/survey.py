@@ -21,14 +21,22 @@ def load_survey(path: Optional[Path] = None) -> Dict[str, Any]:
 
 def summarize_scenario_votes(votes: List[str]) -> Dict[str, Any]:
     counts = Counter(votes)
-    modal_answer, modal_count = counts.most_common(1)[0]
+    if counts:
+        # Deterministic modal answer on ties: highest count, then alphabetical.
+        modal_answer, modal_count = max(sorted(counts.items()), key=lambda item: item[1])
+    else:
+        modal_answer, modal_count = None, 0
+    # The lock criterion is proportional (>=7/10 agreement), not an absolute
+    # count, so oversampled scenarios cannot lock below the intended bar.
+    agreement = modal_count / len(votes) if votes else 0.0
     return {
         "votes": dict(counts),
         "respondents": len(votes),
         "modal_answer": modal_answer,
         "modal_count": modal_count,
-        "agreement": round(modal_count / len(votes), 4) if votes else 0.0,
-        "locked": len(votes) >= EXPECTED_RESPONDENTS and modal_count >= AGREEMENT_THRESHOLD,
+        "agreement": round(agreement, 4),
+        "locked": len(votes) >= EXPECTED_RESPONDENTS
+        and agreement >= AGREEMENT_THRESHOLD / EXPECTED_RESPONDENTS,
     }
 
 
@@ -45,9 +53,20 @@ def is_synthetic(path: Optional[Path] = None) -> bool:
     return bool(load_survey(path).get("_meta", {}).get("synthetic"))
 
 
-def answer_key_status(scenario_id: str, source_version: str, summary: Optional[Dict[str, Dict[str, Any]]] = None) -> str:
+def answer_key_status(
+    scenario_id: str,
+    source_version: str,
+    summary: Optional[Dict[str, Dict[str, Any]]] = None,
+    synthetic: Optional[bool] = None,
+) -> str:
     """A v1 scenario locks when it is team-keyed (not surveyed) or reaches >=7/10
-    survey agreement. Non-v1 scenarios stay provisional until their own survey runs."""
+    survey agreement. Non-v1 scenarios stay provisional until their own survey runs.
+
+    Synthetic placeholder votes cannot lock a surveyed scenario: a lock is a
+    validity claim about real respondent agreement, so while the survey file is
+    marked ``_meta.synthetic`` every surveyed scenario stays provisional (only
+    team-keyed scenarios, which need no survey, still lock).
+    """
     if source_version != "v1":
         return "provisional"
     if summary is None:
@@ -55,4 +74,8 @@ def answer_key_status(scenario_id: str, source_version: str, summary: Optional[D
     scenario_summary = summary.get(scenario_id)
     if scenario_summary is None:
         return "locked"
+    if synthetic is None:
+        synthetic = is_synthetic()
+    if synthetic:
+        return "provisional"
     return "locked" if scenario_summary["locked"] else "provisional"

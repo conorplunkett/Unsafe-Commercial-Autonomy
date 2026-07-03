@@ -3,8 +3,9 @@
 Reruns the v1 trap scenarios through the Phase 2 sandbox and correlates
 per-scenario unsafe rates against a stored Phase 1 run. Strong correlation
 validates the cheap single-shot simulation; weak correlation is itself a
-finding. Caveat: v1 scenarios have no authored sandbox environments, so the
-sandbox uses synthetic single-offer worlds derived from the situation text.
+finding. All 50 v1 scenarios carry authored sandbox worlds (Phase C-1/C-2),
+so the sandbox side runs on the same offer-grounded environments as
+`phase2-eval --scenario-set data/scenario_sets/v1_50_scenarios.md`.
 """
 
 from __future__ import annotations
@@ -31,13 +32,22 @@ def pearson(xs: List[float], ys: List[float]) -> Optional[float]:
     return round(cov / sqrt(var_x * var_y), 4)
 
 
+def _result_field(result: Any, name: str) -> Any:
+    return getattr(result, name) if hasattr(result, name) else result.get(name)
+
+
 def _per_scenario_unsafe_rates(results: Iterable[Any], scenario_ids: List[str]) -> Dict[str, float]:
     grouped: Dict[str, List[bool]] = {scenario_id: [] for scenario_id in scenario_ids}
     for result in results:
-        scenario_id = result.scenario_id if hasattr(result, "scenario_id") else result["scenario_id"]
-        if scenario_id in grouped:
-            unsafe = result.unsafe_payment if hasattr(result, "unsafe_payment") else result["unsafe_payment"]
-            grouped[scenario_id].append(bool(unsafe))
+        scenario_id = _result_field(result, "scenario_id")
+        if scenario_id not in grouped:
+            continue
+        # Errored episodes carry a synthetic fallback action, not a model
+        # decision; counting them as not-unsafe would deflate the rate (the
+        # headline metrics exclude them too — see metrics._answer_key_rates).
+        if _result_field(result, "error"):
+            continue
+        grouped[scenario_id].append(bool(_result_field(result, "unsafe_payment")))
     return {
         scenario_id: round(sum(flags) / len(flags), 4)
         for scenario_id, flags in grouped.items()
@@ -85,13 +95,16 @@ def run_transfer_check(
     )
     sandbox_rates = _per_scenario_unsafe_rates(sandbox_run.results, covered_ids)
 
+    # Pair only scenarios scored on both sides; a scenario whose sandbox
+    # episodes all errored must drop out rather than be scored as 0% unsafe.
+    paired_ids = [scenario_id for scenario_id in covered_ids if scenario_id in sandbox_rates]
     rows = [
         {
             "scenario_id": scenario_id,
             "phase1_unsafe_rate": phase1_rates[scenario_id],
-            "sandbox_unsafe_rate": sandbox_rates.get(scenario_id, 0.0),
+            "sandbox_unsafe_rate": sandbox_rates[scenario_id],
         }
-        for scenario_id in covered_ids
+        for scenario_id in paired_ids
     ]
     xs = [row["phase1_unsafe_rate"] for row in rows]
     ys = [row["sandbox_unsafe_rate"] for row in rows]
@@ -102,10 +115,9 @@ def run_transfer_check(
         "control_condition": control_condition,
         "live": live,
         "scenario_count": len(rows),
+        "skipped_scenario_ids": [
+            scenario_id for scenario_id in covered_ids if scenario_id not in sandbox_rates
+        ],
         "pearson_r": pearson(xs, ys),
         "rows": rows,
-        "caveat": (
-            "v1 scenarios run on synthetic single-offer sandbox worlds derived "
-            "from the situation text; authored environments exist only for v2 A/B."
-        ),
     }

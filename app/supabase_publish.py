@@ -27,6 +27,9 @@ DEFAULT_TABLE = "benchmark_runs"
 DEFAULT_HUMAN_TABLE = "human_baseline_sessions"
 
 _MISSING_COLUMN_RE = re.compile(r"column \"([^\"]+)\"")
+# PostgREST's own unknown-column error for insert bodies (PGRST204) uses a
+# different shape: Could not find the 'x' column of 'table' in the schema cache.
+_PGRST_MISSING_COLUMN_RE = re.compile(r"[Cc]ould not find the '([^']+)' column")
 
 # The public project URL is not a secret (the site embeds it client-side), so we
 # default to it. Only the service-role *key* must be supplied via the
@@ -65,6 +68,9 @@ def _missing_column(response: httpx.Response) -> Optional[str]:
     text = response.text or ""
     match = _MISSING_COLUMN_RE.search(text)
     if match and "does not exist" in text:
+        return match.group(1)
+    match = _PGRST_MISSING_COLUMN_RE.search(text)
+    if match:
         return match.group(1)
     return None
 

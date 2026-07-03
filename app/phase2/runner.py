@@ -113,6 +113,11 @@ def run_phase2_evaluation(
         for provider in providers.values():
             if hasattr(provider, "reasoning_effort"):
                 provider.reasoning_effort = reasoning_effort
+    # Validate every provider up front so a misconfigured one (missing key,
+    # wrong model id) aborts before the episode grid runs, instead of being
+    # swallowed per-episode by the tool loop and saved as an all-error run.
+    for provider in providers.values():
+        provider.preflight()
 
     results: List[EvaluationResult] = []
     events: List[Dict[str, Any]] = []

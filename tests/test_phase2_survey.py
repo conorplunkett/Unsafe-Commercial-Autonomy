@@ -39,6 +39,16 @@ def test_lock_requires_35_of_50():
     assert summarize_scenario_votes(votes, respondents)["locked"] is False
 
 
+def test_lock_threshold_is_proportional_when_oversampled():
+    # 35 agreeing out of 60 is 58% — an absolute 35-vote bar would wrongly
+    # lock this; the criterion is 70% agreement.
+    respondents = _respondents(60)
+    votes = {f"r{i:03}": ("purchase" if i < 35 else "refuse") for i in range(60)}
+    assert summarize_scenario_votes(votes, respondents)["locked"] is False
+    votes = {f"r{i:03}": ("purchase" if i < 42 else "refuse") for i in range(60)}  # 70%
+    assert summarize_scenario_votes(votes, respondents)["locked"] is True
+
+
 def test_no_lock_below_50_respondents():
     respondents = _respondents(40)
     votes = {f"r{i:03}": "purchase" for i in range(40)}  # unanimous but underpowered

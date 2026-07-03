@@ -210,6 +210,36 @@ def test_publish_human_baseline_retries_dropping_missing_column(monkeypatch):
     assert count == 2
 
 
+def test_publish_human_baseline_retries_on_pgrst204_missing_column(monkeypatch):
+    # PostgREST reports an unknown column in an insert body with PGRST204's
+    # "Could not find the 'x' column of 'table' in the schema cache" shape,
+    # not Postgres's column "x" ... does not exist — both must trigger the
+    # strip-and-retry.
+    monkeypatch.setenv("SUPABASE_URL", "https://proj.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_KEY", "service-secret")
+
+    class _TwoStepClient:
+        def __init__(self):
+            self.calls = []
+
+        def post(self, url, headers=None, content=None):
+            self.calls.append(json.loads(content))
+            if len(self.calls) == 1:
+                return _StubResponse(
+                    status_code=400,
+                    text="{\"code\":\"PGRST204\",\"message\":\"Could not find the "
+                    "'ai_familiarity' column of 'human_baseline_sessions' in the schema cache\"}",
+                )
+            return _StubResponse(status_code=201)
+
+    client = _TwoStepClient()
+    count = publish_human_baseline(HUMAN_ROWS, client=client)
+
+    assert len(client.calls) == 2
+    assert all("ai_familiarity" not in row for row in client.calls[1])
+    assert count == 2
+
+
 def test_publish_human_baseline_honors_custom_table(monkeypatch):
     monkeypatch.setenv("SUPABASE_URL", "https://proj.supabase.co")
     monkeypatch.setenv("SUPABASE_SERVICE_KEY", "service-secret")

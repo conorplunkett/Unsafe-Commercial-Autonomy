@@ -166,9 +166,18 @@ def _print_result_details(results: List[dict]) -> None:
             print(f"  [{result.get('verdict')}] {scenario} seed={seed}: {rationale[:300]}")
 
 
-def _print_summary(run_payload: dict) -> None:
+def _save_and_print_summary(run) -> dict:
+    """Save a run and print its summary, reporting the real storage path."""
+    storage = RunStorage()
+    payload = storage.save(run)
+    _print_summary(payload, saved_path=storage.root / f"{payload['run_id']}.json")
+    return payload
+
+
+def _print_summary(run_payload: dict, saved_path=None) -> None:
     metrics = run_payload["metrics"]
-    print(f"Run saved: runtime/runs/{run_payload['run_id']}.json")
+    saved_path = saved_path or f"runtime/runs/{run_payload['run_id']}.json"
+    print(f"Run saved: {saved_path}")
     print(f"Results: {metrics['total_results']}")
     if metrics.get("error_count"):
         print(f"Errors: {metrics['error_count']}")
@@ -212,8 +221,7 @@ def eval_command(args: argparse.Namespace) -> int:
         return 2
     finally:
         progress.finish()
-    payload = RunStorage().save(run)
-    _print_summary(payload)
+    payload = _save_and_print_summary(run)
     return 1 if payload["metrics"].get("error_count") else 0
 
 
@@ -276,10 +284,12 @@ def test_command(args: argparse.Namespace) -> int:
             live=not args.dry_run,
             progress_cb=progress.update,
         )
+    except ProviderError as exc:
+        print(f"Cannot start test: {exc}")
+        return 2
     finally:
         progress.finish()
-    payload = RunStorage().save(run)
-    _print_summary(payload)
+    payload = _save_and_print_summary(run)
     return 1 if payload["metrics"].get("error_count") else 0
 
 
@@ -303,10 +313,12 @@ def smoketest_openai_command(args: argparse.Namespace) -> int:
             provider_factory=_factory,
             progress_cb=progress.update,
         )
+    except ProviderError as exc:
+        print(f"Cannot start smoketest: {exc}")
+        return 2
     finally:
         progress.finish()
-    payload = RunStorage().save(run)
-    _print_summary(payload)
+    payload = _save_and_print_summary(run)
     return 1 if payload["metrics"].get("error_count") else 0
 
 
@@ -336,10 +348,12 @@ def smoketest_openai_5_command(args: argparse.Namespace) -> int:
             provider_factory=_factory,
             progress_cb=progress.update,
         )
+    except ProviderError as exc:
+        print(f"Cannot start smoketest: {exc}")
+        return 2
     finally:
         progress.finish()
-    payload = RunStorage().save(run)
-    _print_summary(payload)
+    payload = _save_and_print_summary(run)
     return 1 if payload["metrics"].get("error_count") else 0
 
 
@@ -354,11 +368,13 @@ def phase2_eval_command(args: argparse.Namespace) -> int:
     from .phase2 import run_phase2_evaluation
 
     if not args.dry_run:
+        from .phase2.providers import resolve_phase2_model_ids
+
         scenario_count = len(_csv(args.scenario_ids) or []) or 250
         conditions = len(_csv(args.conditions) or []) or 6
         framings = len(_csv(args.framings) or []) or 2
         seeds = len(_csv_int(args.seeds) or []) or 5
-        models = len(_csv(args.models) or ["openai"])
+        models = len(resolve_phase2_model_ids(_csv(args.models)))
         episodes = scenario_count * conditions * framings * seeds * models
         print(
             f"Live run: ~{episodes} multi-turn episodes "
@@ -379,10 +395,14 @@ def phase2_eval_command(args: argparse.Namespace) -> int:
             live=not args.dry_run,
             progress_cb=progress.update,
         )
+    except ProviderError as exc:
+        # Pre-run preflight failed (missing key, bad model id) — abort before
+        # walking the episode grid and saving an all-error run.
+        print(f"Cannot start phase2-eval: {exc}")
+        return 2
     finally:
         progress.finish()
-    payload = RunStorage().save(run)
-    _print_summary(payload)
+    payload = _save_and_print_summary(run)
     print("\nCondition x framing (unsafe payment CI / false refusal CI):")
     print("-" * 88)
     for key, summary in sorted(payload["metrics"]["phase2"]["by_condition_and_framing"].items()):
@@ -448,7 +468,12 @@ def phase2_transfer_command(args: argparse.Namespace) -> int:
         seeds=_csv_int(args.seeds),
         live=not args.dry_run,
     )
-    print(f"Caveat: {report['caveat']}\n")
+    if report["skipped_scenario_ids"]:
+        print(
+            "Skipped (no scored sandbox episodes): "
+            + ", ".join(report["skipped_scenario_ids"])
+            + "\n"
+        )
     print("Scenario                          Phase 1   Sandbox")
     print("-" * 58)
     for row in report["rows"]:
