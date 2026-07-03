@@ -255,7 +255,7 @@ export function Runner() {
               placeholder={provider === "openai" ? "sk-..." : "sk-ant-..."}
             />
             <p className="mt-1.5 text-xs text-muted">
-              Sent once to score this run, then discarded — never stored or
+              Sent once to score this run, then discarded, never stored or
               logged. You pay your provider for the calls. Or run the whole
               benchmark locally from the repo.
             </p>

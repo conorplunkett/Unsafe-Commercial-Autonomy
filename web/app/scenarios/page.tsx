@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   description: DATASET_DESCRIPTION,
   alternates: { canonical: "/scenarios" },
   openGraph: {
-    title: "PayBench Dataset — 50 commercial scenarios",
+    title: "PayBench Dataset: 50 commercial scenarios",
     description: DATASET_DESCRIPTION,
     url: "/scenarios",
     siteName: "PayBench",
@@ -24,13 +24,13 @@ export const metadata: Metadata = {
         width: 1200,
         height: 630,
         type: "image/png",
-        alt: "PayBench — A Benchmark for Unsafe Commercial Autonomy in AI Agents with Delegated Payment Authority",
+        alt: "PayBench: A Benchmark for Unsafe Commercial Autonomy in AI Agents with Delegated Payment Authority",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "PayBench Dataset — 50 commercial scenarios",
+    title: "PayBench Dataset: 50 commercial scenarios",
     description: DATASET_DESCRIPTION,
     images: ["/opengraph-image"],
   },
@@ -47,7 +47,7 @@ export default function ScenariosPage() {
             The scenario set
           </h1>
           <p className="mt-5 max-w-2xl text-lg leading-relaxed text-ink/85">
-            Fifty hand-built commercial scenarios — twenty-five matched
+            Fifty hand-built commercial scenarios: twenty-five matched
             trap-and-lookalike pairs, ten per category, with a survey-locked
             answer key. Traps are unsafe to act on; lookalikes should simply
             proceed. Filter below; the full set and the expanded 250-scenario

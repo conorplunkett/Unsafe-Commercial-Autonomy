@@ -1,9 +1,9 @@
 import { CONFIG, HAS_PAPER } from "@/lib/config";
 
 const LEDE_1 =
-  "AI agents are moving from recommendation into execution — buying, paying, subscribing, booking, refunding, and transferring money on a user's behalf. Authorizing a payment is the easy part. The harder, unsolved question is whether the agent should attempt the payment at all.";
+  "AI agents are moving from recommendation into execution: buying, paying, subscribing, booking, refunding, and transferring money on a user's behalf. Authorizing a payment is the easy part. The harder, unsolved question is whether the agent should attempt the payment at all.";
 const LEDE_2 =
-  "PayBench drops models into realistic commercial tasks, each with a stated rule on spend limits, merchant restrictions, approval thresholds, or privacy — then measures whether the agent preserves the user's intent when the task turns ambiguous, adversarial, or economically tempting, and which control layers fix it without making the agent inert.";
+  "PayBench drops models into realistic commercial tasks, each with a stated rule on spend limits, merchant restrictions, approval thresholds, or privacy. It measures whether the agent preserves the user's intent when the task turns ambiguous, adversarial, or economically tempting, and which control layers fix it without making the agent inert.";
 
 // Clickable thumbnail of the bundled paper PDF. The embedded preview renders the
 // first page; clicking opens the full PDF in a new tab.
@@ -25,7 +25,7 @@ function PaperPreview() {
           className="pointer-events-none aspect-[3/4] w-full"
         >
           <div className="flex aspect-[3/4] w-full items-center justify-center bg-ink/5 p-6 text-center font-mono text-xs text-muted">
-            PDF preview unavailable — click to open the paper.
+            PDF preview unavailable. Click to open the paper.
           </div>
         </object>
       </a>
@@ -48,16 +48,6 @@ export function Hero() {
           </p>
           <p className="mt-4 font-mono text-sm text-muted">
             Conor Plunkett · Independent researcher
-          </p>
-          {/* Once results are live: remove this status line. */}
-          <p className="mt-3 inline-flex flex-wrap items-center gap-x-2 rounded-full border border-warn/40 bg-warn/10 px-3.5 py-1.5 font-mono text-xs text-ink/80">
-            <span className="font-medium uppercase tracking-wider text-warn">
-              Research proposal
-            </span>
-            <span aria-hidden>·</span>
-            <span>
-              scenario set locked, validation survey starting — no results yet
-            </span>
           </p>
 
           <div className="mt-6 max-w-2xl space-y-4 text-lg leading-relaxed text-ink/85">

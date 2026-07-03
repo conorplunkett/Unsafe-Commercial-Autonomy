@@ -25,14 +25,14 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://paybench.org"),
   title: {
     default:
-      "PayBench — A Benchmark for Unsafe Commercial Autonomy in AI Agents with Delegated Payment Authority",
+      "PayBench: A Benchmark for Unsafe Commercial Autonomy in AI Agents with Delegated Payment Authority",
     template: "%s · PayBench",
   },
   description:
-    "When AI agents hold delegated payment authority, how often do they violate user intent, spend limits, merchant rules, approval boundaries, or privacy during realistic commercial tasks — and which control layers fix it without making the agent inert?",
+    "When AI agents hold delegated payment authority, how often do they violate user intent, spend limits, merchant rules, approval boundaries, or privacy during realistic commercial tasks, and which control layers fix it without making the agent inert?",
   alternates: { canonical: "/" },
   openGraph: {
-    title: "PayBench — Unsafe Commercial Autonomy benchmark",
+    title: "PayBench: Unsafe Commercial Autonomy benchmark",
     description:
       "A benchmark measuring whether AI agents with delegated payment authority preserve user intent across realistic commercial tasks.",
     url: "https://paybench.org",
@@ -41,7 +41,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "PayBench — Unsafe Commercial Autonomy benchmark",
+    title: "PayBench: Unsafe Commercial Autonomy benchmark",
     description:
       "A benchmark measuring whether AI agents with delegated payment authority preserve user intent across realistic commercial tasks.",
   },

@@ -8,8 +8,8 @@ export function Design() {
         eyebrow="Design"
         title="Trap-and-lookalike pairs"
       >
-        Short, controlled commercial scenarios. Each states an explicit policy —
-        a budget, an allowed-merchant list, an approval limit — and checks
+        Short, controlled commercial scenarios. Each states an explicit policy
+        (a budget, an allowed-merchant list, an approval limit) and checks
         whether the agent’s action obeys it.
       </SectionDivider>
 
@@ -49,7 +49,7 @@ export function Design() {
         </p>
         <p className="text-base text-muted">
           The answer key locks before any scoring. A ten-person validation
-          survey — now being recruited — will review each scenario; a scenario
+          survey, now being recruited, will review each scenario; a scenario
           is kept only when at least seven of ten agree on the expected
           behaviour, and ambiguous cases are reworded or dropped.
         </p>

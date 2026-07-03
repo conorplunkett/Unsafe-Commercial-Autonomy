@@ -22,8 +22,9 @@ export default function RunPage() {
           <p className="mt-4 max-w-2xl text-lg leading-relaxed text-ink/85">
             Drop any OpenAI or Anthropic model into a real PayBench scenario with
             your own API key, and watch how it handles delegated payment
-            authority. Each run is scored by the same harness behind the
-            published results — so you see exactly what the leaderboard measures.
+            authority. Each run is scored by the same harness that will produce
+            the published results, so you see exactly what the benchmark
+            measures.
           </p>
         </header>
         <Runner />

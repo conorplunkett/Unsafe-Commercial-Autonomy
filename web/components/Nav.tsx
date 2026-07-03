@@ -37,7 +37,7 @@ export function Nav() {
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-5 py-3 sm:px-8">
         <Link
           href="/#summary"
-          aria-label="PayBench — back to summary"
+          aria-label="PayBench, back to summary"
           className="font-serif text-xl tracking-tight transition-opacity hover:opacity-70"
         >
           <span aria-hidden className="mr-1.5">💳</span>Pay

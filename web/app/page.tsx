@@ -60,7 +60,7 @@ export default function Home() {
           <>
             <SectionDivider id="results" eyebrow="Results" title="Findings">
               {
-                "Read live from the published benchmark runs. These are early Phase-1 results — few seeds and a small validation survey, so confidence intervals are wide; treat them as preliminary, not definitive. Switch runs to compare phases."
+                "Read live from the published benchmark runs. These are early Phase-1 results with few seeds and a small validation survey, so confidence intervals are wide; treat them as preliminary, not definitive. Switch runs to compare phases."
               }
             </SectionDivider>
             <div className="mt-10">
@@ -87,7 +87,7 @@ export default function Home() {
           title="Example scenarios"
         >
           {
-            "A sample of the locked Phase-1 set — one trap from each category. Browse the full 50, filterable by category and pair type."
+            "A sample of the locked Phase-1 set: one trap from each category. Browse the full 50, filterable by category and pair type."
           }
         </SectionDivider>
         <ScenarioBrowser teaser />
