@@ -112,7 +112,7 @@ def available_openai_models(api_key: Optional[str] = None, prefix: str = "gpt") 
     except ImportError as exc:
         raise ProviderError("Install the openai package from requirements.txt to list OpenAI models.") from exc
     client = OpenAI(api_key=key)
-    return sorted(model.id for model in client.models.list() if prefix in model.id)
+    return sorted(model.id for model in client.models.list() if model.id.startswith(prefix))
 
 
 def model_display_name(model_id: str) -> str:
@@ -350,6 +350,31 @@ class AnthropicProvider(BaseProvider):
         self.model_name = model_name or os.environ.get("ANTHROPIC_MODEL", DEFAULT_ANTHROPIC_MODEL)
         self.api_key = api_key
 
+    def _resolved_api_key(self) -> str:
+        if not self.model_name:
+            raise ProviderError("Provide an Anthropic model name (or set ANTHROPIC_MODEL) to run the Anthropic provider.")
+        api_key = self.api_key or os.environ.get("ANTHROPIC_API_KEY")
+        if not api_key:
+            raise ProviderError("Provide an Anthropic API key (or set ANTHROPIC_API_KEY) to run the Anthropic provider.")
+        return api_key
+
+    def preflight(self) -> None:
+        api_key = self._resolved_api_key()
+        try:
+            from anthropic import Anthropic
+        except ImportError as exc:
+            raise ProviderError("Install the anthropic package from requirements.txt to run Anthropic evals.") from exc
+        client = Anthropic(api_key=api_key)
+        # One cheap metadata lookup confirms the id exists before the grid
+        # spends real generation calls on it (mirrors the OpenAI preflight).
+        try:
+            client.models.retrieve(self.model_name)
+        except Exception as exc:
+            raise ProviderError(
+                f"Anthropic model {self.model_name!r} is not available to this account: {exc}. "
+                "Set ANTHROPIC_MODEL to a valid model id."
+            ) from exc
+
     def generate_action(
         self,
         scenario: Scenario,
@@ -357,11 +382,7 @@ class AnthropicProvider(BaseProvider):
         seed: int,
         temperature: float,
     ) -> ProviderAction:
-        if not self.model_name:
-            raise ProviderError("Provide an Anthropic model name (or set ANTHROPIC_MODEL) to run the Anthropic provider.")
-        api_key = self.api_key or os.environ.get("ANTHROPIC_API_KEY")
-        if not api_key:
-            raise ProviderError("Provide an Anthropic API key (or set ANTHROPIC_API_KEY) to run the Anthropic provider.")
+        api_key = self._resolved_api_key()
         try:
             from anthropic import Anthropic
         except ImportError as exc:
@@ -422,6 +443,12 @@ class OpenWeightsProvider(BaseProvider):
         self.model_name = model_name or os.environ.get("OPENWEIGHTS_MODEL", DEFAULT_OPENWEIGHTS_MODEL)
         self.base_url = (base_url or os.environ.get("OPENWEIGHTS_BASE_URL") or "").rstrip("/")
 
+    def preflight(self) -> None:
+        if not self.base_url:
+            raise ProviderError("Set OPENWEIGHTS_BASE_URL to run the open-weights provider.")
+        if not self.model_name:
+            raise ProviderError("Set OPENWEIGHTS_MODEL to run the open-weights provider.")
+
     def generate_action(
         self,
         scenario: Scenario,
@@ -433,7 +460,12 @@ class OpenWeightsProvider(BaseProvider):
             raise ProviderError("Set OPENWEIGHTS_BASE_URL to run the open-weights provider.")
         if not self.model_name:
             raise ProviderError("Set OPENWEIGHTS_MODEL to run the open-weights provider.")
-        messages = build_messages(scenario, control_condition, seed)
+        # Generic OpenAI-compatible servers (vLLM, llama.cpp, TGI) accept only
+        # system/user/assistant roles, so remap the "developer" message.
+        messages = [
+            {**message, "role": "system"} if message["role"] == "developer" else message
+            for message in build_messages(scenario, control_condition, seed)
+        ]
         try:
             response = httpx.post(
                 f"{self.base_url}/v1/chat/completions",
@@ -442,6 +474,9 @@ class OpenWeightsProvider(BaseProvider):
                     "model": self.model_name,
                     "messages": messages,
                     "temperature": temperature,
+                    # Real sampler seed where the API supports it (vLLM does);
+                    # the prompt's "Seed:" line alone is only prompt perturbation.
+                    "seed": seed,
                     "response_format": {
                         "type": "json_schema",
                         "json_schema": {

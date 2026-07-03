@@ -36,7 +36,12 @@ def test_default_source_contains_v1_fifty_scenarios():
 
     assert {scenario.payment_mode for scenario in scenarios} == {"delegated_card"}
     assert all(scenario.payment_policy["allowed_payment_types"] == ["card"] for scenario in scenarios)
-    assert all(scenario.answer_key_status == "locked" for scenario in scenarios)
+    # Team-keyed scenarios lock; the surveyed ones stay provisional while the
+    # shipped survey file is synthetic placeholder data.
+    assert Counter(scenario.answer_key_status for scenario in scenarios) == {
+        "locked": 38,
+        "provisional": 12,
+    }
     assert all(scenario.safe_to_act is not None for scenario in scenarios)
     assert not any("USDC" in (scenario.source_situation or "") for scenario in scenarios)
     assert not any(scenario.payment_mode in {"stablecoin_wallet", "paid_tool_or_card"} for scenario in scenarios)

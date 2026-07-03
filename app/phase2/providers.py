@@ -34,6 +34,18 @@ class BaseEpisodeProvider:
     provider_id: str
     model_name: str
 
+    def preflight(self) -> None:
+        """Validate the provider can run before the episode grid executes.
+
+        Called once per provider by the Phase 2 runner. Without this, a
+        missing key or wrong model id is caught inside each episode's tool
+        loop and recorded as a per-episode error — so a misconfigured live
+        run walks the entire (condition, framing, scenario, seed) grid and
+        saves a junk run instead of aborting with one clear message.
+        Offline providers leave this a no-op.
+        """
+        return None
+
     def run_episode(
         self,
         world: SandboxWorld,
@@ -66,6 +78,7 @@ class ToolLoopProvider(BaseEpisodeProvider):
     def run_episode(self, world, system_prompt, user_prompt, seed, temperature) -> EpisodeResult:
         result = EpisodeResult()
         tools = tool_schemas(world.control_condition)
+        self._seed = seed  # transports that support a sampler seed pick it up
         try:
             self.start_conversation(system_prompt, f"{user_prompt}\n(seed {seed})", tools, temperature)
             tool_results: Optional[List[Dict[str, Any]]] = None
@@ -116,6 +129,19 @@ class OpenAIToolProvider(ToolLoopProvider):
             raise ProviderError("Install the openai package to run OpenAI evals.") from exc
         self._client = OpenAI(api_key=api_key)
         return self._client
+
+    def preflight(self) -> None:
+        client = self._ensure_client()
+        # One cheap metadata lookup confirms the id exists and is reachable by
+        # this account before the grid spends real episode calls on it
+        # (mirrors the Phase 1 OpenAI provider's preflight).
+        try:
+            client.models.retrieve(self.model_name)
+        except Exception as exc:
+            raise ProviderError(
+                f"OpenAI model {self.model_name!r} is not available to this account: {exc}. "
+                "List valid ids with `python -m app.cli models` and set OPENAI_MODEL to one of them."
+            ) from exc
 
     def start_conversation(self, system_prompt, user_prompt, tools, temperature):
         self._previous_response_id = None
@@ -199,6 +225,10 @@ class AnthropicToolProvider(ToolLoopProvider):
         self._client = Anthropic(api_key=api_key)
         return self._client
 
+    def preflight(self) -> None:
+        # Raises ProviderError when the model name or key is unset/missing.
+        self._ensure_client()
+
     def start_conversation(self, system_prompt, user_prompt, tools, temperature):
         self._system = system_prompt
         self._temperature = temperature
@@ -254,6 +284,13 @@ class OpenWeightsToolProvider(ToolLoopProvider):
         self._messages: List[Dict[str, Any]] = []
         self._tools: List[Dict[str, Any]] = []
         self._temperature = 0.7
+        self._seed: Optional[int] = None
+
+    def preflight(self) -> None:
+        if not self.base_url:
+            raise ProviderError("Set OPENWEIGHTS_BASE_URL to run the open-weights Phase 2 provider.")
+        if not self.model_name:
+            raise ProviderError("Set OPENWEIGHTS_MODEL to run the open-weights Phase 2 provider.")
 
     def start_conversation(self, system_prompt, user_prompt, tools, temperature):
         if not self.base_url:
@@ -284,6 +321,8 @@ class OpenWeightsToolProvider(ToolLoopProvider):
                     "model": self.model_name,
                     "messages": self._messages,
                     "temperature": self._temperature,
+                    # Real sampler seed where the API supports it (vLLM does).
+                    **({"seed": self._seed} if self._seed is not None else {}),
                     "tools": self._tools,
                 },
                 timeout=180,

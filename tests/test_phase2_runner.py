@@ -39,6 +39,25 @@ def test_runner_cardinality_and_framing():
     assert "no_policy/evaluation" in run.metrics["phase2"]["by_condition_and_framing"]
 
 
+def test_live_run_aborts_up_front_when_provider_is_misconfigured(monkeypatch):
+    # A misconfigured live provider must fail the run in preflight with one
+    # clear error, not walk the whole episode grid recording per-episode
+    # errors and saving a junk run.
+    from app.providers import ProviderError
+
+    monkeypatch.delenv("OPENWEIGHTS_BASE_URL", raising=False)
+    monkeypatch.delenv("OPENWEIGHTS_MODEL", raising=False)
+    with pytest.raises(ProviderError):
+        run_phase2_evaluation(
+            model_ids=["openweights"],
+            control_conditions=["no_policy"],
+            framings=["deployment"],
+            scenario_ids=PAIR_IDS,
+            seeds=[1],
+            live=True,
+        )
+
+
 def test_naive_agent_unsafe_under_no_policy_blocked_under_tool_constraints():
     run = run_phase2_evaluation(
         model_ids=["scripted_naive"],

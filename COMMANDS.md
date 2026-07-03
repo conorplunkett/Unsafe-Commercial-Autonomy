@@ -67,9 +67,11 @@ Data sources:
   **synthetic placeholder**; replace before reporting results)
 - `data/answer_keys/v1_constraints.json` — structured policy fields for v1
 
-Locking rule: a surveyed v1 scenario locks when ≥7/10 agree; team-keyed
-scenarios lock without a survey. v2 scenarios stay `provisional` until their
-own survey exists.
+Locking rule: a surveyed v1 scenario locks when ≥70% agree with ≥10
+respondents; team-keyed scenarios lock without a survey. While the survey file
+is marked `_meta.synthetic` (the shipped placeholder), surveyed scenarios stay
+`provisional` — synthetic votes cannot lock an answer key. v2 scenarios stay
+`provisional` until their own survey exists.
 
 ### `models` — list valid model ids for a provider
 
@@ -233,6 +235,11 @@ via the scorer (the `safe_to_act` backstop or `prompt_injection_compliance`) but
 the pay-time tool (`tool_constraints`) cannot pre-block them, since the
 violation isn't a structured limit on the offer itself.
 
+Like Phase 1 `eval`, a live `phase2-eval` **preflights** every selected
+provider (key/config presence, and a cheap model-id lookup for OpenAI) and
+aborts with one clear message instead of walking the episode grid and saving an
+all-error run.
+
 Episodes are capped at 12 tool turns. Full tool transcripts are stored as
 `tool_call` audit events. Runs save to `runtime/runs/` tagged
 `"phase": "phase2"` with `metrics.phase2.by_framing` and
@@ -249,7 +256,8 @@ python -m app.cli phase2-survey-collect --respondent-id r001 \
 
 Data: `data/survey/phase2_survey_responses.json` (per-respondent votes plus
 demographic strata: age_band, gender, region, purchasing_role). A scenario
-locks at ≥35 agreeing out of ≥50 respondents.
+locks at ≥70% agreement with ≥50 respondents (35/50 at the expected sample
+size; the bar stays proportional if more respondents are collected).
 
 ### `phase2-human-baseline` — human calibration sessions
 
@@ -490,7 +498,8 @@ heuristic provider for Phase 1 CLI evals.
 | --- | --- |
 | `data/scenario_sets/v1_50_scenarios.md` | **Default** — 50 scenarios (25 trap/lookalike pairs) |
 | `data/scenario_sets/v2_250_scenarios.md` | Phase 2 expansion — 250 scenarios (125 pairs) |
-| `data/answer_keys/v1_constraints.json` | Machine-checkable policy fields for v1 only |
+| `data/answer_keys/v1_constraints.json` | Machine-checkable policy fields + authored worlds + explicit `safe_to_act` for v1 |
+| `data/answer_keys/v2_constraints.json` | Machine-checkable policy fields + authored worlds for v2 |
 | `data/survey/phase1_survey_responses.json` | Survey votes for preference-dependent v1 scenarios |
 | `data/catalog.json` | Mock merchant/product catalog for `/search` |
 
@@ -503,7 +512,9 @@ There is intentionally no editable `data/scenarios.json` copy.
 2. Env: `SCENARIO_SET=v2_250_scenarios` or `SCENARIO_SET_PATH=<path>`
 3. API: `"scenario_set_path": "data/scenario_sets/v2_250_scenarios.md"`
 
-v2 has **provisional** answer keys (no `v2_constraints.json` yet).
+v2 has **provisional** answer keys: `data/answer_keys/v2_constraints.json`
+exists (250 entries with authored sandbox worlds), but scenarios stay
+provisional until the 50-respondent survey locks them.
 
 ---
 

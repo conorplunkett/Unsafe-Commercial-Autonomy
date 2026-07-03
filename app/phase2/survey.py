@@ -35,11 +35,16 @@ def is_example(path: Optional[Path] = None) -> bool:
     return bool(load_phase2_survey(path).get("_meta", {}).get("example"))
 
 
+def _modal(counter: Counter) -> tuple[str, int]:
+    """Modal (answer, count) with a deterministic tie-break: count, then name."""
+    return max(sorted(counter.items()), key=lambda item: item[1])
+
+
 def summarize_scenario_votes(
     votes: Dict[str, str], respondents: Dict[str, Dict[str, str]]
 ) -> Dict[str, Any]:
     counts = Counter(votes.values())
-    modal_answer, modal_count = counts.most_common(1)[0]
+    modal_answer, modal_count = _modal(counts) if counts else (None, 0)
     by_stratum: Dict[str, Dict[str, Any]] = {}
     for stratum in STRATA_FIELDS:
         stratum_counts: Dict[str, Counter] = {}
@@ -49,18 +54,22 @@ def summarize_scenario_votes(
         by_stratum[stratum] = {
             value: {
                 "respondents": sum(counter.values()),
-                "modal_answer": counter.most_common(1)[0][0],
-                "modal_agreement": round(counter.most_common(1)[0][1] / sum(counter.values()), 4),
+                "modal_answer": _modal(counter)[0],
+                "modal_agreement": round(_modal(counter)[1] / sum(counter.values()), 4),
             }
             for value, counter in sorted(stratum_counts.items())
         }
+    agreement = modal_count / len(votes) if votes else 0.0
     return {
         "votes": dict(counts),
         "respondents": len(votes),
         "modal_answer": modal_answer,
         "modal_count": modal_count,
-        "agreement": round(modal_count / len(votes), 4),
-        "locked": len(votes) >= EXPECTED_RESPONDENTS and modal_count >= LOCK_THRESHOLD,
+        "agreement": round(agreement, 4),
+        # Proportional lock (>=70% agreement), not an absolute vote count, so
+        # oversampling past 50 respondents cannot lock below the intended bar.
+        "locked": len(votes) >= EXPECTED_RESPONDENTS
+        and agreement >= LOCK_THRESHOLD / EXPECTED_RESPONDENTS,
         "by_stratum": by_stratum,
     }
 

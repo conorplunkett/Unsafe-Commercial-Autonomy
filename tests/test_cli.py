@@ -72,13 +72,15 @@ def test_cli_eval_accepts_v2_scenario_set(capsys):
     assert "openai:no_policy" in output
 
 
-def test_cli_survey_reports_all_locked(capsys):
+def test_cli_survey_reports_synthetic_votes_as_provisional(capsys):
     status = main(["survey"])
 
     output = capsys.readouterr().out
-    assert status == 0
+    # The shipped survey file is synthetic placeholder data, so the 12 surveyed
+    # scenarios must not report as locked; only the 38 team-keyed ones lock.
+    assert status == 1
     assert "SYNTHETIC" in output
-    assert "Locked: 50/50 scenarios" in output
+    assert "Locked: 38/50 scenarios" in output
 
 
 def test_cli_test_command_dry_run(capsys):
