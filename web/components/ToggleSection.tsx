@@ -32,12 +32,13 @@ export function ToggleSection({
           </span>
           {title}
         </h2>
-        {intro && (
-          <p className="mt-3 max-w-2xl pl-7 text-lg leading-relaxed text-ink/80">
-            {intro}
-          </p>
-        )}
       </summary>
+      {/* Everything below the heading, intro included, is hidden until opened. */}
+      {intro && (
+        <p className="mt-3 max-w-2xl pl-7 text-lg leading-relaxed text-ink/80">
+          {intro}
+        </p>
+      )}
       <div className="pl-7">{children}</div>
     </details>
   );

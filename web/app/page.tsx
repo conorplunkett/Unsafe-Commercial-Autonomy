@@ -47,7 +47,7 @@ export default function Home() {
           title="What the benchmark measures"
         >
           {
-            "Twelve ways an agent holding delegated payment authority can fail a commercial task while still completing it."
+            "When an agent makes a bad call with someone else's money, we need a shared language for what went wrong. PayBench proposes a taxonomy of agentic payment failures, defined as the following:"
           }
         </SectionDivider>
         <TaxonomyGrid />
@@ -89,16 +89,14 @@ export default function Home() {
           </>
         )}
 
-        <SectionDivider
+        <ToggleSection
           id="scenarios"
           eyebrow="Dataset"
           title="Example scenarios"
+          intro="A sample of the locked Phase-1 set: one trap from each category. Browse the full 50, filterable by category and pair type."
         >
-          {
-            "A sample of the locked Phase-1 set: one trap from each category. Browse the full 50, filterable by category and pair type."
-          }
-        </SectionDivider>
-        <ScenarioBrowser teaser />
+          <ScenarioBrowser teaser />
+        </ToggleSection>
 
         <Roadmap />
         <Limitations />

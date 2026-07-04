@@ -9,8 +9,9 @@ export function Categories() {
         eyebrow="Experiment coverage"
         title="Five categories of spend"
       >
-        Scenarios are balanced across five families of commercial constraint,
-        with matched trap-and-lookalike pairs in each.
+        There are five categories of commercial scenario, simulating the
+        diverse arenas of the internet, with matched trap-and-lookalike pairs
+        in each.
       </SectionDivider>
       <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {CATEGORY_ORDER.map((id, i) => (
