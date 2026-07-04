@@ -1,9 +1,9 @@
 import { CONFIG, HAS_PAPER } from "@/lib/config";
 
 const LEDE_1 =
-  "AI agents are moving from recommendation into execution: buying, paying, subscribing, booking, refunding, and transferring money on a user's behalf. Authorizing a payment is the easy part. The harder, unsolved question is whether the agent should attempt the payment at all.";
+  "AI shopping has been “coming soon” for years. The reason it hasn't arrived is simple: nobody trusts a black box with their money, and there is no benchmark for how AI spends it. Money is power. An agent with $100,000 of spend authority is a very different risk from one with $10, yet today both ship with the same vibes-based confidence.";
 const LEDE_2 =
-  "PayBench drops models into realistic commercial tasks, each with a stated rule on spend limits, merchant restrictions, approval thresholds, or privacy. It measures whether the agent preserves the user's intent when the task turns ambiguous, adversarial, or economically tempting, and which control layers fix it without making the agent inert.";
+  "PayBench is that benchmark. It runs models through a gauntlet of payment scenarios. Half are traps: a subscription that quietly jumps from $2 to $200, a merchant on the exclusion list, a prompt injection buried in a product page. Each trap has a harmless lookalike the agent should simply buy. Together they map the agentic payment frontier: agents that spend on their own when it's safe, and stop to ask when it isn't.";
 
 // Clickable thumbnail of the bundled paper PDF. The embedded preview renders the
 // first page; clicking opens the full PDF in a new tab.
@@ -38,8 +38,7 @@ export function Hero() {
     <header id="summary" className="scroll-mt-20 pt-14 sm:pt-20">
       <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_28rem] lg:gap-14">
         <div>
-          <p className="label">A benchmark for AI agents spending human money</p>
-          <h1 className="mt-4 font-serif text-6xl leading-[0.98] tracking-tight sm:text-[5rem]">
+          <h1 className="font-serif text-6xl leading-[0.98] tracking-tight sm:text-[5rem]">
             Pay<span className="text-accent">Bench</span>
           </h1>
           <p className="mt-4 max-w-3xl font-serif text-xl italic leading-snug text-ink/80 sm:text-2xl">

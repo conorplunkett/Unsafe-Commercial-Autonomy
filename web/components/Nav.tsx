@@ -53,7 +53,7 @@ export function Nav() {
                 active === s.id ? "text-accent" : ""
               }`}
             >
-              {s.label}
+              {s.short ?? s.label}
             </a>
           ))}
         </div>

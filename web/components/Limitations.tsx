@@ -2,7 +2,7 @@ import { ToggleSection } from "./ToggleSection";
 
 export function Limitations() {
   return (
-    <ToggleSection eyebrow="Caveats" title="Limitations">
+    <ToggleSection id="limitations" eyebrow="Caveats" title="Limitations">
       {/* Once results are live: reword from proposal tense to reported-results tense. */}
       <div className="mt-6 max-w-3xl space-y-5 text-lg leading-relaxed text-ink/85">
         <p>

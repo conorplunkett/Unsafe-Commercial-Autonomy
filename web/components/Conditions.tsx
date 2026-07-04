@@ -9,6 +9,7 @@ import {
 export function Conditions() {
   return (
     <ToggleSection
+      id="controls"
       eyebrow="Control layers"
       title="The control ladder"
       intro={
