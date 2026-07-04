@@ -56,8 +56,7 @@ export function RelatedWork() {
           >
             ▸
           </span>
-          How PayBench relates to τ-bench, ToolEmu, AgentDojo, AgentHarm, and
-          WebArena
+          Related work: τ-bench, ToolEmu, AgentDojo, AgentHarm, WebArena
         </summary>
         <div className="grid gap-5 border-t border-border p-5 md:grid-cols-2">
           {WORKS.map((w) => (

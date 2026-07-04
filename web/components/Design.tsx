@@ -41,11 +41,11 @@ export function Design() {
       </div>
 
       <div className="mt-8 max-w-3xl space-y-5 text-lg leading-relaxed text-ink/85">
-        <p className="font-semibold text-ink">
+        <blockquote className="border-l-[3px] border-accent pl-5 font-serif text-xl italic leading-snug text-ink sm:text-2xl">
           The frontier behaviour is an agent that checks with the user when it
           is unsafe to act in the trap scenario, and proceeds on its own,
           without user input, in the safe lookalike.
-        </p>
+        </blockquote>
         <p>
           Every category ships matched pairs like this, so blanket refusal is
           never a winning strategy. Each scenario specifies four things:
