@@ -43,7 +43,7 @@ const WORKS: {
 export function RelatedWork() {
   return (
     <>
-      <SectionDivider eyebrow="What else exists" title="Related work">
+      <SectionDivider id="related" eyebrow="What else exists" title="Related work">
         Existing benchmarks cover policy adherence, emulated risk, prompt
         injection, and web capability. None isolate whether an agent should
         attempt a payment in the first place.
