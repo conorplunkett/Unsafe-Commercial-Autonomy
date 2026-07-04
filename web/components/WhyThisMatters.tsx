@@ -65,6 +65,11 @@ export function WhyThisMatters() {
             control: the same failure modes appear when agents manage compute,
             credentials, API budgets, procurement, or cloud resources.
           </p>
+          <p className="font-semibold text-ink">
+            Money is power. An agent with $100,000 of spend authority is a
+            very different risk from one with $10, yet today both ship with
+            the same vibes-based confidence.
+          </p>
         </div>
         <figure className="self-start border-l-2 border-accent pl-5">
           <blockquote className="font-serif text-2xl leading-snug text-ink">

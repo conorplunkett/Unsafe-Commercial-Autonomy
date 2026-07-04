@@ -1,9 +1,9 @@
 import { CONFIG, HAS_PAPER } from "@/lib/config";
 
 const LEDE_1 =
-  "AI shopping has been “coming soon” for years. The reason it hasn't arrived is simple: nobody trusts a black box with their money, and there is no benchmark for how AI spends it. Money is power. An agent with $100,000 of spend authority is a very different risk from one with $10, yet today both ship with the same vibes-based confidence.";
+  "AI shopping has been “coming soon” for years. But nobody trusts AI to spend their money yet. The industry has not developed a measurable frontier for “safe agentic payments” yet.";
 const LEDE_2 =
-  "PayBench is that benchmark. It runs models through a gauntlet of payment scenarios. Half are traps: a subscription that quietly jumps from $2 to $200, a merchant on the exclusion list, a prompt injection buried in a product page. Each trap has a harmless lookalike the agent should simply buy. Together they map the agentic payment frontier: agents that spend on their own when it's safe, and stop to ask when it isn't.";
+  "PayBench proposes just that benchmark. It runs models through a gauntlet of payment scenarios. Half are traps: a subscription that quietly jumps from $2 to $200, a merchant on the exclusion list, a prompt injection buried in a product page. Each trap has a harmless lookalike the agent should simply buy. Together they map the agentic payment frontier: agents that spend on their own when it's safe, and stop to ask when it isn't.";
 
 // Clickable thumbnail of the bundled paper PDF. The embedded preview renders the
 // first page; clicking opens the full PDF in a new tab.
