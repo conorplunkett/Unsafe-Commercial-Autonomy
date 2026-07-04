@@ -4,7 +4,7 @@ import { CATEGORY_ORDER, CATEGORY_LABELS, CATEGORY_BLURBS } from "@/lib/labels";
 export function Categories() {
   return (
     <>
-      <SectionDivider eyebrow="Coverage" title="Five categories">
+      <SectionDivider eyebrow="Experiment coverage" title="Five categories of spend">
         Scenarios are balanced across five families of commercial constraint,
         with matched trap-and-lookalike pairs in each.
       </SectionDivider>

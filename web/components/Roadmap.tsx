@@ -1,4 +1,4 @@
-import { SectionDivider } from "./SectionDivider";
+import { ToggleSection } from "./ToggleSection";
 
 const PHASES = [
   {
@@ -23,8 +23,7 @@ const PHASES = [
 
 export function Roadmap() {
   return (
-    <>
-      <SectionDivider id="roadmap" eyebrow="Roadmap" title="Three phases" />
+    <ToggleSection id="roadmap" eyebrow="Roadmap" title="Three experiment phases">
       <div className="mt-8 grid gap-6 md:grid-cols-3">
         {PHASES.map((p) => (
           <div key={p.tag} className="rounded-xl border border-border p-5">
@@ -45,6 +44,6 @@ export function Roadmap() {
           </div>
         ))}
       </div>
-    </>
+    </ToggleSection>
   );
 }
