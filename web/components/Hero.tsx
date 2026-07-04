@@ -47,7 +47,10 @@ export function Hero() {
             delegated payment authority.
           </p>
           <p className="mt-4 font-mono text-sm text-muted">
-            Conor Plunkett · Independent researcher
+            <a href="mailto:hello@conorplunkett.com" className="text-inherit no-underline">
+              Conor Plunkett
+            </a>{" "}
+            · Independent researcher
           </p>
 
           <div className="mt-6 max-w-2xl space-y-4 text-lg leading-relaxed text-ink/85">
