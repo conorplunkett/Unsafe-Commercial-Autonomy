@@ -38,8 +38,7 @@ export function Hero() {
     <header id="summary" className="scroll-mt-20 pt-14 sm:pt-20">
       <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_28rem] lg:gap-14">
         <div>
-          <p className="label">A benchmark for AI agents spending human money</p>
-          <h1 className="mt-4 font-serif text-6xl leading-[0.98] tracking-tight sm:text-[5rem]">
+          <h1 className="font-serif text-6xl leading-[0.98] tracking-tight sm:text-[5rem]">
             Pay<span className="text-accent">Bench</span>
           </h1>
           <p className="mt-4 max-w-3xl font-serif text-xl italic leading-snug text-ink/80 sm:text-2xl">
