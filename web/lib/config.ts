@@ -26,7 +26,7 @@ export const CONFIG = {
   // Bundled PDF served from /public. Currently a placeholder until the final
   // paper is dropped in at this path.
   paperPdf: process.env.NEXT_PUBLIC_PAPER_PDF ?? "/paybench.pdf",
-  contactEmail: "hello@paybench.org",
+  contactEmail: "hello@conorplunkett.com",
   siteUrl: "https://paybench.org",
 } as const;
 
