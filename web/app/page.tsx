@@ -1,12 +1,12 @@
 import { Nav } from "@/components/Nav";
 import { Hero } from "@/components/Hero";
-import { DesignFacts } from "@/components/DesignFacts";
 import { Abstract } from "@/components/Abstract";
 import { WhyThisMatters } from "@/components/WhyThisMatters";
 import { RelatedWork } from "@/components/RelatedWork";
 import { Design } from "@/components/Design";
 import { Categories } from "@/components/Categories";
 import { SectionDivider } from "@/components/SectionDivider";
+import { ToggleSection } from "@/components/ToggleSection";
 import { TaxonomyGrid } from "@/components/TaxonomyGrid";
 import { Conditions } from "@/components/Conditions";
 import { Method } from "@/components/Method";
@@ -30,8 +30,8 @@ export default function Home() {
       <Nav />
       <main className="mx-auto w-full max-w-5xl px-5 pb-10 sm:px-8">
         <Hero />
-        {/* Once results are live: StatRow (measured rates) replaces DesignFacts. */}
-        {RESULTS_LIVE ? <StatRow /> : <DesignFacts />}
+        {/* Once results are live: the StatRow of measured rates returns here. */}
+        {RESULTS_LIVE && <StatRow />}
 
         <Abstract />
         <WhyThisMatters />
@@ -48,12 +48,14 @@ export default function Home() {
 
         <Conditions />
 
-        <SectionDivider id="method" eyebrow="Method" title="How it will be scored">
-          {
-            "Each setup is summarised by a confusion matrix over matched trap-and-lookalike pairs."
-          }
-        </SectionDivider>
-        <Method />
+        <ToggleSection
+          id="method"
+          eyebrow="Method"
+          title="How it will be scored"
+          intro="Each setup is summarised by a confusion matrix over matched trap-and-lookalike pairs."
+        >
+          <Method />
+        </ToggleSection>
 
         {/* Once results are live: the Results and Leaderboard sections return here. */}
         {RESULTS_LIVE && (

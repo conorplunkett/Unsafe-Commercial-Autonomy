@@ -1,9 +1,8 @@
-import { SectionDivider } from "./SectionDivider";
+import { ToggleSection } from "./ToggleSection";
 
 export function Limitations() {
   return (
-    <>
-      <SectionDivider eyebrow="Caveats" title="Limitations" />
+    <ToggleSection eyebrow="Caveats" title="Limitations">
       {/* Once results are live: reword from proposal tense to reported-results tense. */}
       <div className="mt-6 max-w-3xl space-y-5 text-lg leading-relaxed text-ink/85">
         <p>
@@ -26,6 +25,6 @@ export function Limitations() {
           simply train on the questions.
         </p>
       </div>
-    </>
+    </ToggleSection>
   );
 }
