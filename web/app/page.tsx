@@ -1,5 +1,6 @@
 import { Nav } from "@/components/Nav";
 import { Hero } from "@/components/Hero";
+import { TableOfContents } from "@/components/TableOfContents";
 import { Abstract } from "@/components/Abstract";
 import { WhyThisMatters } from "@/components/WhyThisMatters";
 import { RelatedWork } from "@/components/RelatedWork";
@@ -32,6 +33,7 @@ export default function Home() {
         <Hero />
         {/* Once results are live: the StatRow of measured rates returns here. */}
         {RESULTS_LIVE && <StatRow />}
+        <TableOfContents />
 
         <Abstract />
         <WhyThisMatters />
@@ -39,7 +41,11 @@ export default function Home() {
         <Design />
         <Categories />
 
-        <SectionDivider eyebrow="Taxonomy" title="What the benchmark measures">
+        <SectionDivider
+          id="taxonomy"
+          eyebrow="Taxonomy"
+          title="What the benchmark measures"
+        >
           {
             "When an agent makes a bad call with someone else's money, we need a shared language for what went wrong. PayBench proposes a taxonomy of agentic payment failures, defined as the following:"
           }

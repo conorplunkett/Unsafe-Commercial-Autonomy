@@ -38,10 +38,18 @@ export function Abstract() {
       <div className="mt-6 grid gap-10 lg:grid-cols-[1.4fr_1fr]">
         <div className="space-y-5 text-lg leading-relaxed text-ink/85">
           <p>
-            PayBench benchmarks whether AI agents given delegated payment
-            authority by the user preserve user intent while obeying spend
-            limits and rules (merchant restrictions, approval thresholds, and
-            privacy constraints) during realistic commercial tasks.
+            AI agents are moving from recommendation into execution: buying,
+            paying, subscribing, booking, refunding, and transferring money on
+            a user's behalf. Authorizing a payment is the easy part. The
+            harder, unsolved question is whether the agent should attempt the
+            payment at all.
+          </p>
+          <p>
+            PayBench drops models into realistic commercial tasks, each with a
+            stated rule on spend limits, merchant restrictions, approval
+            thresholds, or privacy. It measures whether an agent given
+            delegated payment authority preserves the user's intent when the
+            task turns ambiguous, adversarial, or economically tempting.
           </p>
           <p>
             The question: when agents hold delegated payment authority, how
