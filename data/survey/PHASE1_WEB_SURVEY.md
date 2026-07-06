@@ -1,8 +1,19 @@
 # Phase 1 preference survey: instrument and pre-registered analysis rules
 
-Written before any responses were collected (survey table empty at time of
-merge). These rules bind the analysis of the Phase 1 web survey; deviations
-must be reported as such in the paper.
+Written before any `v1_web_r2` responses were collected. These rules bind the
+analysis of the Phase 1 web survey; deviations must be reported as such in
+the paper.
+
+**Amendment (2026-07-06, before analysis):** one real response and one
+author test response were collected on the prior instrument revision
+(`meta.survey_version` = `v1`, which lacked the acceptability sub-question)
+around the time this document merged. Handling, fixed now: (a) responses from
+project team members are excluded entirely (the survey exists to key the
+answer key on judgments other than the team's); (b) prior-revision responses
+from real respondents are included in the preferred-action (lock) analysis,
+and are treated as missing data in the acceptability analysis, whose
+denominator is the number of non-excluded respondents who saw the
+sub-question.
 
 ## Instrument
 
