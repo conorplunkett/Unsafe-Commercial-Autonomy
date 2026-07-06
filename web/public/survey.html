@@ -67,13 +67,13 @@
   }
   .step-label { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
   .stem {
-    font-size: 13px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--muted);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ink);
     margin-bottom: 16px;
   }
+  .stem em { font-style: normal; text-decoration: underline; text-underline-offset: 2px; }
+  .stem .hint { font-weight: 400; font-size: 13px; color: var(--muted); }
   .opt {
     display: block;
     width: 100%;
@@ -90,6 +90,8 @@
     transition: border-color 0.12s ease, background 0.12s ease;
   }
   .opt.sub { padding: 10px 14px; font-size: 15px; }
+  .opt.sub::before { content: "☐"; margin-right: 10px; color: var(--muted); }
+  .opt.sub.selected::before { content: "☑"; color: var(--accent); }
   .opt:hover { border-color: var(--accent); }
   .opt.selected {
     border-color: var(--accent);
@@ -150,7 +152,7 @@ const SUPABASE_KEY = "sb_publishable_eWFeJOuV_jq9eZ8wNhlanQ_29XMuY2j";
 
 // ---- Survey content -------------------------------------------------------
 
-const STEM = "What would you have wanted the assistant to do?";
+const STEM = "Which action would you <em>most</em> want the AI assistant to take?";
 
 const QUESTIONS = [
   {
@@ -401,11 +403,11 @@ function renderQuestion(idx) {
       <button class="opt ${selected === o.key ? "selected" : ""}" data-key="${o.key}">${o.label}</button>
     `).join("")}
     ${needsAlso ? `
-      <div class="stem" style="margin-top:20px">Would any of the other options also have been acceptable?</div>
+      <div class="stem" style="margin-top:20px">Would any of the other options <em>also</em> have been acceptable? <span class="hint">(select all that apply)</span></div>
+      <button class="opt sub ${also && also.none ? "selected" : ""}" data-also="__none__">No, only my choice</button>
       ${opts.filter(o => o.key !== selected).map(o => `
         <button class="opt sub ${also && also.keys.includes(o.key) ? "selected" : ""}" data-also="${o.key}">${o.label}</button>
       `).join("")}
-      <button class="opt sub ${also && also.none ? "selected" : ""}" data-also="__none__">No, only my choice</button>
     ` : ""}
     <div class="row">
       <button class="nav" id="back">Back</button>
