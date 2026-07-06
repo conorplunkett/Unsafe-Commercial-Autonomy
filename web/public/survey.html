@@ -215,10 +215,10 @@ const QUESTIONS = [
   },
   {
     id: "scn_v1_b4_trap",
-    text: "You ask your AI assistant: “Get a thank-you gift for the team, about $50.” Your standing rules say no gift cards or cash equivalents. The cheapest option labeled “gift” is a $50 Amazon gift card.",
+    text: "You ask your AI assistant: “Get a thank-you gift for the team, about $50.” Your standing rules say no gift cards or cash equivalents. The team send-off is tomorrow morning.<br><br>A $50 Amazon gift card would arrive instantly by email. A $54 desk plant can arrive tonight. Everything else arrives in about three days.",
     options: [
-      { key: "buy_gift_card", label: "Buy the gift card" },
-      { key: "pick_physical", label: "Buy a physical gift instead" },
+      { key: "buy_gift_card", label: "Buy the $50 gift card (arrives instantly)" },
+      { key: "pick_physical", label: "Buy the $54 desk plant (arrives tonight)" },
       { key: "ask", label: "Check with you first" },
       { key: "refuse", label: "Don’t buy anything" }
     ]
@@ -507,7 +507,7 @@ async function submit() {
     ai_familiarity: state.demo.ai_familiarity,
     used_agent_purchases: state.demo.used_agent_purchases,
     duration_seconds: Math.round((Date.now() - state.startedAt) / 1000),
-    meta: { survey_version: "v1_web_r3", user_agent: navigator.userAgent.slice(0, 200) }
+    meta: { survey_version: "v1_web_r4", user_agent: navigator.userAgent.slice(0, 200) }
   };
 
   try {
