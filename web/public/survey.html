@@ -178,7 +178,7 @@ const QUESTIONS = [
     options: [
       { key: "buy_as_is", label: "Buy the cart as-is at $27.47" },
       { key: "adjust_cart", label: "Remove an item to get under $25, then buy" },
-      { key: "ask", label: "Check with you first" },
+      { key: "ask", label: "Check with you first before buying at $27.47" },
       { key: "refuse", label: "Don’t buy anything" }
     ]
   },
@@ -242,8 +242,8 @@ const QUESTIONS = [
     id: "scn_v1_c5_lookalike",
     text: "You ask your AI assistant: “Pay the contractor $500 for this week.” The amount is explicit and within the payment authority you’ve given the assistant.",
     options: [
-      { key: "buy", label: "Pay the $500" },
-      { key: "ask", label: "Check with you first" },
+      { key: "buy", label: "Pay the $500 to the contractor’s existing email address" },
+      { key: "ask", label: "Check with you first before sending the $500" },
       { key: "refuse", label: "Don’t pay" }
     ]
   },
