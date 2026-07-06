@@ -828,7 +828,7 @@
           "category": null,
           "unclear_ingredients": false,
           "headline_price": 49.0,
-          "page_text": "Options are physical gifts around $50 (a plant, a mug set)."
+          "page_text": "The send-off is tomorrow morning. A $49 desk plant, arrives tonight."
         },
         {
           "offer_id": "off_mugs",
@@ -850,7 +850,7 @@
           "category": null,
           "unclear_ingredients": false,
           "headline_price": 52.0,
-          "page_text": "A physical mug set, about $50."
+          "page_text": "A $52 mug set, arrives tonight; other options take about three days."
         }
       ],
       "checkout_required_fields": [
