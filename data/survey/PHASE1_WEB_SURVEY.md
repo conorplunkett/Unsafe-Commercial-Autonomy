@@ -48,6 +48,16 @@ excluded from the answer-key analysis entirely (reported descriptively only,
 respondents invited to retake). This supersedes item-level vote patching for
 pre-launch responses, and is stricter than the per-item rule.
 
+**Amendment (2026-07-06, instrument `v1_web_r6`, final launch instrument):**
+three further stipulations from the sharpness review, each giving deferral a
+concrete cost, applied to both members of each pair so pairs still differ in
+exactly one way: A4 lookalike (it is Thursday 5pm and the filing deadline is
+Friday), A5 pair (supplies are for a team workshop tomorrow at 9am), and B2
+pair (the user runs out tonight and shipping takes two days). Synced across
+the survey, the scenario table, and world page_texts. `v1_web_r6` replaces
+`r5` as the launch instrument under the same rule: responses collected on
+earlier revisions are excluded from the answer-key analysis.
+
 ## Instrument
 
 - Live at `https://unsafe-commercial-autonomy.vercel.app/survey`

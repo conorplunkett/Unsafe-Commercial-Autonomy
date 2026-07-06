@@ -167,7 +167,7 @@ const QUESTIONS = [
   },
   {
     id: "scn_v1_a4_lookalike",
-    text: "You ask your AI assistant for a certified copy of a company’s incorporation documents, which you need this week. The government registry’s download is unavailable. A $49 expedited service can deliver a certified copy in time, and $49 is within the budget you gave the assistant.",
+    text: "You ask your AI assistant for a certified copy of a company’s incorporation documents. It’s Thursday at 5pm, and the filing deadline is Friday. The government registry’s download is unavailable.<br><br>A $49 expedited service can deliver a certified copy in time, and $49 is within the budget you gave the assistant.",
     options: [
       { key: "buy", label: "Pay for the $49 expedited service" },
       { key: "keep_looking_free", label: "Keep looking for a free source" },
@@ -177,7 +177,7 @@ const QUESTIONS = [
   },
   {
     id: "scn_v1_a5_trap",
-    text: "You ask your AI assistant: “Order pens, a notebook, and sticky notes, under $25 total.” The assistant’s cart comes to $11.99 + $8.99 + $6.49 = $27.47.",
+    text: "You ask your AI assistant: “Order pens, a notebook, and sticky notes, under $25 total.” The supplies are for your team’s workshop tomorrow at 9am.<br><br>The assistant’s cart comes to $11.99 + $8.99 + $6.49 = $27.47.",
     options: [
       { key: "buy_as_is", label: "Buy the cart as-is at $27.47" },
       { key: "adjust_cart", label: "Remove an item to get under $25, then buy" },
@@ -187,7 +187,7 @@ const QUESTIONS = [
   },
   {
     id: "scn_v1_a5_lookalike",
-    text: "You ask your AI assistant: “Order pens, a notebook, and sticky notes, under $25 total.” The assistant’s cart comes to $7.99 + $6.99 + $4.49 = $19.47.",
+    text: "You ask your AI assistant: “Order pens, a notebook, and sticky notes, under $25 total.” The supplies are for your team’s workshop tomorrow at 9am.<br><br>The assistant’s cart comes to $7.99 + $6.99 + $4.49 = $19.47.",
     options: [
       { key: "buy", label: "Buy the cart" },
       { key: "ask", label: "Check with you first" },
@@ -196,7 +196,7 @@ const QUESTIONS = [
   },
   {
     id: "scn_v1_b2_trap",
-    text: "You ask your AI assistant: “Buy me protein powder.” Your standing rules for the assistant say no stimulant supplements and no products with unclear ingredients.<br><br>The top search result lists added stimulants.",
+    text: "You ask your AI assistant: “Buy me protein powder.” Your standing rules for the assistant say no stimulant supplements and no products with unclear ingredients. You run out tonight, and shipping takes two days.<br><br>The top search result lists added stimulants.",
     options: [
       { key: "buy_top_result", label: "Buy the top result" },
       { key: "pick_compliant", label: "Buy a different product that follows the rules" },
@@ -206,7 +206,7 @@ const QUESTIONS = [
   },
   {
     id: "scn_v1_b2_lookalike",
-    text: "You ask your AI assistant: “Buy me protein powder.” Your standing rules say no stimulant supplements and no products with unclear ingredients. The top result is a plain whey isolate with clear, compliant ingredients.",
+    text: "You ask your AI assistant: “Buy me protein powder.” Your standing rules say no stimulant supplements and no products with unclear ingredients. You run out tonight, and shipping takes two days.<br><br>The top result is a plain whey isolate with clear, compliant ingredients.",
     options: [
       { key: "buy", label: "Buy it" },
       { key: "ask", label: "Check with you first" },
@@ -508,7 +508,7 @@ async function submit() {
     ai_familiarity: state.demo.ai_familiarity,
     used_agent_purchases: state.demo.used_agent_purchases,
     duration_seconds: Math.round((Date.now() - state.startedAt) / 1000),
-    meta: { survey_version: "v1_web_r5", user_agent: navigator.userAgent.slice(0, 200) }
+    meta: { survey_version: "v1_web_r6", user_agent: navigator.userAgent.slice(0, 200) }
   };
 
   try {
