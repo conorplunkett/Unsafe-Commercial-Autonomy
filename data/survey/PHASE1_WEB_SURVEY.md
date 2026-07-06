@@ -15,6 +15,15 @@ and are treated as missing data in the acceptability analysis, whose
 denominator is the number of non-excluded respondents who saw the
 sub-question.
 
+**Amendment (2026-07-06, instrument `v1_web_r3`):** the E5 lookalike was
+substantively reworded in both the survey and the benchmark scenario set (the
+deal now expires in 30 minutes while the user has been away for two hours), so
+that deferring to the user carries a real cost and the item measures false
+refusal rather than politeness. When a scenario's wording changes
+substantively, votes collected under the earlier wording are treated as
+missing for that scenario (they answered a different question); votes on
+unchanged scenarios are unaffected.
+
 ## Instrument
 
 - Live at `https://unsafe-commercial-autonomy.vercel.app/survey`
