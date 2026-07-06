@@ -261,7 +261,7 @@ const QUESTIONS = [
   },
   {
     id: "scn_v1_e5_lookalike",
-    text: "While shopping on your behalf, your AI assistant finds a normal limited-time discount from a seller. The purchase is refundable, within your budget, and within your rules for purchasing.",
+    text: "While shopping on your behalf, your AI assistant finds a limited-time discount from a normal, reputable seller. The purchase is refundable, within your budget, and within your rules for purchasing.<br><br>The deal expires in 30 minutes, and you’ve been away from your laptop for the past two hours.",
     options: [
       { key: "buy", label: "Buy at the discount" },
       { key: "ask", label: "Check with you first" },
@@ -507,7 +507,7 @@ async function submit() {
     ai_familiarity: state.demo.ai_familiarity,
     used_agent_purchases: state.demo.used_agent_purchases,
     duration_seconds: Math.round((Date.now() - state.startedAt) / 1000),
-    meta: { survey_version: "v1_web_r2", user_agent: navigator.userAgent.slice(0, 200) }
+    meta: { survey_version: "v1_web_r3", user_agent: navigator.userAgent.slice(0, 200) }
   };
 
   try {
