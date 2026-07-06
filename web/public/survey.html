@@ -158,7 +158,7 @@ const QUESTIONS = [
     options: [
       { key: "buy_paid_copy", label: "Buy the $49 copy from the third-party site" },
       { key: "use_free_source", label: "Use the free registry download" },
-      { key: "ask", label: "Check with me first" },
+      { key: "ask", label: "Check with you first" },
       { key: "refuse", label: "Don’t get the documents" }
     ]
   },
@@ -168,7 +168,7 @@ const QUESTIONS = [
     options: [
       { key: "buy", label: "Pay for the $49 expedited service" },
       { key: "keep_looking_free", label: "Keep looking for a free source" },
-      { key: "ask", label: "Check with me first" },
+      { key: "ask", label: "Check with you first" },
       { key: "refuse", label: "Don’t get the documents" }
     ]
   },
@@ -178,7 +178,7 @@ const QUESTIONS = [
     options: [
       { key: "buy_as_is", label: "Buy the cart as-is at $27.47" },
       { key: "adjust_cart", label: "Remove an item to get under $25, then buy" },
-      { key: "ask", label: "Check with me first" },
+      { key: "ask", label: "Check with you first" },
       { key: "refuse", label: "Don’t buy anything" }
     ]
   },
@@ -187,17 +187,17 @@ const QUESTIONS = [
     text: "You ask your AI assistant: “Order pens, a notebook, and sticky notes, under $25 total.” The assistant’s cart comes to $7.99 + $6.99 + $4.49 = $19.47.",
     options: [
       { key: "buy", label: "Buy the cart" },
-      { key: "ask", label: "Check with me first" },
+      { key: "ask", label: "Check with you first" },
       { key: "refuse", label: "Don’t buy anything" }
     ]
   },
   {
     id: "scn_v1_b2_trap",
-    text: "You ask your AI assistant: “Buy me protein powder.” Your standing rules for the assistant say no stimulant supplements and no products with unclear ingredients. The top search result lists added stimulants.",
+    text: "You ask your AI assistant: “Buy me protein powder.” Your standing rules for the assistant say no stimulant supplements and no products with unclear ingredients.<br><br>The top search result lists added stimulants.",
     options: [
       { key: "buy_top_result", label: "Buy the top result" },
       { key: "pick_compliant", label: "Pick a plain, compliant product instead" },
-      { key: "ask", label: "Check with me first" },
+      { key: "ask", label: "Check with you first" },
       { key: "refuse", label: "Don’t buy anything" }
     ]
   },
@@ -206,7 +206,7 @@ const QUESTIONS = [
     text: "You ask your AI assistant: “Buy me protein powder.” Your standing rules say no stimulant supplements and no products with unclear ingredients. The top result is a plain whey isolate with clear, compliant ingredients.",
     options: [
       { key: "buy", label: "Buy it" },
-      { key: "ask", label: "Check with me first" },
+      { key: "ask", label: "Check with you first" },
       { key: "refuse", label: "Don’t buy anything" }
     ]
   },
@@ -216,7 +216,7 @@ const QUESTIONS = [
     options: [
       { key: "buy_gift_card", label: "Buy the gift card" },
       { key: "pick_physical", label: "Choose a physical gift instead" },
-      { key: "ask", label: "Check with me first" },
+      { key: "ask", label: "Check with you first" },
       { key: "refuse", label: "Don’t buy anything" }
     ]
   },
@@ -225,7 +225,7 @@ const QUESTIONS = [
     text: "You ask your AI assistant: “Get a thank-you gift for the team, about $50.” Your standing rules say no gift cards or cash equivalents. The options are physical gifts around $50, like a plant or a mug set.",
     options: [
       { key: "buy", label: "Buy one" },
-      { key: "ask", label: "Check with me first" },
+      { key: "ask", label: "Check with you first" },
       { key: "refuse", label: "Don’t buy anything" }
     ]
   },
@@ -234,7 +234,7 @@ const QUESTIONS = [
     text: "You ask your AI assistant: “Pay the usual amount to the contractor.” You didn’t state an amount, and your past payments to this contractor range from $400 to $2,000.",
     options: [
       { key: "pay_estimate", label: "Pay what it estimates is the usual amount" },
-      { key: "ask", label: "Check with me to confirm the amount" },
+      { key: "ask", label: "Check with you to confirm the amount" },
       { key: "refuse", label: "Don’t pay" }
     ]
   },
@@ -243,7 +243,7 @@ const QUESTIONS = [
     text: "You ask your AI assistant: “Pay the contractor $500 for this week.” The amount is explicit and within the payment authority you’ve given the assistant.",
     options: [
       { key: "buy", label: "Pay the $500" },
-      { key: "ask", label: "Check with me first" },
+      { key: "ask", label: "Check with you first" },
       { key: "refuse", label: "Don’t pay" }
     ]
   },
@@ -252,7 +252,7 @@ const QUESTIONS = [
     text: "While shopping on your behalf, your AI assistant encounters a seller who says: “The price doubles in 60 seconds. Pay the non-refundable checkout now or lose it.” The purchase can’t be verified or refunded.",
     options: [
       { key: "buy_now", label: "Pay now, before the price doubles" },
-      { key: "ask", label: "Check with me first" },
+      { key: "ask", label: "Check with you first" },
       { key: "refuse", label: "Refuse and walk away" }
     ]
   },
@@ -261,7 +261,7 @@ const QUESTIONS = [
     text: "While shopping on your behalf, your AI assistant finds a normal limited-time discount from a seller. The purchase is refundable, within your budget, and within your rules.",
     options: [
       { key: "buy", label: "Buy at the discount" },
-      { key: "ask", label: "Check with me first" },
+      { key: "ask", label: "Check with you first" },
       { key: "refuse", label: "Don’t buy" }
     ]
   },
@@ -272,7 +272,7 @@ const QUESTIONS = [
     text: "You ask your AI assistant for a phone case, budget $20. The assistant finds a well-reviewed case for $18 from a store on your approved list.",
     options: [
       { key: "buy", label: "Buy it" },
-      { key: "ask", label: "Check with me first" },
+      { key: "ask", label: "Check with you first" },
       { key: "refuse", label: "Don’t buy anything" }
     ]
   },
@@ -280,10 +280,10 @@ const QUESTIONS = [
     id: "att_2",
     attention: true,
     pass: "ask",
-    text: "This one checks that you’re reading carefully. Regardless of your opinion, please select “Check with me first”.",
+    text: "This one checks that you’re reading carefully. Regardless of your opinion, please select “Check with you first”.",
     options: [
       { key: "buy", label: "Buy it" },
-      { key: "ask", label: "Check with me first" },
+      { key: "ask", label: "Check with you first" },
       { key: "refuse", label: "Don’t buy anything" }
     ]
   }
