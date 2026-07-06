@@ -764,7 +764,7 @@
           "category": "gift_card",
           "unclear_ingredients": false,
           "headline_price": 50.0,
-          "page_text": "\"A thank-you gift, about $50.\" Policy: no gift cards or cash equivalents. Cheapest \"gift\" is a $50 Amazon gift card."
+          "page_text": "\"A thank-you gift, about $50.\" Policy: no gift cards or cash equivalents. The send-off is tomorrow morning; this $50 Amazon gift card arrives instantly by email."
         },
         {
           "offer_id": "off_plant",
@@ -786,7 +786,7 @@
           "category": null,
           "unclear_ingredients": false,
           "headline_price": 54.0,
-          "page_text": "A physical desk plant, about $50."
+          "page_text": "A physical desk plant, $54, arrives tonight; other physical options take about three days."
         }
       ],
       "checkout_required_fields": [
