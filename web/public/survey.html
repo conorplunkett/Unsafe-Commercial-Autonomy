@@ -89,6 +89,7 @@
     margin-bottom: 10px;
     transition: border-color 0.12s ease, background 0.12s ease;
   }
+  .opt.sub { padding: 10px 14px; font-size: 15px; }
   .opt:hover { border-color: var(--accent); }
   .opt.selected {
     border-color: var(--accent);
@@ -332,7 +333,8 @@ const state = {
   step: -1, // -1 intro, 0..N-1 questions, N demographics, N+1 done
   name: "",
   email: "",
-  answers: {},      // question id -> option key
+  answers: {},      // question id -> option key (preferred action)
+  alsoOk: {},       // question id -> { keys: [option keys], none: bool } (other acceptable options)
   demo: {},
   startedAt: null
 };
@@ -356,7 +358,8 @@ function renderIntro() {
     <p>You’ll see <b>14 short situations</b>, each a moment where the assistant has to make a call about a purchase. Answer as yourself, the person who set the rules: <b>what would you have wanted the assistant to do?</b></p>
     <ul class="intro-list">
       <li>There are no right answers. Go with your gut.</li>
-      <li>Takes about 7–10 minutes.</li>
+      <li>For each situation you’ll pick what you’d have wanted, then mark any other options you’d also have been OK with.</li>
+      <li>Takes about 10 minutes.</li>
       <li>Your answers become part of the benchmark’s ground truth.</li>
     </ul>
     <label for="f-name">Your name</label>
@@ -386,6 +389,10 @@ function renderQuestion(idx) {
   const q = orderedQuestions[idx];
   const opts = optionOrders[q.id];
   const selected = state.answers[q.id];
+  const also = state.alsoOk[q.id];
+  const needsAlso = !q.attention && selected;
+  const alsoAnswered = also && (also.none || also.keys.length > 0);
+  const canAdvance = selected && (q.attention || alsoAnswered);
   card.innerHTML = `
     <div class="step-label">Situation ${idx + 1} of ${orderedQuestions.length}</div>
     <p class="scenario">${q.text}</p>
@@ -393,14 +400,40 @@ function renderQuestion(idx) {
     ${opts.map(o => `
       <button class="opt ${selected === o.key ? "selected" : ""}" data-key="${o.key}">${o.label}</button>
     `).join("")}
+    ${needsAlso ? `
+      <div class="stem" style="margin-top:20px">Would any of the other options also have been acceptable?</div>
+      ${opts.filter(o => o.key !== selected).map(o => `
+        <button class="opt sub ${also && also.keys.includes(o.key) ? "selected" : ""}" data-also="${o.key}">${o.label}</button>
+      `).join("")}
+      <button class="opt sub ${also && also.none ? "selected" : ""}" data-also="__none__">No, only my choice</button>
+    ` : ""}
     <div class="row">
       <button class="nav" id="back">Back</button>
-      <button class="nav primary" id="next" ${selected ? "" : "disabled"}>${idx === orderedQuestions.length - 1 ? "Continue" : "Next"}</button>
+      <button class="nav primary" id="next" ${canAdvance ? "" : "disabled"}>${idx === orderedQuestions.length - 1 ? "Continue" : "Next"}</button>
     </div>
   `;
-  card.querySelectorAll(".opt").forEach(btn => {
+  card.querySelectorAll(".opt[data-key]").forEach(btn => {
     btn.onclick = () => {
-      state.answers[q.id] = btn.dataset.key;
+      const key = btn.dataset.key;
+      if (state.answers[q.id] !== key) {
+        state.answers[q.id] = key;
+        // Preferred changed: previous "also acceptable" picks may include it, so reset.
+        delete state.alsoOk[q.id];
+      }
+      renderQuestion(idx);
+    };
+  });
+  card.querySelectorAll(".opt[data-also]").forEach(btn => {
+    btn.onclick = () => {
+      const key = btn.dataset.also;
+      const cur = state.alsoOk[q.id] || { keys: [], none: false };
+      if (key === "__none__") {
+        state.alsoOk[q.id] = { keys: [], none: !cur.none };
+      } else if (cur.keys.includes(key)) {
+        state.alsoOk[q.id] = { keys: cur.keys.filter(k => k !== key), none: false };
+      } else {
+        state.alsoOk[q.id] = { keys: cur.keys.concat(key), none: false };
+      }
       renderQuestion(idx);
     };
   });
@@ -439,7 +472,6 @@ function renderDone() {
     <div class="done-icon">✓</div>
     <h1>Thank you</h1>
     <p>Your responses are in. You’re one of the people whose judgment sets the ground truth for PayBench Phase 1.</p>
-    <p class="muted">If you know someone else with good judgment and 10 minutes, send them this link.</p>
   `;
 }
 
@@ -456,18 +488,24 @@ async function submit() {
     attention[q.id] = { answer: state.answers[q.id], passed: state.answers[q.id] === q.pass };
   });
   const answers = {};
-  QUESTIONS.filter(q => !q.attention).forEach(q => { answers[q.id] = state.answers[q.id]; });
+  const alsoAcceptable = {};
+  QUESTIONS.filter(q => !q.attention).forEach(q => {
+    answers[q.id] = state.answers[q.id];
+    const also = state.alsoOk[q.id];
+    alsoAcceptable[q.id] = also && !also.none ? also.keys : [];
+  });
 
   const payload = {
     respondent_name: state.name,
     email: state.email.toLowerCase(),
     answers,
+    also_acceptable: alsoAcceptable,
     question_order: order,
     attention,
     ai_familiarity: state.demo.ai_familiarity,
     used_agent_purchases: state.demo.used_agent_purchases,
     duration_seconds: Math.round((Date.now() - state.startedAt) / 1000),
-    meta: { survey_version: "v1", user_agent: navigator.userAgent.slice(0, 200) }
+    meta: { survey_version: "v1_web_r2", user_agent: navigator.userAgent.slice(0, 200) }
   };
 
   try {
