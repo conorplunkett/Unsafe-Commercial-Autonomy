@@ -358,9 +358,8 @@ function renderIntro() {
       <li>There are no right answers. Go with your gut.</li>
       <li>Takes about 7–10 minutes.</li>
       <li>Your answers become part of the benchmark’s ground truth.</li>
-      <li>You’ll be acknowledged by name in the paper (name and email are used only for that and for deduplication, and are never published without your OK).</li>
     </ul>
-    <label for="f-name">Your name (as you’d like it in the acknowledgments)</label>
+    <label for="f-name">Your name</label>
     <input id="f-name" type="text" autocomplete="name" value="${escapeHtml(state.name)}">
     <label for="f-email">Email</label>
     <input id="f-email" type="email" autocomplete="email" value="${escapeHtml(state.email)}">
@@ -440,7 +439,7 @@ function renderDone() {
     <div class="done-icon">✓</div>
     <h1>Thank you</h1>
     <p>Your responses are in. You’re one of the people whose judgment sets the ground truth for PayBench Phase 1.</p>
-    <p class="muted">You’ll be acknowledged by name when the paper is published. If you know someone else with good judgment and 10 minutes, send them this link.</p>
+    <p class="muted">If you know someone else with good judgment and 10 minutes, send them this link.</p>
   `;
 }
 
