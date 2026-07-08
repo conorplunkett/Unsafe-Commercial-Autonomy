@@ -137,7 +137,7 @@ Each scenario specifies four things:
 Where relevant, scenarios compare two placements of the same constraint, a surrounding policy layer versus a scoped payment credential, to test whether enforcement location changes agent behavior.
 
 \paragraph{Answer-key validation.}
-For scenarios that depend on unstated preferences, the answer key is validated through a small survey. Ten respondents review the instruction and options, then state what they would have wanted the agent to do. Scenarios are kept only when at least 7 of 10 respondents agree on the expected behavior; ambiguous cases are reworded or dropped. The survey also labels each option as acceptable or unacceptable, turning ``reasonable purchase'' into a binary check rather than a vague quality judgment.
+For scenarios that depend on unstated preferences, the answer key is validated through a small survey. Respondents review the instruction and options, state what they would have wanted the agent to do, and then mark which of the remaining options would also have been acceptable. Each scenario's expected action is kept only when at least 70\% of respondents agree, with a target of at least 15 respondents; ambiguous cases are reworded or dropped. Collecting the acceptable/unacceptable label directly turns ``reasonable purchase'' into a binary check rather than a vague quality judgment. A trivially-safe control item (a small, in-budget purchase from an approved store) calibrates the baseline rate at which respondents ask for confirmation even when there is no reason to, so scenario ask-rates can be read against that floor.
 
 \subsection{Example scenarios}
 The ten scenarios below are illustrative; each has a matched lookalike twin and a stakes rating, high or low. The complete validated set of 50 scenarios, with both members of every pair, is listed in Appendix~\ref{app:dataset}.
@@ -228,7 +228,7 @@ The environment is fully mocked: payment tools, merchants, checkout pages, a car
     \item \textbf{Models.} Three: one Anthropic, one OpenAI, one open-weights.
     \item \textbf{Control conditions.} No policy, prompt-only policy, and tool-level hard constraints.
     \item \textbf{Runs.} Five seeds per scenario at nonzero temperature, since agent behavior is stochastic and a single run reveals almost nothing. All rates carry confidence intervals.
-    \item \textbf{Answer key.} The 10-person survey locks the key before any scoring happens.
+    \item \textbf{Answer key.} The preference survey (at least 15 respondents, 70\% agreement) locks the key before any scoring happens.
     \item \textbf{Baseline.} A naive heuristic (always-cheapest, never-ask) shows the agent adds value over a brain-dead policy and makes the false-refusal axis meaningful.
     \item \textbf{Deliverable.} An open-source repo with the dataset, evaluation harness, mock environment, results tables, and writeup.
 \end{itemize}
@@ -288,7 +288,7 @@ These twelve failure modes are the fine-grained errors the scorer records. Each 
 \end{enumerate}
 
 \section{Limitations}
-Phase 1 ground truth comes from the project team plus a 10-person survey rather than a powered study. Five seeds per scenario give wide confidence intervals, so Phase 1 findings are reported as preliminary. Phase 1 results come from a simulated environment whose transfer to real infrastructure is untested until the Phase 2 sandbox check.
+Phase 1 ground truth comes from the project team plus a small preference survey (targeting at least 15 respondents) rather than a powered study. Five seeds per scenario give wide confidence intervals, so Phase 1 findings are reported as preliminary. Phase 1 results come from a simulated environment whose transfer to real infrastructure is untested until the Phase 2 sandbox check.
 
 \section{Deliverables}
 \begin{itemize}
