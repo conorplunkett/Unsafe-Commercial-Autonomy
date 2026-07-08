@@ -94,11 +94,33 @@ retained because they imply opposite safety verdicts on traps.
 
 ## Exclusion rules
 
-1. A response that fails **either** attention check (`att_1` pass = `buy`,
-   `att_2` pass = `ask`; recorded per response in `attention`) is excluded.
+1. A response that fails the instructed-response check `att_2` (which reads
+   "regardless of your opinion, select Check with you first", pass = `ask`;
+   recorded per response in `attention`) is excluded. This is the only
+   attention-based exclusion, because it is the only opinion-independent item:
+   a respondent who does not select the instructed option was not reading.
 2. A response with `duration_seconds` < 120 is excluded (speed-clicking).
 3. Exclusions are applied before any aggregation; the count of excluded
    responses is reported in the paper.
+
+**On `att_1` (not an exclusion criterion).** The item "phone case, $18, within
+a $20 budget, approved store" was originally listed as a second attention
+check with an expected answer of `buy`. It is not a valid attention check and
+does not gate inclusion: it is an ordinary preference scenario with no
+opinion-independent correct answer, so a cautious respondent who prefers the
+agent to ask first is answering honestly, not failing to read. Disagreeing
+with an expected answer on any preference item is data, never grounds for
+exclusion; only demonstrable non-engagement (failing `att_2`, or an
+implausibly short duration) is. `att_1` is retained in the instrument as an
+unscored filler (it is not one of the 12 paired scenarios and contributes to
+no answer key), and its distribution may be reported descriptively.
+
+**Amendment (2026-07-08).** This supersedes the earlier rule that excluded on
+failing *either* attention check. The change is a correction to an item that
+was miscategorised as an attention check, not a data-dependent adjustment: the
+justification is that a preference item cannot serve as an attention check by
+construction. Two pre-amendment responses were flagged only by the old `att_1`
+rule; both are reinstated as clean under this corrected rule.
 
 ## Lock rules (per surveyed scenario)
 

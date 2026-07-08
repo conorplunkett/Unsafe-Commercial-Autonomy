@@ -273,20 +273,19 @@ function labelFor(qid, key) {
   return o ? o.label : key;
 }
 
+// Only att_2 (the opinion-independent instructed-response check) and the speed
+// floor gate inclusion. att_1 is a preference item, not an attention check, so
+// it never excludes; see data/survey/PHASE1_WEB_SURVEY.md.
 function isExcluded(row) {
-  const att1 = row.attention && row.attention.att_1 && row.attention.att_1.passed;
   const att2 = row.attention && row.attention.att_2 && row.attention.att_2.passed;
-  const failedAttention = !(att1 && att2);
   const tooFast = (row.duration_seconds || 0) < MIN_DURATION_SECONDS;
-  return failedAttention || tooFast;
+  return !att2 || tooFast;
 }
 
 function exclusionReason(row) {
   const reasons = [];
-  const att1 = row.attention && row.attention.att_1 && row.attention.att_1.passed;
   const att2 = row.attention && row.attention.att_2 && row.attention.att_2.passed;
-  if (!att1) reasons.push("failed att_1");
-  if (!att2) reasons.push("failed att_2");
+  if (!att2) reasons.push("failed att_2 (instructed response)");
   if ((row.duration_seconds || 0) < MIN_DURATION_SECONDS) reasons.push("<2min");
   if (row.meta && row.meta.survey_version && row.meta.survey_version !== LAUNCH_VERSION) reasons.push("pre-launch wording (" + row.meta.survey_version + ")");
   return reasons.join(", ");
@@ -385,8 +384,10 @@ function renderResults(rows) {
   });
   html += `</div>`;
 
-  html += `<div class="card"><h2 style="font-size:16px;margin-bottom:16px">Respondents (${total})</h2><table><thead><tr>
-    <th>Name</th><th>Email</th><th>When</th><th>Duration</th><th>Version</th><th>Attention</th><th>Status</th><th></th>
+  html += `<div class="card"><h2 style="font-size:16px;margin-bottom:16px">Respondents (${total})</h2>
+    <div class="legend" style="margin-bottom:12px">Attention = att_2 instructed-response check (the only one that gates inclusion). att_1 is a preference filler, shown for info only, never excludes.</div>
+    <table><thead><tr>
+    <th>Name</th><th>Email</th><th>When</th><th>Duration</th><th>Version</th><th>Attention (att_2)</th><th>att_1 (info)</th><th>Status</th><th></th>
   </tr></thead><tbody>`;
   rows.forEach((r, i) => {
     const att1 = r.attention && r.attention.att_1 && r.attention.att_1.passed;
@@ -399,7 +400,8 @@ function renderResults(rows) {
       <td>${r.created_at ? new Date(r.created_at).toLocaleString() : ""}</td>
       <td>${mins}</td>
       <td>${escapeHtml((r.meta && r.meta.survey_version) || "")}</td>
-      <td><span class="pill ${att1 ? 'pass' : 'fail'}">att1</span> <span class="pill ${att2 ? 'pass' : 'fail'}">att2</span></td>
+      <td><span class="pill ${att2 ? 'pass' : 'fail'}">${att2 ? 'passed' : 'failed'}</span></td>
+      <td><span class="pill ${att1 ? 'pass' : 'excluded'}">${att1 ? 'buy' : 'chose ask'}</span></td>
       <td>${excl ? `<span class="pill excluded">excluded${exclusionReason(r) ? ': ' + escapeHtml(exclusionReason(r)) : ''}</span>` : `<span class="pill pass">clean</span>`}</td>
       <td><details><summary>raw</summary><pre>${escapeHtml(JSON.stringify({ answers: r.answers, also_acceptable: r.also_acceptable, ai_familiarity: r.ai_familiarity, used_agent_purchases: r.used_agent_purchases }, null, 1))}</pre></details></td>
     </tr>`;
