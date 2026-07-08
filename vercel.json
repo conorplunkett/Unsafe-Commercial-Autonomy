@@ -5,6 +5,9 @@
   "outputDirectory": "web/out",
   "cleanUrls": true,
   "trailingSlash": false,
+  "redirects": [
+    { "source": "/paybench/admin", "destination": "/admin", "permanent": false }
+  ],
   "headers": [
     {
       "source": "/(.*)opengraph-image",

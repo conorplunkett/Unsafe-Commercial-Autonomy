@@ -127,7 +127,7 @@
   <div class="sub">Answer-by-answer results. Not linked anywhere; keep this URL private.</div>
 
   <div class="card" id="gate">
-    <div class="warn">Enter the admin passphrase to load results. This page never touches your Supabase service_role key; the passphrase only unlocks read access to this one survey table via a server-side function. It's kept in this tab's session storage and never sent anywhere else.</div>
+    <div class="warn">Enter the admin passphrase to load results. This page never touches your Supabase service_role key; the passphrase only unlocks read access to this one survey table via a server-side function. It's saved on this device so you stay signed in, and never sent anywhere else. Use “Forget passphrase” to sign out.</div>
     <label for="key">Admin passphrase</label>
     <input id="key" type="password" autocomplete="off" placeholder="paste passphrase">
     <button id="load">Load responses</button>
@@ -423,7 +423,7 @@ const loadBtn = document.getElementById("load");
 const forgetBtn = document.getElementById("forget");
 const errEl = document.getElementById("err");
 
-const storedKey = sessionStorage.getItem("pb_admin_key");
+const storedKey = localStorage.getItem("pb_admin_key");
 if (storedKey) {
   keyInput.value = storedKey;
   forgetBtn.style.display = "inline-block";
@@ -437,7 +437,7 @@ async function doLoad() {
   loadBtn.textContent = "Loading…";
   try {
     const rows = await loadResponses(key);
-    sessionStorage.setItem("pb_admin_key", key);
+    localStorage.setItem("pb_admin_key", key);
     forgetBtn.style.display = "inline-block";
     renderResults(rows);
   } catch (e) {
@@ -452,7 +452,7 @@ async function doLoad() {
 loadBtn.onclick = doLoad;
 keyInput.addEventListener("keydown", e => { if (e.key === "Enter") doLoad(); });
 forgetBtn.onclick = () => {
-  sessionStorage.removeItem("pb_admin_key");
+  localStorage.removeItem("pb_admin_key");
   keyInput.value = "";
   forgetBtn.style.display = "none";
   document.getElementById("results").style.display = "none";
