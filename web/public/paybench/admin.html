@@ -99,11 +99,14 @@
   .lock-badge.provisional { background: #fdf3e2; color: #8a6116; }
   .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
   .bar-label { width: 260px; font-size: 13px; flex-shrink: 0; }
-  .bar-track { flex: 1; height: 20px; background: var(--bg); border-radius: 4px; overflow: hidden; border: 1px solid var(--border); }
-  .bar-fill { height: 100%; background: var(--accent); }
-  .bar-fill.modal { background: var(--good); }
-  .bar-count { width: 70px; font-size: 12px; color: var(--muted); text-align: right; flex-shrink: 0; }
-  .also-note { font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .bar-track { flex: 1; height: 20px; background: var(--bg); border-radius: 4px; overflow: hidden; border: 1px solid var(--border); display: flex; }
+  .seg-pref { height: 100%; background: var(--accent); }
+  .seg-pref.modal { background: var(--good); }
+  .seg-also { height: 100%; background: var(--accent-soft); }
+  .seg-also.modal { background: #cbe6d5; }
+  .bar-count { width: 118px; font-size: 12px; color: var(--muted); text-align: right; flex-shrink: 0; }
+  .legend { font-size: 12px; color: var(--muted); margin: 4px 0 12px; display: flex; gap: 16px; }
+  .legend .sw { display: inline-block; width: 11px; height: 11px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
   th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
   th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; }
@@ -351,26 +354,33 @@ function renderResults(rows) {
       });
     });
 
+    const denom = clean.length;
     html += `
       <div class="scenario-block">
         <div class="scenario-head">${q.id}
           <span class="lock-badge ${locked ? 'locked' : 'provisional'}">${locked ? 'Locked' : 'Provisional'}</span>
         </div>
         <div class="scenario-text">${escapeHtml(q.text)} &middot; n=${n}, agreement ${(agreement * 100).toFixed(0)}% ${n > 0 ? '(' + modalCount + '/' + n + ' on ' + escapeHtml(labelFor(q.id, modalKey)) + ')' : ''}</div>
+        <div class="legend"><span><span class="sw" style="background:var(--good)"></span>chose as most-wanted</span><span><span class="sw" style="background:var(--accent-soft)"></span>also marked acceptable</span></div>
     `;
     q.options.forEach(o => {
-      const c = counts[o.key] || 0;
-      const pct = n > 0 ? (c / n) * 100 : 0;
-      const acceptPct = clean.length > 0 ? (acceptCounts[o.key] / clean.length) * 100 : 0;
+      const pref = counts[o.key] || 0;
+      const alsoOnly = (acceptCounts[o.key] || 0) - pref;
+      const prefPct = denom > 0 ? (pref / denom) * 100 : 0;
+      const alsoPct = denom > 0 ? (alsoOnly / denom) * 100 : 0;
+      const acceptTotal = pref + alsoOnly;
+      const isModal = o.key === modalKey;
       html += `
         <div class="bar-row">
           <div class="bar-label">${escapeHtml(o.label)}</div>
-          <div class="bar-track"><div class="bar-fill ${o.key === modalKey ? 'modal' : ''}" style="width:${pct}%"></div></div>
-          <div class="bar-count">${c} (${pct.toFixed(0)}%)</div>
+          <div class="bar-track">
+            <div class="seg-pref ${isModal ? 'modal' : ''}" style="width:${prefPct}%"></div>
+            <div class="seg-also ${isModal ? 'modal' : ''}" style="width:${alsoPct}%"></div>
+          </div>
+          <div class="bar-count">${pref} chose${alsoOnly > 0 ? ' +' + alsoOnly + ' ok' : ''} &middot; ${denom > 0 ? Math.round((acceptTotal / denom) * 100) : 0}%</div>
         </div>
       `;
     });
-    html += `<div class="also-note">Also-acceptable (chosen or marked OK): ${q.options.map(o => `${escapeHtml(o.label)} ${acceptCounts[o.key]}/${clean.length}`).join(' &middot; ')}</div>`;
     html += `</div>`;
   });
   html += `</div>`;
