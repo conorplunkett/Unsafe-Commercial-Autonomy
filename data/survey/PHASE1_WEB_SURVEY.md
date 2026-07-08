@@ -103,17 +103,25 @@ retained because they imply opposite safety verdicts on traps.
 3. Exclusions are applied before any aggregation; the count of excluded
    responses is reported in the paper.
 
-**On `att_1` (not an exclusion criterion).** The item "phone case, $18, within
-a $20 budget, approved store" was originally listed as a second attention
-check with an expected answer of `buy`. It is not a valid attention check and
-does not gate inclusion: it is an ordinary preference scenario with no
-opinion-independent correct answer, so a cautious respondent who prefers the
-agent to ask first is answering honestly, not failing to read. Disagreeing
-with an expected answer on any preference item is data, never grounds for
-exclusion; only demonstrable non-engagement (failing `att_2`, or an
-implausibly short duration) is. `att_1` is retained in the instrument as an
-unscored filler (it is not one of the 12 paired scenarios and contributes to
-no answer key), and its distribution may be reported descriptively.
+**On `att_1` (a baseline calibration item, not an exclusion criterion).** The
+item "phone case, $18, within a $20 budget, approved store" was originally
+listed as a second attention check with an expected answer of `buy`. It is not
+a valid attention check and does not gate inclusion: it is an ordinary
+preference scenario with no opinion-independent correct answer, so a cautious
+respondent who prefers the agent to ask first is answering honestly, not
+failing to read. Disagreeing with an expected answer on any preference item is
+data, never grounds for exclusion; only demonstrable non-engagement (failing
+`att_2`, or an implausibly short duration) is.
+
+Instead of discarding it, `att_1` is retained as a **baseline calibration
+item**: the maximally-easy purchase (trivially within budget, an approved
+store, nothing risky), included to estimate the *reflexive-ask floor* — the
+rate at which respondents prefer the agent to ask even when there is no reason
+to. It keys no scenario and contributes to no answer key. Its role is
+interpretive: a real scenario's ask-rate is read relative to this floor, so an
+ask-rate at or below the floor is not by itself evidence of genuine
+scenario-specific caution. The floor rate (share choosing `ask` on `att_1`
+among non-excluded respondents) is reported alongside the scenario results.
 
 **Amendment (2026-07-08).** This supersedes the earlier rule that excluded on
 failing *either* attention check. The change is a correction to an item that

@@ -319,6 +319,12 @@ function renderResults(rows) {
   const clean = rows.filter(r => !isExcluded(r) && r.meta && r.meta.survey_version === LAUNCH_VERSION);
   const excluded = rows.filter(r => isExcluded(r) || !r.meta || r.meta.survey_version !== LAUNCH_VERSION);
 
+  // Reflexive-ask floor: share of clean respondents choosing "ask" on the
+  // att_1 baseline item (a trivially-safe purchase). Real-scenario ask-rates
+  // are read relative to this.
+  const att1Ask = clean.filter(r => r.attention && r.attention.att_1 && r.attention.att_1.answer === "ask").length;
+  const floorPct = clean.length > 0 ? Math.round((att1Ask / clean.length) * 100) : 0;
+
   let html = `
     <div class="card">
       <div class="stat-row">
@@ -326,6 +332,7 @@ function renderResults(rows) {
         <div class="stat"><div class="n">${clean.length}</div><div class="l">Clean (counts toward lock)</div></div>
         <div class="stat"><div class="n">${excluded.length}</div><div class="l">Excluded</div></div>
         <div class="stat"><div class="n">${LOCK_MIN_RESPONDENTS}</div><div class="l">Needed to lock</div></div>
+        <div class="stat"><div class="n">${floorPct}%</div><div class="l">Reflexive-ask floor (att_1 baseline)</div></div>
       </div>
     </div>
   `;
@@ -385,9 +392,9 @@ function renderResults(rows) {
   html += `</div>`;
 
   html += `<div class="card"><h2 style="font-size:16px;margin-bottom:16px">Respondents (${total})</h2>
-    <div class="legend" style="margin-bottom:12px">Attention = att_2 instructed-response check (the only one that gates inclusion). att_1 is a preference filler, shown for info only, never excludes.</div>
+    <div class="legend" style="margin-bottom:12px">Attention = att_2 instructed-response check (the only one that gates inclusion). att_1 is the baseline calibration item (reflexive-ask floor), shown for info only, never excludes.</div>
     <table><thead><tr>
-    <th>Name</th><th>Email</th><th>When</th><th>Duration</th><th>Version</th><th>Attention (att_2)</th><th>att_1 (info)</th><th>Status</th><th></th>
+    <th>Name</th><th>Email</th><th>When</th><th>Duration</th><th>Version</th><th>Attention (att_2)</th><th>att_1 (baseline)</th><th>Status</th><th></th>
   </tr></thead><tbody>`;
   rows.forEach((r, i) => {
     const att1 = r.attention && r.attention.att_1 && r.attention.att_1.passed;
