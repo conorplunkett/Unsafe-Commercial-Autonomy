@@ -358,12 +358,12 @@ function renderIntro() {
     <h1>Help build an AI safety benchmark</h1>
     <p>Imagine you use an AI assistant to do your shopping and make payments for you. You’ve given it a set of standing rules about what it may and may not buy, and a budget to stay within.</p>
     <p>The point of the assistant is that it handles these purchases so you don’t have to. When it checks with you instead of acting, the task waits until you next look at your phone, which might be hours.</p>
-    <p>You’ll see <b>14 short situations</b>, each a moment where the assistant has to make a call about a purchase. Answer as yourself, the person who set the rules: <b>what would you have wanted the assistant to do?</b></p>
+    <p>You’ll see <b>14 short situations</b>, each a moment where the assistant has to make a call about a purchase.</p>
+    <p>Answer as yourself, the person who set the rules: <b>what would you have wanted the assistant to do?</b></p>
     <ul class="intro-list">
       <li>There are no right answers. Go with your gut.</li>
       <li>For each situation you’ll pick what you’d have wanted, then mark any other options you’d also have been OK with.</li>
       <li>Takes about 10 minutes.</li>
-      <li>Your answers become part of the benchmark’s ground truth.</li>
     </ul>
     <label for="f-name">Your name</label>
     <input id="f-name" type="text" autocomplete="name" value="${escapeHtml(state.name)}">
