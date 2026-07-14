@@ -151,11 +151,14 @@
   }
   .choice-seg.empty { display: none; }
 
-  /* Ranked breakdown list under the bar */
+  /* Ranked breakdown list under the bar (layered bars: solid = chose, light = also acceptable) */
   .rank-list { display: flex; flex-direction: column; gap: 7px; }
   .rank-row { display: flex; align-items: center; gap: 10px; font-size: 13px; }
   .rank-sw { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
-  .rank-label { flex: 1; min-width: 0; }
+  .rank-label { width: 250px; flex-shrink: 0; min-width: 0; }
+  .rank-track { flex: 1; height: 18px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; display: flex; }
+  .rank-track .seg-chose { height: 100%; }
+  .rank-track .seg-ok { height: 100%; opacity: 0.28; }
   .rank-row.top .rank-label { font-weight: 700; }
   .rank-tag {
     font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
@@ -556,16 +559,25 @@ function renderResults(rows) {
       const showText = pct >= 14;
       html += `<div class="choice-seg" style="width:${pct}%;background:${colorForOption(q, o.key)}" title="${escapeHtml(o.label)}: ${c} (${Math.round(pct)}%)">${showText ? Math.round(pct) + '%' : ''}</div>`;
     });
-    html += `</div><div class="rank-list">`;
-    // ranked list
+    html += `</div>
+      <div class="legend"><span><span class="sw" style="background:var(--ink)"></span>chose as most-wanted</span><span><span class="sw" style="background:var(--ink);opacity:0.28"></span>also marked acceptable</span></div>
+      <div class="rank-list">`;
+    // ranked list with layered per-option bars (solid = chose, light = also-acceptable)
     s.ranked.forEach((o, i) => {
       const chose = s.counts[o.key] || 0;
       const alsoOnly = (s.acceptCounts[o.key] || 0) - chose;
+      const chosePct = s.denom > 0 ? (chose / s.denom) * 100 : 0;
+      const alsoPct = s.denom > 0 ? (alsoOnly / s.denom) * 100 : 0;
       const pct = s.n > 0 ? Math.round((chose / s.n) * 100) : 0;
       const isTop = i === 0 && chose > 0;
+      const color = colorForOption(q, o.key);
       html += `<div class="rank-row ${isTop ? 'top' : ''}">
-        <span class="rank-sw" style="background:${colorForOption(q, o.key)}"></span>
+        <span class="rank-sw" style="background:${color}"></span>
         <span class="rank-label">${escapeHtml(o.label)}${isTop ? '<span class="rank-tag">Most chosen</span>' : ''}</span>
+        <span class="rank-track" title="${escapeHtml(o.label)}: ${chose} chose${alsoOnly > 0 ? ', ' + alsoOnly + ' also acceptable' : ''}">
+          <span class="seg-chose" style="width:${chosePct}%;background:${color}"></span>
+          <span class="seg-ok" style="width:${alsoPct}%;background:${color}"></span>
+        </span>
         <span class="rank-pct">${pct}%</span>
         <span class="rank-n">${chose} chose${alsoOnly > 0 ? ' · +' + alsoOnly + ' ok' : ''}</span>
       </div>`;
