@@ -72,15 +72,19 @@ def test_cli_eval_accepts_v2_scenario_set(capsys):
     assert "openai:no_policy" in output
 
 
-def test_cli_survey_reports_synthetic_votes_as_provisional(capsys):
+def test_cli_survey_reports_real_lock_state(capsys):
     status = main(["survey"])
 
     output = capsys.readouterr().out
-    # The shipped survey file is synthetic placeholder data, so the 12 surveyed
-    # scenarios must not report as locked; only the 38 team-keyed ones lock.
-    assert status == 1
-    assert "SYNTHETIC" in output
-    assert "Locked: 38/50 scenarios" in output
+    # The shipped survey file holds the real v1_web_r6 responses: 46 scenarios
+    # lock (38 team-keyed + 5 survey-locked + 3 objective-verdict traps) and
+    # the 4 failed lookalikes are dropped from the key, so the key is ready
+    # (exit 0) and the synthetic warning is gone.
+    assert status == 0
+    assert "SYNTHETIC" not in output
+    assert "Locked: 46/50 scenarios" in output
+    assert "4 dropped from key" in output
+    assert "Reflexive-ask floor (att_1): 17/31" in output
 
 
 def test_cli_test_command_dry_run(capsys):
