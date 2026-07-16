@@ -196,16 +196,21 @@
 <body>
 <div class="wrap">
   <h1>PayBench Phase 1 survey — admin</h1>
-  <div class="sub">Answer-by-answer results. Not linked anywhere; keep this URL private.</div>
+  <div class="sub">Answer-by-answer results. Not linked anywhere; keep this URL private.
+    <span id="session-bar" style="display:none"> · Signed in on this device
+      · <a href="#" id="refresh" style="color:var(--accent)">Refresh</a>
+      · <a href="#" id="signout" style="color:var(--accent)">Sign out</a></span>
+  </div>
 
   <div class="card" id="gate">
-    <div class="warn">Enter the admin passphrase to load results. This page never touches your Supabase service_role key; the passphrase only unlocks read access to this one survey table via a server-side function. It's saved on this device so you stay signed in, and never sent anywhere else. Use “Forget passphrase” to sign out.</div>
+    <div class="warn">Enter the admin passphrase to load results. This page never touches your Supabase service_role key; the passphrase only unlocks read access to this one survey table via a server-side function. It's saved on this device so you stay signed in, and never sent anywhere else. Use “Sign out” to forget it.</div>
     <label for="key">Admin passphrase</label>
     <input id="key" type="password" autocomplete="off" placeholder="paste passphrase">
     <button id="load">Load responses</button>
-    <button class="secondary" id="forget" style="display:none">Forget passphrase</button>
     <div class="error" id="err"></div>
   </div>
+
+  <div class="card" id="loading" style="display:none">Loading results…</div>
 
   <div id="results" style="display:none"></div>
 </div>
@@ -705,45 +710,72 @@ function exportSummaryCSV() {
 
 const keyInput = document.getElementById("key");
 const loadBtn = document.getElementById("load");
-const forgetBtn = document.getElementById("forget");
 const errEl = document.getElementById("err");
+const gateEl = document.getElementById("gate");
+const loadingEl = document.getElementById("loading");
+const sessionBar = document.getElementById("session-bar");
+const resultsEl = document.getElementById("results");
 
-const storedKey = localStorage.getItem("pb_admin_key");
-if (storedKey) {
-  keyInput.value = storedKey;
-  forgetBtn.style.display = "inline-block";
+function showGate() {
+  gateEl.style.display = "block";
+  loadingEl.style.display = "none";
+  sessionBar.style.display = "none";
+  resultsEl.style.display = "none";
+  keyInput.focus();
+}
+
+function showSignedIn() {
+  gateEl.style.display = "none";
+  loadingEl.style.display = "none";
+  sessionBar.style.display = "inline";
 }
 
 async function doLoad() {
-  const key = keyInput.value.trim();
+  const key = keyInput.value.trim() || localStorage.getItem("pb_admin_key") || "";
   if (!key) { errEl.textContent = "Enter the passphrase first."; errEl.style.display = "block"; return; }
   errEl.style.display = "none";
   loadBtn.disabled = true;
   loadBtn.textContent = "Loading…";
+  loadingEl.style.display = "block";
   try {
     const rows = await loadResponses(key);
     localStorage.setItem("pb_admin_key", key);
-    forgetBtn.style.display = "inline-block";
     renderResults(rows);
+    showSignedIn();
   } catch (e) {
+    // Wrong/expired passphrase or network error: bring the gate back so it can be re-entered.
+    if (e.message === "Wrong passphrase") localStorage.removeItem("pb_admin_key");
+    showGate();
     errEl.textContent = "Couldn’t load responses: " + e.message + ". Check the passphrase and try again.";
     errEl.style.display = "block";
   } finally {
     loadBtn.disabled = false;
     loadBtn.textContent = "Load responses";
+    loadingEl.style.display = "none";
   }
 }
 
 loadBtn.onclick = doLoad;
 keyInput.addEventListener("keydown", e => { if (e.key === "Enter") doLoad(); });
-forgetBtn.onclick = () => {
+document.getElementById("signout").onclick = (e) => {
+  e.preventDefault();
   localStorage.removeItem("pb_admin_key");
   keyInput.value = "";
-  forgetBtn.style.display = "none";
-  document.getElementById("results").style.display = "none";
+  showGate();
+};
+document.getElementById("refresh").onclick = (e) => {
+  e.preventDefault();
+  doLoad();
 };
 
-if (storedKey) doLoad();
+// Saved session: skip the passphrase card entirely and load straight away.
+const storedKey = localStorage.getItem("pb_admin_key");
+if (storedKey) {
+  keyInput.value = storedKey;
+  gateEl.style.display = "none";
+  loadingEl.style.display = "block";
+  doLoad();
+}
 </script>
 </body>
 </html>
