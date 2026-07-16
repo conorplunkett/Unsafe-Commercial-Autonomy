@@ -11,10 +11,13 @@ from app.phase1_web_survey import (
     LAUNCH_VERSION,
     LOOKALIKE_IDS,
     QUESTIONS,
+    TRAP_IDS,
+    TRAP_UNSAFE_OPTION,
     VOTE_MAP,
     analyze,
     assert_no_pii,
     att1_split,
+    experience_vs_safety,
     is_clean,
     is_excluded,
     question_stats,
@@ -169,6 +172,38 @@ class TestBaselineAndSplit:
         assert split["att1_ask"]["lookalike_ask_rate"] == 1.0
         assert split["att1_other"]["n"] == 3
         assert split["att1_other"]["lookalike_ask_rate"] == 0.0
+
+
+class TestExperienceVsSafety:
+    def test_trap_unsafe_option_one_flagged_buy_per_trap(self):
+        assert set(TRAP_UNSAFE_OPTION) == set(TRAP_IDS)
+        for trap_id, key in TRAP_UNSAFE_OPTION.items():
+            assert VOTE_MAP[key] == "buy"
+        # Default fixture rows pick options[0] on every trap, which is the
+        # flagged unsafe option — so the metric can be exercised directly.
+        for trap_id in TRAP_IDS:
+            q = next(x for x in QUESTIONS if x["id"] == trap_id)
+            assert q["options"][0]["key"] == TRAP_UNSAFE_OPTION[trap_id]
+
+    def test_group_split_and_metrics(self):
+        # daily fixture rows keep the default answers → unsafe on all 6 traps.
+        daily = [_row(ai_familiarity="daily") for _ in range(2)]
+        safe = {q["id"]: "ask" for q in QUESTIONS}
+        less = [_row(ai_familiarity="weekly", answers=safe) for _ in range(3)]
+        ev = experience_vs_safety(daily + less)
+        d = ev["by_ai_familiarity"]["daily"]
+        l = ev["by_ai_familiarity"]["less_than_daily"]
+        assert ev["exploratory"] is True
+        assert d["n"] == 2 and l["n"] == 3
+        assert d["unsafe_pick_rate"] == 1.0 and d["avoided_all_traps"] == 0
+        assert l["unsafe_pick_rate"] == 0.0 and l["avoided_all_traps"] == 3
+        assert l["trap_ask_rate"] == 1.0  # every trap answered "ask"
+
+    def test_agent_purchase_split(self):
+        rows = [_row(used_agent_purchases="yes")] + [_row(used_agent_purchases="no") for _ in range(4)]
+        ev = experience_vs_safety(rows)
+        assert ev["by_agent_purchase_experience"]["yes"]["n"] == 1
+        assert ev["by_agent_purchase_experience"]["no"]["n"] == 4
 
 
 class TestAnalyzeAndPii:

@@ -36,6 +36,17 @@ export interface Att1GroupStats {
   per_lookalike_ask_counts: Record<string, number>;
 }
 
+export interface SafetyGroupStats {
+  n: number;
+  unsafe_trap_picks: number;
+  unsafe_pick_rate: number;
+  avoided_all_traps: number;
+  avoided_all_traps_rate: number;
+  trap_ask_rate: number;
+  lookalike_ask_rate: number;
+  reflexive_ask_rate: number;
+}
+
 export interface SurveyResults {
   _meta: {
     kind: string;
@@ -72,6 +83,13 @@ export interface SurveyResults {
     note: string;
     att1_ask: Att1GroupStats;
     att1_other: Att1GroupStats;
+  };
+  experience_vs_safety: {
+    exploratory: boolean;
+    note: string;
+    safety_metric: string;
+    by_ai_familiarity: { daily: SafetyGroupStats; less_than_daily: SafetyGroupStats };
+    by_agent_purchase_experience: { yes: SafetyGroupStats; no: SafetyGroupStats };
   };
   demographics: {
     ai_familiarity: Record<string, number>;
@@ -882,6 +900,55 @@ export const SURVEY_RESULTS: SurveyResults = {
         "scn_v1_b4_lookalike": 3,
         "scn_v1_c5_lookalike": 0,
         "scn_v1_e5_lookalike": 1
+      }
+    }
+  },
+  "experience_vs_safety": {
+    "exploratory": true,
+    "note": "Self-reported experience covariates vs. safety behaviour. Cells are small (less-than-daily n=7; prior agent-purchase experience n=2), so read as descriptive, not inferential; not pre-registered.",
+    "safety_metric": "Unsafe pick = choosing the flagged, rule-breaking proceed option on a trap. avoided_all_traps = a safe option on all six traps.",
+    "by_ai_familiarity": {
+      "daily": {
+        "n": 24,
+        "unsafe_trap_picks": 7,
+        "unsafe_pick_rate": 0.0486,
+        "avoided_all_traps": 18,
+        "avoided_all_traps_rate": 0.75,
+        "trap_ask_rate": 0.5417,
+        "lookalike_ask_rate": 0.4028,
+        "reflexive_ask_rate": 0.5833
+      },
+      "less_than_daily": {
+        "n": 7,
+        "unsafe_trap_picks": 3,
+        "unsafe_pick_rate": 0.0714,
+        "avoided_all_traps": 5,
+        "avoided_all_traps_rate": 0.7143,
+        "trap_ask_rate": 0.4524,
+        "lookalike_ask_rate": 0.1905,
+        "reflexive_ask_rate": 0.4286
+      }
+    },
+    "by_agent_purchase_experience": {
+      "yes": {
+        "n": 2,
+        "unsafe_trap_picks": 1,
+        "unsafe_pick_rate": 0.0833,
+        "avoided_all_traps": 1,
+        "avoided_all_traps_rate": 0.5,
+        "trap_ask_rate": 0.5,
+        "lookalike_ask_rate": 0.0833,
+        "reflexive_ask_rate": 0.0
+      },
+      "no": {
+        "n": 29,
+        "unsafe_trap_picks": 9,
+        "unsafe_pick_rate": 0.0517,
+        "avoided_all_traps": 22,
+        "avoided_all_traps_rate": 0.7586,
+        "trap_ask_rate": 0.523,
+        "lookalike_ask_rate": 0.3736,
+        "reflexive_ask_rate": 0.5862
       }
     }
   },

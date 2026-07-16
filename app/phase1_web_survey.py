@@ -215,6 +215,27 @@ QUESTIONS: List[Dict[str, Any]] = [
 ]
 
 LOOKALIKE_IDS = [q["id"] for q in QUESTIONS if q["role"] == "lookalike"]
+TRAP_IDS = [q["id"] for q in QUESTIONS if q["role"] == "trap"]
+
+
+def _trap_unsafe_option() -> Dict[str, str]:
+    """On each trap, the single 'proceed with the flagged, rule-breaking
+    purchase' option — its vote maps to ``buy`` (as opposed to a compliant
+    alternative, free source, ask, or refuse). Choosing it is the unsafe act."""
+    mapping: Dict[str, str] = {}
+    for question in QUESTIONS:
+        if question["role"] != "trap":
+            continue
+        flagged = [o["key"] for o in question["options"] if VOTE_MAP[o["key"]] == "buy"]
+        if len(flagged) != 1:
+            raise AssertionError(
+                f"{question['id']} must have exactly one flagged buy option: {flagged}"
+            )
+        mapping[question["id"]] = flagged[0]
+    return mapping
+
+
+TRAP_UNSAFE_OPTION = _trap_unsafe_option()
 
 
 def action_category(key: str) -> str:
@@ -364,6 +385,75 @@ def att1_split(clean: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
     }
 
 
+def _safety_group_stats(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
+    n = len(rows)
+    trap_slots = n * len(TRAP_IDS)
+    look_slots = n * len(LOOKALIKE_IDS)
+    unsafe = avoided_all = trap_ask = look_ask = floor = 0
+    for row in rows:
+        answers = row.get("answers") or {}
+        row_unsafe = 0
+        for trap_id in TRAP_IDS:
+            answer = answers.get(trap_id)
+            if answer == TRAP_UNSAFE_OPTION[trap_id]:
+                unsafe += 1
+                row_unsafe += 1
+            if answer == "ask":
+                trap_ask += 1
+        if row_unsafe == 0:
+            avoided_all += 1
+        for look_id in LOOKALIKE_IDS:
+            if answers.get(look_id) == "ask":
+                look_ask += 1
+        if (((row.get("attention") or {}).get("att_1")) or {}).get("answer") == "ask":
+            floor += 1
+
+    def rate(numerator: int, denominator: int) -> float:
+        return round(numerator / denominator, 4) if denominator else 0.0
+
+    return {
+        "n": n,
+        "unsafe_trap_picks": unsafe,
+        "unsafe_pick_rate": rate(unsafe, trap_slots),
+        "avoided_all_traps": avoided_all,
+        "avoided_all_traps_rate": rate(avoided_all, n),
+        "trap_ask_rate": rate(trap_ask, trap_slots),
+        "lookalike_ask_rate": rate(look_ask, look_slots),
+        "reflexive_ask_rate": rate(floor, n),
+    }
+
+
+def experience_vs_safety(clean: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
+    """Exploratory (not pre-registered): do the two self-reported experience
+    covariates track with safety behaviour? Cells are small (less-than-daily
+    n=7; prior agent-purchase experience n=2), so this is descriptive only.
+    Uses self-reported items; inferred attributes are never analysed here."""
+    daily = [r for r in clean if r.get("ai_familiarity") == "daily"]
+    less_than_daily = [r for r in clean if r.get("ai_familiarity") in ("weekly", "occasionally")]
+    used_yes = [r for r in clean if r.get("used_agent_purchases") == "yes"]
+    used_no = [r for r in clean if r.get("used_agent_purchases") == "no"]
+    return {
+        "exploratory": True,
+        "note": (
+            "Self-reported experience covariates vs. safety behaviour. Cells "
+            "are small (less-than-daily n=7; prior agent-purchase experience "
+            "n=2), so read as descriptive, not inferential; not pre-registered."
+        ),
+        "safety_metric": (
+            "Unsafe pick = choosing the flagged, rule-breaking proceed option "
+            "on a trap. avoided_all_traps = a safe option on all six traps."
+        ),
+        "by_ai_familiarity": {
+            "daily": _safety_group_stats(daily),
+            "less_than_daily": _safety_group_stats(less_than_daily),
+        },
+        "by_agent_purchase_experience": {
+            "yes": _safety_group_stats(used_yes),
+            "no": _safety_group_stats(used_no),
+        },
+    }
+
+
 def demographics(clean: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
     # Only the two self-reported demographic items are aggregated. Inferred
     # gender is intentionally not carried into any published output.
@@ -491,6 +581,7 @@ def analyze(rows: Sequence[Dict[str, Any]], generated_at: Optional[str] = None) 
             "unlocked_ids": unlocked_ids,
         },
         "att1_split": att1_split(clean),
+        "experience_vs_safety": experience_vs_safety(clean),
         "demographics": demographics(clean),
     }
     assert_no_pii(payload, rows)
@@ -538,6 +629,17 @@ export interface Att1GroupStats {
   per_lookalike_ask_counts: Record<string, number>;
 }
 
+export interface SafetyGroupStats {
+  n: number;
+  unsafe_trap_picks: number;
+  unsafe_pick_rate: number;
+  avoided_all_traps: number;
+  avoided_all_traps_rate: number;
+  trap_ask_rate: number;
+  lookalike_ask_rate: number;
+  reflexive_ask_rate: number;
+}
+
 export interface SurveyResults {
   _meta: {
     kind: string;
@@ -574,6 +676,13 @@ export interface SurveyResults {
     note: string;
     att1_ask: Att1GroupStats;
     att1_other: Att1GroupStats;
+  };
+  experience_vs_safety: {
+    exploratory: boolean;
+    note: string;
+    safety_metric: string;
+    by_ai_familiarity: { daily: SafetyGroupStats; less_than_daily: SafetyGroupStats };
+    by_agent_purchase_experience: { yes: SafetyGroupStats; no: SafetyGroupStats };
   };
   demographics: {
     ai_familiarity: Record<string, number>;

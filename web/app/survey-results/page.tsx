@@ -75,6 +75,20 @@ export default function SurveyResultsPage() {
   const askers = R.att1_split.att1_ask;
   const others = R.att1_split.att1_other;
   const demo = R.demographics;
+  const ev = R.experience_vs_safety;
+  const evDaily = ev.by_ai_familiarity.daily;
+  const evLess = ev.by_ai_familiarity.less_than_daily;
+  const evYes = ev.by_agent_purchase_experience.yes;
+  const evNo = ev.by_agent_purchase_experience.no;
+  const expMetrics: { label: string; fmt: (g: typeof evDaily) => string }[] = [
+    {
+      label: "Avoided the unsafe option on all six traps",
+      fmt: (g) => `${g.avoided_all_traps}/${g.n} (${pct1(g.avoided_all_traps_rate)})`,
+    },
+    { label: "Unsafe pick rate (per trap)", fmt: (g) => pct1(g.unsafe_pick_rate) },
+    { label: "Ask on benign lookalikes", fmt: (g) => pct1(g.lookalike_ask_rate) },
+    { label: "Reflexive-ask floor", fmt: (g) => pct1(g.reflexive_ask_rate) },
+  ];
   const preregUrl = `${CONFIG.repoUrl}/blob/main/${R._meta.preregistration}`;
 
   return (
@@ -356,6 +370,91 @@ export default function SurveyResultsPage() {
         </section>
 
         <section className="mt-14">
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <h2 className="font-serif text-3xl tracking-tight">
+              Does experience predict safety?
+            </h2>
+            <span className="label">Exploratory · not pre-registered</span>
+          </div>
+          <div className="mt-4 max-w-3xl space-y-4 leading-relaxed text-ink/85">
+            <p>
+              Respondents skew toward heavy AI users ({demo.ai_familiarity.daily ?? 0}/
+              {R.respondents.clean} daily), so the natural question is whether
+              experience tracks with safety. For the part that matters, it does
+              not: <strong>trap-avoidance is flat</strong>. Daily users chose a
+              safe option on all six traps {evDaily.avoided_all_traps}/{evDaily.n}{" "}
+              of the time ({pct1(evDaily.avoided_all_traps_rate)}), less-than-daily
+              users {evLess.avoided_all_traps}/{evLess.n} (
+              {pct1(evLess.avoided_all_traps_rate)}). Experience did not predict
+              falling for a trap.
+            </p>
+            <p>
+              The one visible gap is <em>deference</em>, not safety: daily users
+              asked on benign lookalikes {pct1(evDaily.lookalike_ask_rate)} of the
+              time versus {pct1(evLess.lookalike_ask_rate)} for less-than-daily
+              users, and their reflexive-ask floor is higher (
+              {pct1(evDaily.reflexive_ask_rate)} vs{" "}
+              {pct1(evLess.reflexive_ask_rate)}) — heavier users lean toward
+              checking in <em>more</em>, not less. That rests on {evLess.n}{" "}
+              non-daily respondents, so read it as a hint. Prior agent-purchase
+              experience is only {evYes.n} of {R.respondents.clean} respondents —
+              reported for completeness, not interpreted.
+            </p>
+          </div>
+          <div className="mt-5 overflow-x-auto rounded-xl border border-border">
+            <table className="w-full min-w-[680px] border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-border bg-paper-2/60 text-left align-bottom">
+                  <th className="px-4 py-2.5 font-mono text-[0.7rem] uppercase tracking-[0.14em] text-muted">
+                    Safety metric
+                  </th>
+                  <th className="px-4 py-2.5 font-mono text-[0.7rem] uppercase tracking-[0.12em] text-muted">
+                    Daily AI use<br />
+                    <span className="text-ink/70">n = {evDaily.n}</span>
+                  </th>
+                  <th className="px-4 py-2.5 font-mono text-[0.7rem] uppercase tracking-[0.12em] text-muted">
+                    Less-than-daily<br />
+                    <span className="text-ink/70">n = {evLess.n}</span>
+                  </th>
+                  <th className="px-4 py-2.5 font-mono text-[0.7rem] uppercase tracking-[0.12em] text-muted">
+                    Used an agent to buy<br />
+                    <span className="text-ink/70">n = {evYes.n}</span>
+                  </th>
+                  <th className="px-4 py-2.5 font-mono text-[0.7rem] uppercase tracking-[0.12em] text-muted">
+                    Hasn&rsquo;t<br />
+                    <span className="text-ink/70">n = {evNo.n}</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {expMetrics.map((m) => (
+                  <tr key={m.label} className="border-b border-border/60">
+                    <td className="px-4 py-2.5">{m.label}</td>
+                    <td className="px-4 py-2.5 font-mono text-xs tabular-nums">
+                      {m.fmt(evDaily)}
+                    </td>
+                    <td className="px-4 py-2.5 font-mono text-xs tabular-nums">
+                      {m.fmt(evLess)}
+                    </td>
+                    <td className="px-4 py-2.5 font-mono text-xs tabular-nums text-muted">
+                      {m.fmt(evYes)}
+                    </td>
+                    <td className="px-4 py-2.5 font-mono text-xs tabular-nums">
+                      {m.fmt(evNo)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted">
+            Unsafe pick = choosing the flagged, rule-breaking proceed option on a
+            trap. The &ldquo;used an agent to buy&rdquo; column (n = {evYes.n}) is
+            shown for completeness; it is too small to compare.
+          </p>
+        </section>
+
+        <section className="mt-14">
           <h2 className="font-serif text-3xl tracking-tight">Limitations</h2>
           <ul className="mt-4 max-w-3xl list-disc space-y-3 pl-5 leading-relaxed text-ink/85">
             <li>
@@ -377,8 +476,10 @@ export default function SurveyResultsPage() {
               not marking anything acceptable.
             </li>
             <li>
-              The att_1 split reported above is exploratory and was not
-              pre-registered.
+              The att_1 split and the experience-vs-safety comparison are both
+              exploratory and were not pre-registered; their subgroups are small
+              (down to {evLess.n} less-than-daily and {evYes.n} agent-purchase
+              respondents).
             </li>
           </ul>
           <p className="mt-6 max-w-3xl text-sm leading-relaxed text-muted">
