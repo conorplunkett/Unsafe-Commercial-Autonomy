@@ -1,0 +1,23 @@
+{
+  "name": "unsafe-commercial-autonomy-video",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Remotion motion-graphics launch video for the Unsafe Commercial Autonomy benchmark. Standalone from the web app on purpose.",
+  "scripts": {
+    "dev": "remotion studio",
+    "render": "remotion render LaunchVideo out/launch-video.mp4",
+    "render:still": "remotion still LaunchVideo out/poster.png --frame=90",
+    "upgrade": "remotion upgrade"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.489",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "remotion": "4.0.489"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "typescript": "^5"
+  }
+}
