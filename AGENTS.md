@@ -1,8 +1,20 @@
 # Agent rules
 
-Repo-wide rules for AI agents working in this repository. (The `web/` app has its
-own scoped `AGENTS.md` for Next.js work; this file governs the repository as a
-whole.) Read this before making changes.
+Repo-wide rules for AI agents working in this repository. This file is the single
+source of truth for agent rules; the root `CLAUDE.md` just imports it so Claude
+Code picks it up. (The `web/` app has its own scoped `AGENTS.md` for Next.js
+work; this file governs the repository as a whole.) Read this before making
+changes.
+
+## Git / merge workflow (IMPORTANT)
+
+- **Never commit straight to `main`.**
+- When the user says "merge" (or asks to land/ship work), always follow this flow:
+  1. Create a new branch off the latest `main`.
+  2. Commit the work to that branch and push it.
+  3. Open a pull request.
+  4. Merge the pull request.
+- Only push directly to a feature branch; `main` is updated exclusively through merged PRs.
 
 ## LOCKED proposal — do not edit
 
