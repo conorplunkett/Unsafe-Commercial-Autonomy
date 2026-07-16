@@ -383,11 +383,13 @@ function labelFor(qid, key) {
 function isExcluded(row) {
   const att2 = row.attention && row.attention.att_2 && row.attention.att_2.passed;
   const tooFast = (row.duration_seconds || 0) < MIN_DURATION_SECONDS;
-  return !att2 || tooFast;
+  const test = row.meta && row.meta.test;
+  return !att2 || tooFast || !!test;
 }
 
 function exclusionReason(row) {
   const reasons = [];
+  if (row.meta && row.meta.test) reasons.push("test run");
   const att2 = row.attention && row.attention.att_2 && row.attention.att_2.passed;
   if (!att2) reasons.push("failed att_2 (instructed response)");
   if ((row.duration_seconds || 0) < MIN_DURATION_SECONDS) reasons.push("<2min");
@@ -458,6 +460,14 @@ function renderResults(rows) {
   latestRows = rows;
 
   let html = `
+    <div class="card">
+      <h2 style="font-size:16px;margin-bottom:6px">Preview surveys in test mode</h2>
+      <div class="section-sub" style="margin-bottom:14px">Walk through a survey exactly as respondents see it, to review the questions. Test runs are never submitted, so they never count toward or lock any answer key.</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <a href="/survey?test=1" target="_blank" rel="noopener" style="text-decoration:none"><button class="secondary">Phase 1 survey (test) &#8599;</button></a>
+        <a href="/phase2-survey?test=1" target="_blank" rel="noopener" style="text-decoration:none"><button class="secondary">Phase 2 survey (test) &#8599;</button></a>
+      </div>
+    </div>
     <div class="card">
       <div class="stat-row">
         <div class="stat"><div class="n">${total}</div><div class="l">Total responses</div></div>
