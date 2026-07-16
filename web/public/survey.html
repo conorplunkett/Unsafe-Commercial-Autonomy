@@ -300,6 +300,14 @@ const QUESTIONS = [
 
 const DEMOGRAPHICS = [
   {
+    id: "sex",
+    text: "What is your sex?",
+    options: [
+      { key: "male", label: "Male" },
+      { key: "female", label: "Female" }
+    ]
+  },
+  {
     id: "ai_familiarity",
     text: "How often do you use AI assistants (ChatGPT, Claude, Gemini, etc.)?",
     options: [
@@ -454,7 +462,7 @@ function renderQuestion(idx) {
 
 function renderDemographics() {
   card.innerHTML = `
-    <h2>Last two questions</h2>
+    <h2>A few last questions</h2>
     ${DEMOGRAPHICS.map(d => `
       <p style="margin-top:16px"><b>${d.text}</b></p>
       ${d.options.map(o => `
@@ -527,6 +535,7 @@ async function submit() {
     also_acceptable: alsoAcceptable,
     question_order: order,
     attention,
+    sex: state.demo.sex,
     ai_familiarity: state.demo.ai_familiarity,
     used_agent_purchases: state.demo.used_agent_purchases,
     duration_seconds: Math.round((Date.now() - state.startedAt) / 1000),

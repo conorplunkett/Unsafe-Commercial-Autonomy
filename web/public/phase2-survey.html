@@ -898,6 +898,14 @@ const QUESTIONS = [
 
 const DEMOGRAPHICS = [
   {
+    "id": "sex",
+    "text": "What is your sex?",
+    "options": [
+      { "key": "male", "label": "Male" },
+      { "key": "female", "label": "Female" }
+    ]
+  },
+  {
     "id": "age_band",
     "text": "Which age range are you in?",
     "options": [
@@ -1158,6 +1166,7 @@ async function submit() {
     votes,
     question_order: order,
     attention,
+    sex: state.demo.sex,
     age_band: state.demo.age_band,
     gender: state.demo.gender,
     region: state.demo.region,
