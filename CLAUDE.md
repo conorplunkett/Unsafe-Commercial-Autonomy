@@ -9,3 +9,5 @@
   3. Open a pull request.
   4. Merge the pull request.
 - Only push directly to a feature branch; `main` is updated exclusively through merged PRs.
+
+@AGENTS.md

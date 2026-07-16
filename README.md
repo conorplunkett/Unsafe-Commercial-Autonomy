@@ -17,6 +17,15 @@ the research plan below as it evolves.
 For a complete operational cheat sheet (CLI commands, API routes, env vars, data
 files, providers, and tests), see [COMMANDS.md](COMMANDS.md).
 
+## Locked proposal
+
+`proposal_LOCKED.pdf` at the repo root is the final, **locked** proposal paper.
+It is frozen on purpose and must never be edited, regenerated, renamed, or
+deleted. Divergence between it and later work is expected. When results are
+published later, they go into a **new, separately-versioned** document — never a
+modification of the locked proposal. See [AGENTS.md](AGENTS.md) for the full
+rule.
+
 ## Scenario source of truth
 
 The active Phase 1 scenario set lives in
