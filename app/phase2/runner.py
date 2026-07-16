@@ -29,6 +29,8 @@ DEFAULT_PHASE2_TEMPERATURE = 0.7
 
 def _select(values: Optional[Iterable[str]], allowed: List[str], label: str) -> List[str]:
     selected = list(values or allowed)
+    if "all" in selected:
+        return list(allowed)
     missing = set(selected) - set(allowed)
     if missing:
         raise KeyError(f"Unknown {label}: {', '.join(sorted(missing))}")

@@ -58,6 +58,8 @@ def _select_control_conditions(
     control_conditions: Optional[Iterable[ControlCondition]],
 ) -> List[ControlCondition]:
     selected = list(control_conditions or DEFAULT_CONTROL_CONDITIONS)
+    if "all" in selected:
+        return DEFAULT_CONTROL_CONDITIONS.copy()
     missing = set(selected) - set(DEFAULT_CONTROL_CONDITIONS)
     if missing:
         raise KeyError(f"Unknown control conditions: {', '.join(sorted(missing))}")
