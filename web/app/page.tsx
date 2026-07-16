@@ -41,13 +41,9 @@ export default function Home() {
         <Design />
         <Categories />
 
-        <SectionDivider
-          id="taxonomy"
-          eyebrow="Taxonomy"
-          title="What the benchmark measures"
-        >
+        <SectionDivider id="taxonomy" title="Taxonomy">
           {
-            "When an agent makes a bad call with someone else's money, we need a shared language for what went wrong. PayBench proposes a taxonomy of agentic payment failures, defined as the following:"
+            "When an agent makes a bad call with someone else's money, we need a shared language for what went wrong."
           }
         </SectionDivider>
         <TaxonomyGrid />

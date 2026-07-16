@@ -20,7 +20,7 @@ export const TOC: SectionLink[] = [
   { id: "related", label: "Related work" },
   { id: "benchmark", label: "Experiment design", short: "Design" },
   { id: "coverage", label: "Experiment coverage" },
-  { id: "taxonomy", label: "What the benchmark measures" },
+  { id: "taxonomy", label: "Taxonomy" },
   { id: "controls", label: "The control ladder" },
   { id: "method", label: "How it will be scored", short: "Method" },
   ...(RESULTS_LIVE
