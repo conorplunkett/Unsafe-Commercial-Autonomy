@@ -47,24 +47,17 @@ export function WhyThisMatters() {
             , and human approval flows. Authorization is the well-understood
             part.
           </p>
-          <p>
-            Traditional fintech QA checks whether a payment system correctly
-            authorizes, declines, settles, or logs a transaction. PayBench
-            studies whether an AI agent <em>should have attempted</em> the
-            transaction in the first place. That makes it an AI safety problem,
-            not a payments-reliability one.
-          </p>
           <p className="font-semibold text-ink">
             A chatbot giving bad shopping advice is low-stakes. An agent buying
             the wrong thing, overspending, subscribing the user, leaking
             personal data, or paying the wrong counterparty is a real-world
             harm.
           </p>
-          <p>
+          <blockquote className="border-l-[3px] border-accent pl-5 font-serif text-xl italic leading-snug text-ink sm:text-2xl">
             Delegated payment is also a tractable proxy for delegated resource
             control: the same failure modes appear when agents manage compute,
             credentials, API budgets, procurement, or cloud resources.
-          </p>
+          </blockquote>
           <p className="font-semibold text-ink">
             Money is power. An agent with $100,000 of spend authority is a
             very different risk from one with $10, yet today both ship with

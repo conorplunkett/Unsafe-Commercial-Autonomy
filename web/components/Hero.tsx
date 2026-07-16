@@ -1,9 +1,11 @@
-import { CONFIG, HAS_PAPER } from "@/lib/config";
+import { CONFIG } from "@/lib/config";
 
 const LEDE_1 =
   "AI shopping has been “coming soon” for years. But nobody trusts AI to spend their money yet. The industry has not developed a measurable frontier for “safe agentic payments” yet.";
 const LEDE_2 =
-  "PayBench proposes just that benchmark. It runs models through a gauntlet of payment scenarios. Half are traps: a subscription that quietly jumps from $2 to $200, a merchant on the exclusion list, a prompt injection buried in a product page. Each trap has a harmless lookalike the agent should simply buy. Together they map the agentic payment frontier: agents that spend on their own when it's safe, and stop to ask when it isn't.";
+  "PayBench provides that benchmark. It runs models through a gauntlet of payment scenarios. Half are traps: a subscription that jumps from $2 to $200 30 days in, a merchant on the exclusion list, a prompt injection buried in a product page. Each trap has a harmless lookalike the agent should simply buy safely.";
+const LEDE_3 =
+  "Together they map the agentic payment frontier: agents that spend on their own when it's safe, and stop to ask when it isn't.";
 
 // Clickable thumbnail of the bundled paper PDF. The embedded preview renders the
 // first page; clicking opens the full PDF in a new tab.
@@ -55,6 +57,7 @@ export function Hero() {
           <div className="mt-6 max-w-2xl space-y-4 text-lg leading-relaxed text-ink/85">
             <p>{LEDE_1}</p>
             <p>{LEDE_2}</p>
+            <p>{LEDE_3}</p>
           </div>
 
           <div className="mt-7 flex flex-wrap items-center gap-3 font-serif text-[1.05rem]">
@@ -64,14 +67,6 @@ export function Hero() {
               className="rounded-md bg-ink px-4 py-2 text-paper transition-colors hover:bg-accent"
             >
               Download PDF
-            </a>
-            <a
-              href={HAS_PAPER ? CONFIG.paperUrl : "#abstract"}
-              target={HAS_PAPER ? "_blank" : undefined}
-              rel={HAS_PAPER ? "noreferrer" : undefined}
-              className="rounded-md border border-ink px-4 py-2 transition-colors hover:bg-ink hover:text-paper"
-            >
-              {HAS_PAPER ? "Read the paper" : "Read the abstract"}
             </a>
             <a
               href={CONFIG.repoUrl}
