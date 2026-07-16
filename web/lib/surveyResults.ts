@@ -76,8 +76,6 @@ export interface SurveyResults {
   demographics: {
     ai_familiarity: Record<string, number>;
     used_agent_purchases: Record<string, number>;
-    gender_inferred: Record<string, number>;
-    gender_inferred_note: string;
   };
 }
 
@@ -896,12 +894,6 @@ export const SURVEY_RESULTS: SurveyResults = {
     "used_agent_purchases": {
       "no": 29,
       "yes": 2
-    },
-    "gender_inferred": {
-      "male": 20,
-      "female": 10,
-      "unknown": 1
-    },
-    "gender_inferred_note": "Author-inferred from first name after collection; not self-reported. Descriptive only."
+    }
   }
 };

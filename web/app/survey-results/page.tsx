@@ -372,13 +372,6 @@ export default function SurveyResultsPage() {
               have let an agent make purchases for them.
             </li>
             <li>
-              Gender ({demo.gender_inferred.male ?? 0} male,{" "}
-              {demo.gender_inferred.female ?? 0} female,{" "}
-              {demo.gender_inferred.unknown ?? 0} unknown) was inferred by the
-              author from first names after collection, not self-reported —
-              descriptive only.
-            </li>
-            <li>
               The acceptability sub-question uses all clean respondents as its
               denominator; respondents who skipped the sub-question count as
               not marking anything acceptable.

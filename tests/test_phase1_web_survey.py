@@ -196,10 +196,14 @@ class TestAnalyzeAndPii:
         with pytest.raises(AssertionError):
             assert_no_pii({"respondent_name": "x"}, rows)
 
-    def test_gender_unknown_bucket(self):
+    def test_demographics_exclude_inferred_gender(self):
         payload = analyze([_row() for _ in range(15)], generated_at="2026-01-01")
-        assert payload["demographics"]["gender_inferred"] == {"unknown": 15}
-        assert "not" in payload["demographics"]["gender_inferred_note"]
+        demo = payload["demographics"]
+        assert demo["ai_familiarity"] == {"daily": 15}
+        assert demo["used_agent_purchases"] == {"no": 15}
+        # Inferred gender is never carried into any published output.
+        assert "gender_inferred" not in demo
+        assert "gender" not in json.dumps(payload)
 
 
 class TestWebRender:

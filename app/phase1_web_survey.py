@@ -365,21 +365,16 @@ def att1_split(clean: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
 
 
 def demographics(clean: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
+    # Only the two self-reported demographic items are aggregated. Inferred
+    # gender is intentionally not carried into any published output.
     familiarity: Counter = Counter()
     agent_purchases: Counter = Counter()
-    gender: Counter = Counter()
     for row in clean:
         familiarity[row.get("ai_familiarity") or "unknown"] += 1
         agent_purchases[row.get("used_agent_purchases") or "unknown"] += 1
-        gender[row.get("gender_inferred") or "unknown"] += 1
     return {
         "ai_familiarity": dict(familiarity),
         "used_agent_purchases": dict(agent_purchases),
-        "gender_inferred": dict(gender),
-        "gender_inferred_note": (
-            "Author-inferred from first name after collection; not "
-            "self-reported. Descriptive only."
-        ),
     }
 
 
@@ -583,8 +578,6 @@ export interface SurveyResults {
   demographics: {
     ai_familiarity: Record<string, number>;
     used_agent_purchases: Record<string, number>;
-    gender_inferred: Record<string, number>;
-    gender_inferred_note: string;
   };
 }
 """
