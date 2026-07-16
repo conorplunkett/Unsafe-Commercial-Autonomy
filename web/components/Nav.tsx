@@ -71,6 +71,12 @@ export function Nav() {
           >
             Dataset
           </Link>
+          <Link
+            href="/survey-results"
+            className="hidden font-serif text-[1.05rem] transition-colors hover:text-accent sm:inline"
+          >
+            Survey
+          </Link>
           <a
             href={CONFIG.repoUrl}
             target="_blank"

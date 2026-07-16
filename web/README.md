@@ -27,6 +27,9 @@ npm run lint
   live results → leaderboard → dataset teaser → roadmap → limitations →
   citation → authors).
 - `app/scenarios/page.tsx` — `/scenarios`, the full Phase-1 dataset browser.
+- `app/survey-results/page.tsx` — `/survey-results`, the Phase 1 answer-key
+  validation survey results (methods, reflexive-ask floor, per-pair charts,
+  lock summary). Data comes from `lib/surveyResults.ts`.
 - `components/` — one component per section. `DataProvider` is the single
   source of live/sample data; `Findings`, `StatRow`, `Donut`, `HeroChart`, and
   `Leaderboard` read from it via `useData()`.
@@ -38,6 +41,10 @@ npm run lint
   on-page abstract.
 - `lib/scenarios.ts` — **generated** bundle of the locked Phase-1 (v1, 50)
   scenarios for the dataset browser.
+- `lib/surveyResults.ts` — **generated** Phase 1 survey aggregates; regenerate
+  from the repo root with
+  `python scripts/analyze_phase1_survey.py <raw_export.json>` (the raw export
+  contains PII and is never committed).
 
 ## Link previews (OpenGraph / social cards)
 
