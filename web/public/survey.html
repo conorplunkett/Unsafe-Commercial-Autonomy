@@ -140,6 +140,7 @@
 <body>
 <div class="wrap">
   <div class="brand"><b>PayBench</b> · Phase 1 preference survey</div>
+  <div id="testbanner" style="display:none;background:#fdf3e2;border:1px solid #ead6a8;color:#8a6116;border-radius:8px;padding:10px 12px;font-size:13px;font-weight:700;margin-bottom:16px">&#129514; Test mode &mdash; your answers are not recorded and never count toward results.</div>
   <div class="progress"><div id="bar"></div></div>
   <div class="card" id="card"></div>
 </div>
@@ -149,6 +150,11 @@
 
 const SUPABASE_URL = "https://tethtzycfdplyzvrtknh.supabase.co";
 const SUPABASE_KEY = "sb_publishable_eWFeJOuV_jq9eZ8wNhlanQ_29XMuY2j";
+
+// Test mode (linked only from the admin dashboard, ?test=1): the survey renders
+// and runs exactly as normal, but never submits — nothing is written to the
+// database, so a test run can never count toward or lock any answer key.
+const TEST_MODE = new URLSearchParams(location.search).has("test");
 
 // ---- Survey content -------------------------------------------------------
 
@@ -311,6 +317,15 @@ const DEMOGRAPHICS = [
       { key: "no", label: "No" },
       { key: "not_sure", label: "Not sure" }
     ]
+  },
+  {
+    id: "sex",
+    text: "What is your sex?",
+    options: [
+      { key: "male", label: "Male" },
+      { key: "female", label: "Female" },
+      { key: "prefer_not_to_say", label: "Prefer not to say" }
+    ]
   }
 ];
 
@@ -378,10 +393,12 @@ function renderIntro() {
     const name = document.getElementById("f-name").value.trim();
     const email = document.getElementById("f-email").value.trim();
     const err = document.getElementById("err");
-    if (!name) { err.textContent = "Please enter your name."; err.style.display = "block"; return; }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { err.textContent = "Please enter a valid email."; err.style.display = "block"; return; }
-    state.name = name;
-    state.email = email;
+    if (!TEST_MODE) {
+      if (!name) { err.textContent = "Please enter your name."; err.style.display = "block"; return; }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { err.textContent = "Please enter a valid email."; err.style.display = "block"; return; }
+    }
+    state.name = name || "Test mode";
+    state.email = email || "test@local.invalid";
     if (!state.startedAt) state.startedAt = Date.now();
     state.step = 0;
     render();
@@ -446,7 +463,7 @@ function renderQuestion(idx) {
 
 function renderDemographics() {
   card.innerHTML = `
-    <h2>Last two questions</h2>
+    <h2>A few last questions</h2>
     ${DEMOGRAPHICS.map(d => `
       <p style="margin-top:16px"><b>${d.text}</b></p>
       ${d.options.map(o => `
@@ -471,6 +488,18 @@ function renderDemographics() {
 
 function renderDone() {
   bar.style.width = "100%";
+  if (TEST_MODE) {
+    card.innerHTML = `
+      <div class="done-icon">&#129514;</div>
+      <h1>Test run complete</h1>
+      <p>Nothing was saved. This run does not count toward any results or lock any answer key.</p>
+      <div class="row"><button class="nav primary" id="restart">Review again</button></div>
+    `;
+    document.getElementById("restart").onclick = () => {
+      state.answers = {}; state.alsoOk = {}; state.demo = {}; state.startedAt = null; state.step = -1; render();
+    };
+    return;
+  }
   card.innerHTML = `
     <div class="done-icon">✓</div>
     <h1>Thank you</h1>
@@ -482,6 +511,8 @@ async function submit() {
   const err = document.getElementById("err");
   const missingDemo = DEMOGRAPHICS.some(d => !state.demo[d.id]);
   if (missingDemo) { err.textContent = "Please answer both questions."; err.style.display = "block"; return; }
+  // Test mode never writes to the database — end the run without submitting.
+  if (TEST_MODE) { state.step = orderedQuestions.length + 1; render(); return; }
   const btn = document.getElementById("submit");
   btn.disabled = true;
   btn.textContent = "Submitting…";
@@ -505,6 +536,7 @@ async function submit() {
     also_acceptable: alsoAcceptable,
     question_order: order,
     attention,
+    sex: state.demo.sex,
     ai_familiarity: state.demo.ai_familiarity,
     used_agent_purchases: state.demo.used_agent_purchases,
     duration_seconds: Math.round((Date.now() - state.startedAt) / 1000),
@@ -553,6 +585,10 @@ function render() {
   return renderDone();
 }
 
+if (TEST_MODE) {
+  document.getElementById("testbanner").style.display = "block";
+  document.title = "PayBench Phase 1 Survey (test mode)";
+}
 render();
 </script>
 </body>

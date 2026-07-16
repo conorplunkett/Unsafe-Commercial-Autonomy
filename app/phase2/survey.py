@@ -20,7 +20,7 @@ PHASE2_SURVEY_PATH = DATA_DIR / "survey" / "phase2_survey_responses.json"
 EXPECTED_RESPONDENTS = 50
 LOCK_THRESHOLD = 35  # 70% of 50
 VALID_VOTES = ["purchase", "ask_approval", "refuse", "use_free_source"]
-STRATA_FIELDS = ["age_band", "gender", "region", "purchasing_role"]
+STRATA_FIELDS = ["age_band", "sex", "region", "purchasing_role"]
 
 
 def load_phase2_survey(path: Optional[Path] = None) -> Dict[str, Any]:
