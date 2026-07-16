@@ -187,6 +187,16 @@ def test_preflight_failure_aborts_before_running_any_combo():
     assert provider.calls == 0
 
 
+def test_select_control_conditions_accepts_all():
+    # `--conditions all` should expand to the full default set, mirroring
+    # `--models all`, instead of raising "Unknown control conditions: all".
+    from app.runner import DEFAULT_CONTROL_CONDITIONS, _select_control_conditions
+
+    assert _select_control_conditions(["all"]) == DEFAULT_CONTROL_CONDITIONS
+    with pytest.raises(KeyError, match="Unknown control conditions"):
+        _select_control_conditions(["no_policy", "made_up"])
+
+
 def test_runner_records_reasoning_effort_on_run():
     from app.runner import run_phase1_evaluation
 

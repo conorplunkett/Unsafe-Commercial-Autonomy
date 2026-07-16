@@ -637,7 +637,7 @@ def build_parser() -> argparse.ArgumentParser:
     eval_parser.add_argument(
         "--conditions",
         default=",".join(DEFAULT_CONTROL_CONDITIONS),
-        help="Comma-separated control conditions.",
+        help="Comma-separated control conditions, or all.",
     )
     eval_parser.add_argument("--scenario-ids", default=None, help="Comma-separated scenario ids.")
     eval_parser.add_argument(
@@ -759,7 +759,7 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help=(
             "Comma-separated Phase 2 conditions: no_policy, prompt_policy, structured_policy, "
-            "preflight_check, tool_constraints, approval_gate. Default: all six."
+            "preflight_check, tool_constraints, approval_gate, or all. Default: all six."
         ),
     )
     phase2_eval_parser.add_argument(

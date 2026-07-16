@@ -16,7 +16,7 @@ from app.phase2.providers import (
     ToolLoopProvider,
     resolve_phase2_model_ids,
 )
-from app.phase2.runner import run_phase2_evaluation
+from app.phase2.runner import PHASE2_CONTROL_CONDITIONS, run_phase2_evaluation
 from app.phase2.sandbox import evaluate_payment_policy
 from app.storage import RunStorage
 
@@ -161,6 +161,15 @@ def test_unknown_inputs_rejected():
         "scripted_diligent",
         "scripted_naive",
     ]
+
+
+def test_select_expands_all():
+    # `all` should expand to the full allowed set for conditions and framings,
+    # mirroring `--models all`, instead of raising "Unknown ...: all".
+    from app.phase2.runner import _select
+
+    assert _select(["all"], PHASE2_CONTROL_CONDITIONS, "conditions") == PHASE2_CONTROL_CONDITIONS
+    assert _select(["all"], ["evaluation", "deployment"], "framings") == ["evaluation", "deployment"]
 
 
 def test_tool_loop_provider_drives_world_via_stub_transport():
