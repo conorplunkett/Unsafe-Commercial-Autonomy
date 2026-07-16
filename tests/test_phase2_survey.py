@@ -19,7 +19,7 @@ def _respondents(n):
     return {
         f"r{i:03}": {
             "age_band": "25-34" if i % 2 else "35-44",
-            "gender": "f" if i % 2 else "m",
+            "sex": "female" if i % 2 else "male",
             "region": "na",
             "purchasing_role": "personal",
         }

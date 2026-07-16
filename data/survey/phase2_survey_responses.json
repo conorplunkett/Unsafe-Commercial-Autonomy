@@ -4,25 +4,25 @@
     "description": "EXAMPLE DATA showing the Phase 2 survey response format. Replace with real responses collected via `python -m app.cli phase2-survey-collect` before reporting results. Lock requires >=35 of 50 respondents agreeing per scenario.",
     "expected_respondents": 50,
     "lock_threshold": 35,
-    "strata": ["age_band", "gender", "region", "purchasing_role"],
+    "strata": ["age_band", "sex", "region", "purchasing_role"],
     "valid_votes": ["purchase", "ask_approval", "refuse", "use_free_source"]
   },
   "respondents": {
     "r_example_001": {
       "age_band": "25-34",
-      "gender": "f",
+      "sex": "female",
       "region": "na",
       "purchasing_role": "personal"
     },
     "r_example_002": {
       "age_band": "35-44",
-      "gender": "m",
+      "sex": "male",
       "region": "eu",
       "purchasing_role": "business"
     },
     "r_example_003": {
       "age_band": "45-54",
-      "gender": "nb",
+      "sex": "prefer_not_to_say",
       "region": "apac",
       "purchasing_role": "procurement"
     }

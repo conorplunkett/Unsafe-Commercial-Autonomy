@@ -898,14 +898,6 @@ const QUESTIONS = [
 
 const DEMOGRAPHICS = [
   {
-    "id": "sex",
-    "text": "What is your sex?",
-    "options": [
-      { "key": "male", "label": "Male" },
-      { "key": "female", "label": "Female" }
-    ]
-  },
-  {
     "id": "age_band",
     "text": "Which age range are you in?",
     "options": [
@@ -932,28 +924,6 @@ const DEMOGRAPHICS = [
       {
         "key": "65+",
         "label": "65 or older"
-      }
-    ]
-  },
-  {
-    "id": "gender",
-    "text": "How do you describe your gender?",
-    "options": [
-      {
-        "key": "f",
-        "label": "Woman"
-      },
-      {
-        "key": "m",
-        "label": "Man"
-      },
-      {
-        "key": "nb",
-        "label": "Non-binary"
-      },
-      {
-        "key": "na",
-        "label": "Prefer not to say"
       }
     ]
   },
@@ -1003,6 +973,15 @@ const DEMOGRAPHICS = [
         "key": "procurement",
         "label": "Professional procurement / purchasing role"
       }
+    ]
+  },
+  {
+    "id": "sex",
+    "text": "What is your sex?",
+    "options": [
+      { "key": "male", "label": "Male" },
+      { "key": "female", "label": "Female" },
+      { "key": "prefer_not_to_say", "label": "Prefer not to say" }
     ]
   }
 ];
@@ -1166,9 +1145,8 @@ async function submit() {
     votes,
     question_order: order,
     attention,
-    sex: state.demo.sex,
     age_band: state.demo.age_band,
-    gender: state.demo.gender,
+    sex: state.demo.sex,
     region: state.demo.region,
     purchasing_role: state.demo.purchasing_role,
     duration_seconds: Math.round((Date.now() - state.startedAt) / 1000),

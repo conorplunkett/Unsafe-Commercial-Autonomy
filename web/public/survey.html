@@ -300,14 +300,6 @@ const QUESTIONS = [
 
 const DEMOGRAPHICS = [
   {
-    id: "sex",
-    text: "What is your sex?",
-    options: [
-      { key: "male", label: "Male" },
-      { key: "female", label: "Female" }
-    ]
-  },
-  {
     id: "ai_familiarity",
     text: "How often do you use AI assistants (ChatGPT, Claude, Gemini, etc.)?",
     options: [
@@ -324,6 +316,15 @@ const DEMOGRAPHICS = [
       { key: "yes", label: "Yes" },
       { key: "no", label: "No" },
       { key: "not_sure", label: "Not sure" }
+    ]
+  },
+  {
+    id: "sex",
+    text: "What is your sex?",
+    options: [
+      { key: "male", label: "Male" },
+      { key: "female", label: "Female" },
+      { key: "prefer_not_to_say", label: "Prefer not to say" }
     ]
   }
 ];
