@@ -498,8 +498,8 @@ function renderResults(rows) {
     { key: "refuse", label: "Refuse / don’t", color: "#b3261e", desc: "Declined to act" }
   ];
   html += `<div class="card">
-    <h2>Overall: what did people choose?</h2>
-    <div class="section-sub">Every answer across all ${QUESTIONS.length} scenarios, collapsed into three actions. Based on ${allVotes} choices from ${clean.length} clean respondents.</div>
+    <h2>Overall</h2>
+    <div class="section-sub">${allVotes} answers · ${clean.length} respondents · ${QUESTIONS.length} scenarios</div>
     <div class="cat-tiles">`;
   catMeta.forEach(c => {
     const v = catTotals[c.key];
@@ -521,8 +521,7 @@ function renderResults(rows) {
 
   // ---- 2. At-a-glance: one stacked row per scenario -------------------------
   html += `<div class="card">
-    <h2>At a glance — every scenario</h2>
-    <div class="section-sub">Each bar is 100% of the people who answered that scenario, split by the action they chose. The dominant choice is named on the right.</div>`;
+    <h2>By scenario</h2>`;
   stats.forEach(({ q, s }) => {
     const winnerLabel = labelFor(q.id, s.modalKey);
     html += `<div class="glance-row">
@@ -542,8 +541,8 @@ function renderResults(rows) {
 
   // ---- 3. Full detail per scenario -----------------------------------------
   html += `<div class="card">
-    <h2>Full breakdown, scenario by scenario</h2>
-    <div class="section-sub">The exact question each respondent read, with a 100%-stacked bar of what they chose and a ranked list. “+N ok” = also marked acceptable but not their top pick. Clean responses only, n=${clean.length}.</div>
+    <h2>Full breakdown</h2>
+    <div class="section-sub">“+N ok” = also marked acceptable, not the top pick. n=${clean.length}.</div>
     <div class="stem">Shared prompt on every scenario: “${escapeHtml(STEM)}”</div>`;
 
   stats.forEach(({ q, s }) => {
