@@ -35,6 +35,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# supabase CLI local link state
+supabase/.temp/
+
 # claude code MCP config (personal tooling, not project code)
 .mcp.json
 
