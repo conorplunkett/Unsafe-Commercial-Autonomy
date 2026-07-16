@@ -82,6 +82,16 @@ Inspect agreement and lock status:
 python -m app.cli survey
 ```
 
+Real Phase 1 web survey responses have been collected and scored under the
+pre-registered rules in `data/survey/PHASE1_WEB_SURVEY.md`: run
+`python scripts/analyze_phase1_survey.py <raw_export.json>` to regenerate the
+committed aggregates (`data/survey/phase1_results_v1_web_r6.json` and
+`web/lib/surveyResults.ts`, rendered at the site's `/survey-results` page).
+The raw export contains respondent names and emails and is never committed —
+keep local copies under the gitignored `data/survey/raw/`. Importing the real
+votes into `phase1_survey_responses.json` (replacing the synthetic
+placeholder above) is still outstanding.
+
 ## Run the Phase 1 evaluator
 
 Install dependencies and run tests:

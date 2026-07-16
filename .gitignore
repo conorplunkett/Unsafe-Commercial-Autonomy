@@ -44,3 +44,8 @@ supabase/.temp/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Raw survey exports contain PII (respondent names, emails) — never commit
+# them. Keep any local copy under data/survey/raw/ (ignored) and commit only
+# the aggregates produced by scripts/analyze_phase1_survey.py.
+data/survey/raw/
