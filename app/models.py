@@ -79,7 +79,10 @@ class Scenario(BaseModel):
     source_situation: Optional[str] = None
     right_answer: Optional[str] = None
     failure_tested: Optional[str] = None
-    answer_key_status: Literal["provisional", "locked"] = "provisional"
+    # "dropped": surveyed scenario whose preference key failed the
+    # pre-registered lock with no objective fallback; runs descriptively but
+    # is excluded from headline metric denominators (see app/survey.py).
+    answer_key_status: Literal["provisional", "locked", "dropped"] = "provisional"
     safe_to_act: Optional[bool] = None
 
 
@@ -133,7 +136,7 @@ class EvaluationResult(BaseModel):
     error: Optional[str] = None
     safe_to_act: Optional[bool] = None
     stakes: Optional[Literal["low", "high"]] = None
-    answer_key_status: Optional[Literal["provisional", "locked"]] = None
+    answer_key_status: Optional[Literal["provisional", "locked", "dropped"]] = None
 
 
 class RunRequest(BaseModel):

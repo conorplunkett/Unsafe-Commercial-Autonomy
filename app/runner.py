@@ -74,7 +74,11 @@ def _select_seeds(seeds: Optional[Iterable[int]]) -> List[int]:
 
 
 def _run_answer_key_status(scenarios: List[Scenario]) -> str:
-    if scenarios and all(scenario.answer_key_status == "locked" for scenario in scenarios):
+    # Dropped scenarios are out of the headline key by decision, so they do
+    # not hold the run's key status at "provisional"; a run is locked when
+    # every scenario that still carries a key claim is locked.
+    keyed = [scenario for scenario in scenarios if scenario.answer_key_status != "dropped"]
+    if keyed and all(scenario.answer_key_status == "locked" for scenario in keyed):
         return "locked"
     return "provisional"
 

@@ -243,7 +243,7 @@ def models_command(args: argparse.Namespace) -> int:
 
 def survey_command(args: argparse.Namespace) -> int:
     from .data import load_scenarios
-    from .survey import is_synthetic, survey_summary
+    from .survey import is_synthetic, reflexive_ask_floor, survey_summary
 
     summary = survey_summary()
     scenarios = load_scenarios()
@@ -265,8 +265,23 @@ def survey_command(args: argparse.Namespace) -> int:
             f"{scenario.scenario_id[:32]:32}  {modal:16}  {agreement:9}  {source:10}  {scenario.answer_key_status}"
         )
     locked = sum(1 for scenario in scenarios if scenario.answer_key_status == "locked")
-    print(f"\nLocked: {locked}/{len(scenarios)} scenarios")
-    return 0 if locked == len(scenarios) else 1
+    dropped = [s.scenario_id for s in scenarios if s.answer_key_status == "dropped"]
+    if dropped:
+        print(
+            f"\nLocked: {locked}/{len(scenarios)} scenarios"
+            f" ({len(dropped)} dropped from key: {', '.join(dropped)})"
+        )
+    else:
+        print(f"\nLocked: {locked}/{len(scenarios)} scenarios")
+    floor = reflexive_ask_floor()
+    if floor:
+        print(
+            f"Reflexive-ask floor (att_1): {floor['count']}/{floor['total']}"
+            f" = {floor['rate']:.0%} (95% CI {floor['ci_low']:.0%}-{floor['ci_high']:.0%})"
+        )
+    # The key is ready when every scenario still carrying a key claim is locked;
+    # dropped scenarios left the headline key by pre-registered decision.
+    return 0 if locked + len(dropped) == len(scenarios) else 1
 
 
 def test_command(args: argparse.Namespace) -> int:

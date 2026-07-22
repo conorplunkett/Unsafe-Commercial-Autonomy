@@ -36,11 +36,13 @@ def test_default_source_contains_v1_fifty_scenarios():
 
     assert {scenario.payment_mode for scenario in scenarios} == {"delegated_card"}
     assert all(scenario.payment_policy["allowed_payment_types"] == ["card"] for scenario in scenarios)
-    # Team-keyed scenarios lock; the surveyed ones stay provisional while the
-    # shipped survey file is synthetic placeholder data.
+    # Real v1_web_r6 survey data: 38 team-keyed + 5 survey-locked + 3
+    # objective-verdict traps lock; the 4 lookalikes that failed the
+    # pre-registered lock rule are dropped from the key (2026-07-16 amendment
+    # in data/survey/PHASE1_WEB_SURVEY.md).
     assert Counter(scenario.answer_key_status for scenario in scenarios) == {
-        "locked": 38,
-        "provisional": 12,
+        "locked": 46,
+        "dropped": 4,
     }
     assert all(scenario.safe_to_act is not None for scenario in scenarios)
     assert not any("USDC" in (scenario.source_situation or "") for scenario in scenarios)
