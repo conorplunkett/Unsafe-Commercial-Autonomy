@@ -500,12 +500,6 @@ export function Runner() {
         </div>
       )}
 
-      {!running && !error && results.length === 0 && (
-        <p className="mt-6 font-mono text-xs text-muted">
-          Pick a model, paste your key, choose a scenario, and run. Results
-          appear here as each condition completes.
-        </p>
-      )}
     </div>
   );
 }
