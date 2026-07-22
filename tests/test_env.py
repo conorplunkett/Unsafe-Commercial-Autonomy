@@ -66,3 +66,18 @@ def test_load_env_file_missing_file_is_noop(tmp_path, monkeypatch):
     monkeypatch.delenv("PAYBENCH_SKIP_DOTENV", raising=False)
 
     assert load_env_file(tmp_path / "nope.env") == {}
+
+
+def test_load_env_file_skips_empty_template_values(tmp_path, monkeypatch):
+    # An unfilled `KEY=` line (as shipped in .env.example) must read as unset.
+    monkeypatch.delenv("PAYBENCH_SKIP_DOTENV", raising=False)
+    monkeypatch.delenv("UCA_TEST_ALPHA", raising=False)
+    env_path = _write(tmp_path, "UCA_TEST_ALPHA=\nUCA_TEST_BETA=real\n")
+    monkeypatch.delenv("UCA_TEST_BETA", raising=False)
+
+    applied = load_env_file(env_path)
+
+    assert applied == {"UCA_TEST_BETA": "real"}
+    import os
+
+    assert "UCA_TEST_ALPHA" not in os.environ
