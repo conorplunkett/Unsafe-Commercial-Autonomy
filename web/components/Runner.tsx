@@ -17,30 +17,71 @@ const RUN_CONDITIONS = ["no_policy", "prompt_policy", "tool_constraints"] as con
 
 const PROVIDERS = [
   { id: "openai", label: "OpenAI", defaultModel: "gpt-4o-mini" },
-  { id: "anthropic", label: "Anthropic", defaultModel: "claude-3-5-haiku-latest" },
+  { id: "anthropic", label: "Anthropic", defaultModel: "claude-haiku-4-5" },
 ] as const;
 
 const MODEL_SUGGESTIONS: Record<string, string[]> = {
   openai: ["gpt-4o-mini", "gpt-4o", "gpt-4.1-mini", "o4-mini"],
   anthropic: [
-    "claude-3-5-haiku-latest",
-    "claude-3-5-sonnet-latest",
+    "claude-haiku-4-5",
     "claude-sonnet-4-5",
+    "claude-sonnet-4-6",
+    "claude-sonnet-5",
   ],
 };
 
-// Effort tiers current OpenAI reasoning models accept ("minimal" was renamed
-// to "none"; gpt-5.4 rejects it outright — mirrors app/providers.py).
-const EFFORT_OPTIONS = ["none", "low", "medium", "high", "xhigh"] as const;
+// Effort tiers each provider accepts ("minimal" was renamed "none" and gpt-5.4
+// rejects it; Anthropic's effort has no "none" but adds "max") — mirrors
+// app/providers.py.
+const EFFORT_OPTIONS: Record<Provider, readonly string[]> = {
+  openai: ["none", "low", "medium", "high", "xhigh"],
+  anthropic: ["low", "medium", "high", "xhigh", "max"],
+};
+
+const EFFORT_LABELS: Record<string, string> = {
+  none: "None",
+  low: "Low",
+  medium: "Medium",
+  high: "High",
+  xhigh: "Extra high",
+  max: "Max",
+};
 
 type Provider = (typeof PROVIDERS)[number]["id"];
 
-// Mirrors _is_openai_reasoning_model in app/providers.py: these models take a
-// reasoning-effort hint and ignore temperature; everything else is the reverse.
-function isReasoningModel(provider: Provider, model: string): boolean {
-  if (provider !== "openai") return false;
+// Mirror the model gating in app/providers.py: which models take a
+// reasoning-effort setting, and which reject temperature.
+const OPENAI_REASONING_PREFIXES = ["gpt-5", "o1", "o3", "o4"];
+const ANTHROPIC_EFFORT_PREFIXES = [
+  "claude-opus-4-5",
+  "claude-opus-4-6",
+  "claude-opus-4-7",
+  "claude-opus-4-8",
+  "claude-sonnet-4-6",
+  "claude-sonnet-5",
+  "claude-fable",
+  "claude-mythos",
+];
+const ANTHROPIC_NO_TEMPERATURE_PREFIXES = [
+  "claude-opus-4-7",
+  "claude-opus-4-8",
+  "claude-sonnet-5",
+  "claude-fable",
+  "claude-mythos",
+];
+
+function supportsEffort(provider: Provider, model: string): boolean {
   const name = model.trim().toLowerCase();
-  return ["gpt-5", "o1", "o3", "o4"].some((p) => name.startsWith(p));
+  const prefixes =
+    provider === "openai" ? OPENAI_REASONING_PREFIXES : ANTHROPIC_EFFORT_PREFIXES;
+  return prefixes.some((p) => name.startsWith(p));
+}
+
+function takesTemperature(provider: Provider, model: string): boolean {
+  const name = model.trim().toLowerCase();
+  if (provider === "openai")
+    return !OPENAI_REASONING_PREFIXES.some((p) => name.startsWith(p));
+  return !ANTHROPIC_NO_TEMPERATURE_PREFIXES.some((p) => name.startsWith(p));
 }
 
 // The harness returns full EvaluationResult dicts; we read the subset we render.
@@ -151,12 +192,16 @@ export function Runner() {
     return groups;
   }, [scenarioPool]);
 
-  const reasoning = isReasoningModel(provider, model);
+  const effortSupported = supportsEffort(provider, model);
+  const temperatureApplies = takesTemperature(provider, model);
 
   function pickProvider(p: Provider) {
     setProvider(p);
     const def = PROVIDERS.find((x) => x.id === p)?.defaultModel ?? "";
     setModel(def);
+    // The two providers accept different effort tiers, so a carried-over
+    // selection may be invalid — fall back to Default.
+    setReasoningEffort("");
   }
 
   function toggleCondition(c: string) {
@@ -206,9 +251,9 @@ export function Runner() {
             scenarioId: chosen.scenario_id,
             condition,
             temperature: Number(temperature),
-            // Only reasoning models take an effort hint; sending it for other
-            // models would either error or silently do nothing.
-            reasoningEffort: reasoning ? reasoningEffort || undefined : undefined,
+            // Only send effort for models that take it; for others it would
+            // either error or silently do nothing.
+            reasoningEffort: effortSupported ? reasoningEffort || undefined : undefined,
           }),
         });
         const data = await res.json().catch(() => ({}));
@@ -303,6 +348,53 @@ export function Runner() {
                 Sent once to score this run, then discarded, never stored or
                 logged. You pay your provider for the calls. Or run the whole
                 benchmark locally from the repo.
+              </p>
+            </div>
+            <div>
+              <label className={label} htmlFor="rn-temp">
+                Temperature
+              </label>
+              <input
+                id="rn-temp"
+                className={field}
+                type="number"
+                min="0"
+                max="2"
+                step="0.1"
+                value={temperature}
+                disabled={!temperatureApplies}
+                onChange={(e) => setTemperature(e.target.value)}
+              />
+              <p className="mt-1.5 text-xs text-muted">
+                {!temperatureApplies
+                  ? `${model.trim() || "This model"} doesn't take a temperature — use reasoning effort instead.`
+                  : "Sampling randomness: 0 repeats the same answer, 2 is near-random. The published runs used 0.7 (the harness default), so keep it for comparable numbers."}
+              </p>
+            </div>
+            <div>
+              <label className={label} htmlFor="rn-effort">
+                Reasoning effort
+              </label>
+              <select
+                id="rn-effort"
+                className={field}
+                value={reasoningEffort}
+                disabled={!effortSupported}
+                onChange={(e) => setReasoningEffort(e.target.value)}
+              >
+                <option value="">Default</option>
+                {EFFORT_OPTIONS[provider].map((e) => (
+                  <option key={e} value={e}>
+                    {EFFORT_LABELS[e]}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1.5 text-xs text-muted">
+                {effortSupported
+                  ? "How deeply the model reasons before acting. Default lets the provider pick."
+                  : provider === "anthropic"
+                    ? "Claude Opus 4.5+, Sonnet 4.6+, and newer take an effort setting — this model uses temperature instead."
+                    : "Only OpenAI reasoning models (gpt-5, o1, o3, o4) take an effort setting — temperature applies instead."}
               </p>
             </div>
           </div>
@@ -438,56 +530,6 @@ export function Runner() {
             <p className="mt-1.5 text-xs text-muted">
               One model call per checked condition (1 seed).
             </p>
-          </div>
-
-          <div className="mt-5 grid gap-5 sm:grid-cols-2">
-            <div>
-              <label className={label} htmlFor="rn-temp">
-                Temperature
-              </label>
-              <input
-                id="rn-temp"
-                className={field}
-                type="number"
-                min="0"
-                max="2"
-                step="0.1"
-                value={temperature}
-                disabled={reasoning}
-                onChange={(e) => setTemperature(e.target.value)}
-              />
-              <p className="mt-1.5 text-xs text-muted">
-                {reasoning
-                  ? `Reasoning models like ${model.trim()} don't take a temperature — use reasoning effort instead.`
-                  : "Sampling randomness: 0 repeats the same answer, 2 is near-random. The published runs used 0.7 (the harness default), so keep it for comparable numbers."}
-              </p>
-            </div>
-            <div>
-              <label className={label} htmlFor="rn-effort">
-                Reasoning effort
-              </label>
-              <select
-                id="rn-effort"
-                className={field}
-                value={reasoningEffort}
-                disabled={!reasoning}
-                onChange={(e) => setReasoningEffort(e.target.value)}
-              >
-                <option value="">Default</option>
-                {EFFORT_OPTIONS.map((e) => (
-                  <option key={e} value={e}>
-                    {e === "xhigh" ? "Extra high" : e[0].toUpperCase() + e.slice(1)}
-                  </option>
-                ))}
-              </select>
-              <p className="mt-1.5 text-xs text-muted">
-                {reasoning
-                  ? "How long the model thinks before acting. Default lets the provider pick."
-                  : provider === "anthropic"
-                    ? "Anthropic models don't take an effort setting in this harness — temperature applies instead."
-                    : "Only OpenAI reasoning models (gpt-5, o1, o3, o4) take an effort setting — temperature applies instead."}
-              </p>
-            </div>
           </div>
         </section>
 

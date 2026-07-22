@@ -99,6 +99,44 @@ def _is_openai_reasoning_model(model_name: str) -> bool:
     return name.startswith(("gpt-5", "o1", "o3", "o4"))
 
 
+# Claude models that accept `output_config.effort` (Opus 4.5+, Sonnet 4.6+,
+# Sonnet 5, Fable/Mythos 5). Effort shapes reasoning depth and token spend
+# without setting the `thinking` parameter, so it composes with the forced
+# submit_action tool call — the old `thinking: {enabled, budget_tokens}` mode
+# does not (it rejects forced tool_choice).
+ANTHROPIC_EFFORT_PREFIXES = (
+    "claude-opus-4-5",
+    "claude-opus-4-6",
+    "claude-opus-4-7",
+    "claude-opus-4-8",
+    "claude-sonnet-4-6",
+    "claude-sonnet-5",
+    "claude-fable",
+    "claude-mythos",
+)
+
+# Claude models that reject temperature/top_p/top_k outright (400).
+ANTHROPIC_NO_SAMPLING_PREFIXES = (
+    "claude-opus-4-7",
+    "claude-opus-4-8",
+    "claude-sonnet-5",
+    "claude-fable",
+    "claude-mythos",
+)
+
+# Models with thinking on by default — give the response room for thinking
+# tokens, which count against max_tokens.
+ANTHROPIC_DEFAULT_THINKING_PREFIXES = ("claude-sonnet-5", "claude-fable", "claude-mythos")
+
+
+def _anthropic_supports_effort(model_name: str) -> bool:
+    return (model_name or "").lower().startswith(ANTHROPIC_EFFORT_PREFIXES)
+
+
+def _anthropic_rejects_temperature(model_name: str) -> bool:
+    return (model_name or "").lower().startswith(ANTHROPIC_NO_SAMPLING_PREFIXES)
+
+
 def resolve_model_ids(model_ids: Optional[Iterable[str]]) -> list[str]:
     selected = list(model_ids or ["openai"])
     if "all" in selected:
@@ -394,9 +432,17 @@ class OpenAIResponsesProvider(BaseProvider):
 class AnthropicProvider(BaseProvider):
     provider_id = "anthropic"
 
-    def __init__(self, model_name: Optional[str] = None, api_key: Optional[str] = None):
+    def __init__(
+        self,
+        model_name: Optional[str] = None,
+        api_key: Optional[str] = None,
+        reasoning_effort: Optional[str] = None,
+    ):
         self.model_name = model_name or os.environ.get("ANTHROPIC_MODEL", DEFAULT_ANTHROPIC_MODEL)
         self.api_key = api_key
+        # Applied only on models that take `output_config.effort`; others ignore it
+        # (mirrors the OpenAI provider, where effort only reaches reasoning models).
+        self.reasoning_effort = reasoning_effort or os.environ.get("ANTHROPIC_REASONING_EFFORT")
 
     def _resolved_api_key(self) -> str:
         if not self.model_name:
@@ -452,16 +498,27 @@ class AnthropicProvider(BaseProvider):
             "input_schema": ACTION_JSON_SCHEMA,
         }
         client = Anthropic(api_key=api_key)
+        effort = self.reasoning_effort if _anthropic_supports_effort(self.model_name) else None
+        default_thinking = (self.model_name or "").lower().startswith(
+            ANTHROPIC_DEFAULT_THINKING_PREFIXES
+        )
+        params: Dict[str, Any] = {
+            "model": self.model_name,
+            # Thinking tokens count against max_tokens, so leave headroom when
+            # the model reasons before the forced tool call.
+            "max_tokens": 8000 if (effort or default_thinking) else 1000,
+            "system": messages[0]["content"],
+            "messages": [{"role": "user", "content": messages[1]["content"]}],
+            "tools": [tool],
+            "tool_choice": {"type": "tool", "name": "submit_action"},
+        }
+        if effort:
+            params["output_config"] = {"effort": effort}
+        # Opus 4.7+/Sonnet 5/Fable reject sampling params with a 400.
+        if not _anthropic_rejects_temperature(self.model_name):
+            params["temperature"] = temperature
         try:
-            response = client.messages.create(
-                model=self.model_name,
-                max_tokens=1000,
-                temperature=temperature,
-                system=messages[0]["content"],
-                messages=[{"role": "user", "content": messages[1]["content"]}],
-                tools=[tool],
-                tool_choice={"type": "tool", "name": "submit_action"},
-            )
+            response = client.messages.create(**params)
         except Exception as exc:
             raise ProviderError(f"Anthropic request failed: {exc}") from exc
         tool_use = next(
