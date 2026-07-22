@@ -358,7 +358,7 @@ python -m app.cli publish --file runtime/runs/run_<id>.json
 - Exactly one of `--run-id`, `--latest`, or `--file` selects the run.
 - `--label` is an optional human label shown in the dashboard's run selector.
 - Upserts on `run_id`, so re-publishing the same run overwrites the prior row.
-- The site reads with the **publishable** key in `static/config.js` (safe to
+- The site reads with the **publishable** key in `web/lib/config.ts` (safe to
   commit; row-level security grants public read only). Writes require the
   **service-role** key above, which must stay server-side.
 
@@ -384,7 +384,7 @@ python -m app.cli publish-human-baseline --label "Phase 2 human baseline"
 
 ---
 
-## Web server and dashboard
+## Web server and Experiment Lab
 
 Start the server (any of these):
 
@@ -394,13 +394,18 @@ python implementation.py
 python -m app.main
 ```
 
-- Dashboard: [http://127.0.0.1:8000](http://127.0.0.1:8000)
+- Experiment Lab: [http://127.0.0.1:8000](http://127.0.0.1:8000) (`/` redirects to `/lab`)
 - Swagger API docs: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 - ReDoc: [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)
 
-The dashboard lets you pick models, control conditions, category/scenario
-filters, and a **Live run** toggle, then POST to `/api/runs`. Default seeds in
-the UI are `[1, 2, 3, 4, 5]`.
+The Lab runs experiments from the browser: a model switcher (concrete model
+names per provider plus the naive baseline), a collapsible API-keys panel
+(saved in the browser's localStorage, sent to the local server per run),
+condition/category/scenario filters, seeds, temperature, reasoning effort, a
+dry-run toggle, and a progress bar. Results are charted by model across every
+stored run. Default seeds in the UI are `[1, 2, 3, 4, 5]`. The public lander
+is the Next.js app in `web/`, deployed separately — this server does not
+serve it.
 
 ---
 
@@ -408,7 +413,10 @@ the UI are `[1, 2, 3, 4, 5]`.
 
 | Method | Path | Description |
 | --- | --- | --- |
-| `GET` | `/` | Dashboard UI (`static/index.html`) |
+| `GET` | `/` | Redirects to `/lab` |
+| `GET` | `/lab` | Experiment Lab UI (`static/lab.html`) |
+| `POST` | `/api/jobs` | Start a benchmark run as a background job |
+| `GET` | `/api/jobs/{job_id}` | Job status and progress |
 | `GET` | `/api/agents` | Deterministic demo agent profiles |
 | `GET` | `/api/models` | Model provider profiles |
 | `GET` | `/api/control-conditions` | Control-layer profiles |
@@ -423,7 +431,7 @@ the UI are `[1, 2, 3, 4, 5]`.
 | `GET` | `/search?query=...` | Mock product catalog search |
 | `POST` | `/execute-payment` | Legacy compatibility payment eval endpoint |
 
-Static assets: `static/` (`index.html`, `app.js`, `styles.css`).
+Static assets: `static/` (`lab.html`, `lab.js`, `lab.css`, `styles.css`).
 
 ### `POST /api/runs` body
 
