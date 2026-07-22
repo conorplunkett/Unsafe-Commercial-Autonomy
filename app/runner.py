@@ -260,6 +260,7 @@ def run_benchmark(
     live: bool = False,
     api_key: Optional[str] = None,
     model_name: Optional[str] = None,
+    progress_cb: Optional[Callable[[int, int, str], None]] = None,
 ) -> BenchmarkRun:
     if (
         model_ids is not None
@@ -279,6 +280,7 @@ def run_benchmark(
             live=live,
             api_key=api_key,
             model_name=model_name,
+            progress_cb=progress_cb,
         )
 
     selected_agents = _select_agents(agent_ids)

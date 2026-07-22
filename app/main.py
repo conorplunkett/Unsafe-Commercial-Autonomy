@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import threading
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, Optional
+from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
@@ -67,6 +70,13 @@ async def dashboard():
     return FileResponse(STATIC_DIR / "index.html")
 
 
+@app.get("/lab")
+async def lab():
+    # Local-only experiment console. Separate page on purpose: the lander at /
+    # mirrors the live site and is not edited for lab workflows.
+    return FileResponse(STATIC_DIR / "lab.html")
+
+
 @app.get("/api/agents")
 async def list_agents():
     return AGENT_PROFILES
@@ -123,6 +133,68 @@ async def create_run(request: RunRequest):
         return storage.save(run)
     except (KeyError, ValueError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+# In-memory registry of background benchmark jobs, so the dashboard can start a
+# run and poll a progress bar instead of holding one long request open. Jobs are
+# process-local (lost on restart); the finished run itself is persisted through
+# RunStorage exactly like a synchronous /api/runs run.
+JOBS: Dict[str, Dict[str, Any]] = {}
+
+
+@app.post("/api/jobs")
+async def create_job(request: RunRequest):
+    job_id = f"job_{uuid4().hex[:12]}"
+    job: Dict[str, Any] = {
+        "job_id": job_id,
+        "status": "running",
+        "completed": 0,
+        "total": 0,
+        "unit": "",
+        "run_id": None,
+        "error": None,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    JOBS[job_id] = job
+
+    def progress(completed: int, total: int, unit: str) -> None:
+        job["completed"] = completed
+        job["total"] = total
+        job["unit"] = unit
+
+    def work() -> None:
+        try:
+            run = run_benchmark(
+                agent_ids=request.agent_ids,
+                model_ids=request.model_ids,
+                control_conditions=request.control_conditions,
+                scenario_ids=request.scenario_ids,
+                scenario_set_path=Path(request.scenario_set_path) if request.scenario_set_path else None,
+                seeds=request.seeds,
+                temperature=request.temperature,
+                reasoning_effort=request.reasoning_effort,
+                live=request.live,
+                api_key=request.api_key,
+                model_name=request.byok_model_name,
+                progress_cb=progress,
+            )
+            storage.save(run)
+            job["run_id"] = run.run_id
+            job["status"] = "done"
+        except Exception as exc:  # surfaced to the polling client, not raised
+            job["error"] = str(exc)
+            job["status"] = "error"
+
+    threading.Thread(target=work, daemon=True).start()
+    return job
+
+
+@app.get("/api/jobs/{job_id}")
+async def read_job(job_id: str):
+    job = JOBS.get(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
+    return job
 
 
 @app.get("/api/runs")
