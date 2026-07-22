@@ -1,0 +1,142 @@
+/* Lab-only styles, layered on top of styles.css. The lander's stylesheet is
+   loaded first and never edited for lab features. */
+
+.lab-shell {
+  padding-top: 28px;
+}
+
+.lab-topbar {
+  margin-bottom: 16px;
+}
+
+.lab-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.lab-link {
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.lab-link:hover {
+  color: var(--accent-strong);
+}
+
+.lab-control-band {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.progress-band[hidden] {
+  display: none;
+}
+
+.progress-band {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.progress-track {
+  height: 10px;
+  border-radius: 4px;
+  background: var(--surface-strong);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 0 4px 4px 0;
+  background: var(--accent);
+  transition: width 0.4s ease;
+}
+
+.progress-label {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.keys-band {
+  margin-top: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.keys-band summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  list-style: none;
+}
+
+.keys-band summary::-webkit-details-marker {
+  display: none;
+}
+
+.keys-status {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.keys-fields {
+  display: grid;
+  grid-template-columns: minmax(200px, 1fr) minmax(200px, 1fr);
+  gap: 16px;
+  padding: 0 16px 16px;
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+}
+
+.keys-note {
+  grid-column: 1 / -1;
+}
+
+.lab-divider {
+  margin-top: 8px;
+}
+
+.lab-section-meta {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.lab-empty {
+  margin: 24px 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+@media (max-width: 1120px) {
+  .lab-control-band {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .lab-control-band,
+  .keys-fields {
+    grid-template-columns: 1fr;
+  }
+}

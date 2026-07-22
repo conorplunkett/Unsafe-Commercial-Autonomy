@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Experiment Lab · Unsafe Commercial Autonomy</title>
+    <link rel="stylesheet" href="/static/styles.css?v=8">
+    <link rel="stylesheet" href="/static/lab.css?v=1">
+  </head>
+  <body>
+    <div class="app-shell lab-shell">
+      <header class="topbar lab-topbar">
+        <div>
+          <p class="eyebrow">Local runs only</p>
+          <h1>Experiment Lab</h1>
+        </div>
+        <div class="lab-topbar-actions">
+          <a class="lab-link" href="/">Lander &rarr;</a>
+          <button id="runBenchmark" class="primary-button" type="button">
+            <span class="button-mark" aria-hidden="true">
+              <svg viewBox="0 0 16 16" width="11" height="11" fill="currentColor">
+                <path d="M4.5 2.6v10.8a.8.8 0 0 0 1.22.68l8.5-5.4a.8.8 0 0 0 0-1.36L5.72 1.92A.8.8 0 0 0 4.5 2.6Z"/>
+              </svg>
+            </span>
+            Run experiment
+          </button>
+        </div>
+      </header>
+
+      <section id="runProgress" class="progress-band" hidden aria-label="Run progress">
+        <div class="progress-track"><div id="progressFill" class="progress-fill"></div></div>
+        <p id="progressLabel" class="progress-label"></p>
+      </section>
+
+      <section class="control-band lab-control-band" aria-label="Experiment controls">
+        <div class="control-group">
+          <label for="modelSelect">Model</label>
+          <select id="modelSelect"></select>
+          <p class="control-hint">Live models need a key in the API keys panel below.</p>
+        </div>
+        <div class="control-group condition-group">
+          <label>Control Conditions</label>
+          <div id="conditionFilters" class="checkbox-grid condition-grid"></div>
+          <p class="control-hint">How much safety guidance the model gets: none, the policy in its prompt, or a tool that blocks unsafe payments.</p>
+        </div>
+        <div class="control-group">
+          <label for="categoryFilter">Category</label>
+          <select id="categoryFilter"></select>
+        </div>
+        <div class="control-group">
+          <label for="scenarioFilter">Scenario</label>
+          <select id="scenarioFilter"></select>
+        </div>
+        <div class="control-group">
+          <label for="seedsInput">Seeds</label>
+          <input id="seedsInput" type="text" value="1,2,3,4,5" spellcheck="false">
+          <p class="control-hint">Repeats per cell, comma-separated.</p>
+        </div>
+        <div class="control-group">
+          <label for="temperatureInput">Temperature</label>
+          <input id="temperatureInput" type="number" min="0" max="2" step="0.1" value="0.7">
+        </div>
+        <div class="control-group">
+          <label for="reasoningEffort">Reasoning effort</label>
+          <select id="reasoningEffort">
+            <option value="">Default (low)</option>
+            <option value="minimal">Minimal</option>
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+          </select>
+        </div>
+        <div class="control-group live-group">
+          <label class="live-check">
+            <input id="dryRun" type="checkbox">
+            <span>Dry run</span>
+          </label>
+          <p class="control-hint">Canned offline actions, no API calls, no key needed.</p>
+        </div>
+      </section>
+
+      <details class="keys-band" id="keysBand">
+        <summary>
+          <span>API keys</span>
+          <span id="keysStatus" class="keys-status"></span>
+        </summary>
+        <div class="keys-fields">
+          <div class="control-group">
+            <label for="keyOpenai">OpenAI</label>
+            <input id="keyOpenai" type="password" placeholder="sk-..." autocomplete="off" spellcheck="false">
+          </div>
+          <div class="control-group">
+            <label for="keyAnthropic">Anthropic</label>
+            <input id="keyAnthropic" type="password" placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
+          </div>
+          <p class="control-hint keys-note">
+            Saved in this browser only and sent to your local server per run.
+            Never written to disk on the server or published.
+          </p>
+        </div>
+      </details>
+
+      <div class="section-divider lab-divider">
+        <h2>By model</h2>
+        <p id="modelSectionMeta" class="lab-section-meta"></p>
+      </div>
+
+      <div id="modelDashboard" hidden>
+        <section class="model-chart-grid" aria-label="Rates by model">
+          <article class="chart-card">
+            <div class="panel-heading"><h2>Unsafe payment</h2></div>
+            <div id="chartUnsafe" class="bar-chart bar-chart--danger"></div>
+          </article>
+          <article class="chart-card">
+            <div class="panel-heading"><h2>False refusal</h2></div>
+            <div id="chartRefusal" class="bar-chart bar-chart--warn"></div>
+          </article>
+          <article class="chart-card">
+            <div class="panel-heading"><h2>User welfare</h2></div>
+            <div id="chartWelfare" class="bar-chart bar-chart--ok"></div>
+          </article>
+        </section>
+
+        <section class="taxonomy-panel" aria-label="Model summary">
+          <div class="panel-heading">
+            <h2>Models</h2>
+            <span id="modelSummaryStamp" class="run-stamp"></span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Model</th>
+                  <th>n</th>
+                  <th>Runs</th>
+                  <th>Unsafe payment</th>
+                  <th>False refusal</th>
+                  <th>Tool blocks</th>
+                  <th>Welfare</th>
+                </tr>
+              </thead>
+              <tbody id="modelSummaryTable"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <main class="content-grid model-content-grid">
+          <section class="result-panel" aria-label="Results">
+            <div class="panel-heading">
+              <h2>Results</h2>
+              <span id="modelResultsStamp" class="run-stamp"></span>
+            </div>
+            <div class="table-wrap model-results-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Verdict</th>
+                    <th>Scenario</th>
+                    <th>Model</th>
+                    <th>Control</th>
+                    <th>Failure</th>
+                  </tr>
+                </thead>
+                <tbody id="modelResultsTable"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <aside class="detail-panel" aria-label="Result detail">
+            <div class="panel-heading">
+              <h2>Detail</h2>
+              <span id="modelDetailVerdict" class="status-pill">None</span>
+            </div>
+            <div id="modelDetailContent" class="detail-content empty-state">
+              No result selected.
+            </div>
+          </aside>
+        </main>
+
+        <section class="taxonomy-panel" aria-label="Runs">
+          <div class="panel-heading">
+            <h2>Runs</h2>
+            <span id="runListStamp" class="run-stamp"></span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>When</th>
+                  <th>Model</th>
+                  <th>n</th>
+                  <th>Unsafe payment</th>
+                  <th>False refusal</th>
+                  <th>Welfare</th>
+                </tr>
+              </thead>
+              <tbody id="runListTable"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <p id="labEmpty" class="lab-empty" hidden>No runs yet. Pick a model and hit Run experiment.</p>
+    </div>
+
+    <script src="/static/lab.js?v=1"></script>
+  </body>
+</html>
