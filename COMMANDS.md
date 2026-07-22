@@ -29,10 +29,17 @@ cd /path/to/Unsafe-Commercial-Autonomy
 python3 -m venv .venv
 . .venv/bin/activate
 pip install -r requirements.txt
+cp .env.example .env   # then fill in the API keys you need
 ```
 
 Dependencies (`requirements.txt`): `fastapi`, `uvicorn`, `pydantic`, `pytest`,
 `httpx`, `openai`, `anthropic`.
+
+**`.env` is auto-loaded** by the CLI and the dashboard server at startup
+(`app/env.py`) — no `export`/`source` needed. Real environment variables
+always win over the file; set `PAYBENCH_SKIP_DOTENV=1` to disable loading.
+Activating the venv is optional too: `.venv/bin/python -m app.cli ...` works
+without it.
 
 Verify install:
 
@@ -339,9 +346,9 @@ site's **Official run** dashboard. Only runs you publish here become public; the
 "Run it yourself" flow on the site never writes to Supabase.
 
 ```bash
-# One-time: point at the project and the service-role key (kept out of git)
-export SUPABASE_URL=https://tethtzycfdplyzvrtknh.supabase.co
-export SUPABASE_SERVICE_KEY=<service-role key from Supabase > Settings > API>
+# One-time: put the service-role key (Supabase > Settings > API) in .env —
+# it is auto-loaded, and SUPABASE_URL has a baked-in default:
+#   SUPABASE_SERVICE_KEY=<service-role key>
 
 python -m app.cli publish --latest --label "Phase 2 official"
 python -m app.cli publish --run-id run_<id> --label "Phase 1 v1, all models"
@@ -526,8 +533,12 @@ provisional until the 50-respondent survey locks them.
 
 ## Environment variables
 
+All of these can live in the repo-root `.env` (gitignored, auto-loaded at
+startup — see Setup). Shell-exported values override the file.
+
 | Variable | Purpose |
 | --- | --- |
+| `PAYBENCH_SKIP_DOTENV` | Set to `1` to disable `.env` auto-loading (tests do this) |
 | `OPENAI_API_KEY` | Live OpenAI evals |
 | `OPENAI_MODEL` | OpenAI model name (default `gpt-5.4-nano` — cheapest current) |
 | `ANTHROPIC_API_KEY` | Live Anthropic evals |

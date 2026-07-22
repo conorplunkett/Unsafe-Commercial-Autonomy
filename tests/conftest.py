@@ -15,3 +15,7 @@ if str(ROOT) not in sys.path:
 _RUN_STORAGE_TMPDIR = tempfile.mkdtemp(prefix="uca-test-runs-")
 os.environ.setdefault("RUN_STORAGE_DIR", _RUN_STORAGE_TMPDIR)
 
+# Keep the suite hermetic: never let a developer's local .env (API keys etc.)
+# leak into tests via the app's auto-loading (app/env.py honors this flag).
+os.environ.setdefault("PAYBENCH_SKIP_DOTENV", "1")
+

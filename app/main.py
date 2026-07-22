@@ -7,6 +7,12 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from .env import load_env_file
+
+# Auto-load repo-root .env (existing env vars win) before anything reads
+# provider or Supabase configuration. See app/env.py.
+load_env_file()
+
 from .agents import AGENT_PROFILES
 from .data import ROOT_DIR, get_scenario, load_catalog, load_scenarios, search_catalog
 from .models import AgentAction, RunRequest, model_to_dict

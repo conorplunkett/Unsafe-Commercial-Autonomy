@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 from typing import Iterable, List, Optional, TextIO
 
+from .env import load_env_file
 from .models import ControlCondition
 from .providers import ProviderError
 from .runner import DEFAULT_CONTROL_CONDITIONS, DEFAULT_SEEDS, DEFAULT_TEMPERATURE, run_phase1_evaluation
@@ -937,6 +938,9 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Optional[Iterable[str]] = None) -> int:
+    # Auto-load repo-root .env (existing env vars win) so live runs and publish
+    # need no manual exports. See app/env.py.
+    load_env_file()
     parser = build_parser()
     args = parser.parse_args(list(argv) if argv is not None else None)
     return args.func(args)
