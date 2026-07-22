@@ -196,13 +196,17 @@ Start the FastAPI app:
 uvicorn app.main:app --reload
 ```
 
-Open `http://127.0.0.1:8000` for the dashboard. The control band includes
-temperature and reasoning-effort inputs alongside the model, condition,
-category, and scenario filters; each model uses whichever sampling control
-applies to it. `POST /api/runs` accepts both the legacy deterministic-agent
-request shape and the Phase 1 model-eval fields: `model_ids`,
-`control_conditions`, `scenario_ids`, `scenario_set_path`, `seeds`,
-`temperature`, `reasoning_effort`, and `live`.
+Open `http://127.0.0.1:8000` for the Experiment Lab (`/` redirects to `/lab`),
+the local console for running experiments from the browser: a model switcher, a
+collapsible API-keys panel (stored in the browser's localStorage), condition /
+category / scenario / seed / sampling controls, a determinate progress bar, and
+by-model charts over every stored run. The public lander is the separate
+Next.js app in `web/` and is not served by this backend. `POST /api/runs`
+accepts both the legacy deterministic-agent request shape and the Phase 1
+model-eval fields: `model_ids`, `control_conditions`, `scenario_ids`,
+`scenario_set_path`, `seeds`, `temperature`, `reasoning_effort`, and `live`;
+`POST /api/jobs` takes the same body and runs it as a background job with
+progress at `GET /api/jobs/{job_id}`.
 
 ## Publishing results to the public site
 
@@ -211,11 +215,11 @@ The site has two halves with deliberately different data stores:
 - **Official run (published).** Results you choose to publish live in a Supabase
   `benchmark_runs` table and are read by the site's read-only "Official run"
   dashboard. This is what grows as you run experiments and publish them. The
-  site reads with a publishable (anon) key embedded in `static/config.js`, which
+  site reads with a publishable (anon) key embedded in `web/lib/config.ts`, which
   is safe to commit: row-level security grants public read on that one table and
   nothing else.
-- **Run it yourself (local).** The interactive dashboard talks to the local
-  FastAPI backend and stores runs under `runtime/runs/`. It is never written to
+- **Run it yourself (local).** The Experiment Lab talks to the local FastAPI
+  backend and stores runs under `runtime/runs/`. It is never written to
   Supabase, so a visitor only ever sees their own results. Anyone who wants to
   keep results can clone the repo and run their own.
 
@@ -228,8 +232,6 @@ python -m app.cli publish --latest --label "Phase 2 official"
 ```
 
 Publishing upserts on `run_id`, so re-publishing a corrected run replaces it.
-When no runs are published yet (or Supabase is unreachable), the official
-dashboard falls back to the latest local run so the page still works offline.
 
 The **human baseline** has a parallel path: collect responses with a Google
 Form, export to CSV, then `python -m app.cli phase2-human-import --csv responses.csv`

@@ -7,7 +7,7 @@ from typing import Any, Dict, Optional
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from .env import load_env_file
@@ -66,14 +66,14 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
 @app.get("/")
-async def dashboard():
-    return FileResponse(STATIC_DIR / "index.html")
+async def root():
+    # This server is the local experiment console; the public lander lives in
+    # web/ and is deployed separately. The legacy static dashboard is gone.
+    return RedirectResponse(url="/lab")
 
 
 @app.get("/lab")
 async def lab():
-    # Local-only experiment console. Separate page on purpose: the lander at /
-    # mirrors the live site and is not edited for lab workflows.
     return FileResponse(STATIC_DIR / "lab.html")
 
 
