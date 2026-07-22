@@ -398,7 +398,7 @@ function exclusionReason(row) {
   const att2 = row.attention && row.attention.att_2 && row.attention.att_2.passed;
   if (!att2) reasons.push("failed att_2 (instructed response)");
   if ((row.duration_seconds || 0) < MIN_DURATION_SECONDS) reasons.push("<2min");
-  if (row.meta && row.meta.survey_version && row.meta.survey_version !== LAUNCH_VERSION) reasons.push("pre-launch wording (" + row.meta.survey_version + ")");
+  if (row.meta && row.meta.survey_version && row.meta.survey_version !== LAUNCH_VERSION) reasons.push("non-launch instrument (" + row.meta.survey_version + ")");
   return reasons.join(", ");
 }
 
