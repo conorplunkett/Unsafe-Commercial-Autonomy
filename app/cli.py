@@ -226,19 +226,41 @@ def eval_command(args: argparse.Namespace) -> int:
 
 
 def models_command(args: argparse.Namespace) -> int:
-    from .providers import available_openai_models
+    from .providers import (
+        available_anthropic_models,
+        available_gemini_models,
+        available_openai_models,
+    )
 
-    if args.provider != "openai":
-        print(f"Model listing is only implemented for the openai provider (got {args.provider!r}).")
+    listers = {
+        "openai": available_openai_models,
+        "anthropic": available_anthropic_models,
+        "gemini": available_gemini_models,
+    }
+    if args.provider == "all":
+        selected = list(listers)
+    elif args.provider in listers:
+        selected = [args.provider]
+    else:
+        print(
+            f"Unknown provider {args.provider!r}. "
+            f"Choose one of: all, {', '.join(listers)}. "
+            "(openweights is a local server — query its /v1/models endpoint directly.)"
+        )
         return 2
-    try:
-        model_ids = available_openai_models()
-    except ProviderError as exc:
-        print(f"Could not list models: {exc}")
-        return 1
-    for model_id in model_ids:
-        print(model_id)
-    return 0
+
+    listed_any = False
+    for provider in selected:
+        print(f"== {provider} ==")
+        try:
+            model_ids = listers[provider]()
+        except ProviderError as exc:
+            print(f"  (skipped: {exc})")
+            continue
+        listed_any = True
+        for model_id in model_ids:
+            print(f"  {model_id}")
+    return 0 if listed_any else 1
 
 
 def survey_command(args: argparse.Namespace) -> int:
@@ -682,12 +704,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     models_parser = subparsers.add_parser(
         "models",
-        help="List the model ids a provider can use, so OPENAI_MODEL is set to a real id.",
+        help="List the model ids each provider's key can use (openai, anthropic, gemini).",
     )
     models_parser.add_argument(
         "--provider",
-        default="openai",
-        help="Provider to list models for (currently only 'openai').",
+        default="all",
+        help="Provider to list models for: all (default), openai, anthropic, or gemini.",
     )
     models_parser.set_defaults(func=models_command)
 

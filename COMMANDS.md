@@ -73,19 +73,24 @@ is marked `_meta.synthetic` (the shipped placeholder), surveyed scenarios stay
 `provisional` — synthetic votes cannot lock an answer key. v2 scenarios stay
 `provisional` until their own survey exists.
 
-### `models` — list valid model ids for a provider
+### `models` — list valid model ids per provider
 
 ```bash
-python -m app.cli models                 # OpenAI gpt-* ids your key can use
-python -m app.cli models --provider openai
+python -m app.cli models                        # all providers with a key set
+python -m app.cli models --provider openai      # or anthropic / gemini
 ```
 
-Use this to pick a real `OPENAI_MODEL` before a live run. Note that not every
-family has every size — e.g. `gpt-5.5` exists but there is no `gpt-5.5-nano`;
-the newest nano is `gpt-5.4-nano`. A live `eval` **preflights** the configured
-model (one cheap metadata lookup) and aborts immediately with an actionable
-message if the id is missing or the key is unset, rather than failing once per
-scenario/condition/seed and saving a junk run.
+Lists the model ids each provider's API key can use (providers without a key
+are skipped with a note). Use this to pick a real `OPENAI_MODEL` /
+`ANTHROPIC_MODEL` / `GEMINI_MODEL` before a live run — not every family has
+every size (e.g. `gpt-5.5` exists but there is no `gpt-5.5-nano`; the newest
+nano is `gpt-5.4-nano`). If you set nothing, each provider defaults to its
+**cheapest current model** (`gpt-5.4-nano`, `claude-haiku-4-5`,
+`gemini-2.5-flash-lite`; prices in `app/providers.py`). A live `eval`
+**preflights** the configured model (one cheap metadata lookup) and aborts
+immediately with an actionable message if the id is missing or the key is
+unset, rather than failing once per scenario/condition/seed and saving a junk
+run.
 
 ### `eval` — Phase 1 model evaluation harness
 
@@ -449,11 +454,12 @@ path is used. Otherwise `agent_ids` run through scripted deterministic agents.
 
 | ID | Live behavior | Required env |
 | --- | --- | --- |
-| `openai` | OpenAI Responses API | `OPENAI_API_KEY`; optional `OPENAI_MODEL` (default `gpt-5.5`) |
-| `anthropic` | Anthropic Messages API | `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` |
+| `openai` | OpenAI Responses API | `OPENAI_API_KEY`; optional `OPENAI_MODEL` (default `gpt-5.4-nano`, the cheapest current OpenAI model) |
+| `anthropic` | Anthropic Messages API | `ANTHROPIC_API_KEY`; optional `ANTHROPIC_MODEL` (default `claude-haiku-4-5`, the cheapest current Claude) |
+| `gemini` | Gemini OpenAI-compatible endpoint | `GEMINI_API_KEY` (or `GOOGLE_API_KEY`); optional `GEMINI_MODEL` (default `gemini-2.5-flash-lite`, the cheapest current Gemini — retires 2026-10-16) |
 | `openweights` | OpenAI-compatible `/v1/chat/completions` | `OPENWEIGHTS_BASE_URL`, `OPENWEIGHTS_MODEL`; optional `OPENWEIGHTS_API_KEY` (default `local`) |
 | `baseline_naive` | Offline heuristic — always cheapest, never ask | None |
-| `all` | Runs all four above | All configured keys/URLs |
+| `all` | Runs all five above | All configured keys/URLs |
 
 With `--dry-run`, live model IDs use `DryRunProvider` (offline scripted
 actions). `baseline_naive` is always offline regardless of `--dry-run`.
@@ -523,9 +529,11 @@ provisional until the 50-respondent survey locks them.
 | Variable | Purpose |
 | --- | --- |
 | `OPENAI_API_KEY` | Live OpenAI evals |
-| `OPENAI_MODEL` | OpenAI model name (default `gpt-5.5`) |
+| `OPENAI_MODEL` | OpenAI model name (default `gpt-5.4-nano` — cheapest current) |
 | `ANTHROPIC_API_KEY` | Live Anthropic evals |
-| `ANTHROPIC_MODEL` | Anthropic model name (required for anthropic provider) |
+| `ANTHROPIC_MODEL` | Anthropic model name (default `claude-haiku-4-5` — cheapest current) |
+| `GEMINI_API_KEY` | Live Gemini evals (`GOOGLE_API_KEY` also accepted) |
+| `GEMINI_MODEL` | Gemini model name (default `gemini-2.5-flash-lite` — cheapest current) |
 | `OPENWEIGHTS_BASE_URL` | OpenAI-compatible local server base URL |
 | `OPENWEIGHTS_MODEL` | Model name on that server |
 | `OPENWEIGHTS_API_KEY` | Auth header for open-weights server (default `local`) |

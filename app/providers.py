@@ -12,15 +12,26 @@ from .models import AgentAction, ControlCondition, Scenario, parse_model
 from .policy_text import render_policy_text, structured_policy_json
 
 
-DEFAULT_MODEL_IDS = ["openai", "anthropic", "openweights", "baseline_naive"]
-DEFAULT_OPENAI_MODEL = ""
+DEFAULT_MODEL_IDS = ["openai", "anthropic", "gemini", "openweights", "baseline_naive"]
+# Defaults are each provider's cheapest current text model, so an eval without
+# an explicit *_MODEL env var burns the fewest dollars. Prices verified
+# 2026-07-22 (per 1M input/output tokens):
+#   gpt-5.4-nano           $0.20 / $1.25   (openai.com pricing page)
+#   claude-haiku-4-5       $1.00 / $5.00   (Anthropic model catalog)
+#   gemini-2.5-flash-lite  $0.10 / $0.40   (retires 2026-10-16; successor
+#                                           gemini-3.1-flash-lite $0.25/$1.50)
+# Override with OPENAI_MODEL / ANTHROPIC_MODEL / GEMINI_MODEL; the live-eval
+# preflight validates whichever id ends up selected before the grid runs.
+DEFAULT_OPENAI_MODEL = "gpt-5.4-nano"
 DEFAULT_REASONING_EFFORT = "low"
 # Effort tiers accepted by current gpt-5.x reasoning models. The old "minimal"
 # tier was renamed to "none" and "xhigh" was added; gpt-5.4 models reject
 # "minimal" outright, so it is no longer offered.
 VALID_REASONING_EFFORTS = {"none", "low", "medium", "high", "xhigh"}
-DEFAULT_ANTHROPIC_MODEL = ""
+DEFAULT_ANTHROPIC_MODEL = "claude-haiku-4-5"
+DEFAULT_GEMINI_MODEL = "gemini-2.5-flash-lite"
 DEFAULT_OPENWEIGHTS_MODEL = ""
+GEMINI_OPENAI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai"
 
 
 class ProviderError(Exception):
@@ -115,11 +126,48 @@ def available_openai_models(api_key: Optional[str] = None, prefix: str = "gpt") 
     return sorted(model.id for model in client.models.list() if model.id.startswith(prefix))
 
 
+def available_anthropic_models(api_key: Optional[str] = None) -> list[str]:
+    """List Anthropic model ids this account can use."""
+    key = api_key or os.environ.get("ANTHROPIC_API_KEY")
+    if not key:
+        raise ProviderError("Provide an Anthropic API key (or set ANTHROPIC_API_KEY) to list Anthropic models.")
+    try:
+        from anthropic import Anthropic
+    except ImportError as exc:
+        raise ProviderError("Install the anthropic package from requirements.txt to list Anthropic models.") from exc
+    client = Anthropic(api_key=key)
+    return sorted(model.id for model in client.models.list())
+
+
+def available_gemini_models(api_key: Optional[str] = None, prefix: str = "gemini") -> list[str]:
+    """List Gemini model ids this key can use, via the OpenAI-compatible endpoint.
+
+    The endpoint returns ids as ``models/gemini-...``; the prefix is stripped so
+    the output is the set you'd actually set GEMINI_MODEL to.
+    """
+    key = api_key or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+    if not key:
+        raise ProviderError("Provide a Gemini API key (or set GEMINI_API_KEY) to list Gemini models.")
+    try:
+        response = httpx.get(
+            f"{GEMINI_OPENAI_BASE_URL}/models",
+            headers={"Authorization": f"Bearer {key}"},
+            timeout=30,
+        )
+        response.raise_for_status()
+    except Exception as exc:
+        raise ProviderError(f"Could not list Gemini models: {exc}") from exc
+    ids = (item.get("id", "").removeprefix("models/") for item in response.json().get("data", []))
+    return sorted(model_id for model_id in ids if model_id.startswith(prefix))
+
+
 def model_display_name(model_id: str) -> str:
     if model_id == "openai":
         return os.environ.get("OPENAI_MODEL", DEFAULT_OPENAI_MODEL)
     if model_id == "anthropic":
         return os.environ.get("ANTHROPIC_MODEL", DEFAULT_ANTHROPIC_MODEL)
+    if model_id == "gemini":
+        return os.environ.get("GEMINI_MODEL", DEFAULT_GEMINI_MODEL)
     if model_id == "openweights":
         return os.environ.get("OPENWEIGHTS_MODEL", DEFAULT_OPENWEIGHTS_MODEL)
     return model_id
@@ -501,6 +549,87 @@ class OpenWeightsProvider(BaseProvider):
         )
 
 
+class GeminiProvider(BaseProvider):
+    """Google Gemini via its OpenAI-compatible chat-completions endpoint.
+
+    Reuses the same request shape as the open-weights provider (messages +
+    json_schema response_format) so no extra SDK dependency is needed; only the
+    base URL and auth differ.
+    """
+
+    provider_id = "gemini"
+
+    def __init__(self, model_name: Optional[str] = None, api_key: Optional[str] = None):
+        self.model_name = model_name or os.environ.get("GEMINI_MODEL", DEFAULT_GEMINI_MODEL)
+        self.api_key = api_key
+
+    def _resolved_api_key(self) -> str:
+        if not self.model_name:
+            raise ProviderError("Provide a Gemini model name (or set GEMINI_MODEL) to run the Gemini provider.")
+        api_key = self.api_key or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+        if not api_key:
+            raise ProviderError("Provide a Gemini API key (or set GEMINI_API_KEY) to run the Gemini provider.")
+        return api_key
+
+    def preflight(self) -> None:
+        api_key = self._resolved_api_key()
+        # One cheap models-list call confirms the id exists for this key before
+        # the grid spends real generation calls on it (mirrors the OpenAI and
+        # Anthropic preflights).
+        model_ids = available_gemini_models(api_key=api_key)
+        if self.model_name.removeprefix("models/") not in model_ids:
+            raise ProviderError(
+                f"Gemini model {self.model_name!r} is not available to this key. "
+                "List valid ids with `python -m app.cli models --provider gemini` and set GEMINI_MODEL."
+            )
+
+    def generate_action(
+        self,
+        scenario: Scenario,
+        control_condition: ControlCondition,
+        seed: int,
+        temperature: float,
+    ) -> ProviderAction:
+        api_key = self._resolved_api_key()
+        # The OpenAI-compat layer accepts system/user/assistant roles only, so
+        # remap the "developer" message (same as the open-weights provider).
+        messages = [
+            {**message, "role": "system"} if message["role"] == "developer" else message
+            for message in build_messages(scenario, control_condition, seed)
+        ]
+        try:
+            response = httpx.post(
+                f"{GEMINI_OPENAI_BASE_URL}/chat/completions",
+                headers={"Authorization": f"Bearer {api_key}"},
+                json={
+                    "model": self.model_name,
+                    "messages": messages,
+                    "temperature": temperature,
+                    "seed": seed,
+                    "response_format": {
+                        "type": "json_schema",
+                        "json_schema": {
+                            "name": "phase1_agent_action",
+                            "strict": True,
+                            "schema": ACTION_JSON_SCHEMA,
+                        },
+                    },
+                },
+                timeout=120,
+            )
+            response.raise_for_status()
+        except Exception as exc:
+            raise ProviderError(f"Gemini request failed: {exc}") from exc
+        payload = response.json()
+        raw_output = payload["choices"][0]["message"]["content"]
+        return ProviderAction(
+            raw_output=raw_output,
+            action=parse_action_json(raw_output),
+            provider_id=self.provider_id,
+            model_name=self.model_name,
+        )
+
+
 class NaiveBaselineProvider(BaseProvider):
     """Always-cheapest, never-ask heuristic baseline from the research plan.
 
@@ -608,6 +737,8 @@ def create_provider(
         return OpenAIResponsesProvider(model_name=model_name, api_key=api_key)
     if model_id == "anthropic":
         return AnthropicProvider(model_name=model_name, api_key=api_key)
+    if model_id == "gemini":
+        return GeminiProvider(model_name=model_name, api_key=api_key)
     if model_id == "openweights":
         return OpenWeightsProvider(model_name=model_name)
     raise KeyError(f"Unknown model id {model_id}")

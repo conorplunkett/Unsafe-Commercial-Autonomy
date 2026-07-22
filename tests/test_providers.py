@@ -113,9 +113,15 @@ def test_openai_provider_reasoning_effort_configurable():
     assert provider.reasoning_effort == "high"
 
 
-def test_openai_preflight_requires_model_name():
-    from app.providers import OpenAIResponsesProvider, ProviderError
+def test_openai_empty_model_name_falls_back_to_cheapest_default(monkeypatch):
+    from app.providers import DEFAULT_OPENAI_MODEL, OpenAIResponsesProvider, ProviderError
 
+    monkeypatch.delenv("OPENAI_MODEL", raising=False)
+    provider = OpenAIResponsesProvider(model_name="", api_key="sk-test")
+    assert provider.model_name == DEFAULT_OPENAI_MODEL
+
+    # Explicitly blanking the env var still surfaces the clear error.
+    monkeypatch.setenv("OPENAI_MODEL", "")
     provider = OpenAIResponsesProvider(model_name="", api_key="sk-test")
     with pytest.raises(ProviderError, match="model name"):
         provider.preflight()
@@ -168,3 +174,79 @@ def test_openai_preflight_accepts_known_model(monkeypatch):
     monkeypatch.setattr(openai, "OpenAI", _FakeClient)
     provider = OpenAIResponsesProvider(model_name="gpt-5.5", api_key="sk-test")
     provider.preflight()  # does not raise
+
+
+def test_defaults_are_cheapest_current_models():
+    # Defaults minimize spend when no *_MODEL env var is set; prices verified
+    # 2026-07-22 (see the comment block in app/providers.py).
+    from app.providers import (
+        DEFAULT_ANTHROPIC_MODEL,
+        DEFAULT_GEMINI_MODEL,
+        DEFAULT_MODEL_IDS,
+        DEFAULT_OPENAI_MODEL,
+    )
+
+    assert DEFAULT_OPENAI_MODEL == "gpt-5.4-nano"
+    assert DEFAULT_ANTHROPIC_MODEL == "claude-haiku-4-5"
+    assert DEFAULT_GEMINI_MODEL == "gemini-2.5-flash-lite"
+    assert "gemini" in DEFAULT_MODEL_IDS
+
+
+def test_resolve_model_ids_accepts_gemini():
+    from app.providers import resolve_model_ids
+
+    assert resolve_model_ids(["gemini"]) == ["gemini"]
+    assert "gemini" in resolve_model_ids(["all"])
+
+
+def test_create_provider_returns_gemini_when_live():
+    from app.providers import DryRunProvider, GeminiProvider, create_provider
+
+    assert isinstance(create_provider("gemini", live=True), GeminiProvider)
+    assert isinstance(create_provider("gemini", live=False), DryRunProvider)
+
+
+def test_gemini_preflight_requires_api_key(monkeypatch):
+    from app.providers import GeminiProvider, ProviderError
+
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+    provider = GeminiProvider(model_name="gemini-2.5-flash-lite")
+    with pytest.raises(ProviderError, match="API key"):
+        provider.preflight()
+
+
+def test_gemini_preflight_rejects_unknown_model(monkeypatch):
+    import app.providers as providers_module
+    from app.providers import GeminiProvider, ProviderError
+
+    monkeypatch.setattr(
+        providers_module,
+        "available_gemini_models",
+        lambda api_key=None, prefix="gemini": ["gemini-2.5-flash-lite"],
+    )
+    provider = GeminiProvider(model_name="gemini-99-ultra", api_key="fake-key")
+    with pytest.raises(ProviderError, match="not available"):
+        provider.preflight()
+
+
+def test_gemini_preflight_accepts_known_model(monkeypatch):
+    import app.providers as providers_module
+    from app.providers import GeminiProvider
+
+    monkeypatch.setattr(
+        providers_module,
+        "available_gemini_models",
+        lambda api_key=None, prefix="gemini": ["gemini-2.5-flash-lite"],
+    )
+    provider = GeminiProvider(model_name="gemini-2.5-flash-lite", api_key="fake-key")
+    provider.preflight()  # does not raise
+
+
+def test_model_display_name_gemini_defaults(monkeypatch):
+    from app.providers import DEFAULT_GEMINI_MODEL, model_display_name
+
+    monkeypatch.delenv("GEMINI_MODEL", raising=False)
+    assert model_display_name("gemini") == DEFAULT_GEMINI_MODEL
+    monkeypatch.setenv("GEMINI_MODEL", "gemini-3.1-flash-lite")
+    assert model_display_name("gemini") == "gemini-3.1-flash-lite"
