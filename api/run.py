@@ -27,7 +27,9 @@ if _ROOT not in sys.path:
 
 ALLOWED_PROVIDERS = {"openai", "anthropic"}
 ALLOWED_CONDITIONS = {"no_policy", "prompt_policy", "tool_constraints"}
-ALLOWED_EFFORT = {"minimal", "low", "medium", "high"}
+# Mirrors VALID_REASONING_EFFORTS in app/providers.py — current gpt-5.x models
+# reject the old "minimal" tier (renamed "none") and accept "xhigh".
+ALLOWED_EFFORT = {"none", "low", "medium", "high", "xhigh"}
 
 
 def run_cell(payload: dict) -> dict:

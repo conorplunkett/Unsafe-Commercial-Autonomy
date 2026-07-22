@@ -29,7 +29,19 @@ const MODEL_SUGGESTIONS: Record<string, string[]> = {
   ],
 };
 
+// Effort tiers current OpenAI reasoning models accept ("minimal" was renamed
+// to "none"; gpt-5.4 rejects it outright — mirrors app/providers.py).
+const EFFORT_OPTIONS = ["none", "low", "medium", "high", "xhigh"] as const;
+
 type Provider = (typeof PROVIDERS)[number]["id"];
+
+// Mirrors _is_openai_reasoning_model in app/providers.py: these models take a
+// reasoning-effort hint and ignore temperature; everything else is the reverse.
+function isReasoningModel(provider: Provider, model: string): boolean {
+  if (provider !== "openai") return false;
+  const name = model.trim().toLowerCase();
+  return ["gpt-5", "o1", "o3", "o4"].some((p) => name.startsWith(p));
+}
 
 // The harness returns full EvaluationResult dicts; we read the subset we render.
 interface CellResult {
@@ -83,6 +95,23 @@ function VerdictBadge({ v }: { v: CellResult["verdict"] }) {
   );
 }
 
+function SectionHeading({ n, title, aside }: { n: string; title: string; aside?: string }) {
+  return (
+    <div className="flex flex-wrap items-baseline justify-between gap-2">
+      <h2 className="font-mono text-[0.7rem] uppercase tracking-wider text-muted">
+        <span className="text-accent">{n}</span>
+        <span className="mx-2 text-border">·</span>
+        {title}
+      </h2>
+      {aside && (
+        <span className="font-mono text-[0.65rem] uppercase tracking-wider text-muted/80">
+          {aside}
+        </span>
+      )}
+    </div>
+  );
+}
+
 export function Runner() {
   const [provider, setProvider] = useState<Provider>("openai");
   const [model, setModel] = useState<string>(PROVIDERS[0].defaultModel);
@@ -109,6 +138,20 @@ export function Runner() {
       SCENARIOS.filter((s) => category === "all" || s.category === category),
     [category],
   );
+
+  // Group the visible pool by category so the picker can show sub-dividers
+  // when "All categories" is selected.
+  const scenarioGroups = useMemo(() => {
+    const groups: { category: string; scenarios: ScenarioCard[] }[] = [];
+    for (const s of scenarioPool) {
+      const last = groups[groups.length - 1];
+      if (last && last.category === s.category) last.scenarios.push(s);
+      else groups.push({ category: s.category, scenarios: [s] });
+    }
+    return groups;
+  }, [scenarioPool]);
+
+  const reasoning = isReasoningModel(provider, model);
 
   function pickProvider(p: Provider) {
     setProvider(p);
@@ -163,7 +206,9 @@ export function Runner() {
             scenarioId: chosen.scenario_id,
             condition,
             temperature: Number(temperature),
-            reasoningEffort: reasoningEffort || undefined,
+            // Only reasoning models take an effort hint; sending it for other
+            // models would either error or silently do nothing.
+            reasoningEffort: reasoning ? reasoningEffort || undefined : undefined,
           }),
         });
         const data = await res.json().catch(() => ({}));
@@ -190,176 +235,263 @@ export function Runner() {
 
   const label = "block font-mono text-[0.7rem] uppercase tracking-wider text-muted";
   const field =
-    "mt-1.5 w-full rounded-md border border-border bg-paper px-3 py-2 font-mono text-sm text-ink outline-none focus:border-accent";
+    "mt-1.5 w-full rounded-md border border-border bg-paper px-3 py-2 font-mono text-sm text-ink outline-none focus:border-accent disabled:cursor-not-allowed disabled:opacity-40";
   const chip = "rounded-full border px-3 py-1 font-mono text-xs transition-colors";
   const on = "border-accent bg-accent/10 text-accent";
   const off = "border-border text-muted hover:text-ink";
+  const divider = "mt-7 border-t border-border pt-6";
 
   return (
     <div className="mt-8">
       {/* Controls */}
       <div className="rounded-2xl border border-border bg-paper-2/40 p-5 sm:p-6">
-        <div className="grid gap-5 sm:grid-cols-2">
-          {/* Provider */}
-          <div>
-            <span className={label}>Provider</span>
-            <div className="mt-1.5 flex gap-2">
-              {PROVIDERS.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => pickProvider(p.id)}
-                  className={`${chip} ${provider === p.id ? on : off}`}
-                >
-                  {p.label}
-                </button>
-              ))}
+        {/* 1 · Model */}
+        <section>
+          <SectionHeading n="1" title="Model" aside="one model per run" />
+          <div className="mt-4 grid gap-5 sm:grid-cols-2">
+            <div>
+              <span className={label}>Provider</span>
+              <div className="mt-1.5 flex gap-2">
+                {PROVIDERS.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => pickProvider(p.id)}
+                    aria-pressed={provider === p.id}
+                    className={`${chip} ${provider === p.id ? on : off}`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className={label} htmlFor="rn-model">
+                Model
+              </label>
+              <input
+                id="rn-model"
+                className={field}
+                value={model}
+                list="rn-model-suggestions"
+                spellCheck={false}
+                autoComplete="off"
+                onChange={(e) => setModel(e.target.value)}
+                placeholder={PROVIDERS.find((p) => p.id === provider)?.defaultModel}
+              />
+              <datalist id="rn-model-suggestions">
+                {(MODEL_SUGGESTIONS[provider] ?? []).map((m) => (
+                  <option key={m} value={m} />
+                ))}
+              </datalist>
+            </div>
+            <div className="sm:col-span-2">
+              <label className={label} htmlFor="rn-key">
+                Your {provider === "openai" ? "OpenAI" : "Anthropic"} API key
+              </label>
+              <input
+                id="rn-key"
+                className={field}
+                type="password"
+                value={apiKey}
+                spellCheck={false}
+                autoComplete="off"
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder={provider === "openai" ? "sk-..." : "sk-ant-..."}
+              />
+              <p className="mt-1.5 text-xs text-muted">
+                Sent once to score this run, then discarded, never stored or
+                logged. You pay your provider for the calls. Or run the whole
+                benchmark locally from the repo.
+              </p>
             </div>
           </div>
+        </section>
 
-          {/* Model */}
-          <div>
-            <label className={label} htmlFor="rn-model">
-              Model
-            </label>
-            <input
-              id="rn-model"
-              className={field}
-              value={model}
-              list="rn-model-suggestions"
-              spellCheck={false}
-              autoComplete="off"
-              onChange={(e) => setModel(e.target.value)}
-              placeholder={PROVIDERS.find((p) => p.id === provider)?.defaultModel}
-            />
-            <datalist id="rn-model-suggestions">
-              {(MODEL_SUGGESTIONS[provider] ?? []).map((m) => (
-                <option key={m} value={m} />
-              ))}
-            </datalist>
-          </div>
-
-          {/* API key */}
-          <div className="sm:col-span-2">
-            <label className={label} htmlFor="rn-key">
-              Your {provider === "openai" ? "OpenAI" : "Anthropic"} API key
-            </label>
-            <input
-              id="rn-key"
-              className={field}
-              type="password"
-              value={apiKey}
-              spellCheck={false}
-              autoComplete="off"
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder={provider === "openai" ? "sk-..." : "sk-ant-..."}
-            />
-            <p className="mt-1.5 text-xs text-muted">
-              Sent once to score this run, then discarded, never stored or
-              logged. You pay your provider for the calls. Or run the whole
-              benchmark locally from the repo.
-            </p>
-          </div>
-
-          {/* Category + scenario */}
-          <div>
-            <label className={label} htmlFor="rn-category">
-              Category
-            </label>
-            <select
-              id="rn-category"
-              className={field}
-              value={category}
-              onChange={(e) => {
-                setCategory(e.target.value);
-                setScenarioId("random");
-              }}
-            >
-              <option value="all">All categories</option>
+        {/* 2 · Scenario */}
+        <section className={divider}>
+          <SectionHeading
+            n="2"
+            title="Scenario"
+            aside={`${scenarioPool.length} in selection`}
+          />
+          <div className="mt-4">
+            <span className={label}>Category</span>
+            <div className="mt-1.5 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setCategory("all");
+                  setScenarioId("random");
+                }}
+                aria-pressed={category === "all"}
+                className={`${chip} ${category === "all" ? on : off}`}
+              >
+                All
+              </button>
               {CATEGORY_ORDER.map((c) => (
-                <option key={c} value={c}>
-                  {CATEGORY_LABELS[c]}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className={label} htmlFor="rn-scenario">
-              Scenario
-            </label>
-            <select
-              id="rn-scenario"
-              className={field}
-              value={scenarioId}
-              onChange={(e) => setScenarioId(e.target.value)}
-            >
-              <option value="random">🎲 Random in selection</option>
-              {scenarioPool.map((s) => (
-                <option key={s.scenario_id} value={s.scenario_id}>
-                  {s.title}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Conditions */}
-          <div className="sm:col-span-2">
-            <span className={label}>Control conditions</span>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {RUN_CONDITIONS.map((c) => (
                 <button
                   key={c}
                   type="button"
-                  onClick={() => toggleCondition(c)}
-                  title={CONDITION_DESCRIPTIONS[c]}
-                  className={`${chip} ${conditions.has(c) ? on : off}`}
+                  onClick={() => {
+                    setCategory(c);
+                    setScenarioId("random");
+                  }}
+                  aria-pressed={category === c}
+                  className={`${chip} ${category === c ? on : off}`}
                 >
-                  {CONDITION_LABELS[c]}
+                  {CATEGORY_LABELS[c]}
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Custom scenario picker — a scrollable radio list with category
+              sub-dividers, instead of a native select. */}
+          <div
+            role="radiogroup"
+            aria-label="Scenario"
+            className="mt-4 max-h-80 overflow-y-auto rounded-lg border border-border bg-paper"
+          >
+            <button
+              type="button"
+              role="radio"
+              aria-checked={scenarioId === "random"}
+              onClick={() => setScenarioId("random")}
+              className={`sticky top-0 z-10 flex w-full items-center gap-2 border-b border-border px-4 py-2.5 text-left text-sm transition-colors ${
+                scenarioId === "random"
+                  ? "bg-accent/10 text-accent"
+                  : "bg-paper text-ink hover:bg-paper-2/60"
+              }`}
+            >
+              <span aria-hidden>🎲</span>
+              <span className="font-mono text-xs uppercase tracking-wider">
+                Random in selection
+              </span>
+            </button>
+            {scenarioGroups.map((group) => (
+              <div key={group.category}>
+                {category === "all" && (
+                  <div className="border-b border-border bg-paper-2/60 px-4 py-1.5 font-mono text-[0.65rem] uppercase tracking-wider text-muted">
+                    {categoryLabel(group.category)}
+                  </div>
+                )}
+                {group.scenarios.map((s) => {
+                  const active = scenarioId === s.scenario_id;
+                  return (
+                    <button
+                      key={s.scenario_id}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      onClick={() => setScenarioId(s.scenario_id)}
+                      className={`flex w-full items-baseline justify-between gap-3 border-b border-border/60 px-4 py-2 text-left transition-colors last:border-b-0 ${
+                        active
+                          ? "bg-accent/10"
+                          : "hover:bg-paper-2/60"
+                      }`}
+                    >
+                      <span
+                        className={`min-w-0 flex-1 truncate text-sm leading-snug ${active ? "text-accent" : "text-ink/90"}`}
+                      >
+                        {s.title}
+                      </span>
+                      <span className="shrink-0 font-mono text-[0.6rem] uppercase tracking-wider text-muted">
+                        {s.pair_role} · {s.stakes}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* 3 · Run settings */}
+        <section className={divider}>
+          <SectionHeading n="3" title="Run settings" />
+          <div className="mt-4">
+            <span className={label}>Control conditions</span>
+            <div className="mt-2 space-y-2">
+              {RUN_CONDITIONS.map((c) => (
+                <label
+                  key={c}
+                  className="flex cursor-pointer items-baseline gap-3 rounded-md border border-border bg-paper px-3.5 py-2.5 transition-colors has-[:checked]:border-accent/60 has-[:checked]:bg-accent/5"
+                >
+                  <input
+                    type="checkbox"
+                    checked={conditions.has(c)}
+                    onChange={() => toggleCondition(c)}
+                    className="relative top-0.5 size-4 shrink-0 accent-accent"
+                  />
+                  <span className="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-3">
+                    <span className="shrink-0 font-mono text-xs text-ink">
+                      {CONDITION_LABELS[c]}
+                    </span>
+                    <span className="text-xs leading-snug text-muted">
+                      {CONDITION_DESCRIPTIONS[c]}
+                    </span>
+                  </span>
+                </label>
+              ))}
+            </div>
             <p className="mt-1.5 text-xs text-muted">
-              Each selected condition is one model call. The scenario runs once
-              per condition (1 seed).
+              One model call per checked condition (1 seed).
             </p>
           </div>
 
-          {/* Advanced */}
-          <div>
-            <label className={label} htmlFor="rn-temp">
-              Temperature
-            </label>
-            <input
-              id="rn-temp"
-              className={field}
-              type="number"
-              min="0"
-              max="2"
-              step="0.1"
-              value={temperature}
-              onChange={(e) => setTemperature(e.target.value)}
-            />
+          <div className="mt-5 grid gap-5 sm:grid-cols-2">
+            <div>
+              <label className={label} htmlFor="rn-temp">
+                Temperature
+              </label>
+              <input
+                id="rn-temp"
+                className={field}
+                type="number"
+                min="0"
+                max="2"
+                step="0.1"
+                value={temperature}
+                disabled={reasoning}
+                onChange={(e) => setTemperature(e.target.value)}
+              />
+              <p className="mt-1.5 text-xs text-muted">
+                {reasoning
+                  ? `Reasoning models like ${model.trim()} don't take a temperature — use reasoning effort instead.`
+                  : "Sampling randomness: 0 repeats the same answer, 2 is near-random. The published runs used 0.7 (the harness default), so keep it for comparable numbers."}
+              </p>
+            </div>
+            <div>
+              <label className={label} htmlFor="rn-effort">
+                Reasoning effort
+              </label>
+              <select
+                id="rn-effort"
+                className={field}
+                value={reasoningEffort}
+                disabled={!reasoning}
+                onChange={(e) => setReasoningEffort(e.target.value)}
+              >
+                <option value="">Default</option>
+                {EFFORT_OPTIONS.map((e) => (
+                  <option key={e} value={e}>
+                    {e === "xhigh" ? "Extra high" : e[0].toUpperCase() + e.slice(1)}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1.5 text-xs text-muted">
+                {reasoning
+                  ? "How long the model thinks before acting. Default lets the provider pick."
+                  : provider === "anthropic"
+                    ? "Anthropic models don't take an effort setting in this harness — temperature applies instead."
+                    : "Only OpenAI reasoning models (gpt-5, o1, o3, o4) take an effort setting — temperature applies instead."}
+              </p>
+            </div>
           </div>
-          <div>
-            <label className={label} htmlFor="rn-effort">
-              Reasoning effort
-            </label>
-            <select
-              id="rn-effort"
-              className={field}
-              value={reasoningEffort}
-              onChange={(e) => setReasoningEffort(e.target.value)}
-            >
-              <option value="">Default</option>
-              <option value="minimal">Minimal</option>
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-            </select>
-          </div>
-        </div>
+        </section>
 
-        <div className="mt-5 flex flex-wrap items-center gap-3">
+        <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-border pt-5">
           <button
             type="button"
             onClick={run}
