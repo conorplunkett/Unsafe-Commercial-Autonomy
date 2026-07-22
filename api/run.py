@@ -27,7 +27,10 @@ if _ROOT not in sys.path:
 
 ALLOWED_PROVIDERS = {"openai", "anthropic"}
 ALLOWED_CONDITIONS = {"no_policy", "prompt_policy", "tool_constraints"}
-ALLOWED_EFFORT = {"minimal", "low", "medium", "high"}
+# Union of the tiers the two providers accept: OpenAI gpt-5.x reasoning models
+# take none/low/medium/high/xhigh ("minimal" was renamed "none" and is rejected);
+# Anthropic's output_config.effort takes low/medium/high/xhigh/max.
+ALLOWED_EFFORT = {"none", "low", "medium", "high", "xhigh", "max"}
 
 
 def run_cell(payload: dict) -> dict:
