@@ -44,7 +44,9 @@ def load_env_file(path: Optional[Path] = None) -> Dict[str, str]:
         value = value.strip()
         if len(value) >= 2 and value[0] == value[-1] and value[0] in {'"', "'"}:
             value = value[1:-1]
-        if not key or key in os.environ:
+        # Skip blanks too: an unfilled `KEY=` template line (as shipped in
+        # .env.example) must read as "unset", not as an empty-string value.
+        if not key or not value or key in os.environ:
             continue
         os.environ[key] = value
         applied[key] = value
