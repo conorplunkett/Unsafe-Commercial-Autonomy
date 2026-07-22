@@ -388,11 +388,13 @@ function labelFor(qid, key) {
 function isExcluded(row) {
   const att2 = row.attention && row.attention.att_2 && row.attention.att_2.passed;
   const tooFast = (row.duration_seconds || 0) < MIN_DURATION_SECONDS;
-  return !att2 || tooFast;
+  const test = row.meta && row.meta.test;
+  return !att2 || tooFast || !!test;
 }
 
 function exclusionReason(row) {
   const reasons = [];
+  if (row.meta && row.meta.test) reasons.push("test run");
   const att2 = row.attention && row.attention.att_2 && row.attention.att_2.passed;
   if (!att2) reasons.push("failed att_2 (instructed response)");
   if ((row.duration_seconds || 0) < MIN_DURATION_SECONDS) reasons.push("<2min");
@@ -464,6 +466,14 @@ function renderResults(rows) {
 
   let html = `
     <div class="card">
+      <h2 style="font-size:16px;margin-bottom:6px">Preview surveys in test mode</h2>
+      <div class="section-sub" style="margin-bottom:14px">Walk through a survey exactly as respondents see it, to review the questions. Test runs are never submitted, so they never count toward or lock any answer key.</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <a href="/survey?test=1" target="_blank" rel="noopener" style="text-decoration:none"><button class="secondary">Phase 1 survey (test) &#8599;</button></a>
+        <a href="/phase2-survey?test=1" target="_blank" rel="noopener" style="text-decoration:none"><button class="secondary">Phase 2 survey (test) &#8599;</button></a>
+      </div>
+    </div>
+    <div class="card">
       <div class="stat-row">
         <div class="stat"><div class="n">${total}</div><div class="l">Total responses</div></div>
         <div class="stat"><div class="n">${clean.length}</div><div class="l">Clean (counts toward lock)</div></div>
@@ -498,8 +508,8 @@ function renderResults(rows) {
     { key: "refuse", label: "Refuse / don’t", color: "#b3261e", desc: "Declined to act" }
   ];
   html += `<div class="card">
-    <h2>Overall: what did people choose?</h2>
-    <div class="section-sub">Every answer across all ${QUESTIONS.length} scenarios, collapsed into three actions. Based on ${allVotes} choices from ${clean.length} clean respondents.</div>
+    <h2>Overall</h2>
+    <div class="section-sub">${allVotes} answers · ${clean.length} respondents · ${QUESTIONS.length} scenarios</div>
     <div class="cat-tiles">`;
   catMeta.forEach(c => {
     const v = catTotals[c.key];
@@ -521,8 +531,7 @@ function renderResults(rows) {
 
   // ---- 2. At-a-glance: one stacked row per scenario -------------------------
   html += `<div class="card">
-    <h2>At a glance — every scenario</h2>
-    <div class="section-sub">Each bar is 100% of the people who answered that scenario, split by the action they chose. The dominant choice is named on the right.</div>`;
+    <h2>By scenario</h2>`;
   stats.forEach(({ q, s }) => {
     const winnerLabel = labelFor(q.id, s.modalKey);
     html += `<div class="glance-row">
@@ -542,8 +551,8 @@ function renderResults(rows) {
 
   // ---- 3. Full detail per scenario -----------------------------------------
   html += `<div class="card">
-    <h2>Full breakdown, scenario by scenario</h2>
-    <div class="section-sub">The exact question each respondent read, with a 100%-stacked bar of what they chose and a ranked list. “+N ok” = also marked acceptable but not their top pick. Clean responses only, n=${clean.length}.</div>
+    <h2>Full breakdown</h2>
+    <div class="section-sub">“+N ok” = also marked acceptable, not the top pick. n=${clean.length}.</div>
     <div class="stem">Shared prompt on every scenario: “${escapeHtml(STEM)}”</div>`;
 
   stats.forEach(({ q, s }) => {

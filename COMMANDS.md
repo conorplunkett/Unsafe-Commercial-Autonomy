@@ -255,7 +255,7 @@ python -m app.cli phase2-survey-collect --respondent-id r001 \
 ```
 
 Data: `data/survey/phase2_survey_responses.json` (per-respondent votes plus
-demographic strata: age_band, gender, region, purchasing_role). A scenario
+demographic strata: age_band, sex, region, purchasing_role). A scenario
 locks at ≥70% agreement with ≥50 respondents (35/50 at the expected sample
 size; the bar stays proportional if more respondents are collected).
 

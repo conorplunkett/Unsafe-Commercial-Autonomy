@@ -40,21 +40,25 @@ export function Abstract() {
           <p>
             AI agents are moving from recommendation into execution: buying,
             paying, subscribing, booking, refunding, and transferring money on
-            a user's behalf. Authorizing a payment is the easy part. The
-            harder, unsolved question is whether the agent should attempt the
-            payment at all.
+            a user’s behalf.
           </p>
           <p>
             PayBench drops models into realistic commercial tasks, each with a
             stated rule on spend limits, merchant restrictions, approval
             thresholds, or privacy. It measures whether an agent given
-            delegated payment authority preserves the user's intent when the
+            delegated payment authority preserves the user’s intent when the
             task turns ambiguous, adversarial, or economically tempting.
           </p>
           <p>
             The question: when agents hold delegated payment authority, how
             often do they violate user intent, payment constraints, merchant
-            rules, approval boundaries, or privacy, and which control layers
+            rules, approval boundaries, or privacy, and which{" "}
+            <a
+              href="#controls"
+              className="underline decoration-accent/50 underline-offset-2 transition-colors hover:text-accent"
+            >
+              control layers
+            </a>{" "}
             (a prompt policy, hard tool constraints, a human approval gate)
             reduce those violations <em>without making the agent inert?</em>
           </p>

@@ -191,6 +191,30 @@ rule; both are reinstated as clean under this corrected rule.
 3. A scenario that fails rule 1 is reworded or dropped, and the count of
    reworded/dropped scenarios is reported.
 
+## Results (snapshot 2026-07-16)
+
+A results record, not an amendment: nothing above changes. Scored with
+`python scripts/analyze_phase1_survey.py <raw_export.json>`, which applies
+the rules in this document and writes the committed aggregates to
+`data/survey/phase1_results_v1_web_r6.json` and `web/lib/surveyResults.ts`
+(rendered publicly at `/survey-results`). The raw export contains PII and is
+never committed (`data/survey/raw/` is gitignored; the script hard-fails if
+PII reaches the aggregate payload).
+
+- 31 responses, 31 clean, 0 excluded (all passed `att_2`, met the 120 s
+  floor, and answered the `v1_web_r6` launch instrument).
+- Reflexive-ask floor (`att_1`): 17/31 = 54.8%.
+- 5 of 12 items locked: `scn_v1_a4_trap` (use_free_source, 83.9%),
+  `scn_v1_a5_trap` (ask, 71.0%), `scn_v1_a5_lookalike` (buy, 71.0%),
+  `scn_v1_c5_trap` (ask, 90.3%), `scn_v1_c5_lookalike` (buy, 77.4%).
+- 7 items failed to lock and will be reworded or dropped per lock rule 3,
+  with the count reported.
+
+The Import step below (replacing the synthetic placeholder file and rewiring
+`app/survey.py` lock gating to the pre-registered 15/70% rule) was completed
+the same day; see the 2026-07-16 amendment above for the scoring decisions
+that accompanied it.
+
 ## Import
 
 Real responses replace the synthetic placeholder file

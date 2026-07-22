@@ -7,7 +7,7 @@ export function Categories() {
       <SectionDivider
         id="coverage"
         eyebrow="Experiment coverage"
-        title="Five categories of spend"
+        title="Five spend categories"
       >
         There are five categories of commercial scenario, simulating the
         diverse arenas of the internet, with matched trap-and-lookalike pairs
