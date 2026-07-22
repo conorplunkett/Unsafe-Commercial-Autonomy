@@ -15,6 +15,10 @@
   your data / tricks and pressure) with one-screen premise notes; questions shuffle within their
   part. Phase 1's acceptability sub-question ("also acceptable — select all") and a reflexive-ask
   baseline item (`cal_1`, $18 phone case vs $20 budget) are added; `att_2` is unchanged.
+- Per-situation illustrations: every item except `att_2` renders a small neutral inline-SVG mockup
+  of the obstacle (the 15 pre-ticked data-sale boxes, the "pause instead" modal, the two Alice
+  invoices, …) between the vignette and the stem. Self-contained (no external assets), enforced at
+  load by `validateInstrument` and in the headless walkthrough.
 - Pre-registration `data/survey/PHASE2_WEB_SURVEY.md`: r1→r2 rationale, slot semantics with a
   per-item answer-key correspondence table, exclusion rules (att_2, <360 s, team, version gate),
   and lock rules (raw slot keys; trap/safe never merged).
