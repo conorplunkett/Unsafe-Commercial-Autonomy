@@ -9,6 +9,11 @@ const state = {
   officialSelectedKey: null,
   officialRuns: [],
   officialRunId: null,
+  // Every result from every local run, flattened, for the by-model view.
+  allResults: [],
+  allRunCount: 0,
+  modelFilter: null,
+  modelSelectedKey: null,
 };
 
 // Read-only Supabase config for published "Official run" results. The "Run it
@@ -83,6 +88,19 @@ const els = {
   officialDetailContent: document.querySelector("#officialDetailContent"),
   officialTaxonomyTable: document.querySelector("#officialTaxonomyTable"),
   officialTaxonomyCount: document.querySelector("#officialTaxonomyCount"),
+  // by-model dashboard elements
+  modelSectionDivider: document.querySelector("#modelSectionDivider"),
+  modelSectionMeta: document.querySelector("#modelSectionMeta"),
+  modelDashboard: document.querySelector("#modelDashboard"),
+  chartUnsafe: document.querySelector("#chartUnsafe"),
+  chartRefusal: document.querySelector("#chartRefusal"),
+  chartWelfare: document.querySelector("#chartWelfare"),
+  modelSummaryTable: document.querySelector("#modelSummaryTable"),
+  modelSummaryStamp: document.querySelector("#modelSummaryStamp"),
+  modelResultsTable: document.querySelector("#modelResultsTable"),
+  modelResultsStamp: document.querySelector("#modelResultsStamp"),
+  modelDetailVerdict: document.querySelector("#modelDetailVerdict"),
+  modelDetailContent: document.querySelector("#modelDetailContent"),
   heroUnsafe: document.querySelector("#heroUnsafe"),
   heroRefusal: document.querySelector("#heroRefusal"),
   heroWelfare: document.querySelector("#heroWelfare"),
@@ -121,7 +139,10 @@ function compactTime(isoDate) {
 }
 
 function resultKey(result) {
-  return `${result.scenario_id}::${result.model_id || result.agent_id}::${result.control_condition || "legacy"}::${result.seed || 0}`;
+  // run_id is only attached to results flattened for the by-model view, where
+  // the same scenario/model/condition/seed combo can recur across runs.
+  const runPrefix = result.run_id ? `${result.run_id}::` : "";
+  return `${runPrefix}${result.scenario_id}::${result.model_id || result.agent_id}::${result.control_condition || "legacy"}::${result.seed || 0}`;
 }
 
 function currentFilters() {
@@ -633,6 +654,119 @@ async function selectOfficialRun(runId) {
   renderHeroStats();
 }
 
+function modelLabel(result) {
+  return result.model_name || result.agent_name || result.model_id || result.agent_id || "unknown";
+}
+
+// Flatten every stored local run into one result list so models can be
+// compared across runs (each run tests one model at a time).
+async function loadAllRuns() {
+  const runList = await fetchJson("/api/runs").catch(() => []);
+  const runs = await Promise.all(
+    runList.map((meta) => fetchJson(`/api/runs/${meta.run_id}`).catch(() => null))
+  );
+  const flattened = [];
+  let runCount = 0;
+  for (const run of runs) {
+    if (!run || !run.results) continue;
+    runCount += 1;
+    for (const result of run.results) {
+      flattened.push({ ...result, run_id: run.run_id, run_created_at: run.created_at });
+    }
+  }
+  state.allResults = flattened;
+  state.allRunCount = runCount;
+}
+
+function modelGroups() {
+  const groups = new Map();
+  for (const result of state.allResults) {
+    const label = modelLabel(result);
+    if (!groups.has(label)) groups.set(label, []);
+    groups.get(label).push(result);
+  }
+  const rows = [...groups.entries()].map(([label, results]) => ({
+    label,
+    results,
+    runs: new Set(results.map((result) => result.run_id)).size,
+    metrics: summarize(results),
+  }));
+  rows.sort((a, b) => b.metrics.unsafePaymentRate - a.metrics.unsafePaymentRate);
+  return rows;
+}
+
+function renderModelChart(rows, chartEl, metricKey) {
+  // All three metrics are rates, so bars share a fixed 0–100% scale rather
+  // than stretching to the chart's max — a 5% rate must look like 5%.
+  chartEl.innerHTML = rows
+    .map((row) => {
+      const value = row.metrics[metricKey];
+      const width = Math.max(value * 100, value > 0 ? 1.5 : 0);
+      return `
+        <div class="bar-row" title="${row.label} · n=${row.metrics.total}">
+          <span class="bar-name">${row.label}</span>
+          <div class="bar-track"><div class="bar-fill" style="width:${width}%"></div></div>
+          <span class="bar-value">${percent(value)}</span>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+function renderModelSummary(rows) {
+  els.modelSummaryTable.innerHTML = rows
+    .map((row) => {
+      const selected = state.modelFilter === row.label ? "selected" : "";
+      return `
+        <tr class="${selected}" data-model="${row.label}">
+          <td>${row.label}</td>
+          <td>${row.metrics.total}</td>
+          <td>${row.runs}</td>
+          <td>${percent(row.metrics.unsafePaymentRate)}</td>
+          <td>${percent(row.metrics.falseRefusalRate)}</td>
+          <td>${percent(row.metrics.toolBlocksRate)}</td>
+          <td>${percent(row.metrics.userWelfareScore)}</td>
+        </tr>
+      `;
+    })
+    .join("");
+}
+
+function renderModelSection() {
+  const hasResults = state.allResults.length > 0;
+  els.modelSectionDivider.hidden = !hasResults;
+  els.modelDashboard.hidden = !hasResults;
+  if (!hasResults) return;
+
+  const rows = modelGroups();
+  if (state.modelFilter && !rows.some((row) => row.label === state.modelFilter)) {
+    state.modelFilter = null;
+  }
+  const modelCount = rows.length;
+  els.modelSectionMeta.textContent = `${state.allResults.length} results · ${state.allRunCount} run${
+    state.allRunCount === 1 ? "" : "s"
+  } · ${modelCount} model${modelCount === 1 ? "" : "s"}`;
+
+  renderModelChart(rows, els.chartUnsafe, "unsafePaymentRate");
+  renderModelChart(rows, els.chartRefusal, "falseRefusalRate");
+  renderModelChart(rows, els.chartWelfare, "userWelfareScore");
+  renderModelSummary(rows);
+
+  const filtered = state.modelFilter
+    ? state.allResults.filter((result) => modelLabel(result) === state.modelFilter)
+    : state.allResults;
+  els.modelResultsStamp.textContent = state.modelFilter
+    ? `${state.modelFilter} · ${filtered.length} results`
+    : `All models · ${filtered.length} results`;
+  renderResults(
+    filtered,
+    () => state.modelSelectedKey,
+    (k) => { state.modelSelectedKey = k; },
+    els.modelResultsTable,
+  );
+  renderDetail(filtered, state.modelSelectedKey, els.modelDetailVerdict, els.modelDetailContent);
+}
+
 async function runBenchmark() {
   const filters = currentFilters();
   const selectedScenarioIds =
@@ -682,6 +816,8 @@ async function runBenchmark() {
     });
     state.selectedResultKey = null;
     renderAll();
+    await loadAllRuns();
+    renderModelSection();
   } finally {
     els.runButton.disabled = false;
     els.runButton.innerHTML = RUN_BUTTON_LABEL;
@@ -737,6 +873,20 @@ function bindEvents() {
     state.officialSelectedKey = row.dataset.resultKey;
     renderOfficialAll();
   });
+  els.modelSummaryTable.addEventListener("click", (event) => {
+    const row = event.target.closest("tr[data-model]");
+    if (!row) return;
+    // Clicking the active model clears the filter back to all models.
+    state.modelFilter = state.modelFilter === row.dataset.model ? null : row.dataset.model;
+    state.modelSelectedKey = null;
+    renderModelSection();
+  });
+  els.modelResultsTable.addEventListener("click", (event) => {
+    const row = event.target.closest("tr[data-result-key]");
+    if (!row) return;
+    state.modelSelectedKey = row.dataset.resultKey;
+    renderModelSection();
+  });
   if (els.officialRunSelect) {
     els.officialRunSelect.addEventListener("change", (event) => {
       selectOfficialRun(event.target.value);
@@ -766,9 +916,10 @@ async function init() {
     renderScenarioFilters();
     syncByokUi();
     bindEvents();
-    await Promise.all([loadOfficialRun(), loadInitialRun()]);
+    await Promise.all([loadOfficialRun(), loadInitialRun(), loadAllRuns()]);
     renderOfficialAll();
     renderAll();
+    renderModelSection();
   } catch (error) {
     els.detailContent.className = "detail-content empty-state";
     els.detailContent.textContent = error.message;
