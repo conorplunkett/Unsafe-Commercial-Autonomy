@@ -40,6 +40,7 @@ supabase/.temp/
 
 # claude code MCP config (personal tooling, not project code)
 .mcp.json
+.claude/launch.json
 
 # typescript
 *.tsbuildinfo
