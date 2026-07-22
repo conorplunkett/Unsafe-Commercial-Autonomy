@@ -106,6 +106,16 @@ each an application of a rule already in this document:
    sets preserved under `respondents_raw`; respondent ids anonymized, emails
    never committed).
 
+**Survey close (2026-07-16, after the answer-key lock).** The live page stays
+up and keeps recording responses to the same Supabase table with unchanged
+wording, but submissions now carry `meta.survey_version =
+"v1_web_r6_postlock"`. The launch-version gate — already enforced by the
+import filter, `scripts/analyze_phase1_survey.py` (`LAUNCH_VERSION`), and
+`web/public/admin.html` — therefore excludes them from the answer-key and
+results analyses automatically: late data is preserved for future instrument
+revisions, and can never move the locked key. The page tells respondents this
+up front.
+
 ## Instrument
 
 - Live at `https://unsafe-commercial-autonomy.vercel.app/survey`

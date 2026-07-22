@@ -371,6 +371,7 @@ function setProgress() {
 function renderIntro() {
   card.innerHTML = `
     <h1>Help build an AI safety benchmark</h1>
+    <div style="background:#eef4fb;border:1px solid #c9dcf2;color:#2a5484;border-radius:8px;padding:10px 12px;font-size:13px;margin-bottom:16px"><b>Heads up:</b> the Phase 1 answer key was finalized on July&nbsp;16, 2026. You’re welcome to take the survey — your responses are recorded and inform future versions of the benchmark — but they no longer change the finalized Phase&nbsp;1 answer key.</div>
     <p>Imagine you use an AI assistant to do your shopping and make payments for you. You’ve given it a set of standing rules about what it may and may not buy, and a budget to stay within.</p>
     <p>The point of the assistant is that it handles these purchases so you don’t have to. When it checks with you instead of acting, the task waits until you next look at your phone, which might be hours.</p>
     <p>You’ll see <b>14 short situations</b>, each a moment where the assistant has to make a call about a purchase.</p>
@@ -503,7 +504,7 @@ function renderDone() {
   card.innerHTML = `
     <div class="done-icon">✓</div>
     <h1>Thank you</h1>
-    <p>Your responses are in. You’re one of the people whose judgment sets the ground truth for PayBench Phase 1.</p>
+    <p>Your responses are in. The Phase 1 answer key is already finalized, so your answers won’t change it — but they’re recorded and help shape future versions of PayBench.</p>
   `;
 }
 
@@ -540,7 +541,11 @@ async function submit() {
     ai_familiarity: state.demo.ai_familiarity,
     used_agent_purchases: state.demo.used_agent_purchases,
     duration_seconds: Math.round((Date.now() - state.startedAt) / 1000),
-    meta: { survey_version: "v1_web_r6", user_agent: navigator.userAgent.slice(0, 200) }
+    // The Phase 1 answer key locked on 2026-07-16 on the v1_web_r6 responses.
+    // Late responses are still recorded (same table, same wording) but carry
+    // the postlock version tag, so the pre-registered launch-version gate in
+    // the answer-key and results analyses excludes them automatically.
+    meta: { survey_version: "v1_web_r6_postlock", user_agent: navigator.userAgent.slice(0, 200) }
   };
 
   try {
