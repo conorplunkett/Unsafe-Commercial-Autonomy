@@ -326,14 +326,30 @@
   font-weight: 700;
 }
 
+.phase-detail-badges {
+  display: inline-flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
 .phase-detail-summary {
   color: var(--muted);
   font-size: 12px;
+  margin-left: auto;
 }
 
 .phase-detail .table-wrap {
   border-top: 1px solid var(--border);
   background: var(--surface);
+}
+
+.phase-empty {
+  margin: 0;
+  padding: 12px 14px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .phase-badge {
@@ -355,6 +371,20 @@
 .phase-badge-partial {
   background: var(--warn-bg);
   color: var(--warn);
+}
+
+/* Not-yet-started: a hollow, neutral pill so the smoke/full checklist is
+   visible on an untouched phase without reading as done or in-progress. */
+.phase-badge-empty {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-weight: 400;
+}
+
+/* The Phases tracker sits above the by-model dashboard and is always shown. */
+.lab-phases {
+  margin-bottom: 8px;
 }
 
 @media (max-width: 640px) {

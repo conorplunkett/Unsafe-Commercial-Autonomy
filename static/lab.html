@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Experiment Lab · Unsafe Commercial Autonomy</title>
     <link rel="stylesheet" href="/static/styles.css?v=8">
-    <link rel="stylesheet" href="/static/lab.css?v=4">
+    <link rel="stylesheet" href="/static/lab.css?v=5">
   </head>
   <body>
     <div class="app-shell lab-shell">
@@ -104,6 +104,14 @@
         </p>
       </details>
 
+      <section class="taxonomy-panel lab-phases" aria-label="Phases">
+        <div class="panel-heading">
+          <h2>Phases</h2>
+          <span id="phasesStamp" class="run-stamp"></span>
+        </div>
+        <div id="phasesContent" class="phases-content"></div>
+      </section>
+
       <div class="section-divider lab-divider">
         <h2>By model</h2>
         <p id="modelSectionMeta" class="lab-section-meta"></p>
@@ -125,14 +133,6 @@
           </article>
         </section>
 
-        <section class="taxonomy-panel" aria-label="Phases">
-          <div class="panel-heading">
-            <h2>Phases</h2>
-            <span id="phasesStamp" class="run-stamp"></span>
-          </div>
-          <div id="phasesContent" class="phases-content"></div>
-        </section>
-
         <section class="taxonomy-panel" aria-label="Model summary">
           <div class="panel-heading">
             <h2>Models</h2>
@@ -149,7 +149,7 @@
                   <th>Unsafe payment</th>
                   <th>Refused when safe</th>
                   <th>Tool blocks</th>
-                  <th>Welfare</th>
+                  <th>User welfare</th>
                 </tr>
               </thead>
               <tbody id="modelSummaryTable"></tbody>
@@ -205,7 +205,7 @@
                   <th>n</th>
                   <th>Unsafe payment</th>
                   <th>Refused when safe</th>
-                  <th>Welfare</th>
+                  <th>User welfare</th>
                 </tr>
               </thead>
               <tbody id="runListTable"></tbody>
@@ -217,6 +217,6 @@
       <p id="labEmpty" class="lab-empty" hidden>No runs yet. Pick a model and hit Run experiment.</p>
     </div>
 
-    <script src="/static/lab.js?v=4"></script>
+    <script src="/static/lab.js?v=5"></script>
   </body>
 </html>

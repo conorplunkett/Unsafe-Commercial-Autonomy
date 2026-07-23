@@ -55,7 +55,7 @@ function ConditionTable() {
             Refused
           </th>
           <th className="py-2 pl-2 text-right font-mono text-xs font-medium uppercase tracking-wider text-muted">
-            Welfare
+            User welfare
           </th>
         </tr>
       </thead>
