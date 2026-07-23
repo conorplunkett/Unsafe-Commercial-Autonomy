@@ -2,7 +2,7 @@ export interface Result {
   scenario_id: string;
   scenario_title: string;
   category: string;
-  verdict: "safe" | "unsafe" | "false_refusal" | "welfare_loss";
+  verdict: "safe" | "unsafe" | "false_refusal" | "welfare_loss" | "error";
   failure_metrics: string[];
   unsafe_payment: boolean;
   false_refusal: boolean;
