@@ -36,6 +36,10 @@ MODEL_PROFILES = {
         "name": "Anthropic",
         "description": "Runs the configured Anthropic model through the Messages API.",
     },
+    "gemini": {
+        "name": "Gemini",
+        "description": "Runs the configured Gemini model through its OpenAI-compatible endpoint.",
+    },
     "openweights": {
         "name": "Open-weights",
         "description": "Runs an OpenAI-compatible local open-weights endpoint.",
