@@ -733,55 +733,95 @@ function renderDetail(results) {
   `;
 }
 
-// Group every result by phase, then by model within the phase, so the Phases
-// section can show each phase's completion and per-phase metrics independently
-// — this is the one place a model's Phase 1 and Phase 2 numbers sit side by
-// side, since the charts above collapse to the single highest completed phase.
+// Every phase the loaded scenario sets define (v1 -> "1", v2 -> "2"), plus any
+// phase that only shows up in results (e.g. "?" for a custom set). Sorted, and
+// present regardless of whether anything has run, so the Phases tracker always
+// lists the phases as a roadmap rather than appearing only once data exists.
+function knownPhaseIds() {
+  const ids = new Set();
+  for (const scenarioId of state.scenarioIndex.keys()) {
+    const phase = scenarioPhaseNumber(scenarioId);
+    if (phase) ids.add(phase);
+  }
+  for (const result of state.allResults) {
+    ids.add(scenarioPhaseNumber(result.scenario_id) || "?");
+  }
+  return [...ids].sort((a, b) => a.localeCompare(b));
+}
+
+// One entry per known phase: the phase-level smoke/full status (has anything
+// run at all; has the full suite been covered under every condition) plus the
+// per-model breakdown. Phases with no runs still get an entry so the tracker
+// shows them as not-yet-started.
 function phasesBreakdown() {
-  const byPhase = new Map();
+  const byModel = new Map(); // phase -> Map(model -> results[])
+  const byPhase = new Map(); // phase -> results[]
   for (const result of state.allResults) {
     const phase = scenarioPhaseNumber(result.scenario_id) || "?";
-    if (!byPhase.has(phase)) byPhase.set(phase, new Map());
-    const models = byPhase.get(phase);
+    if (!byModel.has(phase)) {
+      byModel.set(phase, new Map());
+      byPhase.set(phase, []);
+    }
+    byPhase.get(phase).push(result);
+    const models = byModel.get(phase);
     const label = modelLabel(result);
     if (!models.has(label)) models.set(label, []);
     models.get(label).push(result);
   }
-  return [...byPhase.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([phase, models]) => {
-      const total = phase === "?" ? 0 : phaseTotal(phase);
-      const rows = [...models.entries()]
-        .map(([label, results]) => ({
-          label,
-          results,
-          // results here are all one phase, so phaseStatuses has one entry.
-          status: phaseStatuses(results)[0],
-          metrics: summarize(results),
-        }))
-        .sort((a, b) => b.metrics.unsafePaymentRate - a.metrics.unsafePaymentRate);
-      return {
-        phase,
-        total,
-        rows,
-        completeCount: rows.filter((row) => row.status.full).length,
-      };
-    });
+  return knownPhaseIds().map((phase) => {
+    const total = phase === "?" ? 0 : phaseTotal(phase);
+    const all = byPhase.get(phase) || [];
+    const coveredScenarios = new Set(all.map((r) => r.scenario_id)).size;
+    const conditions = new Set(all.map((r) => r.control_condition).filter(Boolean));
+    const smoke = all.length > 0;
+    const full =
+      total > 0 &&
+      coveredScenarios >= total &&
+      CONDITION_ORDER.every((condition) => conditions.has(condition));
+    const rows = [...(byModel.get(phase) || new Map()).entries()]
+      .map(([label, results]) => ({
+        label,
+        results,
+        status: phaseStatuses(results)[0], // results all in one phase
+        metrics: summarize(results),
+      }))
+      .sort((a, b) => b.metrics.unsafePaymentRate - a.metrics.unsafePaymentRate);
+    return { phase, total, rows, coveredScenarios, conditions: conditions.size, smoke, full };
+  });
+}
+
+// smoke / full-suite pills for a phase header — always both shown, so an
+// untouched phase reads as "smoke and full still to do" rather than blank.
+function phaseStatusBadges(entry) {
+  const smoke = entry.smoke
+    ? `<span class="phase-badge phase-badge-done">✓ smoke</span>`
+    : `<span class="phase-badge phase-badge-empty">smoke</span>`;
+  let full;
+  if (entry.full) {
+    full = `<span class="phase-badge phase-badge-done">✓ full suite</span>`;
+  } else if (entry.smoke) {
+    full = `<span class="phase-badge phase-badge-partial">full ${entry.coveredScenarios}/${
+      entry.total || "—"
+    }</span>`;
+  } else {
+    full = `<span class="phase-badge phase-badge-empty">full ${
+      entry.total ? `0/${entry.total}` : "—"
+    }</span>`;
+  }
+  return smoke + full;
 }
 
 function renderPhases() {
   const breakdown = phasesBreakdown();
-  els.phasesStamp.textContent = breakdown.length
-    ? `${breakdown.length} phase${breakdown.length === 1 ? "" : "s"} touched`
-    : "";
+  const started = breakdown.filter((entry) => entry.smoke).length;
+  els.phasesStamp.textContent = `${started} of ${breakdown.length} started`;
   els.phasesContent.innerHTML = breakdown
     .map((entry, index) => {
-      const heading =
-        entry.phase === "?" ? "Custom scenarios" : `Phase ${entry.phase}`;
+      const heading = entry.phase === "?" ? "Custom scenarios" : `Phase ${entry.phase}`;
       const summary = entry.total
-        ? `${entry.completeCount} of ${entry.rows.length} model${
+        ? `${entry.coveredScenarios}/${entry.total} scenarios · ${entry.conditions}/${CONDITION_ORDER.length} conditions · ${entry.rows.length} model${
             entry.rows.length === 1 ? "" : "s"
-          } complete · ${entry.total} scenarios × ${CONDITION_ORDER.length} conditions`
+          }`
         : `${entry.rows.length} model${entry.rows.length === 1 ? "" : "s"}`;
       const bodyRows = entry.rows
         .map((row) => {
@@ -807,14 +847,8 @@ function renderPhases() {
           `;
         })
         .join("");
-      // Default-open the first phase; deeper phases start collapsed.
-      return `
-        <details class="phase-detail" ${index === 0 ? "open" : ""}>
-          <summary>
-            <span class="phase-detail-title">${heading}</span>
-            <span class="phase-detail-summary">${summary}</span>
-          </summary>
-          <div class="table-wrap">
+      const body = entry.rows.length
+        ? `<div class="table-wrap">
             <table>
               <thead>
                 <tr>
@@ -824,12 +858,22 @@ function renderPhases() {
                   <th>Conditions</th>
                   <th>Unsafe payment</th>
                   <th>Refused when safe</th>
-                  <th>Welfare</th>
+                  <th>User welfare</th>
                 </tr>
               </thead>
               <tbody>${bodyRows}</tbody>
             </table>
-          </div>
+          </div>`
+        : `<p class="phase-empty">No runs yet for this phase.</p>`;
+      // Phase 1 opens by default; deeper phases start collapsed.
+      return `
+        <details class="phase-detail" ${index === 0 ? "open" : ""}>
+          <summary>
+            <span class="phase-detail-title">${heading}</span>
+            <span class="phase-detail-badges">${phaseStatusBadges(entry)}</span>
+            <span class="phase-detail-summary">${summary}</span>
+          </summary>
+          ${body}
         </details>
       `;
     })
@@ -861,6 +905,10 @@ function renderAll() {
   const hasResults = state.allResults.length > 0;
   els.modelDashboard.hidden = !hasResults;
   els.labEmpty.hidden = hasResults;
+  // The Phases tracker is a roadmap: it lists every phase (with smoke / full
+  // status) whether or not anything has run, so it renders before the
+  // no-results early return below.
+  renderPhases();
   if (!hasResults) {
     els.modelSectionMeta.textContent = "";
     // Distinguish "genuinely no runs" from "runs exist but the server couldn't
@@ -887,7 +935,6 @@ function renderAll() {
   renderModelChart(rows, els.chartUnsafe, "unsafePaymentRate");
   renderModelChart(rows, els.chartRefusal, "falseRefusalRate");
   renderModelChart(rows, els.chartWelfare, "userWelfareScore");
-  renderPhases();
 
   els.modelSummaryTable.innerHTML = rows
     .map((row) => {

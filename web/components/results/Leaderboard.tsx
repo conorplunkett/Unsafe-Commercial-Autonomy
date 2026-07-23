@@ -40,7 +40,7 @@ export function Leaderboard() {
                 Refused when safe
               </th>
               <th className="py-2 px-2 text-right font-mono text-xs font-medium uppercase tracking-wider text-muted">
-                Welfare
+                User welfare
               </th>
               <th className="py-2 pl-2 text-right font-mono text-xs font-medium uppercase tracking-wider text-muted">
                 n
