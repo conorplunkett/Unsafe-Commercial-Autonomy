@@ -271,6 +271,15 @@ demographic strata: age_band, sex, region, purchasing_role). A scenario
 locks at ≥70% agreement with ≥50 respondents (35/50 at the expected sample
 size; the bar stays proportional if more respondents are collected).
 
+The CLI collector above is a fallback instrument with coarse votes
+(`purchase`/`ask_approval`/`refuse`/`use_free_source`). The primary
+instrument is the web survey at `/phase2-survey`
+(`web/public/phase2-survey.html`, instrument `v2_web_r2`), which stores
+per-item slot keys (`proceed_trap`/`proceed_safe`/`ask_approval`/`refuse`)
+defined in `data/survey/PHASE2_WEB_SURVEY.md`; guard tests in
+`tests/test_phase2_web_instrument.py` keep the page's question set in sync
+with the answer key.
+
 ### `phase2-human-baseline` — human calibration sessions
 
 ```bash

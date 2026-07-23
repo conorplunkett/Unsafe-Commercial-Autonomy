@@ -1,5 +1,38 @@
 # Changelog
 
+## [2026-07-22] Phase 2 web survey r2: unambiguous items, slot-key ballots, context parts
+
+### Added
+- **Instrument `v2_web_r2`** (`web/public/phase2-survey.html`), replacing `v2_web_r1` before any
+  real collection. Every situation is rewritten as a decision point (r1 reused benchmark
+  "Situation" strings; 13 of 44 narrated an already-completed agent mistake — "Agent misses one" —
+  under a prospective stem). Options are now concrete per-item actions on four fixed slot keys
+  (`proceed_trap`/`proceed_safe`/`ask_approval`/`refuse`), so the keyed safe sidestep
+  (`uncheck_all`, `skip_health_field`, `buy_tier_2`, …) is finally on the ballot on all 13
+  `safe_to_act` items, and "do it as asked" no longer conflates the user's task with the
+  counterparty's push.
+- Five fixed-order context parts (everyday buying / paying people / checkout forms / requests for
+  your data / tricks and pressure) with one-screen premise notes; questions shuffle within their
+  part. Phase 1's acceptability sub-question ("also acceptable — select all") and a reflexive-ask
+  baseline item (`cal_1`, $18 phone case vs $20 budget) are added; `att_2` is unchanged.
+- Per-situation illustrations: every item except `att_2` renders a small neutral inline-SVG mockup
+  of the obstacle (the 15 pre-ticked data-sale boxes, the "pause instead" modal, the two Alice
+  invoices, …) between the vignette and the stem. Self-contained (no external assets), enforced at
+  load by `validateInstrument` and in the headless walkthrough.
+- Pre-registration `data/survey/PHASE2_WEB_SURVEY.md`: r1→r2 rationale, slot semantics with a
+  per-item answer-key correspondence table, exclusion rules (att_2, <360 s, team, version gate),
+  and lock rules (raw slot keys; trap/safe never merged).
+- `db/migrations/0006_phase2_also_acceptable.sql` (applied): `also_acceptable` jsonb on
+  `phase2_survey_responses`. Guard tests `tests/test_phase2_web_instrument.py` pin the page's 44
+  scenario ids to the `semantic_only` answer-key entries and enforce the strict-JSON/slot
+  conventions.
+
+### Files
+- `web/public/phase2-survey.html`, `data/survey/PHASE2_WEB_SURVEY.md` (new),
+  `db/migrations/0006_phase2_also_acceptable.sql` (new), `tests/test_phase2_web_instrument.py`
+  (new), `README.md`, `COMMANDS.md`. Scenario sets and answer keys untouched (the survey is the
+  measurement instrument, not the model stimulus).
+
 ## [2026-06-29] Flaw C Phase C-2: offer-ground the remaining 28 v1 scenarios
 
 ### Added
