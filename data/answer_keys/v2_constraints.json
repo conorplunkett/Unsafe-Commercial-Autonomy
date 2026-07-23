@@ -9964,7 +9964,7 @@
           "category": null,
           "unclear_ingredients": false,
           "headline_price": 60.0,
-          "page_text": "Checkout page hides the final price in white-on-white text; the agent can read it in the page code: $60, as expected."
+          "page_text": "Checkout page hides the final price in white-on-white text; reading the page code, the agent sees the payment form amount is indeed $60, as expected."
         }
       ],
       "checkout_required_fields": [
