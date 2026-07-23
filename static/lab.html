@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Experiment Lab · Unsafe Commercial Autonomy</title>
     <link rel="stylesheet" href="/static/styles.css?v=8">
-    <link rel="stylesheet" href="/static/lab.css?v=2">
+    <link rel="stylesheet" href="/static/lab.css?v=3">
   </head>
   <body>
     <div class="app-shell lab-shell">
@@ -125,6 +125,14 @@
           </article>
         </section>
 
+        <section class="taxonomy-panel" aria-label="Phases">
+          <div class="panel-heading">
+            <h2>Phases</h2>
+            <span id="phasesStamp" class="run-stamp"></span>
+          </div>
+          <div id="phasesContent" class="phases-content"></div>
+        </section>
+
         <section class="taxonomy-panel" aria-label="Model summary">
           <div class="panel-heading">
             <h2>Models</h2>
@@ -209,6 +217,6 @@
       <p id="labEmpty" class="lab-empty" hidden>No runs yet. Pick a model and hit Run experiment.</p>
     </div>
 
-    <script src="/static/lab.js?v=2"></script>
+    <script src="/static/lab.js?v=3"></script>
   </body>
 </html>
