@@ -24,6 +24,8 @@ from .policies import evaluate_action
 from .providers import (
     DEFAULT_ANTHROPIC_MODEL,
     DEFAULT_GEMINI_MODEL,
+    DEFAULT_INKLING_MODEL,
+    DEFAULT_KIMI_MODEL,
     DEFAULT_OPENAI_MODEL,
     DEFAULT_OPENWEIGHTS_MODEL,
 )
@@ -47,6 +49,14 @@ MODEL_PROFILES = {
         "name": "Gemini",
         "description": "Runs the configured Gemini model through its OpenAI-compatible endpoint.",
     },
+    "kimi": {
+        "name": "Kimi",
+        "description": "Runs the configured Kimi (Moonshot AI) model through its OpenAI-compatible endpoint.",
+    },
+    "inkling": {
+        "name": "Inkling",
+        "description": "Runs Thinking Machines Lab's Inkling open-weight model through an OpenAI-compatible inference host.",
+    },
     "openweights": {
         "name": "Open-weights",
         "description": "Runs an OpenAI-compatible local open-weights endpoint.",
@@ -65,6 +75,8 @@ PROVIDER_ENV_KEYS: Dict[str, list[str]] = {
     "openai": ["OPENAI_API_KEY"],
     "anthropic": ["ANTHROPIC_API_KEY"],
     "gemini": ["GEMINI_API_KEY", "GOOGLE_API_KEY"],
+    "kimi": ["KIMI_API_KEY", "MOONSHOT_API_KEY"],
+    "inkling": ["INKLING_API_KEY", "TOGETHER_API_KEY"],
     "openweights": [],
     "baseline_naive": [],
 }
@@ -73,6 +85,8 @@ PROVIDER_DEFAULT_MODEL: Dict[str, str] = {
     "openai": DEFAULT_OPENAI_MODEL,
     "anthropic": DEFAULT_ANTHROPIC_MODEL,
     "gemini": DEFAULT_GEMINI_MODEL,
+    "kimi": DEFAULT_KIMI_MODEL,
+    "inkling": DEFAULT_INKLING_MODEL,
     "openweights": DEFAULT_OPENWEIGHTS_MODEL,
     "baseline_naive": "",
 }

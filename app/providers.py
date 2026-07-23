@@ -12,7 +12,7 @@ from .models import AgentAction, ControlCondition, Scenario, parse_model
 from .policy_text import render_policy_text, structured_policy_json
 
 
-DEFAULT_MODEL_IDS = ["openai", "anthropic", "gemini", "openweights", "baseline_naive"]
+DEFAULT_MODEL_IDS = ["openai", "anthropic", "gemini", "kimi", "inkling", "openweights", "baseline_naive"]
 # Defaults are each provider's cheapest current text model, so an eval without
 # an explicit *_MODEL env var burns the fewest dollars. Prices verified
 # 2026-07-22 (per 1M input/output tokens):
@@ -20,8 +20,13 @@ DEFAULT_MODEL_IDS = ["openai", "anthropic", "gemini", "openweights", "baseline_n
 #   claude-haiku-4-5       $1.00 / $5.00   (Anthropic model catalog)
 #   gemini-2.5-flash-lite  $0.10 / $0.40   (retires 2026-10-16; successor
 #                                           gemini-3.1-flash-lite $0.25/$1.50)
-# Override with OPENAI_MODEL / ANTHROPIC_MODEL / GEMINI_MODEL; the live-eval
-# preflight validates whichever id ends up selected before the grid runs.
+#   kimi-k2.6              $0.95 / $4.00   (platform.kimi.ai pricing; kimi-k2.5
+#                                           is cheaper at $0.60/$3.00 but is
+#                                           being phased out for new users)
+# Override with OPENAI_MODEL / ANTHROPIC_MODEL / GEMINI_MODEL / KIMI_MODEL; the
+# live-eval preflight validates whichever id ends up selected before the grid
+# runs. Inkling is a single open-weight model (no size tiers to pick a
+# "cheapest" from), so DEFAULT_INKLING_MODEL just pins the model slug.
 DEFAULT_OPENAI_MODEL = "gpt-5.4-nano"
 DEFAULT_REASONING_EFFORT = "low"
 # Effort tiers accepted by current gpt-5.x reasoning models. The old "minimal"
@@ -32,6 +37,23 @@ DEFAULT_ANTHROPIC_MODEL = "claude-haiku-4-5"
 DEFAULT_GEMINI_MODEL = "gemini-2.5-flash-lite"
 DEFAULT_OPENWEIGHTS_MODEL = ""
 GEMINI_OPENAI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai"
+
+# Kimi (Moonshot AI) — OpenAI-compatible chat-completions endpoint. Current
+# chat model family per platform.kimi.ai/docs/models (verified 2026-07-23):
+# kimi-k3 (flagship, 1M context), kimi-k2.7-code / kimi-k2.7-code-highspeed
+# (coding), kimi-k2.6 (general, optional thinking mode), and the legacy
+# moonshot-v1-* generation. kimi-k2.5 and the moonshot-v1 series are being
+# phased out for new users, so the default skips them.
+KIMI_BASE_URL = "https://api.moonshot.ai/v1"
+DEFAULT_KIMI_MODEL = "kimi-k2.6"
+
+# Inkling (Thinking Machines Lab) — an open-weight MoE model (41B active /
+# 975B total params, 1M context), not a family with size tiers. Served
+# OpenAI-compatible by several third-party inference providers (Together AI,
+# Fireworks, Modal, Databricks, Baseten); defaults target Together AI's slug
+# and can be pointed at another provider via INKLING_BASE_URL/INKLING_MODEL.
+DEFAULT_INKLING_BASE_URL = "https://api.together.xyz/v1"
+DEFAULT_INKLING_MODEL = "thinkingmachines/Inkling"
 
 
 class ProviderError(Exception):
@@ -233,6 +255,28 @@ def available_gemini_models(api_key: Optional[str] = None, prefix: str = "gemini
     return sorted(model_id for model_id in ids if model_id.startswith(prefix))
 
 
+def available_kimi_models(api_key: Optional[str] = None, prefix: str = "kimi") -> list[str]:
+    """List Kimi (Moonshot AI) model ids this key can use, via /v1/models.
+
+    Filters to `prefix` so the output is the current chat family, not the
+    legacy `moonshot-v1-*` generation being phased out for new users.
+    """
+    key = api_key or os.environ.get("KIMI_API_KEY") or os.environ.get("MOONSHOT_API_KEY")
+    if not key:
+        raise ProviderError("Provide a Kimi API key (or set KIMI_API_KEY) to list Kimi models.")
+    try:
+        response = httpx.get(
+            f"{KIMI_BASE_URL}/models",
+            headers={"Authorization": f"Bearer {key}"},
+            timeout=30,
+        )
+        response.raise_for_status()
+    except Exception as exc:
+        raise ProviderError(f"Could not list Kimi models: {exc}") from exc
+    ids = (item.get("id", "") for item in response.json().get("data", []))
+    return sorted(model_id for model_id in ids if model_id.startswith(prefix))
+
+
 def model_display_name(model_id: str) -> str:
     if model_id == "openai":
         return os.environ.get("OPENAI_MODEL", DEFAULT_OPENAI_MODEL)
@@ -240,6 +284,10 @@ def model_display_name(model_id: str) -> str:
         return os.environ.get("ANTHROPIC_MODEL", DEFAULT_ANTHROPIC_MODEL)
     if model_id == "gemini":
         return os.environ.get("GEMINI_MODEL", DEFAULT_GEMINI_MODEL)
+    if model_id == "kimi":
+        return os.environ.get("KIMI_MODEL", DEFAULT_KIMI_MODEL)
+    if model_id == "inkling":
+        return os.environ.get("INKLING_MODEL", DEFAULT_INKLING_MODEL)
     if model_id == "openweights":
         return os.environ.get("OPENWEIGHTS_MODEL", DEFAULT_OPENWEIGHTS_MODEL)
     return model_id
@@ -725,6 +773,167 @@ class GeminiProvider(BaseProvider):
         )
 
 
+class KimiProvider(BaseProvider):
+    """Kimi (Moonshot AI) via its OpenAI-compatible chat-completions endpoint.
+
+    Same request shape as GeminiProvider/OpenWeightsProvider (messages +
+    json_schema response_format); only the base URL, auth, and model listing
+    differ.
+    """
+
+    provider_id = "kimi"
+
+    def __init__(self, model_name: Optional[str] = None, api_key: Optional[str] = None):
+        self.model_name = model_name or os.environ.get("KIMI_MODEL", DEFAULT_KIMI_MODEL)
+        self.api_key = api_key
+
+    def _resolved_api_key(self) -> str:
+        if not self.model_name:
+            raise ProviderError("Provide a Kimi model name (or set KIMI_MODEL) to run the Kimi provider.")
+        api_key = self.api_key or os.environ.get("KIMI_API_KEY") or os.environ.get("MOONSHOT_API_KEY")
+        if not api_key:
+            raise ProviderError("Provide a Kimi API key (or set KIMI_API_KEY) to run the Kimi provider.")
+        return api_key
+
+    def preflight(self) -> None:
+        api_key = self._resolved_api_key()
+        # One cheap models-list call confirms the id exists for this key before
+        # the grid spends real generation calls on it (mirrors the Gemini
+        # preflight, since Kimi has no single-model retrieve endpoint).
+        model_ids = available_kimi_models(api_key=api_key, prefix="")
+        if self.model_name not in model_ids:
+            raise ProviderError(
+                f"Kimi model {self.model_name!r} is not available to this key. "
+                "List valid ids with `python -m app.cli models --provider kimi` and set KIMI_MODEL."
+            )
+
+    def generate_action(
+        self,
+        scenario: Scenario,
+        control_condition: ControlCondition,
+        seed: int,
+        temperature: float,
+    ) -> ProviderAction:
+        api_key = self._resolved_api_key()
+        # The chat-completions endpoint accepts system/user/assistant roles
+        # only, so remap the "developer" message (same as Gemini/open-weights).
+        messages = [
+            {**message, "role": "system"} if message["role"] == "developer" else message
+            for message in build_messages(scenario, control_condition, seed)
+        ]
+        try:
+            response = httpx.post(
+                f"{KIMI_BASE_URL}/chat/completions",
+                headers={"Authorization": f"Bearer {api_key}"},
+                json={
+                    "model": self.model_name,
+                    "messages": messages,
+                    "temperature": temperature,
+                    "response_format": {
+                        "type": "json_schema",
+                        "json_schema": {
+                            "name": "phase1_agent_action",
+                            "strict": True,
+                            "schema": ACTION_JSON_SCHEMA,
+                        },
+                    },
+                },
+                timeout=120,
+            )
+            response.raise_for_status()
+        except Exception as exc:
+            raise ProviderError(f"Kimi request failed: {exc}") from exc
+        payload = response.json()
+        raw_output = payload["choices"][0]["message"]["content"]
+        return ProviderAction(
+            raw_output=raw_output,
+            action=parse_action_json(raw_output),
+            provider_id=self.provider_id,
+            model_name=self.model_name,
+        )
+
+
+class InklingProvider(BaseProvider):
+    """Inkling (Thinking Machines Lab) via an OpenAI-compatible inference host.
+
+    Inkling is a single open-weight model, not a hosted-family API of its own —
+    it is served by third-party inference providers. Defaults target Together
+    AI's slug/endpoint; point INKLING_BASE_URL/INKLING_MODEL at Fireworks,
+    Modal, Databricks, or Baseten to use a different host.
+    """
+
+    provider_id = "inkling"
+
+    def __init__(
+        self,
+        model_name: Optional[str] = None,
+        base_url: Optional[str] = None,
+        api_key: Optional[str] = None,
+    ):
+        self.model_name = model_name or os.environ.get("INKLING_MODEL", DEFAULT_INKLING_MODEL)
+        self.base_url = (base_url or os.environ.get("INKLING_BASE_URL") or DEFAULT_INKLING_BASE_URL).rstrip("/")
+        self.api_key = api_key
+
+    def _resolved_api_key(self) -> str:
+        api_key = self.api_key or os.environ.get("INKLING_API_KEY") or os.environ.get("TOGETHER_API_KEY")
+        if not api_key:
+            raise ProviderError(
+                "Provide an Inkling API key (or set INKLING_API_KEY / TOGETHER_API_KEY) to run the Inkling provider."
+            )
+        return api_key
+
+    def preflight(self) -> None:
+        self._resolved_api_key()
+        if not self.model_name:
+            raise ProviderError("Provide an Inkling model name (or set INKLING_MODEL) to run the Inkling provider.")
+
+    def generate_action(
+        self,
+        scenario: Scenario,
+        control_condition: ControlCondition,
+        seed: int,
+        temperature: float,
+    ) -> ProviderAction:
+        api_key = self._resolved_api_key()
+        # Same OpenAI-compatible chat-completions shape as the open-weights
+        # provider; the "developer" role is remapped to "system".
+        messages = [
+            {**message, "role": "system"} if message["role"] == "developer" else message
+            for message in build_messages(scenario, control_condition, seed)
+        ]
+        try:
+            response = httpx.post(
+                f"{self.base_url}/chat/completions",
+                headers={"Authorization": f"Bearer {api_key}"},
+                json={
+                    "model": self.model_name,
+                    "messages": messages,
+                    "temperature": temperature,
+                    "seed": seed,
+                    "response_format": {
+                        "type": "json_schema",
+                        "json_schema": {
+                            "name": "phase1_agent_action",
+                            "strict": True,
+                            "schema": ACTION_JSON_SCHEMA,
+                        },
+                    },
+                },
+                timeout=120,
+            )
+            response.raise_for_status()
+        except Exception as exc:
+            raise ProviderError(f"Inkling request failed: {exc}") from exc
+        payload = response.json()
+        raw_output = payload["choices"][0]["message"]["content"]
+        return ProviderAction(
+            raw_output=raw_output,
+            action=parse_action_json(raw_output),
+            provider_id=self.provider_id,
+            model_name=self.model_name,
+        )
+
+
 class NaiveBaselineProvider(BaseProvider):
     """Always-cheapest, never-ask heuristic baseline from the research plan.
 
@@ -834,6 +1043,10 @@ def create_provider(
         return AnthropicProvider(model_name=model_name, api_key=api_key)
     if model_id == "gemini":
         return GeminiProvider(model_name=model_name, api_key=api_key)
+    if model_id == "kimi":
+        return KimiProvider(model_name=model_name, api_key=api_key)
+    if model_id == "inkling":
+        return InklingProvider(model_name=model_name, api_key=api_key)
     if model_id == "openweights":
         return OpenWeightsProvider(model_name=model_name)
     raise KeyError(f"Unknown model id {model_id}")

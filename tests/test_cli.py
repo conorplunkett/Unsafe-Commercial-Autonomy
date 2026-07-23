@@ -126,7 +126,14 @@ def test_cli_publish_human_baseline_refuses_example(capsys):
 def test_cli_models_lists_all_providers_and_skips_missing_keys(capsys, monkeypatch):
     # With no keys set, every provider is skipped with an actionable message
     # instead of crashing or making network calls.
-    for var in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "GOOGLE_API_KEY"):
+    for var in (
+        "OPENAI_API_KEY",
+        "ANTHROPIC_API_KEY",
+        "GEMINI_API_KEY",
+        "GOOGLE_API_KEY",
+        "KIMI_API_KEY",
+        "MOONSHOT_API_KEY",
+    ):
         monkeypatch.delenv(var, raising=False)
 
     status = main(["models"])
@@ -136,7 +143,8 @@ def test_cli_models_lists_all_providers_and_skips_missing_keys(capsys, monkeypat
     assert "== openai ==" in output
     assert "== anthropic ==" in output
     assert "== gemini ==" in output
-    assert output.count("skipped:") == 3
+    assert "== kimi ==" in output
+    assert output.count("skipped:") == 4
 
 
 def test_cli_models_rejects_unknown_provider(capsys):

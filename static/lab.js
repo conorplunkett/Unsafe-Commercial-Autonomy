@@ -71,6 +71,8 @@ const MODEL_SUGGESTIONS = {
   openai: ["gpt-4o-mini", "gpt-4o", "gpt-4.1", "gpt-4.1-mini", "o4-mini", "o3"],
   anthropic: ["claude-haiku-4-5-20251001", "claude-opus-4-8", "claude-sonnet-4-6"],
   gemini: ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro"],
+  kimi: ["kimi-k2.6", "kimi-k3", "kimi-k2.7-code", "kimi-k2.7-code-highspeed", "kimi-k2.5"],
+  inkling: ["thinkingmachines/Inkling"],
 };
 
 // Mirrored from web/lib/labels.ts so the Lab speaks the site's language.

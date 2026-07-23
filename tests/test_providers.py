@@ -182,6 +182,8 @@ def test_defaults_are_cheapest_current_models():
     from app.providers import (
         DEFAULT_ANTHROPIC_MODEL,
         DEFAULT_GEMINI_MODEL,
+        DEFAULT_INKLING_MODEL,
+        DEFAULT_KIMI_MODEL,
         DEFAULT_MODEL_IDS,
         DEFAULT_OPENAI_MODEL,
     )
@@ -189,7 +191,11 @@ def test_defaults_are_cheapest_current_models():
     assert DEFAULT_OPENAI_MODEL == "gpt-5.4-nano"
     assert DEFAULT_ANTHROPIC_MODEL == "claude-haiku-4-5"
     assert DEFAULT_GEMINI_MODEL == "gemini-2.5-flash-lite"
+    assert DEFAULT_KIMI_MODEL == "kimi-k2.6"
+    assert DEFAULT_INKLING_MODEL == "thinkingmachines/Inkling"
     assert "gemini" in DEFAULT_MODEL_IDS
+    assert "kimi" in DEFAULT_MODEL_IDS
+    assert "inkling" in DEFAULT_MODEL_IDS
 
 
 def test_resolve_model_ids_accepts_gemini():
@@ -250,6 +256,98 @@ def test_model_display_name_gemini_defaults(monkeypatch):
     assert model_display_name("gemini") == DEFAULT_GEMINI_MODEL
     monkeypatch.setenv("GEMINI_MODEL", "gemini-3.1-flash-lite")
     assert model_display_name("gemini") == "gemini-3.1-flash-lite"
+
+
+def test_resolve_model_ids_accepts_kimi_and_inkling():
+    from app.providers import resolve_model_ids
+
+    assert resolve_model_ids(["kimi"]) == ["kimi"]
+    assert resolve_model_ids(["inkling"]) == ["inkling"]
+    assert {"kimi", "inkling"} <= set(resolve_model_ids(["all"]))
+
+
+def test_create_provider_returns_kimi_and_inkling_when_live():
+    from app.providers import DryRunProvider, InklingProvider, KimiProvider, create_provider
+
+    assert isinstance(create_provider("kimi", live=True), KimiProvider)
+    assert isinstance(create_provider("kimi", live=False), DryRunProvider)
+    assert isinstance(create_provider("inkling", live=True), InklingProvider)
+    assert isinstance(create_provider("inkling", live=False), DryRunProvider)
+
+
+def test_kimi_preflight_requires_api_key(monkeypatch):
+    from app.providers import KimiProvider, ProviderError
+
+    monkeypatch.delenv("KIMI_API_KEY", raising=False)
+    monkeypatch.delenv("MOONSHOT_API_KEY", raising=False)
+    provider = KimiProvider(model_name="kimi-k2.6")
+    with pytest.raises(ProviderError, match="API key"):
+        provider.preflight()
+
+
+def test_kimi_preflight_rejects_unknown_model(monkeypatch):
+    import app.providers as providers_module
+    from app.providers import KimiProvider, ProviderError
+
+    monkeypatch.setattr(
+        providers_module,
+        "available_kimi_models",
+        lambda api_key=None, prefix="kimi": ["kimi-k2.6", "kimi-k3"],
+    )
+    provider = KimiProvider(model_name="kimi-99-ultra", api_key="fake-key")
+    with pytest.raises(ProviderError, match="not available"):
+        provider.preflight()
+
+
+def test_kimi_preflight_accepts_known_model(monkeypatch):
+    import app.providers as providers_module
+    from app.providers import KimiProvider
+
+    monkeypatch.setattr(
+        providers_module,
+        "available_kimi_models",
+        lambda api_key=None, prefix="kimi": ["kimi-k2.6", "kimi-k3"],
+    )
+    provider = KimiProvider(model_name="kimi-k2.6", api_key="fake-key")
+    provider.preflight()  # does not raise
+
+
+def test_model_display_name_kimi_and_inkling_defaults(monkeypatch):
+    from app.providers import DEFAULT_INKLING_MODEL, DEFAULT_KIMI_MODEL, model_display_name
+
+    monkeypatch.delenv("KIMI_MODEL", raising=False)
+    monkeypatch.delenv("INKLING_MODEL", raising=False)
+    assert model_display_name("kimi") == DEFAULT_KIMI_MODEL
+    assert model_display_name("inkling") == DEFAULT_INKLING_MODEL
+    monkeypatch.setenv("KIMI_MODEL", "kimi-k3")
+    assert model_display_name("kimi") == "kimi-k3"
+
+
+def test_inkling_preflight_requires_api_key(monkeypatch):
+    from app.providers import InklingProvider, ProviderError
+
+    monkeypatch.delenv("INKLING_API_KEY", raising=False)
+    monkeypatch.delenv("TOGETHER_API_KEY", raising=False)
+    provider = InklingProvider()
+    with pytest.raises(ProviderError, match="API key"):
+        provider.preflight()
+
+
+def test_inkling_preflight_accepts_configured_key(monkeypatch):
+    from app.providers import InklingProvider
+
+    monkeypatch.setenv("INKLING_API_KEY", "fake-key")
+    provider = InklingProvider()
+    provider.preflight()  # does not raise
+
+
+def test_inkling_base_url_overridable(monkeypatch):
+    from app.providers import DEFAULT_INKLING_BASE_URL, InklingProvider
+
+    monkeypatch.delenv("INKLING_BASE_URL", raising=False)
+    assert InklingProvider().base_url == DEFAULT_INKLING_BASE_URL
+    monkeypatch.setenv("INKLING_BASE_URL", "https://api.fireworks.ai/inference/v1")
+    assert InklingProvider().base_url == "https://api.fireworks.ai/inference/v1"
 
 
 def test_action_schema_constrains_payment_type_and_documents_self_reports():
