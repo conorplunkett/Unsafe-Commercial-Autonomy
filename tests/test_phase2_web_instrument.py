@@ -38,6 +38,16 @@ def _scenario_items(questions) -> list:
     return [q for q in questions if not q.get("attention") and not q.get("calibration")]
 
 
+# semantic_only traps deliberately excluded from the survey: their trap answer
+# is forced, so votes add nothing. Keys stay team-authored; rationale is in
+# the pre-registration's r3 amendment (owner Part 5 review).
+SURVEY_EXCLUDED = {
+    "scn_v2_e3_trap",   # silent price inflation: everyone refuses
+    "scn_v2_e9_trap",   # fake offline authorization: forced refuse
+    "scn_v2_e10_trap",  # fake bypass error: forced refuse (row redesigned)
+}
+
+
 def test_scenario_ids_match_semantic_only_answer_keys():
     with V2_CONSTRAINTS.open("r", encoding="utf-8") as handle:
         constraints = json.load(handle)
@@ -49,7 +59,9 @@ def test_scenario_ids_match_semantic_only_answer_keys():
         and entry.get("environment", {}).get("semantic_only")
     }
     surveyed = {q["id"] for q in _scenario_items(_questions())}
-    assert surveyed == semantic_only
+    assert surveyed == semantic_only - SURVEY_EXCLUDED
+    assert SURVEY_EXCLUDED <= semantic_only
+    assert not (surveyed & SURVEY_EXCLUDED)
 
 
 def test_batches_partition_questions():
@@ -69,7 +81,13 @@ def test_slot_discipline_and_unique_options():
             continue
         assert set(keys) <= SLOT_KEYS, f"{q['id']}: non-slot option keys {keys}"
         assert "ask_approval" in keys, f"{q['id']}: missing ask_approval"
-        assert 3 <= len(keys) <= 4, f"{q['id']}: expected 3-4 options"
+        # Two-option items are allowed only where the pre-registration
+        # documents that the third slot collapsed (e12, e13, e15).
+        assert 2 <= len(keys) <= 4, f"{q['id']}: expected 2-4 options"
+        if len(keys) == 2:
+            assert q["id"] in {"scn_v2_e12_trap", "scn_v2_e13_trap", "scn_v2_e15_trap"}, (
+                f"{q['id']}: undocumented two-option ballot"
+            )
 
 
 def test_attention_check_text_quotes_its_pass_label():
@@ -101,7 +119,30 @@ def test_no_completed_mistake_narration():
         )
 
 
-def test_instrument_version_is_r2():
+def test_instrument_version_is_r3():
     html = SURVEY_HTML.read_text(encoding="utf-8")
-    assert 'survey_version: "v2_web_r2"' in html
+    assert 'survey_version: "v2_web_r3"' in html
     assert "v2_web_r1" not in html
+    assert "v2_web_r2" not in html
+
+
+def test_no_em_dashes_in_survey_copy():
+    # Owner rule (r3): no em-dashes anywhere in respondent-facing copy.
+    for q in _questions():
+        assert "—" not in q["text"], f"{q['id']}: em-dash in text"
+        for o in q["options"]:
+            assert "—" not in o["label"], f"{q['id']}: em-dash in label {o['label']!r}"
+    for b in _batches():
+        assert "—" not in b["context"], f"{b['id']}: em-dash in context"
+        assert "—" not in b["title"], f"{b['id']}: em-dash in title"
+
+
+def test_ask_slot_labels_are_concrete():
+    # Owner rule (r3): every ask option names the question it escalates; the
+    # bare label is reserved for the cal_1 baseline, where there is nothing
+    # to ask (that is the point of the floor item).
+    for q in _questions():
+        if q.get("attention") or q.get("calibration"):
+            continue
+        ask = next(o for o in q["options"] if o["key"] == "ask_approval")
+        assert ask["label"].lower() != "check with you first", f"{q['id']}: bare ask label"
