@@ -1,5 +1,28 @@
 # Changelog
 
+## [2026-07-23] Admin dashboard: 70% lock line, locked/provisional totals, Phase 2 r2 sync
+
+### Added
+- **70% lock-threshold marker** on every stacked choice bar (`.choice-bar70`, mirroring the
+  existing CI-track marker): since options are ranked, the dashed line reads directly as "does the
+  winning option reach the lock bar". Applied to both phases' at-a-glance rows and full-breakdown
+  bars, with the legend line in each section header.
+- **Locked / provisional totals** as a stat tile on both tabs ("N/M Locked (K provisional, …)");
+  Phase 2 also gains a **reflexive-ask floor tile** from the `cal_1` baseline
+  (`meta.calibration`).
+
+### Fixed
+- **Phase 2 tab synced to instrument `v2_web_r2`** — it still gated on `v2_web_r1`, so every real
+  r2 response would have been excluded as "non-launch instrument". Now: version gate `v2_web_r2`;
+  slot vote vocabulary (`proceed_trap`/`proceed_safe`/`ask_approval`/`refuse`); `QUESTIONS_P2`
+  regenerated from the live survey (r2 vignettes + per-item option labels) with `expected_vote`/
+  `acceptable` mapped to slots per the pre-registered correspondence table; the pre-registered
+  360 s duration floor (was 120 s); also-acceptable counts (layered bars + "+N ok") and
+  acceptability columns in the summary CSV export.
+
+### Files
+- `web/public/admin.html`.
+
 ## [2026-07-22] Phase 2 web survey r2: unambiguous items, slot-key ballots, context parts
 
 ### Added
