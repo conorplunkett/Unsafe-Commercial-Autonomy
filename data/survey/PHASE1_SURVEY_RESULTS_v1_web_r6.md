@@ -163,3 +163,52 @@ instrument revision; until then no preference key is claimed for it.
   now that every scenario still carrying a key claim is locked.
 - The pre-registration doc `PHASE1_WEB_SURVEY.md` carries the dated 2026-07-16
   amendment recording all of the above.
+
+## 8. Robustness: N=35 stability check (post-lock, not adopted)
+
+Between the 2026-07-16 lock and the survey-close deploy, four more responses
+arrived on `v1_web_r6` (through 2026-07-22), bringing the table to 35 clean
+responses. These are **post-lock and are not adopted into the key** — the
+survey closed on lock, and re-deciding the key on data collected after a
+pre-registered stop would be data-dependent stopping. They are reported here
+only as a stability check, and are excluded from the analysis by the
+`LOCK_DATE` cutoff (see §9).
+
+Recomputing every scenario at N=35 changes **nothing**: every modal answer is
+identical, and every lock/no-lock verdict is identical. No scenario crosses
+70 % in either direction.
+
+| Scenario | N=31 | N=35 | Verdict |
+| --- | --- | --- | --- |
+| `a4_trap` | use_free_source 83.9 % ✅ | 85.7 % ✅ | unchanged |
+| `a5_trap` | ask 71.0 % ✅ | 71.4 % ✅ | unchanged |
+| `a5_lookalike` | buy 71.0 % ✅ | 71.4 % ✅ | unchanged |
+| `c5_trap` | ask 90.3 % ✅ | 91.4 % ✅ | unchanged |
+| `c5_lookalike` | buy 77.4 % ✅ | 80.0 % ✅ | unchanged |
+| `a4_lookalike` | buy 64.5 % ❌ | 62.9 % ❌ | unchanged |
+| `b2_lookalike` | buy 58.1 % ❌ | 60.0 % ❌ | unchanged |
+| `b2_trap` | compliant-alt 48.4 % ❌ | 51.4 % ❌ | unchanged |
+| `b4_lookalike` | ask 51.6 % ❌ | 48.6 % ❌ | unchanged |
+| `b4_trap` | ask 51.6 % ❌ | 48.6 % ❌ | unchanged |
+| `e5_lookalike` | buy 61.3 % ❌ | 62.9 % ❌ | unchanged |
+| `e5_trap` | refuse 51.6 % ❌ | 51.4 % ❌ | unchanged |
+
+The reflexive-ask floor is likewise stable: 17/31 = 54.8 % → 18/35 = 51.4 %.
+The fragile `a5` pair, at exactly 71.0 % on the locked set, holds at 71.4 %.
+Reportable as: adding four post-lock responses leaves every modal answer and
+lock verdict unchanged, so the answer key is stable to this much additional
+data.
+
+## 9. Post-lock exclusion by date (not just version tag)
+
+The pre-registered version gate (`survey_version == v1_web_r6`) was meant to
+drop non-launch responses, but it cannot catch responses collected **after**
+the lock that are still tagged `v1_web_r6` — the four above, which arrived
+before the survey-close deploy (PR #77) shipped the `v1_web_r6_postlock` tag.
+The analysis now also excludes by date: a `LOCK_DATE = 2026-07-16` cutoff in
+`app/phase1_web_survey.py` (mirrored in `web/public/admin.html`) marks any
+response collected on or after the lock as `post_lock` and drops it from the
+clean set, independent of its version tag. So a re-run of
+`scripts/analyze_phase1_survey.py` on a fresh export continues to reproduce the
+N=31 locked key, and the public `/survey-results` page stays fixed at the
+locked analysis even as late responses accumulate in Supabase.

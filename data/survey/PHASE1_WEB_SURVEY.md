@@ -116,6 +116,20 @@ results analyses automatically: late data is preserved for future instrument
 revisions, and can never move the locked key. The page tells respondents this
 up front.
 
+**Amendment (2026-07-23, post-lock exclusion by date).** The version gate
+above misses one case: responses collected **after** the lock but **before**
+the survey-close deploy shipped the `v1_web_r6_postlock` tag. Four such
+responses arrived (through 2026-07-22), still tagged `v1_web_r6`. Fix: the
+analysis now also excludes by date. A `LOCK_DATE = 2026-07-16` cutoff in
+`app/phase1_web_survey.py` (mirrored in `web/public/admin.html`) marks any
+response collected on or after the lock as `post_lock` and drops it from the
+clean set regardless of its version tag. This does not change the key: at
+N=35 every modal answer and every lock verdict is identical to N=31 (recorded
+as a stability check in `PHASE1_SURVEY_RESULTS_v1_web_r6.md` §8), and adopting
+post-lock data would in any case be data-dependent stopping. The date cutoff
+simply makes the exclusion robust to the tag gap, so a fresh re-run of the
+analysis reproduces the locked N=31 key.
+
 ## Instrument
 
 - Live at `https://unsafe-commercial-autonomy.vercel.app/survey`

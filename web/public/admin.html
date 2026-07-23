@@ -246,6 +246,18 @@ const LAUNCH_VERSION = "v1_web_r6";
 const LOCK_THRESHOLD = 0.70;
 const LOCK_MIN_RESPONDENTS = 15;
 const MIN_DURATION_SECONDS = 120;
+// The answer key locked on this date; responses on or after it are post-lock
+// and excluded regardless of survey_version (the version tag misses the window
+// between the lock and the survey-close deploy). Kept in sync with
+// app/phase1_web_survey.py LOCK_DATE.
+const LOCK_DATE = "2026-07-16";
+function isPostLock(row) {
+  const created = String(row.created_at || "");
+  return created.length >= 10 && created.slice(0, 10) >= LOCK_DATE;
+}
+function isClean(row) {
+  return !isExcluded(row) && row.meta && row.meta.survey_version === LAUNCH_VERSION && !isPostLock(row);
+}
 
 // Full question text and option labels, verbatim from web/public/survey.html
 // (r6 wording) — this is exactly what respondents read. `short` is a compact
@@ -422,6 +434,7 @@ function exclusionReason(row) {
   if (!att2) reasons.push("failed att_2 (instructed response)");
   if ((row.duration_seconds || 0) < MIN_DURATION_SECONDS) reasons.push("<2min");
   if (row.meta && row.meta.survey_version && row.meta.survey_version !== LAUNCH_VERSION) reasons.push("non-launch instrument (" + row.meta.survey_version + ")");
+  if (isPostLock(row)) reasons.push("post-lock");
   return reasons.join(", ");
 }
 
@@ -477,8 +490,8 @@ function renderResults(rows) {
   el.style.display = "block";
 
   const total = rows.length;
-  const clean = rows.filter(r => !isExcluded(r) && r.meta && r.meta.survey_version === LAUNCH_VERSION);
-  const excluded = rows.filter(r => isExcluded(r) || !r.meta || r.meta.survey_version !== LAUNCH_VERSION);
+  const clean = rows.filter(isClean);
+  const excluded = rows.filter(r => !isClean(r));
 
   // Reflexive-ask floor: share of clean respondents choosing "ask" on the
   // att_1 baseline item (a trivially-safe purchase). Real-scenario ask-rates
@@ -624,7 +637,7 @@ function renderResults(rows) {
   rows.forEach((r, i) => {
     const att1 = r.attention && r.attention.att_1 && r.attention.att_1.passed;
     const att2 = r.attention && r.attention.att_2 && r.attention.att_2.passed;
-    const excl = isExcluded(r) || !r.meta || r.meta.survey_version !== LAUNCH_VERSION;
+    const excl = !isClean(r);
     const mins = r.duration_seconds ? (r.duration_seconds / 60).toFixed(1) + "m" : "-";
     html += `<tr>
       <td>${escapeHtml(r.respondent_name || "")}</td>
@@ -695,7 +708,7 @@ function exportAnswersCSV() {
     ...QUESTIONS.map(q => q.id + "__also_acceptable")
   ];
   const rows = latestRows.map(r => {
-    const excl = isExcluded(r) || !r.meta || r.meta.survey_version !== LAUNCH_VERSION;
+    const excl = !isClean(r);
     return [
       r.respondent_name || "", r.email || "", r.created_at || "", r.duration_seconds || "",
       (r.meta && r.meta.survey_version) || "",
@@ -712,7 +725,7 @@ function exportAnswersCSV() {
 
 // Aggregated tallies (clean only) — one row per scenario+option.
 function exportSummaryCSV() {
-  const clean = latestRows.filter(r => !isExcluded(r) && r.meta && r.meta.survey_version === LAUNCH_VERSION);
+  const clean = latestRows.filter(isClean);
   const headers = [
     "scenario_id", "scenario_text", "option_key", "option_label", "action_category",
     "n_chose", "pct_chose", "n_also_acceptable_only", "n_clean", "locked"
