@@ -1,5 +1,6 @@
-/* Lab-only styles, layered on top of styles.css. The lander's stylesheet is
-   loaded first and never edited for lab features. */
+/* Lab-only styles, layered on top of styles.css. The control card mirrors the
+   live site's "Run it yourself" runner (web/components/Runner.tsx): mono
+   uppercase labels, chip toggles, rounded fields, thin progress bar. */
 
 .lab-shell {
   padding-top: 28px;
@@ -26,54 +27,186 @@
   color: var(--accent-strong);
 }
 
-.lab-control-band {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+/* ---- Runner-style control card ---- */
+
+.runner-card {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  padding: 24px;
 }
 
-.progress-band[hidden] {
+.runner-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.runner-span {
+  grid-column: 1 / -1;
+}
+
+.runner-label {
+  display: block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.runner-field {
+  margin-top: 6px;
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+  padding: 0 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+  outline: none;
+}
+
+.runner-field:focus {
+  border-color: var(--accent);
+}
+
+.runner-field:disabled {
+  opacity: 0.5;
+}
+
+.chip-row {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  padding: 5px 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.chip:hover {
+  color: var(--ink);
+}
+
+.chip-on {
+  border-color: var(--accent);
+  background: rgba(20, 108, 92, 0.1);
+  color: var(--accent);
+}
+
+.runner-hint {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.runner-actions {
+  margin-top: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.runner-button {
+  border: 0;
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 10px 22px;
+  font-family: var(--font-serif);
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.runner-button:hover:not(:disabled) {
+  background: var(--accent);
+}
+
+.runner-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.runner-actions .runner-hint {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Progress (Runner style: label left, % right, thin track) ---- */
+
+.runner-progress {
+  margin-top: 16px;
+}
+
+.runner-progress[hidden] {
   display: none;
 }
 
-.progress-band {
-  display: grid;
-  gap: 8px;
-  margin-bottom: 16px;
-  padding: 14px 16px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-  box-shadow: var(--shadow);
-}
-
-.progress-track {
-  height: 10px;
-  border-radius: 4px;
-  background: var(--surface-strong);
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  width: 0%;
-  border-radius: 0 4px 4px 0;
-  background: var(--accent);
-  transition: width 0.4s ease;
-}
-
-.progress-label {
-  margin: 0;
+.runner-progress-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
   color: var(--muted);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
+}
+
+.runner-progress-meta span:first-child {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.runner-track {
+  margin-top: 6px;
+  height: 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--paper);
+  overflow: hidden;
+}
+
+.runner-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width 0.5s ease-out;
+}
+
+.runner-fill.is-running {
+  animation: runner-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes runner-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+/* ---- Keys panel ---- */
+
 .keys-band {
   margin-top: 16px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 16px;
   background: var(--surface);
   box-shadow: var(--shadow);
 }
@@ -83,7 +216,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px 16px;
+  padding: 14px 20px;
   cursor: pointer;
   font-size: 13px;
   font-weight: 700;
@@ -96,22 +229,24 @@
 
 .keys-status {
   color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
   font-weight: 400;
 }
 
 .keys-fields {
   display: grid;
-  grid-template-columns: minmax(200px, 1fr) minmax(200px, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
-  padding: 0 16px 16px;
+  padding: 14px 20px 20px;
   border-top: 1px solid var(--border);
-  padding-top: 14px;
 }
 
 .keys-note {
   grid-column: 1 / -1;
 }
+
+/* ---- Sections ---- */
 
 .lab-divider {
   margin-top: 8px;
@@ -128,14 +263,8 @@
   font-size: 14px;
 }
 
-@media (max-width: 1120px) {
-  .lab-control-band {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
 @media (max-width: 640px) {
-  .lab-control-band,
+  .runner-grid,
   .keys-fields {
     grid-template-columns: 1fr;
   }
