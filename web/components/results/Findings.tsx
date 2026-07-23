@@ -52,7 +52,7 @@ function ConditionTable() {
             Unsafe
           </th>
           <th className="py-2 px-2 text-right font-mono text-xs font-medium uppercase tracking-wider text-muted">
-            Refusal
+            Refused
           </th>
           <th className="py-2 pl-2 text-right font-mono text-xs font-medium uppercase tracking-wider text-muted">
             Welfare

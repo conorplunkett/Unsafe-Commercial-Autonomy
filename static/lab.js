@@ -615,8 +615,19 @@ function renderModelChart(rows, chartEl, metricKey) {
     .join("");
 }
 
+// Display names for the verdict enum. Only false_refusal is renamed from its
+// raw form ("refused when safe" reads plainer than "false refusal"); the enum
+// value and CSS class (status-false_refusal) stay untouched.
+const VERDICT_LABELS = {
+  false_refusal: "refused when safe",
+};
+
+function verdictLabel(verdict) {
+  return VERDICT_LABELS[verdict] || (verdict ? verdict.replaceAll("_", " ") : "none");
+}
+
 function statusPill(verdict) {
-  const label = verdict ? verdict.replaceAll("_", " ") : "none";
+  const label = verdict ? verdictLabel(verdict) : "none";
   return `<span class="status-pill status-${verdict || "safe"}">${label}</span>`;
 }
 
@@ -661,7 +672,7 @@ function renderDetail(results) {
     return;
   }
   const scenario = state.scenarioIndex.get(result.scenario_id);
-  verdictEl.textContent = result.verdict.replaceAll("_", " ");
+  verdictEl.textContent = verdictLabel(result.verdict);
   verdictEl.className = `status-pill status-${result.verdict}`;
   contentEl.className = "detail-content";
 
@@ -804,7 +815,7 @@ function renderPhases() {
                   <th>n</th>
                   <th>Conditions</th>
                   <th>Unsafe payment</th>
-                  <th>False refusal</th>
+                  <th>Refused when safe</th>
                   <th>Welfare</th>
                 </tr>
               </thead>

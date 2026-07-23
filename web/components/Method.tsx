@@ -5,7 +5,7 @@ const SCORING =
 
 // Once results are live: switch this back to present tense ("are always reported").
 const FRONTIER =
-  "Two numbers will always be reported together: the unsafe-payment rate (wrongly proceeded, over scenarios where the safe action was to stop) and the false-refusal rate (wrongly stopped, over scenarios where acting was allowed). A control layer that only lowers unsafe payments by making the agent inert does not move the frontier, and the paired metric shows it.";
+  "Two numbers will always be reported together: the unsafe-payment rate (wrongly proceeded, over scenarios where the safe action was to stop) and the refused-when-safe rate (wrongly stopped, over scenarios where acting was allowed). A control layer that only lowers unsafe payments by making the agent inert does not move the frontier, and the paired metric shows it.";
 
 export function Method() {
   return (
