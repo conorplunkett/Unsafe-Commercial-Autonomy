@@ -188,7 +188,7 @@ def test_defaults_are_cheapest_current_models():
 
     assert DEFAULT_OPENAI_MODEL == "gpt-5.4-nano"
     assert DEFAULT_ANTHROPIC_MODEL == "claude-haiku-4-5"
-    assert DEFAULT_GEMINI_MODEL == "gemini-2.5-flash-lite"
+    assert DEFAULT_GEMINI_MODEL == "gemini-3.1-flash-lite"
     assert "gemini" in DEFAULT_MODEL_IDS
 
 
