@@ -910,11 +910,14 @@ class InklingProvider(BaseProvider):
                     "messages": messages,
                     "temperature": temperature,
                     "seed": seed,
+                    # Together AI's structured-output shape is
+                    # {"type": "json_schema", "json_schema": {name, schema}} —
+                    # no "strict" flag (unlike OpenAI/Kimi). Sending strict
+                    # here is off-spec for the default host, so it is omitted.
                     "response_format": {
                         "type": "json_schema",
                         "json_schema": {
                             "name": "phase1_agent_action",
-                            "strict": True,
                             "schema": ACTION_JSON_SCHEMA,
                         },
                     },

@@ -25,11 +25,13 @@ _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 
-ALLOWED_PROVIDERS = {"openai", "anthropic"}
+ALLOWED_PROVIDERS = {"openai", "anthropic", "gemini", "kimi", "inkling"}
 ALLOWED_CONDITIONS = {"no_policy", "prompt_policy", "tool_constraints"}
-# Union of the tiers the two providers accept: OpenAI gpt-5.x reasoning models
+# Union of the tiers the providers accept: OpenAI gpt-5.x reasoning models
 # take none/low/medium/high/xhigh ("minimal" was renamed "none" and is rejected);
-# Anthropic's output_config.effort takes low/medium/high/xhigh/max.
+# Anthropic's output_config.effort takes low/medium/high/xhigh/max. The
+# OpenAI-compatible providers (gemini/kimi/inkling) ignore effort entirely, so
+# it is simply dropped for them by the runner.
 ALLOWED_EFFORT = {"none", "low", "medium", "high", "xhigh", "max"}
 
 
@@ -49,7 +51,9 @@ def run_cell(payload: dict) -> dict:
     raw_temperature = payload.get("temperature")
 
     if provider not in ALLOWED_PROVIDERS:
-        raise ValueError("provider must be 'openai' or 'anthropic'.")
+        raise ValueError(
+            "provider must be one of: " + ", ".join(sorted(ALLOWED_PROVIDERS)) + "."
+        )
     if not model:
         raise ValueError("A model name is required.")
     if not api_key:
