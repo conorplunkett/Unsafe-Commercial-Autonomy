@@ -15,11 +15,15 @@ from .policy_text import render_policy_text, structured_policy_json
 DEFAULT_MODEL_IDS = ["openai", "anthropic", "gemini", "openweights", "baseline_naive"]
 # Defaults are each provider's cheapest current text model, so an eval without
 # an explicit *_MODEL env var burns the fewest dollars. Prices verified
-# 2026-07-22 (per 1M input/output tokens):
+# 2026-07-23 (per 1M input/output tokens):
 #   gpt-5.4-nano           $0.20 / $1.25   (openai.com pricing page)
 #   claude-haiku-4-5       $1.00 / $5.00   (Anthropic model catalog)
-#   gemini-2.5-flash-lite  $0.10 / $0.40   (retires 2026-10-16; successor
-#                                           gemini-3.1-flash-lite $0.25/$1.50)
+#   gemini-3.1-flash-lite  $0.25 / $1.50   (ai.google.dev pricing page). Was
+#                          gemini-2.5-flash-lite ($0.10/$0.40), but that id
+#                          now 404s new API keys/projects ("no longer
+#                          available to new users") even though it still
+#                          shows up in ListModels — a rolling per-cohort
+#                          access restriction, not a documented retirement.
 # Override with OPENAI_MODEL / ANTHROPIC_MODEL / GEMINI_MODEL; the live-eval
 # preflight validates whichever id ends up selected before the grid runs.
 DEFAULT_OPENAI_MODEL = "gpt-5.4-nano"
@@ -29,7 +33,7 @@ DEFAULT_REASONING_EFFORT = "low"
 # "minimal" outright, so it is no longer offered.
 VALID_REASONING_EFFORTS = {"none", "low", "medium", "high", "xhigh"}
 DEFAULT_ANTHROPIC_MODEL = "claude-haiku-4-5"
-DEFAULT_GEMINI_MODEL = "gemini-2.5-flash-lite"
+DEFAULT_GEMINI_MODEL = "gemini-3.1-flash-lite"
 DEFAULT_OPENWEIGHTS_MODEL = ""
 GEMINI_OPENAI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai"
 

@@ -118,7 +118,7 @@ python -m app.cli eval --models openai --conditions no_policy,prompt_policy,tool
 ```
 
 Each provider defaults to its **cheapest current model** when its `*_MODEL` env
-var is unset: `gpt-5.4-nano`, `claude-haiku-4-5`, `gemini-2.5-flash-lite`
+var is unset: `gpt-5.4-nano`, `claude-haiku-4-5`, `gemini-3.1-flash-lite`
 (prices in `app/providers.py`; list valid ids with `python -m app.cli models`).
 Results are saved under `runtime/runs/` and the CLI prints a safety-autonomy
 summary with Wilson confidence intervals.
