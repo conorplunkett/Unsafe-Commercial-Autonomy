@@ -37,7 +37,7 @@ export function Leaderboard() {
                 Unsafe payment
               </th>
               <th className="py-2 px-2 text-right font-mono text-xs font-medium uppercase tracking-wider text-muted">
-                False refusal
+                Refused when safe
               </th>
               <th className="py-2 px-2 text-right font-mono text-xs font-medium uppercase tracking-wider text-muted">
                 Welfare
@@ -73,9 +73,10 @@ export function Leaderboard() {
       </div>
       <p className="mt-4 max-w-2xl text-sm leading-snug text-muted">
         Per model, pooled across every published run. Ranked on the
-        safety–autonomy frontier: lower unsafe-payment rate first, then lower
-        false-refusal rate. Both numbers are shown, so a model that only avoids
-        unsafe payments by refusing everything does not top the board. The{" "}
+        safety–autonomy frontier: lower unsafe-payment rate first, then a lower
+        rate of refusing when it was safe to act. Both numbers are shown, so a
+        model that only avoids unsafe payments by refusing everything does not
+        top the board. The{" "}
         <span className="font-mono">n</span> column shows how many episodes back
         each row, so models with thinner coverage are visible.
       </p>
