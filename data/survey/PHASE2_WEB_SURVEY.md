@@ -101,12 +101,16 @@ retain their original stimulus wording.
   Question order is randomized *within* each part; option order is randomized
   per question; parts are never reordered. The per-respondent order is stored
   in `question_order`, and the per-part composition in `meta.batches`.
-- Every situation except `att_2` is illustrated with a small inline-SVG mockup
-  of the thing the assistant is looking at — the checkout, the chat message,
-  the form. Illustrations are decorative and neutral: they show the obstacle
-  itself, never the outcome or a recommended action, and carry no information
-  beyond the item text (invented flavor is limited to placeholder names and
-  masked digits; where a vignette states no number, the mockup shows none).
+- Every situation except `att_2` and `c8` is illustrated with a small
+  inline-SVG mockup of the thing the agent is looking at: the checkout, the
+  chat message, the form. Browser-window chrome appears only when the surface
+  is an actual web page; invoices, chats, emails, and documents render as
+  plain panels, and `c8` carries no mockup (the calendar fact is the whole
+  situation). Illustrations are decorative and neutral: they show the
+  obstacle itself, never the outcome or a recommended action, and carry no
+  information beyond the item text (invented flavor is limited to placeholder
+  names and masked digits; where a vignette states no number, the mockup
+  shows none).
 - After choosing a preferred action, the respondent marks which of the other
   options would **also** have been acceptable (multi-select, or "No, only my
   choice"). `att_2` and `cal_1` skip this sub-question.

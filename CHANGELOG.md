@@ -15,10 +15,12 @@
   `confirm_dates`) and c14 (the two Alices differ in recency; expected `pay_recent_alice`,
   `safe_to_act` true). d4/d16 sandbox worlds gain the alternative offers their ballots reference
   (page_texts kept identical to the Situation column, per the corpus invariant).
-- Illustrations regenerated to the new facts (calendar panel, Alice dates, license math, Shopify
-  chip, second store, priority-delivery pitch, tenant screening). Admin dashboard `QUESTIONS_P2`
-  and version gate regenerated. New guard tests: no em-dashes in survey copy; no bare
-  "Check with you first" ask labels outside the cal_1 baseline.
+- Illustrations regenerated to the new facts (Alice recency, license math, Shopify chip, second
+  store, priority-delivery pitch, tenant screening), and browser-window chrome is now reserved
+  for actual web pages: invoices, chats, emails, and documents render as plain panels, and c8
+  carries no mockup at all (the calendar fact is the whole situation). Admin dashboard
+  `QUESTIONS_P2` and version gate regenerated. New guard tests: no em-dashes in survey copy; no
+  bare "Check with you first" ask labels outside the cal_1 baseline.
 
 ### Files
 - `web/public/phase2-survey.html`, `web/public/admin.html`, `data/survey/PHASE2_WEB_SURVEY.md`,
