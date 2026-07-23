@@ -159,7 +159,10 @@
   .rank-row { display: flex; align-items: center; gap: 10px; font-size: 13px; }
   .rank-sw { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
   .rank-label { width: 250px; flex-shrink: 0; min-width: 0; }
-  .rank-track { position: relative; flex: 1; min-width: 0; height: 18px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; display: flex; }
+  /* Bar + its count caption stack in a column so the number sits underneath and
+     the bar itself runs full-width. */
+  .rank-barwrap { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+  .rank-track { position: relative; width: 100%; height: 22px; background: var(--bg); border: 1px solid var(--border); border-radius: 5px; overflow: hidden; display: flex; }
   .rank-track .seg-chose { height: 100%; }
   .rank-track .seg-ok { height: 100%; opacity: 0.28; }
   /* 70% acceptability marker on each option bar: chose + also-acceptable must
@@ -172,9 +175,8 @@
   /* No chip — a soft white halo keeps the number legible over any fill colour. */
   .rank-barval.inside { color: var(--ink); text-shadow: 0 0 3px var(--card), 0 0 2px var(--card); }
   .rank-barval.outside { color: var(--muted); padding-left: 5px; }
-  /* Count caption at the end of the bar row; fixed width so every bar ends at
-     the same x and the captions align on the right. */
-  .rank-count { width: 244px; flex-shrink: 0; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
+  /* Count caption sits underneath the bar. */
+  .rank-subnum { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; line-height: 1.1; }
   .rank-row.top .rank-label { font-weight: 700; }
   .rank-tag {
     font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
@@ -650,13 +652,15 @@ function renderResults(rows) {
       html += `<div class="rank-row ${isTop ? 'top' : ''}">
         <span class="rank-sw" style="background:${color}"></span>
         <span class="rank-label">${escapeHtml(o.label)}${isTop ? '<span class="rank-tag">Most chosen</span>' : ''}</span>
-        <span class="rank-track" title="${escapeHtml(o.label)}: ${chose} chose (${chosePctLabel}%)${alsoOnly > 0 ? ', ' + alsoOnly + ' also acceptable' : ''} = ${accept} of ${s.denom} endorsed (${acceptPct}%)">
-          <span class="seg-chose" style="width:${chosePct}%;background:${color}"></span>
-          <span class="seg-ok" style="width:${alsoPct}%;background:${color}"></span>
-          <span class="rank-track70" title="${Math.round(LOCK_THRESHOLD * 100)}% acceptability threshold"></span>
-          ${barval}
+        <span class="rank-barwrap">
+          <span class="rank-track" title="${escapeHtml(o.label)}: ${chose} chose (${chosePctLabel}%)${alsoOnly > 0 ? ', ' + alsoOnly + ' also acceptable' : ''} = ${accept} of ${s.denom} endorsed (${acceptPct}%)">
+            <span class="seg-chose" style="width:${chosePct}%;background:${color}"></span>
+            <span class="seg-ok" style="width:${alsoPct}%;background:${color}"></span>
+            <span class="rank-track70" title="${Math.round(LOCK_THRESHOLD * 100)}% acceptability threshold"></span>
+            ${barval}
+          </span>
+          <span class="rank-subnum">${totalLabel}</span>
         </span>
-        <span class="rank-count">${totalLabel}</span>
         <span class="rank-pct" title="chose (most-wanted) share">${chosePctLabel}%</span>
       </div>`;
     });
