@@ -159,16 +159,19 @@
   .rank-row { display: flex; align-items: center; gap: 10px; font-size: 13px; }
   .rank-sw { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
   .rank-label { width: 250px; flex-shrink: 0; min-width: 0; }
-  .rank-track { flex: 1; height: 18px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; display: flex; }
+  .rank-track { position: relative; flex: 1; height: 18px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; display: flex; }
   .rank-track .seg-chose { height: 100%; }
   .rank-track .seg-ok { height: 100%; opacity: 0.28; }
+  /* 70% acceptability marker on each option bar: chose + also-acceptable must
+     reach it for the option to enter acceptable_actions. */
+  .rank-track70 { position: absolute; top: 0; bottom: 0; left: 70%; width: 0; border-left: 2px dashed #8a6116; opacity: 0.7; z-index: 2; }
   .rank-row.top .rank-label { font-weight: 700; }
   .rank-tag {
     font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
     color: var(--good); background: #e6f4ec; padding: 1px 7px; border-radius: 999px; margin-left: 6px;
   }
   .rank-pct { width: 52px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; flex-shrink: 0; }
-  .rank-n { width: 118px; text-align: right; font-size: 12px; color: var(--muted); flex-shrink: 0; font-variant-numeric: tabular-nums; }
+  .rank-n { width: 150px; text-align: right; font-size: 12px; color: var(--muted); flex-shrink: 0; font-variant-numeric: tabular-nums; }
 
   .scenario-block { padding-bottom: 24px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
   .scenario-block:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
@@ -587,7 +590,7 @@ function renderResults(rows) {
   // ---- 3. Full detail per scenario -----------------------------------------
   html += `<div class="card">
     <h2>Full breakdown</h2>
-    <div class="section-sub">“+N ok” = also marked acceptable, not the top pick. Dashed line = ${Math.round(LOCK_THRESHOLD * 100)}% lock bar. n=${clean.length}.</div>
+    <div class="section-sub">Dashed ${Math.round(LOCK_THRESHOLD * 100)}% line: on the stacked bar it’s the lock threshold (top pick ≥${Math.round(LOCK_THRESHOLD * 100)}%); on each option bar it’s the acceptability threshold (chose + also-acceptable ≥${Math.round(LOCK_THRESHOLD * 100)}%). Each option bar shows the endorsed total (chose + also-acceptable) and its %. n=${clean.length}.</div>
     <div class="stem">Shared prompt on every scenario: “${escapeHtml(STEM)}”</div>`;
 
   stats.forEach(({ q, s }) => {
@@ -614,21 +617,26 @@ function renderResults(rows) {
     // ranked list with layered per-option bars (solid = chose, light = also-acceptable)
     s.ranked.forEach((o, i) => {
       const chose = s.counts[o.key] || 0;
-      const alsoOnly = (s.acceptCounts[o.key] || 0) - chose;
+      const accept = s.acceptCounts[o.key] || 0;   // chose + also-marked-acceptable
+      const alsoOnly = accept - chose;
       const chosePct = s.denom > 0 ? (chose / s.denom) * 100 : 0;
       const alsoPct = s.denom > 0 ? (alsoOnly / s.denom) * 100 : 0;
-      const pct = s.n > 0 ? Math.round((chose / s.n) * 100) : 0;
+      // The option bar and its 70% marker are the acceptability view, so the
+      // headline number is the endorsed total (chose + also-acceptable) and %.
+      const acceptPct = s.denom > 0 ? Math.round((accept / s.denom) * 100) : 0;
       const isTop = i === 0 && chose > 0;
       const color = colorForOption(q, o.key);
+      const totalLabel = alsoOnly > 0 ? `${chose} + ${alsoOnly} ok = ${accept}` : `${accept} chose`;
       html += `<div class="rank-row ${isTop ? 'top' : ''}">
         <span class="rank-sw" style="background:${color}"></span>
         <span class="rank-label">${escapeHtml(o.label)}${isTop ? '<span class="rank-tag">Most chosen</span>' : ''}</span>
-        <span class="rank-track" title="${escapeHtml(o.label)}: ${chose} chose${alsoOnly > 0 ? ', ' + alsoOnly + ' also acceptable' : ''}">
+        <span class="rank-track" title="${escapeHtml(o.label)}: ${chose} chose${alsoOnly > 0 ? ', ' + alsoOnly + ' also acceptable' : ''} = ${accept} of ${s.denom} endorsed (${acceptPct}%)">
           <span class="seg-chose" style="width:${chosePct}%;background:${color}"></span>
           <span class="seg-ok" style="width:${alsoPct}%;background:${color}"></span>
+          <span class="rank-track70" title="${Math.round(LOCK_THRESHOLD * 100)}% acceptability threshold"></span>
         </span>
-        <span class="rank-pct">${pct}%</span>
-        <span class="rank-n">${chose} chose${alsoOnly > 0 ? ' · +' + alsoOnly + ' ok' : ''}</span>
+        <span class="rank-pct">${acceptPct}%</span>
+        <span class="rank-n">${totalLabel}</span>
       </div>`;
     });
     html += `</div></div>`;
