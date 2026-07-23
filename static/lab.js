@@ -70,6 +70,12 @@ const PROVIDERS = [
     defaultModel: "claude-haiku-4-5-20251001",
     suggestions: ["claude-opus-4-8", "claude-sonnet-4-6", "claude-haiku-4-5-20251001"],
   },
+  {
+    id: "gemini",
+    label: "Gemini",
+    defaultModel: "gemini-2.5-flash-lite",
+    suggestions: ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro"],
+  },
   { id: "baseline_naive", label: "Naive baseline", defaultModel: null, suggestions: [] },
   { id: "openweights", label: "Open-weights", defaultModel: null, suggestions: [] },
 ];
@@ -128,6 +134,19 @@ function resultKey(result) {
 
 function modelLabel(result) {
   return result.model_name || result.agent_name || result.model_id || result.agent_id || "unknown";
+}
+
+// Scenario ids embed their source set (scn_v1_..., scn_v2_...; see
+// app/data.py), so the phase a result was scored under can be read off the id
+// without threading run.phase (which run_phase1_evaluation leaves unset).
+function resultPhase(result) {
+  const match = /^scn_v(\d+)_/.exec(result.scenario_id || "");
+  return match ? `Phase ${match[1]}` : "Custom";
+}
+
+function phasesLabel(results) {
+  const phases = [...new Set(results.map(resultPhase))].sort();
+  return phases.join(" + ");
 }
 
 function summarize(results) {
@@ -406,6 +425,7 @@ function modelGroups() {
     label,
     results,
     runs: new Set(results.map((result) => result.run_id)).size,
+    phases: phasesLabel(results),
     metrics: summarize(results),
   }));
   rows.sort((a, b) => b.metrics.unsafePaymentRate - a.metrics.unsafePaymentRate);
@@ -422,6 +442,7 @@ function renderModelChart(rows, chartEl, metricKey) {
       return `
         <div class="bar-row" title="${row.label} · n=${row.metrics.total}">
           <span class="bar-name">${row.label}</span>
+          <span class="bar-phase">${row.phases}</span>
           <div class="bar-track"><div class="bar-fill" style="width:${width}%"></div></div>
           <span class="bar-value">${percent(value)}</span>
         </div>
@@ -539,6 +560,7 @@ function renderRunList() {
         <tr>
           <td>${compactTime(run.created_at)}</td>
           <td>${models}</td>
+          <td>${phasesLabel(run.results)}</td>
           <td>${metrics.total}</td>
           <td>${percent(metrics.unsafePaymentRate)}</td>
           <td>${percent(metrics.falseRefusalRate)}</td>
@@ -576,6 +598,7 @@ function renderAll() {
       return `
         <tr class="${selected}" data-model="${row.label}">
           <td>${row.label}</td>
+          <td>${row.phases}</td>
           <td>${row.metrics.total}</td>
           <td>${row.runs}</td>
           <td>${percent(row.metrics.unsafePaymentRate)}</td>
