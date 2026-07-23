@@ -700,7 +700,9 @@ class GeminiProvider(BaseProvider):
                     "model": self.model_name,
                     "messages": messages,
                     "temperature": temperature,
-                    "seed": seed,
+                    # Gemini's OpenAI-compat endpoint rejects `seed` (400
+                    # "Unknown name seed"), unlike vLLM/open-weights. The seed
+                    # still perturbs the run via the prompt's "Seed:" line.
                     "response_format": {
                         "type": "json_schema",
                         "json_schema": {
@@ -713,6 +715,13 @@ class GeminiProvider(BaseProvider):
                 timeout=120,
             )
             response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            # raise_for_status() only carries the status line; the OpenAI-compat
+            # layer explains *why* it rejected the request in the response body
+            # (unsupported param, schema feature, etc.). Surface it.
+            raise ProviderError(
+                f"Gemini request failed: {exc}\nResponse body: {exc.response.text}"
+            ) from exc
         except Exception as exc:
             raise ProviderError(f"Gemini request failed: {exc}") from exc
         payload = response.json()
