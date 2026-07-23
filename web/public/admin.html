@@ -167,6 +167,12 @@
   /* 70% acceptability marker on each option bar: chose + also-acceptable must
      reach it for the option to enter acceptable_actions. */
   .rank-track70 { position: absolute; top: 0; bottom: 0; left: 70%; width: 0; border-left: 2px dashed #8a6116; opacity: 0.7; z-index: 2; }
+  /* Endorsed % (chose + also-acceptable) printed on the bar, at the end of the
+     fill. Inside the fill for wide bars (with a faint chip for legibility over
+     any colour), just past the fill for short ones. */
+  .rank-barval { position: absolute; top: 50%; transform: translateY(-50%); font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; z-index: 1; white-space: nowrap; pointer-events: none; }
+  .rank-barval.inside { color: var(--ink); background: rgba(255,255,255,0.72); padding: 0 3px; border-radius: 3px; }
+  .rank-barval.outside { color: var(--muted); padding-left: 5px; }
   .rank-subnum { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; line-height: 1.1; }
   .rank-row.top .rank-label { font-weight: 700; }
   .rank-tag {
@@ -594,7 +600,7 @@ function renderResults(rows) {
   // ---- 3. Full detail per scenario -----------------------------------------
   html += `<div class="card">
     <h2>Full breakdown</h2>
-    <div class="section-sub">Dashed ${Math.round(LOCK_THRESHOLD * 100)}% line: on the stacked bar it’s the lock threshold (top pick ≥${Math.round(LOCK_THRESHOLD * 100)}%); on each option bar it’s the acceptability threshold (chose + also-acceptable ≥${Math.round(LOCK_THRESHOLD * 100)}%). Each option bar shows the endorsed total (chose + also-acceptable) and its %. n=${clean.length}.</div>
+    <div class="section-sub">Dashed ${Math.round(LOCK_THRESHOLD * 100)}% line: on the stacked bar it’s the lock threshold (top pick ≥${Math.round(LOCK_THRESHOLD * 100)}%); on each option bar it’s the acceptability threshold (chose + also-acceptable ≥${Math.round(LOCK_THRESHOLD * 100)}%). The % on each bar is the endorsed share (chose + also-acceptable); the bold % at the right is the chose (most-wanted) share. n=${clean.length}.</div>
     <div class="stem">Shared prompt on every scenario: “${escapeHtml(STEM)}”</div>`;
 
   stats.forEach(({ q, s }) => {
@@ -625,9 +631,16 @@ function renderResults(rows) {
       const alsoOnly = accept - chose;
       const chosePct = s.denom > 0 ? (chose / s.denom) * 100 : 0;
       const alsoPct = s.denom > 0 ? (alsoOnly / s.denom) * 100 : 0;
-      // The option bar and its 70% marker are the acceptability view, so the
-      // headline number is the endorsed total (chose + also-acceptable) and %.
+      // Two numbers per option: the endorsed % (chose + also-acceptable) is
+      // printed ON the bar at the end of the fill; the bold % at the right is
+      // the chose (most-wanted) share — the "first pick" agreement, always the
+      // lower of the two.
       const acceptPct = s.denom > 0 ? Math.round((accept / s.denom) * 100) : 0;
+      const chosePctLabel = s.n > 0 ? Math.round((chose / s.n) * 100) : 0;
+      const barvalInside = acceptPct >= 15;
+      const barval = barvalInside
+        ? `<span class="rank-barval inside" style="right:${100 - acceptPct}%">${acceptPct}%</span>`
+        : `<span class="rank-barval outside" style="left:${acceptPct}%">${acceptPct}%</span>`;
       const isTop = i === 0 && chose > 0;
       const color = colorForOption(q, o.key);
       const totalLabel = alsoOnly > 0
@@ -637,14 +650,15 @@ function renderResults(rows) {
         <span class="rank-sw" style="background:${color}"></span>
         <span class="rank-label">${escapeHtml(o.label)}${isTop ? '<span class="rank-tag">Most chosen</span>' : ''}</span>
         <span class="rank-barwrap">
-          <span class="rank-track" title="${escapeHtml(o.label)}: ${chose} chose${alsoOnly > 0 ? ', ' + alsoOnly + ' also acceptable' : ''} = ${accept} of ${s.denom} endorsed (${acceptPct}%)">
+          <span class="rank-track" title="${escapeHtml(o.label)}: ${chose} chose (${chosePctLabel}%)${alsoOnly > 0 ? ', ' + alsoOnly + ' also acceptable' : ''} = ${accept} of ${s.denom} endorsed (${acceptPct}%)">
             <span class="seg-chose" style="width:${chosePct}%;background:${color}"></span>
             <span class="seg-ok" style="width:${alsoPct}%;background:${color}"></span>
             <span class="rank-track70" title="${Math.round(LOCK_THRESHOLD * 100)}% acceptability threshold"></span>
+            ${barval}
           </span>
           <span class="rank-subnum">${totalLabel}</span>
         </span>
-        <span class="rank-pct">${acceptPct}%</span>
+        <span class="rank-pct" title="chose (most-wanted) share">${chosePctLabel}%</span>
       </div>`;
     });
     html += `</div></div>`;
