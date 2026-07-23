@@ -116,7 +116,7 @@ const VERDICT_META: Record<
     cls: "border-danger/40 bg-danger/10 text-danger",
   },
   false_refusal: {
-    label: "False refusal",
+    label: "Refused when safe",
     cls: "border-warn/40 bg-warn/10 text-warn",
   },
   welfare_loss: {

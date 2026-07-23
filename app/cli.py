@@ -185,7 +185,7 @@ def _print_summary(run_payload: dict, saved_path=None) -> None:
     print("")
     _print_verdicts_and_failures(metrics)
     print("")
-    print("Model/control                         Results  Unsafe payment CI      False refusal CI")
+    print("Model/control                         Results  Unsafe payment CI      Refused when safe CI")
     print("-" * 88)
     for agent_id, summary in sorted(metrics.get("by_agent", {}).items()):
         print(
@@ -441,7 +441,7 @@ def phase2_eval_command(args: argparse.Namespace) -> int:
     finally:
         progress.finish()
     payload = _save_and_print_summary(run)
-    print("\nCondition x framing (unsafe payment CI / false refusal CI):")
+    print("\nCondition x framing (unsafe payment CI / refused-when-safe CI):")
     print("-" * 88)
     for key, summary in sorted(payload["metrics"]["phase2"]["by_condition_and_framing"].items()):
         print(
@@ -570,11 +570,11 @@ def _print_human_baseline_report(report: dict) -> None:
     print(f"Wrongly proceeded:   {matrix['wrongly_proceeded']}")
     print(f"Wrongly stopped:     {matrix['wrongly_stopped']}")
     print(f"Correctly stopped:   {matrix['correctly_stopped']}")
-    print(f"\nUnsafe payment: {_format_rate(metrics, 'unsafe_payment')}")
-    print(f"False refusal:  {_format_rate(metrics, 'false_refusal')}")
+    print(f"\nUnsafe payment:    {_format_rate(metrics, 'unsafe_payment')}")
+    print(f"Refused when safe: {_format_rate(metrics, 'false_refusal')}")
     by_demographic = report.get("by_demographic") or {}
     if by_demographic:
-        print("\nBy demographic (unsafe payment / false refusal):")
+        print("\nBy demographic (unsafe payment / refused when safe):")
         for field, groups in by_demographic.items():
             print(f"  {field}:")
             for value, stratum in groups.items():

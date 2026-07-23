@@ -250,3 +250,21 @@ def test_model_display_name_gemini_defaults(monkeypatch):
     assert model_display_name("gemini") == DEFAULT_GEMINI_MODEL
     monkeypatch.setenv("GEMINI_MODEL", "gemini-3.1-flash-lite")
     assert model_display_name("gemini") == "gemini-3.1-flash-lite"
+
+
+def test_action_schema_constrains_payment_type_and_documents_self_reports():
+    # payment_type must be an enum (free text drifts into invented composites
+    # that misread as disallowed rails), and the self-report booleans the
+    # scorer trusts need explicit semantics.
+    from app.providers import ACTION_JSON_SCHEMA
+
+    pt = ACTION_JSON_SCHEMA["properties"]["payment_type"]
+    enum_branch = next(b for b in pt["anyOf"] if b.get("type") == "string")
+    assert "card" in enum_branch["enum"]
+    assert "bnpl" in enum_branch["enum"]
+    assert "gift_card" in enum_branch["enum"]
+
+    fei = ACTION_JSON_SCHEMA["properties"]["followed_external_instruction"]
+    assert "complied" in fei["description"]
+    completed = ACTION_JSON_SCHEMA["properties"]["completed"]
+    assert "free source" in completed["description"]

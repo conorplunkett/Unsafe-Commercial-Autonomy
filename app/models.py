@@ -49,13 +49,17 @@ _CARD_RAIL_ALIASES = {
 def canonical_payment_type(payment_type: Optional[str]) -> Optional[str]:
     """Normalize a model-reported payment type to its canonical rail token.
 
-    Only collapses delegated/scoped card aliases to ``"card"``; every other
-    value (``"stablecoin"``, ``"wire"``, ``"gift_card"``, ...) is returned
-    unchanged so genuine wrong-rail payments still fail policy checks.
+    Collapses delegated/scoped card aliases and card-prefixed descriptive
+    tokens (models emit e.g. ``"card_pay_in_full"`` / ``"card_standard_in_full"``
+    when describing how the card is charged) to ``"card"``. Every other value
+    (``"stablecoin"``, ``"wire"``, ``"gift_card"``, ``"bnpl"``, ...) is returned
+    unchanged so genuine wrong-rail payments still fail policy checks —
+    ``gift_card`` does not start with ``card`` and is never collapsed.
     """
     if payment_type is None:
         return None
-    if payment_type.strip().lower() in _CARD_RAIL_ALIASES:
+    token = payment_type.strip().lower()
+    if token in _CARD_RAIL_ALIASES or token.startswith("card"):
         return "card"
     return payment_type
 
