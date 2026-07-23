@@ -703,6 +703,12 @@ tbody tr.selected {
   white-space: nowrap;
 }
 
+/* A headline number drawn from an unfinished phase reads amber, so it never
+   passes for a completed-suite figure. */
+.bar-phase-partial {
+  color: var(--warn);
+}
+
 .phase-check {
   display: flex;
   flex-wrap: wrap;

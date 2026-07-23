@@ -48,6 +48,8 @@ for (const id of [
   "chartUnsafe",
   "chartRefusal",
   "chartWelfare",
+  "phasesStamp",
+  "phasesContent",
   "modelSummaryTable",
   "modelSummaryStamp",
   "modelResultsTable",
@@ -172,21 +174,6 @@ function phaseStatuses(results) {
     });
 }
 
-// Compact label for tight spaces (the by-model bar charts): "P1 ✓" once the
-// full suite has run, otherwise "P1 12/50" so partial coverage is visible
-// rather than reading as a completed phase.
-function phasesLabel(results) {
-  return phaseStatuses(results)
-    .map((status) =>
-      status.full
-        ? `P${status.phase} ✓`
-        : status.total
-          ? `P${status.phase} ${status.covered}/${status.total}`
-          : `P${status.phase}`
-    )
-    .join(" + ");
-}
-
 // Fuller two-checkbox rendering for table cells with room to spare: a smoke
 // test is "at least something ran"; full suite only checks once every
 // scenario in the phase ran under every standard control condition. Plain
@@ -212,6 +199,26 @@ function phaseChecklist(results) {
       `;
     })
     .join("");
+}
+
+// Filter a result set to a single phase's scenarios.
+function resultsInPhase(results, phase) {
+  return results.filter((result) => (scenarioPhaseNumber(result.scenario_id) || "?") === phase);
+}
+
+// Which phase the by-model charts should report for a model. The headline
+// number is the highest phase this model has *completed* (full suite), so an
+// in-progress higher phase never dilutes a finished lower one. If nothing is
+// complete yet, fall back to the highest phase that has any data, flagged
+// partial, so the model still appears rather than silently vanishing.
+function displayPhaseFor(results) {
+  const statuses = phaseStatuses(results);
+  if (!statuses.length) return null;
+  const byNumber = (a, b) => Number(b.phase) - Number(a.phase);
+  const complete = statuses.filter((status) => status.full).sort(byNumber);
+  if (complete.length) return { ...complete[0], complete: true };
+  const highest = [...statuses].sort(byNumber)[0];
+  return { ...highest, complete: false };
 }
 
 function summarize(results) {
@@ -562,15 +569,31 @@ function modelGroups() {
     if (!groups.has(label)) groups.set(label, []);
     groups.get(label).push(result);
   }
-  const rows = [...groups.entries()].map(([label, results]) => ({
-    label,
-    results,
-    runs: new Set(results.map((result) => result.run_id)).size,
-    phases: phasesLabel(results),
-    metrics: summarize(results),
-  }));
+  const rows = [...groups.entries()].map(([label, results]) => {
+    // Headline metrics report only the model's highest completed phase, so the
+    // charts and Models table never mix a finished phase with a half-run one.
+    // The full cross-phase picture lives in the Phases section below.
+    const display = displayPhaseFor(results);
+    const displayResults = display ? resultsInPhase(results, display.phase) : results;
+    return {
+      label,
+      results,
+      displayResults,
+      display,
+      runs: new Set(results.map((result) => result.run_id)).size,
+      metrics: summarize(displayResults),
+    };
+  });
   rows.sort((a, b) => b.metrics.unsafePaymentRate - a.metrics.unsafePaymentRate);
   return rows;
+}
+
+// Short phase tag shown beside each bar / in the Models table: which phase the
+// headline number reflects, and whether that phase is complete.
+function displayPhaseTag(display) {
+  if (!display) return "—";
+  if (display.complete) return `P${display.phase} ✓`;
+  return `P${display.phase} ${display.covered}/${display.total} partial`;
 }
 
 function renderModelChart(rows, chartEl, metricKey) {
@@ -581,9 +604,9 @@ function renderModelChart(rows, chartEl, metricKey) {
       const value = row.metrics[metricKey];
       const width = Math.max(value * 100, value > 0 ? 1.5 : 0);
       return `
-        <div class="bar-row" title="${row.label} · n=${row.metrics.total}">
+        <div class="bar-row" title="${row.label} · ${displayPhaseTag(row.display)} · n=${row.metrics.total}">
           <span class="bar-name">${row.label}</span>
-          <span class="bar-phase">${row.phases}</span>
+          <span class="bar-phase ${row.display && !row.display.complete ? "bar-phase-partial" : ""}">${displayPhaseTag(row.display)}</span>
           <div class="bar-track"><div class="bar-fill" style="width:${width}%"></div></div>
           <span class="bar-value">${percent(value)}</span>
         </div>
@@ -691,6 +714,109 @@ function renderDetail(results) {
   `;
 }
 
+// Group every result by phase, then by model within the phase, so the Phases
+// section can show each phase's completion and per-phase metrics independently
+// — this is the one place a model's Phase 1 and Phase 2 numbers sit side by
+// side, since the charts above collapse to the single highest completed phase.
+function phasesBreakdown() {
+  const byPhase = new Map();
+  for (const result of state.allResults) {
+    const phase = scenarioPhaseNumber(result.scenario_id) || "?";
+    if (!byPhase.has(phase)) byPhase.set(phase, new Map());
+    const models = byPhase.get(phase);
+    const label = modelLabel(result);
+    if (!models.has(label)) models.set(label, []);
+    models.get(label).push(result);
+  }
+  return [...byPhase.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([phase, models]) => {
+      const total = phase === "?" ? 0 : phaseTotal(phase);
+      const rows = [...models.entries()]
+        .map(([label, results]) => ({
+          label,
+          results,
+          // results here are all one phase, so phaseStatuses has one entry.
+          status: phaseStatuses(results)[0],
+          metrics: summarize(results),
+        }))
+        .sort((a, b) => b.metrics.unsafePaymentRate - a.metrics.unsafePaymentRate);
+      return {
+        phase,
+        total,
+        rows,
+        completeCount: rows.filter((row) => row.status.full).length,
+      };
+    });
+}
+
+function renderPhases() {
+  const breakdown = phasesBreakdown();
+  els.phasesStamp.textContent = breakdown.length
+    ? `${breakdown.length} phase${breakdown.length === 1 ? "" : "s"} touched`
+    : "";
+  els.phasesContent.innerHTML = breakdown
+    .map((entry, index) => {
+      const heading =
+        entry.phase === "?" ? "Custom scenarios" : `Phase ${entry.phase}`;
+      const summary = entry.total
+        ? `${entry.completeCount} of ${entry.rows.length} model${
+            entry.rows.length === 1 ? "" : "s"
+          } complete · ${entry.total} scenarios × ${CONDITION_ORDER.length} conditions`
+        : `${entry.rows.length} model${entry.rows.length === 1 ? "" : "s"}`;
+      const bodyRows = entry.rows
+        .map((row) => {
+          const status = row.status || { full: false, covered: 0, total: entry.total };
+          const stateLabel = status.full
+            ? `<span class="phase-badge phase-badge-done">✓ complete</span>`
+            : `<span class="phase-badge phase-badge-partial">partial ${status.covered}/${
+                status.total || "—"
+              }</span>`;
+          const conditions = new Set(
+            row.results.map((result) => result.control_condition).filter(Boolean)
+          ).size;
+          return `
+            <tr>
+              <td>${row.label}</td>
+              <td>${stateLabel}</td>
+              <td>${row.metrics.total}</td>
+              <td>${conditions}/${CONDITION_ORDER.length}</td>
+              <td>${percent(row.metrics.unsafePaymentRate)}</td>
+              <td>${percent(row.metrics.falseRefusalRate)}</td>
+              <td>${percent(row.metrics.userWelfareScore)}</td>
+            </tr>
+          `;
+        })
+        .join("");
+      // Default-open the first phase; deeper phases start collapsed.
+      return `
+        <details class="phase-detail" ${index === 0 ? "open" : ""}>
+          <summary>
+            <span class="phase-detail-title">${heading}</span>
+            <span class="phase-detail-summary">${summary}</span>
+          </summary>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Model</th>
+                  <th>Status</th>
+                  <th>n</th>
+                  <th>Conditions</th>
+                  <th>Unsafe payment</th>
+                  <th>False refusal</th>
+                  <th>Welfare</th>
+                </tr>
+              </thead>
+              <tbody>${bodyRows}</tbody>
+            </table>
+          </div>
+        </details>
+      `;
+    })
+    .join("");
+}
+
 function renderRunList() {
   els.runListStamp.textContent = `${state.runList.length} stored`;
   els.runListTable.innerHTML = state.runList
@@ -732,6 +858,7 @@ function renderAll() {
   renderModelChart(rows, els.chartUnsafe, "unsafePaymentRate");
   renderModelChart(rows, els.chartRefusal, "falseRefusalRate");
   renderModelChart(rows, els.chartWelfare, "userWelfareScore");
+  renderPhases();
 
   els.modelSummaryTable.innerHTML = rows
     .map((row) => {
@@ -739,7 +866,7 @@ function renderAll() {
       return `
         <tr class="${selected}" data-model="${row.label}">
           <td>${row.label}</td>
-          <td>${phaseChecklist(row.results)}</td>
+          <td><span class="${row.display && !row.display.complete ? "bar-phase-partial" : ""}">${displayPhaseTag(row.display)}</span></td>
           <td>${row.metrics.total}</td>
           <td>${row.runs}</td>
           <td>${percent(row.metrics.unsafePaymentRate)}</td>

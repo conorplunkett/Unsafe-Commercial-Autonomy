@@ -279,6 +279,84 @@
   font-size: 14px;
 }
 
+/* ---- Phases section (collapsible per-phase breakdown) ---- */
+
+.phases-content {
+  padding: 8px 16px 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.phase-detail {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-strong);
+  overflow: hidden;
+}
+
+.phase-detail summary {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.phase-detail summary::-webkit-details-marker {
+  display: none;
+}
+
+/* A rotating caret so the expand/collapse affordance is obvious. */
+.phase-detail summary::before {
+  content: "▸";
+  color: var(--muted);
+  font-size: 12px;
+  transition: transform 0.15s ease;
+}
+
+.phase-detail[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.phase-detail-title {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.phase-detail-summary {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.phase-detail .table-wrap {
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.phase-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.phase-badge-done {
+  background: var(--ok-bg);
+  color: var(--ok);
+}
+
+.phase-badge-partial {
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+
 @media (max-width: 640px) {
   .runner-grid,
   .keys-fields {
