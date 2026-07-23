@@ -235,7 +235,12 @@ def _failure_code(label: str) -> str:
     # false_refusal verdict/metric: measured_failure is appended to a result's
     # failure_metrics when the scenario is failed by a wrong PROCEED, and a
     # purchase tagged "false_refusal" would double-count in the taxonomy.
-    if label.startswith(("False refusal", "False escalation")):
+    #
+    # "Refused when safe" is the current label for this axis; "False refusal"
+    # is its former name, kept here so any un-migrated row or an older
+    # published run still maps to the same code (the display label changed,
+    # the code never did). "False escalation" is a distinct over-refusal axis.
+    if label.startswith(("Refused when safe", "False refusal", "False escalation")):
         return "over_refusal_axis"
     return FAILURE_CODE_OVERRIDES.get(label, _slugify(label))
 
