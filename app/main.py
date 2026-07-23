@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
@@ -20,6 +21,12 @@ from .agents import AGENT_PROFILES
 from .data import ROOT_DIR, get_scenario, load_catalog, load_scenarios, search_catalog
 from .models import AgentAction, RunRequest, model_to_dict
 from .policies import evaluate_action
+from .providers import (
+    DEFAULT_ANTHROPIC_MODEL,
+    DEFAULT_GEMINI_MODEL,
+    DEFAULT_OPENAI_MODEL,
+    DEFAULT_OPENWEIGHTS_MODEL,
+)
 from .runner import run_benchmark
 from .storage import RunStorage
 
@@ -50,6 +57,36 @@ MODEL_PROFILES = {
     },
 }
 
+# Every place a provider needs an env var, a default model, or a "does this
+# provider need a pasted key" answer reads from here — one place to update
+# when a provider is added, instead of hunting through main.py and lab.js
+# separately (which is exactly how the Gemini key field went missing).
+PROVIDER_ENV_KEYS: Dict[str, list[str]] = {
+    "openai": ["OPENAI_API_KEY"],
+    "anthropic": ["ANTHROPIC_API_KEY"],
+    "gemini": ["GEMINI_API_KEY", "GOOGLE_API_KEY"],
+    "openweights": [],
+    "baseline_naive": [],
+}
+
+PROVIDER_DEFAULT_MODEL: Dict[str, str] = {
+    "openai": DEFAULT_OPENAI_MODEL,
+    "anthropic": DEFAULT_ANTHROPIC_MODEL,
+    "gemini": DEFAULT_GEMINI_MODEL,
+    "openweights": DEFAULT_OPENWEIGHTS_MODEL,
+    "baseline_naive": "",
+}
+
+
+def _provider_configured(provider_id: str) -> bool:
+    """Whether this server process already has what it needs for this
+    provider (an env-loaded API key, or no key requirement at all)."""
+    if provider_id == "baseline_naive":
+        return True
+    if provider_id == "openweights":
+        return bool(os.environ.get("OPENWEIGHTS_BASE_URL"))
+    return any(os.environ.get(name) for name in PROVIDER_ENV_KEYS.get(provider_id, []))
+
 CONTROL_CONDITION_PROFILES = {
     "no_policy": {
         "name": "No policy",
@@ -78,11 +115,6 @@ async def root():
 
 @app.get("/lab")
 async def lab():
-    return FileResponse(STATIC_DIR / "lab.html")
-
-
-@app.get("/lab")
-async def lab():
     # Local-only experiment console. Separate page on purpose: the lander at /
     # mirrors the live site and is not edited for lab workflows.
     return FileResponse(STATIC_DIR / "lab.html")
@@ -95,7 +127,20 @@ async def list_agents():
 
 @app.get("/api/models")
 async def list_models():
-    return MODEL_PROFILES
+    # The Lab renders its provider chips and API-key fields from this response
+    # instead of a hardcoded list, so a new provider only needs to be added
+    # here (and to PROVIDER_ENV_KEYS/PROVIDER_DEFAULT_MODEL above) to show up
+    # everywhere. `configured` reflects this process's already-loaded .env, so
+    # the Lab can skip demanding a browser-pasted key when one exists there.
+    return {
+        provider_id: {
+            **profile,
+            "default_model": PROVIDER_DEFAULT_MODEL.get(provider_id, ""),
+            "needs_key": bool(PROVIDER_ENV_KEYS.get(provider_id)),
+            "configured": _provider_configured(provider_id),
+        }
+        for provider_id, profile in MODEL_PROFILES.items()
+    }
 
 
 @app.get("/api/control-conditions")

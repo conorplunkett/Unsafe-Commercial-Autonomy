@@ -8,7 +8,14 @@ const state = {
   scenarioIndex: new Map(),
   allResults: [],
   runList: [],
-  provider: "openai",
+  // Fetched from GET /api/models: {provider_id: {name, description,
+  // default_model, needs_key, configured}}. The provider chips, model
+  // dropdown, and key fields all render from this instead of a hardcoded
+  // list, so a provider added on the backend (app/main.py MODEL_PROFILES)
+  // shows up here with no frontend changes — the Gemini chip and key field
+  // went missing exactly because that used to be a manually-synced list.
+  providerProfiles: {},
+  provider: null,
   dryRun: false,
   conditions: new Set(["no_policy", "prompt_policy", "tool_constraints"]),
   modelFilter: null,
@@ -24,8 +31,8 @@ for (const id of [
   "progressLabel",
   "progressPct",
   "providerChips",
-  "modelInput",
-  "modelSuggestions",
+  "modelSelect",
+  "modelCustomInput",
   "conditionChips",
   "dryRunChip",
   "categoryFilter",
@@ -35,8 +42,7 @@ for (const id of [
   "reasoningEffort",
   "keysBand",
   "keysStatus",
-  "keyOpenai",
-  "keyAnthropic",
+  "keysFields",
   "modelSectionMeta",
   "modelDashboard",
   "chartUnsafe",
@@ -55,30 +61,15 @@ for (const id of [
   els[id] = document.querySelector(`#${id}`);
 }
 
-// Providers the local harness can run. Model names pass straight through to the
-// provider API; suggestions are a datalist, so any model name can be typed.
-const PROVIDERS = [
-  {
-    id: "openai",
-    label: "OpenAI",
-    defaultModel: "gpt-4o-mini",
-    suggestions: ["gpt-4o-mini", "gpt-4o", "gpt-4.1", "gpt-4.1-mini", "o4-mini", "o3"],
-  },
-  {
-    id: "anthropic",
-    label: "Anthropic",
-    defaultModel: "claude-haiku-4-5-20251001",
-    suggestions: ["claude-opus-4-8", "claude-sonnet-4-6", "claude-haiku-4-5-20251001"],
-  },
-  {
-    id: "gemini",
-    label: "Gemini",
-    defaultModel: "gemini-2.5-flash-lite",
-    suggestions: ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro"],
-  },
-  { id: "baseline_naive", label: "Naive baseline", defaultModel: null, suggestions: [] },
-  { id: "openweights", label: "Open-weights", defaultModel: null, suggestions: [] },
-];
+// Curated model-name suggestions per provider — pure UX (which options show
+// in the dropdown before "Custom…"), not configuration, so it's fine for
+// this one to stay a client-side list. Providers with no entry here just
+// show their backend default_model plus "Custom…".
+const MODEL_SUGGESTIONS = {
+  openai: ["gpt-4o-mini", "gpt-4o", "gpt-4.1", "gpt-4.1-mini", "o4-mini", "o3"],
+  anthropic: ["claude-haiku-4-5-20251001", "claude-opus-4-8", "claude-sonnet-4-6"],
+  gemini: ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro"],
+};
 
 // Mirrored from web/lib/labels.ts so the Lab speaks the site's language.
 const CONDITION_ORDER = ["no_policy", "prompt_policy", "tool_constraints"];
@@ -139,14 +130,88 @@ function modelLabel(result) {
 // Scenario ids embed their source set (scn_v1_..., scn_v2_...; see
 // app/data.py), so the phase a result was scored under can be read off the id
 // without threading run.phase (which run_phase1_evaluation leaves unset).
-function resultPhase(result) {
-  const match = /^scn_v(\d+)_/.exec(result.scenario_id || "");
-  return match ? `Phase ${match[1]}` : "Custom";
+function scenarioPhaseNumber(scenarioId) {
+  const match = /^scn_v(\d+)_/.exec(scenarioId || "");
+  return match ? match[1] : null;
 }
 
+// Total scenario count for a phase, read from the loaded scenario indexes
+// (both v1 and v2 are fetched into state.scenarioIndex at init). Used to tell
+// "ran a couple of scenarios as a smoke test" apart from "ran the full suite".
+function phaseTotal(phaseNumber) {
+  let total = 0;
+  for (const scenarioId of state.scenarioIndex.keys()) {
+    if (scenarioPhaseNumber(scenarioId) === phaseNumber) total += 1;
+  }
+  return total;
+}
+
+// One entry per phase touched by these results: how many distinct scenarios
+// and control conditions were covered, versus the phase's full scenario
+// count and the three standard conditions. `full` only goes true when every
+// scenario in the phase's set was run under every standard condition — one
+// scenario on one condition is a smoke test, not a completed suite.
+function phaseStatuses(results) {
+  const byPhase = new Map();
+  for (const result of results) {
+    const phase = scenarioPhaseNumber(result.scenario_id) || "?";
+    if (!byPhase.has(phase)) byPhase.set(phase, { scenarios: new Set(), conditions: new Set() });
+    const entry = byPhase.get(phase);
+    entry.scenarios.add(result.scenario_id);
+    if (result.control_condition) entry.conditions.add(result.control_condition);
+  }
+  return [...byPhase.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([phase, entry]) => {
+      const total = phase === "?" ? 0 : phaseTotal(phase);
+      const full =
+        total > 0 &&
+        entry.scenarios.size >= total &&
+        CONDITION_ORDER.every((condition) => entry.conditions.has(condition));
+      return { phase, covered: entry.scenarios.size, total, full };
+    });
+}
+
+// Compact label for tight spaces (the by-model bar charts): "P1 ✓" once the
+// full suite has run, otherwise "P1 12/50" so partial coverage is visible
+// rather than reading as a completed phase.
 function phasesLabel(results) {
-  const phases = [...new Set(results.map(resultPhase))].sort();
-  return phases.join(" + ");
+  return phaseStatuses(results)
+    .map((status) =>
+      status.full
+        ? `P${status.phase} ✓`
+        : status.total
+          ? `P${status.phase} ${status.covered}/${status.total}`
+          : `P${status.phase}`
+    )
+    .join(" + ");
+}
+
+// Fuller two-checkbox rendering for table cells with room to spare: a smoke
+// test is "at least something ran"; full suite only checks once every
+// scenario in the phase ran under every standard control condition. Plain
+// "✓ " prefix rather than a ballot-box glyph — ☑/☐ render nearly identically
+// (no visible check) at this size in the monospace fallback font, which is
+// exactly the bug this column exists to avoid repeating.
+function phaseChecklist(results) {
+  return phaseStatuses(results)
+    .map((status) => {
+      const fullItem = status.full
+        ? `<span class="phase-check-item phase-check-on">✓ full</span>`
+        : `<span class="phase-check-item phase-check-off">full ${
+            status.total ? `${status.covered}/${status.total}` : "—"
+          }</span>`;
+      return `
+        <div class="phase-check" title="Phase ${status.phase}: ${
+          status.total ? `${status.covered}/${status.total} scenarios covered` : "custom scenario set"
+        }">
+          <span class="phase-check-label">Phase ${status.phase}</span>
+          <span class="phase-check-item phase-check-on">✓ smoke</span>
+          ${fullItem}
+        </div>
+      `;
+    })
+    .join("");
 }
 
 function summarize(results) {
@@ -187,21 +252,58 @@ function loadKeys() {
   }
 }
 
+// Reads every rendered key input (one per provider with needs_key=true; see
+// renderKeyFields) rather than naming providers individually, so a new
+// key-based provider is picked up automatically.
 function saveKeys() {
-  localStorage.setItem(
-    KEY_STORAGE,
-    JSON.stringify({
-      openai: els.keyOpenai.value.trim(),
-      anthropic: els.keyAnthropic.value.trim(),
-    })
-  );
+  const keys = {};
+  for (const providerId of Object.keys(state.providerProfiles)) {
+    const input = document.querySelector(`#key-${providerId}`);
+    if (input) keys[providerId] = input.value.trim();
+  }
+  localStorage.setItem(KEY_STORAGE, JSON.stringify(keys));
   renderKeysStatus();
+  renderProviderChips();
 }
 
 function renderKeysStatus() {
   const keys = loadKeys();
-  const mark = (name, value) => `${name} ${value ? "✓" : "—"}`;
-  els.keysStatus.textContent = `${mark("OpenAI", keys.openai)} · ${mark("Anthropic", keys.anthropic)}`;
+  const parts = Object.entries(state.providerProfiles)
+    .filter(([, profile]) => profile.needs_key)
+    .map(([providerId, profile]) =>
+      profile.configured
+        ? `${profile.name} via .env`
+        : `${profile.name} ${keys[providerId] ? "✓" : "—"}`
+    );
+  els.keysStatus.textContent = parts.join(" · ");
+}
+
+// One password field per key-needing provider, built from the backend
+// response. A provider the server already has a key for (loaded from the
+// repo's .env) shows that instead of an empty box — nothing to paste there
+// unless you want to override it for this browser.
+function renderKeyFields() {
+  const providers = Object.entries(state.providerProfiles).filter(
+    ([, profile]) => profile.needs_key
+  );
+  els.keysFields.innerHTML = providers
+    .map(
+      ([providerId, profile]) => `
+        <div>
+          <label class="runner-label" for="key-${providerId}">${profile.name}</label>
+          <input id="key-${providerId}" class="runner-field" type="password"
+            placeholder="${profile.configured ? "Configured via .env — optional override" : "Paste key"}"
+            autocomplete="off" spellcheck="false">
+        </div>
+      `
+    )
+    .join("");
+  const keys = loadKeys();
+  for (const [providerId] of providers) {
+    const input = document.querySelector(`#key-${providerId}`);
+    input.value = keys[providerId] || "";
+    input.addEventListener("input", saveKeys);
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -209,30 +311,62 @@ function renderKeysStatus() {
 /* ------------------------------------------------------------------ */
 
 function providerProfile() {
-  return PROVIDERS.find((entry) => entry.id === state.provider) || PROVIDERS[0];
+  return state.providerProfiles[state.provider] || {};
 }
 
 function renderProviderChips() {
-  els.providerChips.innerHTML = PROVIDERS.map(
-    (entry) => `
-      <button type="button" class="chip ${entry.id === state.provider ? "chip-on" : ""}" data-provider="${entry.id}">
-        ${entry.label}
-      </button>
-    `
-  ).join("");
+  const keys = loadKeys();
+  els.providerChips.innerHTML = Object.entries(state.providerProfiles)
+    .map(([providerId, profile]) => {
+      const ready = !profile.needs_key || profile.configured || Boolean(keys[providerId]);
+      const dot = profile.needs_key ? `<span class="chip-dot ${ready ? "chip-dot-on" : ""}"></span>` : "";
+      return `
+        <button type="button" class="chip ${providerId === state.provider ? "chip-on" : ""}"
+          data-provider="${providerId}" title="${profile.description || ""}">
+          ${dot}${profile.name}
+        </button>
+      `;
+    })
+    .join("");
+}
+
+function renderModelSelect() {
+  const provider = state.provider;
+  const profile = providerProfile();
+  if (provider === "baseline_naive") {
+    els.modelSelect.innerHTML = '<option value="">Not applicable</option>';
+    els.modelSelect.disabled = true;
+    els.modelCustomInput.hidden = true;
+    updateRunCount();
+    return;
+  }
+  els.modelSelect.disabled = false;
+  const suggestions = MODEL_SUGGESTIONS[provider] || [];
+  els.modelSelect.innerHTML = [
+    ...suggestions.map((model) => `<option value="${model}">${model}</option>`),
+    '<option value="__custom__">Custom…</option>',
+  ].join("");
+  if (suggestions.length) {
+    els.modelSelect.value = suggestions[0];
+    els.modelCustomInput.hidden = true;
+  } else {
+    els.modelSelect.value = "__custom__";
+    els.modelCustomInput.hidden = false;
+    els.modelCustomInput.value = profile.default_model || "";
+  }
+  updateRunCount();
+}
+
+function selectedModelName() {
+  if (state.provider === "baseline_naive") return null;
+  if (els.modelSelect.value === "__custom__") return els.modelCustomInput.value.trim() || null;
+  return els.modelSelect.value || null;
 }
 
 function pickProvider(providerId) {
   state.provider = providerId;
-  const profile = providerProfile();
-  els.modelInput.value = profile.defaultModel || "";
-  els.modelInput.disabled = !profile.defaultModel;
-  els.modelInput.placeholder = profile.defaultModel || "—";
-  els.modelSuggestions.innerHTML = profile.suggestions
-    .map((model) => `<option value="${model}"></option>`)
-    .join("");
   renderProviderChips();
-  updateRunCount();
+  renderModelSelect();
 }
 
 function renderConditionChips() {
@@ -337,17 +471,24 @@ function failRun(message) {
 
 async function runExperiment() {
   const provider = state.provider;
-  const modelName = els.modelInput.value.trim() || null;
+  const profile = providerProfile();
+  const modelName = selectedModelName();
   const live = provider !== "baseline_naive" && !state.dryRun;
   let apiKey = null;
-  if (live && (provider === "openai" || provider === "anthropic")) {
-    apiKey = loadKeys()[provider] || null;
-    if (!apiKey) {
+  if (live && profile.needs_key) {
+    const browserKey = (loadKeys()[provider] || "").trim();
+    if (browserKey) {
+      // An explicit browser key always overrides whatever the server has.
+      apiKey = browserKey;
+    } else if (!profile.configured) {
+      // No browser key and no .env key on the server — nothing to run with.
       els.keysBand.open = true;
-      (provider === "openai" ? els.keyOpenai : els.keyAnthropic).focus();
-      failRun(`Paste your ${providerProfile().label} key first, or switch on Dry run.`);
+      document.querySelector(`#key-${provider}`)?.focus();
+      failRun(`Paste your ${profile.name} key first, add it to .env, or switch on Dry run.`);
       return;
     }
+    // else: profile.configured is true and there's no browser override, so
+    // apiKey stays null — the server falls back to its own .env-loaded key.
   }
 
   const temperature = Number.parseFloat(els.temperatureInput.value);
@@ -560,7 +701,7 @@ function renderRunList() {
         <tr>
           <td>${compactTime(run.created_at)}</td>
           <td>${models}</td>
-          <td>${phasesLabel(run.results)}</td>
+          <td>${phaseChecklist(run.results)}</td>
           <td>${metrics.total}</td>
           <td>${percent(metrics.unsafePaymentRate)}</td>
           <td>${percent(metrics.falseRefusalRate)}</td>
@@ -598,7 +739,7 @@ function renderAll() {
       return `
         <tr class="${selected}" data-model="${row.label}">
           <td>${row.label}</td>
-          <td>${row.phases}</td>
+          <td>${phaseChecklist(row.results)}</td>
           <td>${row.metrics.total}</td>
           <td>${row.runs}</td>
           <td>${percent(row.metrics.unsafePaymentRate)}</td>
@@ -628,12 +769,17 @@ function renderAll() {
 
 function bindEvents() {
   els.runBenchmark.addEventListener("click", runExperiment);
-  els.keyOpenai.addEventListener("input", saveKeys);
-  els.keyAnthropic.addEventListener("input", saveKeys);
   els.providerChips.addEventListener("click", (event) => {
     const chip = event.target.closest("[data-provider]");
     if (chip) pickProvider(chip.dataset.provider);
   });
+  els.modelSelect.addEventListener("change", () => {
+    const isCustom = els.modelSelect.value === "__custom__";
+    els.modelCustomInput.hidden = !isCustom;
+    if (isCustom) els.modelCustomInput.focus();
+    updateRunCount();
+  });
+  els.modelCustomInput.addEventListener("input", updateRunCount);
   els.conditionChips.addEventListener("click", (event) => {
     const chip = event.target.closest("[data-condition]");
     if (!chip) return;
@@ -669,12 +815,19 @@ function bindEvents() {
 }
 
 async function init() {
-  const keys = loadKeys();
-  els.keyOpenai.value = keys.openai || "";
-  els.keyAnthropic.value = keys.anthropic || "";
-  renderKeysStatus();
   renderConditionChips();
   bindEvents();
+  try {
+    state.providerProfiles = await fetchJson("/api/models");
+  } catch (error) {
+    els.labEmpty.hidden = false;
+    els.labEmpty.textContent = `Could not load provider list: ${error.message}`;
+    return;
+  }
+  const providerIds = Object.keys(state.providerProfiles);
+  state.provider = providerIds.includes("openai") ? "openai" : providerIds[0];
+  renderKeyFields();
+  renderKeysStatus();
   pickProvider(state.provider);
   try {
     state.scenarios = await fetchJson("/api/scenarios");

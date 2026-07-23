@@ -26,9 +26,9 @@
             <div id="providerChips" class="chip-row"></div>
           </div>
           <div>
-            <label class="runner-label" for="modelInput">Model</label>
-            <input id="modelInput" class="runner-field" list="modelSuggestions" spellcheck="false" autocomplete="off">
-            <datalist id="modelSuggestions"></datalist>
+            <label class="runner-label" for="modelSelect">Model</label>
+            <select id="modelSelect" class="runner-field"></select>
+            <input id="modelCustomInput" class="runner-field" spellcheck="false" autocomplete="off" placeholder="Exact model id" hidden>
           </div>
           <div>
             <label class="runner-label" for="categoryFilter">Category</label>
@@ -90,24 +90,18 @@
           <span>API keys</span>
           <span id="keysStatus" class="keys-status"></span>
         </summary>
-        <div class="keys-fields">
-          <div>
-            <label class="runner-label" for="keyOpenai">OpenAI</label>
-            <input id="keyOpenai" class="runner-field" type="password" placeholder="sk-..." autocomplete="off" spellcheck="false">
-          </div>
-          <div>
-            <label class="runner-label" for="keyAnthropic">Anthropic</label>
-            <input id="keyAnthropic" class="runner-field" type="password" placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
-          </div>
-          <div>
-            <label class="runner-label" for="keyGemini">Gemini</label>
-            <input id="keyGemini" class="runner-field" type="password" placeholder="AIza..." autocomplete="off" spellcheck="false">
-          </div>
-          <p class="runner-hint keys-note">
-            Saved in this browser only and sent to your local server per run.
-            Never written to disk on the server or published.
-          </p>
+        <div class="keys-fields" id="keysFields">
+          <!-- Populated from GET /api/models: one field per provider with
+               needs_key=true. Providers already configured via the repo's
+               .env show that instead of an empty field to paste into. -->
         </div>
+        <p class="runner-hint keys-note">
+          A provider marked "via .env" already has a key loaded from the
+          repo's <code>.env</code> on the server — nothing to paste here.
+          Only providers without one need a browser key, saved in this
+          browser only and sent to your local server per run. Never written
+          to disk on the server or published.
+        </p>
       </details>
 
       <div class="section-divider lab-divider">

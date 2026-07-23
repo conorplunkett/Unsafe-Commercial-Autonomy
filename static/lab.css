@@ -86,6 +86,9 @@
 }
 
 .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: transparent;
@@ -95,6 +98,19 @@
   font-size: 12px;
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+/* Provider readiness: lit when a key is available (server .env or browser
+   override), dim when the provider still needs one before it can run live. */
+.chip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--border);
+}
+
+.chip-dot-on {
+  background: var(--accent);
 }
 
 .chip:hover {

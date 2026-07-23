@@ -703,6 +703,29 @@ tbody tr.selected {
   white-space: nowrap;
 }
 
+.phase-check {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.phase-check + .phase-check {
+  margin-top: 4px;
+}
+
+.phase-check-label {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.phase-check-item {
+  color: var(--muted);
+}
+
 .bar-track {
   height: 10px;
   border-radius: 4px;
