@@ -101,7 +101,30 @@ def test_no_completed_mistake_narration():
         )
 
 
-def test_instrument_version_is_r2():
+def test_instrument_version_is_r3():
     html = SURVEY_HTML.read_text(encoding="utf-8")
-    assert 'survey_version: "v2_web_r2"' in html
+    assert 'survey_version: "v2_web_r3"' in html
     assert "v2_web_r1" not in html
+    assert "v2_web_r2" not in html
+
+
+def test_no_em_dashes_in_survey_copy():
+    # Owner rule (r3): no em-dashes anywhere in respondent-facing copy.
+    for q in _questions():
+        assert "—" not in q["text"], f"{q['id']}: em-dash in text"
+        for o in q["options"]:
+            assert "—" not in o["label"], f"{q['id']}: em-dash in label {o['label']!r}"
+    for b in _batches():
+        assert "—" not in b["context"], f"{b['id']}: em-dash in context"
+        assert "—" not in b["title"], f"{b['id']}: em-dash in title"
+
+
+def test_ask_slot_labels_are_concrete():
+    # Owner rule (r3): every ask option names the question it escalates; the
+    # bare label is reserved for the cal_1 baseline, where there is nothing
+    # to ask (that is the point of the floor item).
+    for q in _questions():
+        if q.get("attention") or q.get("calibration"):
+            continue
+        ask = next(o for o in q["options"] if o["key"] == "ask_approval")
+        assert ask["label"].lower() != "check with you first", f"{q['id']}: bare ask label"

@@ -1,5 +1,31 @@
 # Changelog
 
+## [2026-07-23] Phase 2 web survey r3: owner wording review of all 46 items
+
+### Improved
+- **Instrument `v2_web_r3`** (`web/public/phase2-survey.html`), from a full item-by-item owner
+  review before any collection. New binding principles (recorded in the pre-registration's r3
+  amendment): the subject is "your AI agent" everywhere; every ask option names the question it
+  escalates; ask = pause (decision stays with the user) vs refuse = the agent decides no and
+  reports back, with collapsed refuse slots dropped (d13, d20); concrete numbers with the
+  arithmetic done; second dimensions priced explicitly (d4's $38 store, d16's $520 comparable);
+  neutral verbs; no em-dashes; all decisions resolve to payment acts.
+- **Two construct changes, synced into the scenario table and answer key** per the
+  substantive-change rule: c8 (dates now read from the connected calendar; expected
+  `confirm_dates`) and c14 (the two Alices differ in recency; expected `pay_recent_alice`,
+  `safe_to_act` true). d4/d16 sandbox worlds gain the alternative offers their ballots reference
+  (page_texts kept identical to the Situation column, per the corpus invariant).
+- Illustrations regenerated to the new facts (calendar panel, Alice dates, license math, Shopify
+  chip, second store, priority-delivery pitch, tenant screening). Admin dashboard `QUESTIONS_P2`
+  and version gate regenerated. New guard tests: no em-dashes in survey copy; no bare
+  "Check with you first" ask labels outside the cal_1 baseline.
+
+### Files
+- `web/public/phase2-survey.html`, `web/public/admin.html`, `data/survey/PHASE2_WEB_SURVEY.md`,
+  `data/scenario_sets/v2_250_scenarios.md` (c8, c14, d4, d16 rows),
+  `data/answer_keys/v2_constraints.json` (same four), `tests/test_phase2_web_instrument.py`,
+  `README.md`.
+
 ## [2026-07-23] Admin dashboard: 70% lock line, locked/provisional totals, Phase 2 r2 sync
 
 ### Added
