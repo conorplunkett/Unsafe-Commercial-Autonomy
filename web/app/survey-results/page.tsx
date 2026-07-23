@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { QuestionCard } from "@/components/survey/QuestionCard";
+import { SurveyResultsTable } from "@/components/survey/SurveyResultsTable";
 import { SURVEY_RESULTS } from "@/lib/surveyResults";
 import { CONFIG } from "@/lib/config";
 
@@ -47,14 +48,6 @@ const PAIR_TITLES: Record<string, string> = {
   v1_b4: "B4 — Prohibited category (gift card vs physical gift)",
   v1_c5: "C5 — Ambiguous amount (unstated vs explicit payment)",
   v1_e5: "E5 — Pressure tactics (coercive vs legitimate urgency)",
-};
-
-const VOTE_LABELS: Record<string, string> = {
-  buy: "buy",
-  buy_compliant_alternative: "buy compliant alternative",
-  use_free_source: "use free source",
-  ask: "ask",
-  refuse: "refuse",
 };
 
 function pct1(rate: number): string {
@@ -250,78 +243,7 @@ export default function SurveyResultsPage() {
 
         <section className="mt-14">
           <h2 className="font-serif text-3xl tracking-tight">Lock summary</h2>
-          <div className="mt-4 overflow-x-auto rounded-xl border border-border">
-            <table className="w-full min-w-[640px] border-collapse text-sm">
-              <thead>
-                <tr className="border-b border-border bg-paper-2/60 text-left">
-                  <th className="px-4 py-2.5 font-mono text-[0.7rem] uppercase tracking-[0.14em] text-muted">
-                    Item
-                  </th>
-                  <th className="px-4 py-2.5 font-mono text-[0.7rem] uppercase tracking-[0.14em] text-muted">
-                    Role
-                  </th>
-                  <th className="px-4 py-2.5 font-mono text-[0.7rem] uppercase tracking-[0.14em] text-muted">
-                    Modal vote
-                  </th>
-                  <th className="px-4 py-2.5 font-mono text-[0.7rem] uppercase tracking-[0.14em] text-muted">
-                    Agreement
-                  </th>
-                  <th className="px-4 py-2.5 font-mono text-[0.7rem] uppercase tracking-[0.14em] text-muted">
-                    Status
-                  </th>
-                  <th className="px-4 py-2.5 font-mono text-[0.7rem] uppercase tracking-[0.14em] text-muted">
-                    Acceptable (&ge;70%)
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {R.questions.map((q) => {
-                  const modalCount = q.counts[q.modal] ?? 0;
-                  return (
-                    <tr key={q.id} className="border-b border-border/60">
-                      <td className="px-4 py-2.5">{q.short}</td>
-                      <td
-                        className={`px-4 py-2.5 font-mono text-xs uppercase ${
-                          q.role === "trap" ? "text-danger" : "text-accent-2"
-                        }`}
-                      >
-                        {q.role}
-                      </td>
-                      <td className="px-4 py-2.5">
-                        {VOTE_LABELS[q.modal_vote] ?? q.modal_vote}
-                      </td>
-                      <td className="px-4 py-2.5 font-mono text-xs">
-                        {modalCount}/{q.n} ({pct1(q.agreement)})
-                      </td>
-                      <td className="px-4 py-2.5">
-                        {q.locked ? (
-                          <span className="rounded-full bg-accent/10 px-2 py-0.5 font-mono text-[0.65rem] uppercase tracking-wider text-accent">
-                            Locked
-                          </span>
-                        ) : (
-                          <span className="rounded-full border border-border px-2 py-0.5 font-mono text-[0.65rem] uppercase tracking-wider text-muted">
-                            Provisional
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-2.5">
-                        {q.acceptable_actions.length
-                          ? q.acceptable_actions
-                              .map((k) =>
-                                (VOTE_LABELS[
-                                  q.options.find((o) => o.key === k)?.vote ?? k
-                                ] ?? k
-                                ).replaceAll("_", " "),
-                              )
-                              .join(", ")
-                          : "none reaches 70%"}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <SurveyResultsTable questions={R.questions} />
           <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted">
             Per the pre-registration, the {R.lock_summary.unlocked_ids.length}{" "}
             items that failed to lock will be reworded or dropped, and that
