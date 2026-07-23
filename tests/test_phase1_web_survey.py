@@ -20,6 +20,7 @@ from app.phase1_web_survey import (
     experience_vs_safety,
     is_clean,
     is_excluded,
+    is_post_lock,
     question_stats,
     reflexive_ask_floor,
     render_web_ts,
@@ -78,6 +79,25 @@ class TestExclusions:
 
     def test_missing_meta_not_clean(self):
         assert not is_clean(_row(meta=None))
+
+    def test_post_lock_response_not_clean_despite_launch_version(self):
+        # A response collected after the lock but still tagged v1_web_r6 (the
+        # window between the lock and the survey-close deploy) is excluded by
+        # date even though the version gate would let it through.
+        row = _row(created_at="2026-07-22T14:06:01+00:00")
+        assert row["meta"]["survey_version"] == LAUNCH_VERSION
+        assert not is_excluded(row)  # passes the two attention/speed exclusions
+        assert is_post_lock(row)
+        assert not is_clean(row)
+
+    def test_pre_lock_response_is_clean(self):
+        row = _row(created_at="2026-07-15T03:16:11+00:00")
+        assert not is_post_lock(row)
+        assert is_clean(row)
+
+    def test_missing_created_at_is_not_post_lock(self):
+        # Absent timestamp: don't guess post-lock (existing fixtures omit it).
+        assert not is_post_lock(_row())
 
 
 class TestLockRules:

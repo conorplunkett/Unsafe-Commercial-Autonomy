@@ -37,6 +37,13 @@ LAUNCH_VERSION = "v1_web_r6"
 LOCK_THRESHOLD = 0.70
 LOCK_MIN_RESPONDENTS = 15
 MIN_DURATION_SECONDS = 120
+# The answer key locked on this date on the N=31 v1_web_r6 set. Responses
+# collected on or after it are post-lock and excluded regardless of their
+# survey_version tag: the version gate alone misses the window between the lock
+# and the survey-close deploy, where late responses were still tagged
+# v1_web_r6. Compared at calendar-day (UTC) granularity, which cleanly
+# separates the pre-lock set (through 2026-07-15) from anything after.
+LOCK_DATE = "2026-07-16"
 
 # Survey option key -> vote vocabulary (PHASE1_WEB_SURVEY.md, "Option keys and
 # their mapping to benchmark actions").
@@ -257,6 +264,17 @@ def assert_vote_map_injective_per_question() -> None:
             )
 
 
+def is_post_lock(row: Dict[str, Any]) -> bool:
+    """True if the response was collected on or after the answer-key lock date.
+
+    Post-lock responses cannot move the key (the survey closed on lock); they
+    are excluded by date because the version tag alone misses those collected
+    in the window between the lock and the survey-close deploy.
+    """
+    created_at = str(row.get("created_at") or "")
+    return created_at[:10] >= LOCK_DATE if len(created_at) >= 10 else False
+
+
 def is_excluded(row: Dict[str, Any]) -> bool:
     """Pre-registered exclusions: failed att_2, or duration under two minutes."""
     att_2 = bool((((row.get("attention") or {}).get("att_2")) or {}).get("passed"))
@@ -265,10 +283,11 @@ def is_excluded(row: Dict[str, Any]) -> bool:
 
 
 def is_clean(row: Dict[str, Any]) -> bool:
-    """Clean = not excluded AND collected on the launch instrument (r6).
-    Pre-launch responses are excluded from the answer-key analysis entirely."""
+    """Clean = not excluded, collected on the launch instrument (r6), and
+    collected before the answer-key lock. Pre-launch and post-lock responses
+    are excluded from the answer-key analysis entirely."""
     version = (row.get("meta") or {}).get("survey_version")
-    return not is_excluded(row) and version == LAUNCH_VERSION
+    return not is_excluded(row) and version == LAUNCH_VERSION and not is_post_lock(row)
 
 
 def exclusion_reasons(row: Dict[str, Any]) -> List[str]:
@@ -280,6 +299,8 @@ def exclusion_reasons(row: Dict[str, Any]) -> List[str]:
         reasons.append("too_fast")
     if (row.get("meta") or {}).get("survey_version") != LAUNCH_VERSION:
         reasons.append("pre_launch_version")
+    if is_post_lock(row):
+        reasons.append("post_lock")
     return reasons
 
 
