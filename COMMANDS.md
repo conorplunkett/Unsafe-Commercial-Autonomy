@@ -29,10 +29,17 @@ cd /path/to/Unsafe-Commercial-Autonomy
 python3 -m venv .venv
 . .venv/bin/activate
 pip install -r requirements.txt
+cp .env.example .env   # then fill in the API keys you need
 ```
 
 Dependencies (`requirements.txt`): `fastapi`, `uvicorn`, `pydantic`, `pytest`,
 `httpx`, `openai`, `anthropic`.
+
+**`.env` is auto-loaded** by the CLI and the dashboard server at startup
+(`app/env.py`) — no `export`/`source` needed. Real environment variables
+always win over the file; set `PAYBENCH_SKIP_DOTENV=1` to disable loading.
+Activating the venv is optional too: `.venv/bin/python -m app.cli ...` works
+without it.
 
 Verify install:
 
@@ -73,19 +80,24 @@ is marked `_meta.synthetic` (the shipped placeholder), surveyed scenarios stay
 `provisional` — synthetic votes cannot lock an answer key. v2 scenarios stay
 `provisional` until their own survey exists.
 
-### `models` — list valid model ids for a provider
+### `models` — list valid model ids per provider
 
 ```bash
-python -m app.cli models                 # OpenAI gpt-* ids your key can use
-python -m app.cli models --provider openai
+python -m app.cli models                        # all providers with a key set
+python -m app.cli models --provider openai      # or anthropic / gemini
 ```
 
-Use this to pick a real `OPENAI_MODEL` before a live run. Note that not every
-family has every size — e.g. `gpt-5.5` exists but there is no `gpt-5.5-nano`;
-the newest nano is `gpt-5.4-nano`. A live `eval` **preflights** the configured
-model (one cheap metadata lookup) and aborts immediately with an actionable
-message if the id is missing or the key is unset, rather than failing once per
-scenario/condition/seed and saving a junk run.
+Lists the model ids each provider's API key can use (providers without a key
+are skipped with a note). Use this to pick a real `OPENAI_MODEL` /
+`ANTHROPIC_MODEL` / `GEMINI_MODEL` before a live run — not every family has
+every size (e.g. `gpt-5.5` exists but there is no `gpt-5.5-nano`; the newest
+nano is `gpt-5.4-nano`). If you set nothing, each provider defaults to its
+**cheapest current model** (`gpt-5.4-nano`, `claude-haiku-4-5`,
+`gemini-2.5-flash-lite`; prices in `app/providers.py`). A live `eval`
+**preflights** the configured model (one cheap metadata lookup) and aborts
+immediately with an actionable message if the id is missing or the key is
+unset, rather than failing once per scenario/condition/seed and saving a junk
+run.
 
 ### `eval` — Phase 1 model evaluation harness
 
@@ -343,9 +355,9 @@ site's **Official run** dashboard. Only runs you publish here become public; the
 "Run it yourself" flow on the site never writes to Supabase.
 
 ```bash
-# One-time: point at the project and the service-role key (kept out of git)
-export SUPABASE_URL=https://tethtzycfdplyzvrtknh.supabase.co
-export SUPABASE_SERVICE_KEY=<service-role key from Supabase > Settings > API>
+# One-time: put the service-role key (Supabase > Settings > API) in .env —
+# it is auto-loaded, and SUPABASE_URL has a baked-in default:
+#   SUPABASE_SERVICE_KEY=<service-role key>
 
 python -m app.cli publish --latest --label "Phase 2 official"
 python -m app.cli publish --run-id run_<id> --label "Phase 1 v1, all models"
@@ -355,7 +367,7 @@ python -m app.cli publish --file runtime/runs/run_<id>.json
 - Exactly one of `--run-id`, `--latest`, or `--file` selects the run.
 - `--label` is an optional human label shown in the dashboard's run selector.
 - Upserts on `run_id`, so re-publishing the same run overwrites the prior row.
-- The site reads with the **publishable** key in `static/config.js` (safe to
+- The site reads with the **publishable** key in `web/lib/config.ts` (safe to
   commit; row-level security grants public read only). Writes require the
   **service-role** key above, which must stay server-side.
 
@@ -381,7 +393,7 @@ python -m app.cli publish-human-baseline --label "Phase 2 human baseline"
 
 ---
 
-## Web server and dashboard
+## Web server and Experiment Lab
 
 Start the server (any of these):
 
@@ -391,13 +403,18 @@ python implementation.py
 python -m app.main
 ```
 
-- Dashboard: [http://127.0.0.1:8000](http://127.0.0.1:8000)
+- Experiment Lab: [http://127.0.0.1:8000](http://127.0.0.1:8000) (`/` redirects to `/lab`)
 - Swagger API docs: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 - ReDoc: [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)
 
-The dashboard lets you pick models, control conditions, category/scenario
-filters, and a **Live run** toggle, then POST to `/api/runs`. Default seeds in
-the UI are `[1, 2, 3, 4, 5]`.
+The Lab runs experiments from the browser: a model switcher (concrete model
+names per provider plus the naive baseline), a collapsible API-keys panel
+(saved in the browser's localStorage, sent to the local server per run),
+condition/category/scenario filters, seeds, temperature, reasoning effort, a
+dry-run toggle, and a progress bar. Results are charted by model across every
+stored run. Default seeds in the UI are `[1, 2, 3, 4, 5]`. The public lander
+is the Next.js app in `web/`, deployed separately — this server does not
+serve it.
 
 ---
 
@@ -405,7 +422,10 @@ the UI are `[1, 2, 3, 4, 5]`.
 
 | Method | Path | Description |
 | --- | --- | --- |
-| `GET` | `/` | Dashboard UI (`static/index.html`) |
+| `GET` | `/` | Redirects to `/lab` |
+| `GET` | `/lab` | Experiment Lab UI (`static/lab.html`) |
+| `POST` | `/api/jobs` | Start a benchmark run as a background job |
+| `GET` | `/api/jobs/{job_id}` | Job status and progress |
 | `GET` | `/api/agents` | Deterministic demo agent profiles |
 | `GET` | `/api/models` | Model provider profiles |
 | `GET` | `/api/control-conditions` | Control-layer profiles |
@@ -420,7 +440,7 @@ the UI are `[1, 2, 3, 4, 5]`.
 | `GET` | `/search?query=...` | Mock product catalog search |
 | `POST` | `/execute-payment` | Legacy compatibility payment eval endpoint |
 
-Static assets: `static/` (`index.html`, `app.js`, `styles.css`).
+Static assets: `static/` (`lab.html`, `lab.js`, `lab.css`, `styles.css`).
 
 ### `POST /api/runs` body
 
@@ -458,11 +478,12 @@ path is used. Otherwise `agent_ids` run through scripted deterministic agents.
 
 | ID | Live behavior | Required env |
 | --- | --- | --- |
-| `openai` | OpenAI Responses API | `OPENAI_API_KEY`; optional `OPENAI_MODEL` (default `gpt-5.5`) |
-| `anthropic` | Anthropic Messages API | `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` |
+| `openai` | OpenAI Responses API | `OPENAI_API_KEY`; optional `OPENAI_MODEL` (default `gpt-5.4-nano`, the cheapest current OpenAI model) |
+| `anthropic` | Anthropic Messages API | `ANTHROPIC_API_KEY`; optional `ANTHROPIC_MODEL` (default `claude-haiku-4-5`, the cheapest current Claude) |
+| `gemini` | Gemini OpenAI-compatible endpoint | `GEMINI_API_KEY` (or `GOOGLE_API_KEY`); optional `GEMINI_MODEL` (default `gemini-2.5-flash-lite`, the cheapest current Gemini — retires 2026-10-16) |
 | `openweights` | OpenAI-compatible `/v1/chat/completions` | `OPENWEIGHTS_BASE_URL`, `OPENWEIGHTS_MODEL`; optional `OPENWEIGHTS_API_KEY` (default `local`) |
 | `baseline_naive` | Offline heuristic — always cheapest, never ask | None |
-| `all` | Runs all four above | All configured keys/URLs |
+| `all` | Runs all five above | All configured keys/URLs |
 
 With `--dry-run`, live model IDs use `DryRunProvider` (offline scripted
 actions). `baseline_naive` is always offline regardless of `--dry-run`.
@@ -529,12 +550,18 @@ provisional until the 50-respondent survey locks them.
 
 ## Environment variables
 
+All of these can live in the repo-root `.env` (gitignored, auto-loaded at
+startup — see Setup). Shell-exported values override the file.
+
 | Variable | Purpose |
 | --- | --- |
+| `PAYBENCH_SKIP_DOTENV` | Set to `1` to disable `.env` auto-loading (tests do this) |
 | `OPENAI_API_KEY` | Live OpenAI evals |
-| `OPENAI_MODEL` | OpenAI model name (default `gpt-5.5`) |
+| `OPENAI_MODEL` | OpenAI model name (default `gpt-5.4-nano` — cheapest current) |
 | `ANTHROPIC_API_KEY` | Live Anthropic evals |
-| `ANTHROPIC_MODEL` | Anthropic model name (required for anthropic provider) |
+| `ANTHROPIC_MODEL` | Anthropic model name (default `claude-haiku-4-5` — cheapest current) |
+| `GEMINI_API_KEY` | Live Gemini evals (`GOOGLE_API_KEY` also accepted) |
+| `GEMINI_MODEL` | Gemini model name (default `gemini-2.5-flash-lite` — cheapest current) |
 | `OPENWEIGHTS_BASE_URL` | OpenAI-compatible local server base URL |
 | `OPENWEIGHTS_MODEL` | Model name on that server |
 | `OPENWEIGHTS_API_KEY` | Auth header for open-weights server (default `local`) |

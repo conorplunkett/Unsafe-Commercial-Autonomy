@@ -108,16 +108,20 @@ pip install -r requirements.txt
 python -m pytest
 ```
 
-Run the OpenAI slice with a live model:
+Put your API keys in `.env` once (copy `.env.example`) — the CLI and dashboard
+**auto-load it at startup**, so no `export`/`source` ritual is needed. Real
+environment variables still override the file. Then run the OpenAI slice with a
+live model:
 
 ```bash
-export OPENAI_API_KEY=...
 python -m app.cli eval --models openai --conditions no_policy,prompt_policy,tool_constraints --seeds 1,2,3,4,5
 ```
 
-By default the OpenAI provider uses `OPENAI_MODEL=gpt-5.5`. Override it with
-`OPENAI_MODEL` if needed. Results are saved under `runtime/runs/` and the CLI
-prints a safety-autonomy summary with Wilson confidence intervals.
+Each provider defaults to its **cheapest current model** when its `*_MODEL` env
+var is unset: `gpt-5.4-nano`, `claude-haiku-4-5`, `gemini-2.5-flash-lite`
+(prices in `app/providers.py`; list valid ids with `python -m app.cli models`).
+Results are saved under `runtime/runs/` and the CLI prints a safety-autonomy
+summary with Wilson confidence intervals.
 
 ### Temperature vs. reasoning effort
 
@@ -151,13 +155,9 @@ prompt text, which produces less run-to-run variance; interpret their
 confidence intervals accordingly.
 
 Run the full Phase 1 provider surface when the additional providers are
-configured:
+configured (keys in `.env`; `OPENWEIGHTS_*` still needed for the local server):
 
 ```bash
-export ANTHROPIC_API_KEY=...
-export ANTHROPIC_MODEL=...
-export OPENWEIGHTS_BASE_URL=http://127.0.0.1:8001
-export OPENWEIGHTS_MODEL=...
 python -m app.cli eval --models all
 ```
 
@@ -165,7 +165,6 @@ Validate an API key with a quick smoke test (1 model, 1 condition, 2 scenarios,
 2 seeds; add `--dry-run` to skip the live API):
 
 ```bash
-export OPENAI_API_KEY=...
 python -m app.cli test
 ```
 
@@ -197,13 +196,17 @@ Start the FastAPI app:
 uvicorn app.main:app --reload
 ```
 
-Open `http://127.0.0.1:8000` for the dashboard. The control band includes
-temperature and reasoning-effort inputs alongside the model, condition,
-category, and scenario filters; each model uses whichever sampling control
-applies to it. `POST /api/runs` accepts both the legacy deterministic-agent
-request shape and the Phase 1 model-eval fields: `model_ids`,
-`control_conditions`, `scenario_ids`, `scenario_set_path`, `seeds`,
-`temperature`, `reasoning_effort`, and `live`.
+Open `http://127.0.0.1:8000` for the Experiment Lab (`/` redirects to `/lab`),
+the local console for running experiments from the browser: a model switcher, a
+collapsible API-keys panel (stored in the browser's localStorage), condition /
+category / scenario / seed / sampling controls, a determinate progress bar, and
+by-model charts over every stored run. The public lander is the separate
+Next.js app in `web/` and is not served by this backend. `POST /api/runs`
+accepts both the legacy deterministic-agent request shape and the Phase 1
+model-eval fields: `model_ids`, `control_conditions`, `scenario_ids`,
+`scenario_set_path`, `seeds`, `temperature`, `reasoning_effort`, and `live`;
+`POST /api/jobs` takes the same body and runs it as a background job with
+progress at `GET /api/jobs/{job_id}`.
 
 ## Publishing results to the public site
 
@@ -212,25 +215,23 @@ The site has two halves with deliberately different data stores:
 - **Official run (published).** Results you choose to publish live in a Supabase
   `benchmark_runs` table and are read by the site's read-only "Official run"
   dashboard. This is what grows as you run experiments and publish them. The
-  site reads with a publishable (anon) key embedded in `static/config.js`, which
+  site reads with a publishable (anon) key embedded in `web/lib/config.ts`, which
   is safe to commit: row-level security grants public read on that one table and
   nothing else.
-- **Run it yourself (local).** The interactive dashboard talks to the local
-  FastAPI backend and stores runs under `runtime/runs/`. It is never written to
+- **Run it yourself (local).** The Experiment Lab talks to the local FastAPI
+  backend and stores runs under `runtime/runs/`. It is never written to
   Supabase, so a visitor only ever sees their own results. Anyone who wants to
   keep results can clone the repo and run their own.
 
-Publish a stored run with the CLI (service-role key kept server-side):
+Publish a stored run with the CLI. The service-role key lives in `.env`
+(`SUPABASE_SERVICE_KEY=...`, auto-loaded; the project URL has a baked-in
+default), so this is a one-liner:
 
 ```bash
-export SUPABASE_URL=https://<project-ref>.supabase.co
-export SUPABASE_SERVICE_KEY=<service-role key>
 python -m app.cli publish --latest --label "Phase 2 official"
 ```
 
 Publishing upserts on `run_id`, so re-publishing a corrected run replaces it.
-When no runs are published yet (or Supabase is unreachable), the official
-dashboard falls back to the latest local run so the page still works offline.
 
 The **human baseline** has a parallel path: collect responses with a Google
 Form, export to CSV, then `python -m app.cli phase2-human-import --csv responses.csv`
