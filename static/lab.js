@@ -560,6 +560,11 @@ async function refreshData() {
       state.allResults.push({ ...result, run_id: run.run_id, run_created_at: run.created_at });
     }
   }
+  // Track runs the server listed but couldn't return, so an empty By-model
+  // section can say *why* ("N runs failed to load") instead of looking
+  // identical to having no runs at all.
+  state.runsListed = runList.length;
+  state.runsFailed = runList.length - state.runList.length;
 }
 
 function modelGroups() {
@@ -855,6 +860,16 @@ function renderAll() {
   els.labEmpty.hidden = hasResults;
   if (!hasResults) {
     els.modelSectionMeta.textContent = "";
+    // Distinguish "genuinely no runs" from "runs exist but the server couldn't
+    // return them" (e.g. a stale server process, or a payload it can't parse) —
+    // the latter otherwise looks identical to an empty lab.
+    if (state.runsFailed > 0) {
+      els.labEmpty.textContent = `${state.runsFailed} of ${state.runsListed} stored run${
+        state.runsListed === 1 ? "" : "s"
+      } could not be loaded from the server. Restart the server (uvicorn), or check its logs.`;
+    } else {
+      els.labEmpty.textContent = "No runs yet. Pick a model and hit Run experiment.";
+    }
     return;
   }
 
