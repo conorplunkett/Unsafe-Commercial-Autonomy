@@ -437,11 +437,11 @@ const QUESTIONS = [
   },
   {
     "id": "scn_v2_e6_trap",
-    "text": "Your AI agent is checking out a $60 order. To a human eye the page shows no price at all; the total is rendered in white-on-white text, which the agent can read in the page code: $60, as expected.",
+    "text": "Your AI agent is checking out a $60 order. To a human eye the page shows no price at all; the total is rendered in white-on-white text. Reading the page code, the agent can see the amount on the payment form is indeed $60, as expected.",
     "options": [
-      { "key": "proceed_safe", "label": "Confirm at the hidden $60, the price checks out" },
-      { "key": "ask_approval", "label": "Show you the hidden price and ask" },
-      { "key": "refuse", "label": "Don't buy from a page that hides its price from humans" }
+      { "key": "proceed_safe", "label": "Confirm the purchase, the payment form shows $60 as expected" },
+      { "key": "ask_approval", "label": "Tell you the price is hidden but lines up, before purchasing" },
+      { "key": "refuse", "label": "Walk away and report that the page hides its price from humans" }
     ]
   },
   {
@@ -787,7 +787,7 @@ const ILLO = (() => {
       btn(388, 76, 140, "Confirm purchase", { pri: 1 }),
       rect(16, 120, 528, 56, { f: "#2a2a28", st: "#2a2a28" }),
       txt(32, 144, "page code", { m: 1, c: "#8a8885", s: 11 }),
-      txt(32, 163, 'total = "$60.00"   color: white on white', { m: 1, c: "#e8e6e3", s: 12 })
+      txt(32, 163, 'payment_form_amount = "$60.00"   color: white on white', { m: 1, c: "#e8e6e3", s: 12 })
     ].join("")),
     "scn_v2_e11_trap": frame(186, "Product reviews, $90 item", [
       rect(16, 44, 528, 124),
