@@ -1,13 +1,16 @@
 // Local experiment console (/lab). Talks only to the local backend; nothing
-// here touches Supabase or the published site. The lander at / is rendered from
-// the live site's code and is deliberately not reused here.
+// here touches Supabase or the published site. The controls mirror the live
+// site's "Run it yourself" runner (web/components/Runner.tsx) so the two read
+// as one design; labels below are lifted from web/lib/labels.ts.
 
 const state = {
-  controlConditions: {},
   scenarios: [],
   scenarioIndex: new Map(),
   allResults: [],
   runList: [],
+  provider: "openai",
+  dryRun: false,
+  conditions: new Set(["no_policy", "prompt_policy", "tool_constraints"]),
   modelFilter: null,
   selectedKey: null,
 };
@@ -15,17 +18,21 @@ const state = {
 const els = {};
 for (const id of [
   "runBenchmark",
+  "runCount",
   "runProgress",
   "progressFill",
   "progressLabel",
-  "modelSelect",
-  "conditionFilters",
+  "progressPct",
+  "providerChips",
+  "modelInput",
+  "modelSuggestions",
+  "conditionChips",
+  "dryRunChip",
   "categoryFilter",
   "scenarioFilter",
   "seedsInput",
   "temperatureInput",
   "reasoningEffort",
-  "dryRun",
   "keysBand",
   "keysStatus",
   "keyOpenai",
@@ -48,29 +55,44 @@ for (const id of [
   els[id] = document.querySelector(`#${id}`);
 }
 
-const RUN_BUTTON_LABEL =
-  '<span class="button-mark" aria-hidden="true">' +
-  '<svg viewBox="0 0 16 16" width="11" height="11" fill="currentColor">' +
-  '<path d="M4.5 2.6v10.8a.8.8 0 0 0 1.22.68l8.5-5.4a.8.8 0 0 0 0-1.36L5.72 1.92A.8.8 0 0 0 4.5 2.6Z"/>' +
-  "</svg></span>Run experiment";
-
-// The model switcher encodes provider and model as "provider::model". Model
-// names go straight through to the provider API; keep the lists in sync with
-// what each provider serves. An empty model name means the provider default.
-const MODEL_CHOICES = [
-  { group: "Baselines", provider: "baseline_naive", models: [["", "Naive baseline (offline)"]] },
+// Providers the local harness can run. Model names pass straight through to the
+// provider API; suggestions are a datalist, so any model name can be typed.
+const PROVIDERS = [
   {
-    group: "OpenAI",
-    provider: "openai",
-    models: ["gpt-4o", "gpt-4o-mini", "gpt-4.1", "gpt-4.1-mini", "o4-mini", "o3"],
+    id: "openai",
+    label: "OpenAI",
+    defaultModel: "gpt-4o-mini",
+    suggestions: ["gpt-4o-mini", "gpt-4o", "gpt-4.1", "gpt-4.1-mini", "o4-mini", "o3"],
   },
   {
-    group: "Anthropic",
-    provider: "anthropic",
-    models: ["claude-opus-4-8", "claude-sonnet-4-6", "claude-haiku-4-5-20251001"],
+    id: "anthropic",
+    label: "Anthropic",
+    defaultModel: "claude-haiku-4-5-20251001",
+    suggestions: ["claude-opus-4-8", "claude-sonnet-4-6", "claude-haiku-4-5-20251001"],
   },
-  { group: "Open-weights", provider: "openweights", models: [["", "Configured local endpoint"]] },
+  { id: "baseline_naive", label: "Naive baseline", defaultModel: null, suggestions: [] },
+  { id: "openweights", label: "Open-weights", defaultModel: null, suggestions: [] },
 ];
+
+// Mirrored from web/lib/labels.ts so the Lab speaks the site's language.
+const CONDITION_ORDER = ["no_policy", "prompt_policy", "tool_constraints"];
+const CONDITION_LABELS = {
+  no_policy: "No policy",
+  prompt_policy: "Prompt policy",
+  tool_constraints: "Tool constraints",
+};
+const CONDITION_DESCRIPTIONS = {
+  no_policy: "Task and tools only, with no explicit payment policy at all.",
+  prompt_policy: "The policy is stated in natural language in the system prompt.",
+  tool_constraints: "Payment tools hard-enforce caps, merchant allowlists, and rail restrictions.",
+};
+const CATEGORY_LABELS = {
+  spend_limits: "Spend limits",
+  authorization_scope: "Authorization scope",
+  consent_and_escalation: "Consent & escalation",
+  privacy_and_disclosure: "Privacy & disclosure",
+  adversarial_robustness: "Adversarial robustness",
+};
 
 const KEY_STORAGE = "uca_api_keys";
 
@@ -94,6 +116,10 @@ function compactTime(isoDate) {
     hour: "numeric",
     minute: "2-digit",
   }).format(new Date(isoDate));
+}
+
+function categoryLabel(id) {
+  return CATEGORY_LABELS[id] || id.replaceAll("_", " ");
 }
 
 function resultKey(result) {
@@ -163,45 +189,68 @@ function renderKeysStatus() {
 /* Controls                                                            */
 /* ------------------------------------------------------------------ */
 
-function renderModelSelect() {
-  els.modelSelect.innerHTML = MODEL_CHOICES.map((entry) => {
-    const options = entry.models
-      .map((model) => {
-        const [value, label] = Array.isArray(model) ? model : [model, model];
-        return `<option value="${entry.provider}::${value}">${label}</option>`;
-      })
-      .join("");
-    return `<optgroup label="${entry.group}">${options}</optgroup>`;
-  }).join("");
+function providerProfile() {
+  return PROVIDERS.find((entry) => entry.id === state.provider) || PROVIDERS[0];
 }
 
-function selectedModel() {
-  const [provider, ...rest] = (els.modelSelect.value || "baseline_naive::").split("::");
-  return { provider, modelName: rest.join("::") || null };
+function renderProviderChips() {
+  els.providerChips.innerHTML = PROVIDERS.map(
+    (entry) => `
+      <button type="button" class="chip ${entry.id === state.provider ? "chip-on" : ""}" data-provider="${entry.id}">
+        ${entry.label}
+      </button>
+    `
+  ).join("");
 }
 
-function renderControlConditions() {
-  els.conditionFilters.innerHTML = Object.entries(state.controlConditions)
-    .map(
-      ([conditionId, condition]) => `
-        <label class="agent-check" title="${condition.description}">
-          <input type="checkbox" value="${conditionId}" checked>
-          <span>${condition.name}</span>
-        </label>
-      `
-    )
+function pickProvider(providerId) {
+  state.provider = providerId;
+  const profile = providerProfile();
+  els.modelInput.value = profile.defaultModel || "";
+  els.modelInput.disabled = !profile.defaultModel;
+  els.modelInput.placeholder = profile.defaultModel || "—";
+  els.modelSuggestions.innerHTML = profile.suggestions
+    .map((model) => `<option value="${model}"></option>`)
     .join("");
+  renderProviderChips();
+  updateRunCount();
+}
+
+function renderConditionChips() {
+  els.conditionChips.innerHTML = CONDITION_ORDER.map(
+    (condition) => `
+      <button type="button" class="chip ${state.conditions.has(condition) ? "chip-on" : ""}"
+        data-condition="${condition}" title="${CONDITION_DESCRIPTIONS[condition]}">
+        ${CONDITION_LABELS[condition]}
+      </button>
+    `
+  ).join("");
+}
+
+function scenarioPool() {
+  const category = els.categoryFilter.value;
+  return state.scenarios.filter(
+    (scenario) => category === "all" || scenario.category === category
+  );
 }
 
 function renderScenarioFilters() {
   const categories = [...new Set(state.scenarios.map((scenario) => scenario.category))].sort();
   els.categoryFilter.innerHTML = [
     '<option value="all">All categories</option>',
-    ...categories.map((category) => `<option value="${category}">${category}</option>`),
+    ...categories.map(
+      (category) => `<option value="${category}">${categoryLabel(category)}</option>`
+    ),
   ].join("");
+  renderScenarioOptions();
+}
+
+function renderScenarioOptions() {
+  const pool = scenarioPool();
   els.scenarioFilter.innerHTML = [
-    '<option value="all">All scenarios</option>',
-    ...state.scenarios.map(
+    '<option value="all">All in selection</option>',
+    '<option value="random">🎲 Random in selection</option>',
+    ...pool.map(
       (scenario) => `<option value="${scenario.scenario_id}">${scenario.title}</option>`
     ),
   ].join("");
@@ -215,13 +264,30 @@ function parseSeeds() {
   return seeds.length ? seeds : [1];
 }
 
+function updateRunCount() {
+  const pool = scenarioPool();
+  const scenarioCount =
+    els.scenarioFilter.value === "all" ? pool.length : Math.min(1, pool.length);
+  const cells = scenarioCount * state.conditions.size * parseSeeds().length;
+  els.runCount.textContent = cells
+    ? `${scenarioCount} scenario${scenarioCount === 1 ? "" : "s"} × ${state.conditions.size} condition${
+        state.conditions.size === 1 ? "" : "s"
+      } × ${parseSeeds().length} seed${parseSeeds().length === 1 ? "" : "s"} = ${cells} calls`
+    : state.conditions.size
+      ? ""
+      : "Pick at least one condition.";
+  els.runBenchmark.disabled = !cells;
+}
+
 function selectedScenarioIds() {
-  if (els.scenarioFilter.value !== "all") return [els.scenarioFilter.value];
-  if (els.categoryFilter.value !== "all") {
-    return state.scenarios
-      .filter((scenario) => scenario.category === els.categoryFilter.value)
-      .map((scenario) => scenario.scenario_id);
+  const pool = scenarioPool();
+  const choice = els.scenarioFilter.value;
+  if (choice === "random") {
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+    return pick ? [pick.scenario_id] : null;
   }
+  if (choice !== "all") return [choice];
+  if (els.categoryFilter.value !== "all") return pool.map((scenario) => scenario.scenario_id);
   return null;
 }
 
@@ -229,56 +295,53 @@ function selectedScenarioIds() {
 /* Run + progress                                                      */
 /* ------------------------------------------------------------------ */
 
-function showProgress(completed, total, unit) {
+function showProgress(completed, total, unit, running) {
   els.runProgress.hidden = false;
   const fraction = total ? completed / total : 0;
   els.progressFill.style.width = `${Math.round(fraction * 100)}%`;
-  els.progressLabel.textContent = total
-    ? `${completed} / ${total}${unit && unit !== "complete" ? ` · ${unit}` : ""}`
-    : "Starting…";
-}
-
-function hideProgress() {
-  els.runProgress.hidden = true;
+  els.progressFill.classList.toggle("is-running", Boolean(running));
+  els.progressPct.textContent = total ? `${Math.round(fraction * 100)}%` : "";
+  els.progressLabel.textContent = !total
+    ? "Starting…"
+    : unit === "complete"
+      ? "Done"
+      : `Running ${unit}`;
 }
 
 function failRun(message) {
-  els.progressLabel.textContent = message;
+  els.runProgress.hidden = false;
   els.progressFill.style.width = "0%";
+  els.progressFill.classList.remove("is-running");
+  els.progressPct.textContent = "";
+  els.progressLabel.textContent = message;
 }
 
 async function runExperiment() {
-  const { provider, modelName } = selectedModel();
-  const dryRun = els.dryRun.checked;
-  const live = provider !== "baseline_naive" && !dryRun;
-  const keys = loadKeys();
+  const provider = state.provider;
+  const modelName = els.modelInput.value.trim() || null;
+  const live = provider !== "baseline_naive" && !state.dryRun;
   let apiKey = null;
   if (live && (provider === "openai" || provider === "anthropic")) {
-    apiKey = keys[provider] || null;
+    apiKey = loadKeys()[provider] || null;
     if (!apiKey) {
       els.keysBand.open = true;
       (provider === "openai" ? els.keyOpenai : els.keyAnthropic).focus();
-      failRun(`Paste your ${provider === "openai" ? "OpenAI" : "Anthropic"} key first, or tick Dry run.`);
-      els.runProgress.hidden = false;
+      failRun(`Paste your ${providerProfile().label} key first, or switch on Dry run.`);
       return;
     }
   }
 
-  const conditions = [...els.conditionFilters.querySelectorAll("input:checked")].map(
-    (input) => input.value
-  );
   const temperature = Number.parseFloat(els.temperatureInput.value);
-
   els.runBenchmark.disabled = true;
-  els.runBenchmark.textContent = "Running...";
-  showProgress(0, 0, "");
+  els.runBenchmark.textContent = "Running…";
+  showProgress(0, 0, "", true);
   try {
     const job = await fetchJson("/api/jobs", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model_ids: [provider],
-        control_conditions: conditions.length ? conditions : null,
+        control_conditions: state.conditions.size ? [...state.conditions] : null,
         scenario_ids: selectedScenarioIds(),
         seeds: parseSeeds(),
         temperature: Number.isFinite(temperature) ? temperature : null,
@@ -293,22 +356,22 @@ async function runExperiment() {
     do {
       await new Promise((resolve) => setTimeout(resolve, 800));
       status = await fetchJson(`/api/jobs/${job.job_id}`);
-      showProgress(status.completed, status.total, status.unit);
+      showProgress(status.completed, status.total, status.unit, true);
     } while (status.status === "running");
 
     if (status.status === "error") {
       failRun(`Run failed: ${status.error}`);
       return;
     }
-    showProgress(status.total, status.total, "complete");
+    showProgress(status.total, status.total, "complete", false);
     await refreshData();
     renderAll();
-    setTimeout(hideProgress, 1500);
   } catch (error) {
     failRun(`Run failed: ${error.message}`);
   } finally {
     els.runBenchmark.disabled = false;
-    els.runBenchmark.innerHTML = RUN_BUTTON_LABEL;
+    els.runBenchmark.textContent = "Run benchmark";
+    updateRunCount();
   }
 }
 
@@ -386,7 +449,7 @@ function renderResultsTable(results) {
       const failures = result.failure_metrics.length ? result.failure_metrics.join(", ") : "none";
       const selected = resultKey(result) === state.selectedKey ? "selected" : "";
       const conditionLabel = result.control_condition
-        ? result.control_condition.replaceAll("_", " ")
+        ? CONDITION_LABELS[result.control_condition] || result.control_condition.replaceAll("_", " ")
         : "legacy";
       return `
         <tr class="${selected}" data-result-key="${resultKey(result)}">
@@ -544,6 +607,29 @@ function bindEvents() {
   els.runBenchmark.addEventListener("click", runExperiment);
   els.keyOpenai.addEventListener("input", saveKeys);
   els.keyAnthropic.addEventListener("input", saveKeys);
+  els.providerChips.addEventListener("click", (event) => {
+    const chip = event.target.closest("[data-provider]");
+    if (chip) pickProvider(chip.dataset.provider);
+  });
+  els.conditionChips.addEventListener("click", (event) => {
+    const chip = event.target.closest("[data-condition]");
+    if (!chip) return;
+    const condition = chip.dataset.condition;
+    if (state.conditions.has(condition)) state.conditions.delete(condition);
+    else state.conditions.add(condition);
+    renderConditionChips();
+    updateRunCount();
+  });
+  els.dryRunChip.addEventListener("click", () => {
+    state.dryRun = !state.dryRun;
+    els.dryRunChip.classList.toggle("chip-on", state.dryRun);
+  });
+  els.categoryFilter.addEventListener("change", () => {
+    renderScenarioOptions();
+    updateRunCount();
+  });
+  els.scenarioFilter.addEventListener("change", updateRunCount);
+  els.seedsInput.addEventListener("input", updateRunCount);
   els.modelSummaryTable.addEventListener("click", (event) => {
     const row = event.target.closest("tr[data-model]");
     if (!row) return;
@@ -564,21 +650,17 @@ async function init() {
   els.keyOpenai.value = keys.openai || "";
   els.keyAnthropic.value = keys.anthropic || "";
   renderKeysStatus();
-  renderModelSelect();
+  renderConditionChips();
   bindEvents();
+  pickProvider(state.provider);
   try {
-    const [controlConditions, scenarios] = await Promise.all([
-      fetchJson("/api/control-conditions"),
-      fetchJson("/api/scenarios"),
-    ]);
-    state.controlConditions = controlConditions;
-    state.scenarios = scenarios;
+    state.scenarios = await fetchJson("/api/scenarios");
     const phase2Scenarios = await fetchJson("/api/phase2/scenarios").catch(() => []);
-    for (const scenario of [...scenarios, ...phase2Scenarios]) {
+    for (const scenario of [...state.scenarios, ...phase2Scenarios]) {
       state.scenarioIndex.set(scenario.scenario_id, scenario);
     }
-    renderControlConditions();
     renderScenarioFilters();
+    updateRunCount();
     await refreshData();
     renderAll();
   } catch (error) {

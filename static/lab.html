@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Experiment Lab · Unsafe Commercial Autonomy</title>
     <link rel="stylesheet" href="/static/styles.css?v=8">
-    <link rel="stylesheet" href="/static/lab.css?v=1">
+    <link rel="stylesheet" href="/static/lab.css?v=2">
   </head>
   <body>
     <div class="app-shell lab-shell">
@@ -15,67 +15,73 @@
           <h1>Experiment Lab</h1>
         </div>
         <div class="lab-topbar-actions">
-          <a class="lab-link" href="/">Lander &rarr;</a>
-          <button id="runBenchmark" class="primary-button" type="button">
-            <span class="button-mark" aria-hidden="true">
-              <svg viewBox="0 0 16 16" width="11" height="11" fill="currentColor">
-                <path d="M4.5 2.6v10.8a.8.8 0 0 0 1.22.68l8.5-5.4a.8.8 0 0 0 0-1.36L5.72 1.92A.8.8 0 0 0 4.5 2.6Z"/>
-              </svg>
-            </span>
-            Run experiment
-          </button>
+          <a class="lab-link" href="https://paybench.org" target="_blank" rel="noreferrer">paybench.org &rarr;</a>
         </div>
       </header>
 
-      <section id="runProgress" class="progress-band" hidden aria-label="Run progress">
-        <div class="progress-track"><div id="progressFill" class="progress-fill"></div></div>
-        <p id="progressLabel" class="progress-label"></p>
-      </section>
+      <section class="runner-card" aria-label="Experiment controls">
+        <div class="runner-grid">
+          <div>
+            <span class="runner-label">Provider</span>
+            <div id="providerChips" class="chip-row"></div>
+          </div>
+          <div>
+            <label class="runner-label" for="modelInput">Model</label>
+            <input id="modelInput" class="runner-field" list="modelSuggestions" spellcheck="false" autocomplete="off">
+            <datalist id="modelSuggestions"></datalist>
+          </div>
+          <div>
+            <label class="runner-label" for="categoryFilter">Category</label>
+            <select id="categoryFilter" class="runner-field"></select>
+          </div>
+          <div>
+            <label class="runner-label" for="scenarioFilter">Scenario</label>
+            <select id="scenarioFilter" class="runner-field"></select>
+          </div>
+          <div class="runner-span">
+            <span class="runner-label">Control conditions</span>
+            <div id="conditionChips" class="chip-row"></div>
+            <p class="runner-hint">Each selected condition multiplies the run: scenarios &times; conditions &times; seeds.</p>
+          </div>
+          <div>
+            <label class="runner-label" for="seedsInput">Seeds</label>
+            <input id="seedsInput" class="runner-field" type="text" value="1,2,3,4,5" spellcheck="false">
+          </div>
+          <div>
+            <label class="runner-label" for="temperatureInput">Temperature</label>
+            <input id="temperatureInput" class="runner-field" type="number" min="0" max="2" step="0.1" value="0.7">
+          </div>
+          <div>
+            <label class="runner-label" for="reasoningEffort">Reasoning effort</label>
+            <select id="reasoningEffort" class="runner-field">
+              <option value="">Default</option>
+              <option value="minimal">Minimal</option>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+          <div>
+            <span class="runner-label">Mode</span>
+            <div class="chip-row">
+              <button id="dryRunChip" class="chip" type="button" title="Canned offline actions, no API calls, no key needed.">Dry run</button>
+            </div>
+          </div>
+        </div>
 
-      <section class="control-band lab-control-band" aria-label="Experiment controls">
-        <div class="control-group">
-          <label for="modelSelect">Model</label>
-          <select id="modelSelect"></select>
-          <p class="control-hint">Live models need a key in the API keys panel below.</p>
+        <div class="runner-actions">
+          <button id="runBenchmark" class="runner-button" type="button">Run benchmark</button>
+          <span id="runCount" class="runner-hint"></span>
         </div>
-        <div class="control-group condition-group">
-          <label>Control Conditions</label>
-          <div id="conditionFilters" class="checkbox-grid condition-grid"></div>
-          <p class="control-hint">How much safety guidance the model gets: none, the policy in its prompt, or a tool that blocks unsafe payments.</p>
-        </div>
-        <div class="control-group">
-          <label for="categoryFilter">Category</label>
-          <select id="categoryFilter"></select>
-        </div>
-        <div class="control-group">
-          <label for="scenarioFilter">Scenario</label>
-          <select id="scenarioFilter"></select>
-        </div>
-        <div class="control-group">
-          <label for="seedsInput">Seeds</label>
-          <input id="seedsInput" type="text" value="1,2,3,4,5" spellcheck="false">
-          <p class="control-hint">Repeats per cell, comma-separated.</p>
-        </div>
-        <div class="control-group">
-          <label for="temperatureInput">Temperature</label>
-          <input id="temperatureInput" type="number" min="0" max="2" step="0.1" value="0.7">
-        </div>
-        <div class="control-group">
-          <label for="reasoningEffort">Reasoning effort</label>
-          <select id="reasoningEffort">
-            <option value="">Default (low)</option>
-            <option value="minimal">Minimal</option>
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-          </select>
-        </div>
-        <div class="control-group live-group">
-          <label class="live-check">
-            <input id="dryRun" type="checkbox">
-            <span>Dry run</span>
-          </label>
-          <p class="control-hint">Canned offline actions, no API calls, no key needed.</p>
+
+        <div id="runProgress" class="runner-progress" hidden>
+          <div class="runner-progress-meta">
+            <span id="progressLabel"></span>
+            <span id="progressPct"></span>
+          </div>
+          <div class="runner-track" role="progressbar">
+            <div id="progressFill" class="runner-fill"></div>
+          </div>
         </div>
       </section>
 
@@ -85,15 +91,15 @@
           <span id="keysStatus" class="keys-status"></span>
         </summary>
         <div class="keys-fields">
-          <div class="control-group">
-            <label for="keyOpenai">OpenAI</label>
-            <input id="keyOpenai" type="password" placeholder="sk-..." autocomplete="off" spellcheck="false">
+          <div>
+            <label class="runner-label" for="keyOpenai">OpenAI</label>
+            <input id="keyOpenai" class="runner-field" type="password" placeholder="sk-..." autocomplete="off" spellcheck="false">
           </div>
-          <div class="control-group">
-            <label for="keyAnthropic">Anthropic</label>
-            <input id="keyAnthropic" type="password" placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
+          <div>
+            <label class="runner-label" for="keyAnthropic">Anthropic</label>
+            <input id="keyAnthropic" class="runner-field" type="password" placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
           </div>
-          <p class="control-hint keys-note">
+          <p class="runner-hint keys-note">
             Saved in this browser only and sent to your local server per run.
             Never written to disk on the server or published.
           </p>
@@ -203,6 +209,6 @@
       <p id="labEmpty" class="lab-empty" hidden>No runs yet. Pick a model and hit Run experiment.</p>
     </div>
 
-    <script src="/static/lab.js?v=1"></script>
+    <script src="/static/lab.js?v=2"></script>
   </body>
 </html>
