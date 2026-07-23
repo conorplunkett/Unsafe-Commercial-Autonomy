@@ -70,7 +70,10 @@ for (const id of [
 const MODEL_SUGGESTIONS = {
   openai: ["gpt-4o-mini", "gpt-4o", "gpt-4.1", "gpt-4.1-mini", "o4-mini", "o3"],
   anthropic: ["claude-haiku-4-5-20251001", "claude-opus-4-8", "claude-sonnet-4-6"],
-  gemini: ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro"],
+  // gemini-2.5-flash-lite is dropped: it 404s new API keys ("no longer
+  // available to new users"), so it's not runnable. 3.1-flash-lite is the
+  // cheapest currently-servable Gemini and the backend default.
+  gemini: ["gemini-3.1-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro"],
 };
 
 // Mirrored from web/lib/labels.ts so the Lab speaks the site's language.
@@ -127,6 +130,21 @@ function resultKey(result) {
 
 function modelLabel(result) {
   return result.model_name || result.agent_name || result.model_id || result.agent_id || "unknown";
+}
+
+// Dry-run models are named "dryrun-<provider>" (app/providers.py
+// DryRunProvider) and carry canned, non-real actions. They're sorted below
+// real models everywhere so synthetic rows never sit at the top of a chart.
+function isDryRunLabel(label) {
+  return typeof label === "string" && label.startsWith("dryrun-");
+}
+
+// Real models first (by unsafe-payment rate, worst first), dry-runs last.
+function compareModelRows(a, b) {
+  const dryA = isDryRunLabel(a.label);
+  const dryB = isDryRunLabel(b.label);
+  if (dryA !== dryB) return dryA ? 1 : -1;
+  return b.metrics.unsafePaymentRate - a.metrics.unsafePaymentRate;
 }
 
 // Scenario ids embed their source set (scn_v1_..., scn_v2_...; see
@@ -592,7 +610,7 @@ function modelGroups() {
       metrics: summarize(displayResults),
     };
   });
-  rows.sort((a, b) => b.metrics.unsafePaymentRate - a.metrics.unsafePaymentRate);
+  rows.sort(compareModelRows);
   return rows;
 }
 
@@ -785,7 +803,7 @@ function phasesBreakdown() {
         status: phaseStatuses(results)[0], // results all in one phase
         metrics: summarize(results),
       }))
-      .sort((a, b) => b.metrics.unsafePaymentRate - a.metrics.unsafePaymentRate);
+      .sort(compareModelRows);
     return { phase, total, rows, coveredScenarios, conditions: conditions.size, smoke, full };
   });
 }
@@ -895,10 +913,28 @@ function renderRunList() {
           <td>${percent(metrics.unsafePaymentRate)}</td>
           <td>${percent(metrics.falseRefusalRate)}</td>
           <td>${percent(metrics.userWelfareScore)}</td>
+          <td class="run-delete-cell">
+            <button type="button" class="run-delete" data-run-id="${run.run_id}"
+              data-run-label="${models}" title="Delete this run">Delete</button>
+          </td>
         </tr>
       `;
     })
     .join("");
+}
+
+async function deleteRun(runId, label) {
+  if (!window.confirm(`Delete this run${label ? ` (${label})` : ""}? This removes its file from runtime/runs and cannot be undone.`)) {
+    return;
+  }
+  try {
+    const response = await fetch(`/api/runs/${runId}`, { method: "DELETE" });
+    if (!response.ok) throw new Error(`${response.status} ${await response.text()}`);
+    await refreshData();
+    renderAll();
+  } catch (error) {
+    window.alert(`Could not delete run: ${error.message}`);
+  }
 }
 
 function renderAll() {
@@ -1014,6 +1050,11 @@ function bindEvents() {
     if (!row) return;
     state.selectedKey = row.dataset.resultKey;
     renderAll();
+  });
+  els.runListTable.addEventListener("click", (event) => {
+    const button = event.target.closest(".run-delete");
+    if (!button) return;
+    deleteRun(button.dataset.runId, button.dataset.runLabel);
   });
 }
 

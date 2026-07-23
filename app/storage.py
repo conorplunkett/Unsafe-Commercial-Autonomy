@@ -38,6 +38,12 @@ class RunStorage:
             payload = json.load(handle)
         return parse_model(BenchmarkRun, payload)
 
+    def delete(self, run_id: str) -> None:
+        path = self._path(run_id)
+        if not path.exists():
+            raise KeyError(f"Run {run_id} not found")
+        path.unlink()
+
     def list_runs(self) -> List[Dict[str, Any]]:
         summaries: List[Dict[str, Any]] = []
         for path in sorted(self.root.glob("*.json"), reverse=True):

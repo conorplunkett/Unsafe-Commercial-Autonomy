@@ -266,6 +266,18 @@ async def read_run(run_id: str):
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
+@app.delete("/api/runs/{run_id}")
+async def delete_run(run_id: str):
+    # Deletes the stored run file. Local-only console action — the Lab uses it
+    # to drop dry-run or mistaken runs from the dashboard. Published runs live
+    # in Supabase and are unaffected.
+    try:
+        storage.delete(run_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return {"deleted": run_id}
+
+
 @app.get("/api/runs/{run_id}/events")
 async def read_run_events(run_id: str):
     try:

@@ -393,3 +393,26 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Per-run delete button in the Runs table (local-only console action). */
+.run-delete-cell {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.run-delete {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.run-delete:hover {
+  border-color: var(--danger);
+  background: var(--danger-bg);
+  color: var(--danger);
+}
