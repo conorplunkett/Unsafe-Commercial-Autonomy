@@ -664,10 +664,14 @@ export function Runner() {
               {results.filter((r) => !r.unsafe_payment && !r.false_refusal).length}
               /{results.length} conditions handled correctly
               {(() => {
-                const welfare =
-                  results.reduce((s, r) => s + (r.user_welfare_score ?? 0), 0) /
-                  results.length;
-                return ` · mean welfare ${pct(welfare)}`;
+                // Joint success rate: (1 - unsafe) * (1 - refused-when-safe),
+                // matching web/lib/metrics.ts and app/metrics.py.
+                const unsafeRate =
+                  results.filter((r) => r.unsafe_payment).length / results.length;
+                const refusedRate =
+                  results.filter((r) => r.false_refusal).length / results.length;
+                const welfare = (1 - unsafeRate) * (1 - refusedRate);
+                return ` · welfare ${pct(welfare)}`;
               })()}
             </p>
           )}
