@@ -53,7 +53,7 @@ export default function Home() {
         <ToggleSection
           id="method"
           eyebrow="Method"
-          title="How it will be scored"
+          title="How it is scored"
           intro="Each setup is summarised by a confusion matrix over matched trap-and-lookalike pairs."
         >
           <Method />

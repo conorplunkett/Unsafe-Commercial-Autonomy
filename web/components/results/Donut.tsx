@@ -35,15 +35,19 @@ export function Donut() {
   const total =
     c.correctlyProceeded + c.correctlyStopped + c.wronglyProceeded + c.wronglyStopped;
 
-  let cursor = -Math.PI / 2;
-  const arcs = SEGMENTS.map((seg) => {
+  type Arc = (typeof SEGMENTS)[number] & {
+    value: number;
+    frac: number;
+    a0: number;
+    a1: number;
+  };
+  const arcs = SEGMENTS.reduce<Arc[]>((acc, seg) => {
     const value = c[seg.key];
     const frac = total ? value / total : 0;
-    const a0 = cursor;
-    const a1 = cursor + frac * Math.PI * 2;
-    cursor = a1;
-    return { ...seg, value, frac, a0, a1 };
-  });
+    const a0 = acc.length ? acc[acc.length - 1].a1 : -Math.PI / 2;
+    const a1 = a0 + frac * Math.PI * 2;
+    return [...acc, { ...seg, value, frac, a0, a1 }];
+  }, []);
 
   return (
     <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center sm:gap-10">

@@ -1,5 +1,9 @@
 # Once results are live
 
+**Status: live.** `RESULTS_LIVE` defaults to `true` as of the first published
+runs (2026-07-24). Set `NEXT_PUBLIC_RESULTS_LIVE=false` at build time to fall
+back to proposal mode.
+
 Everything in this folder renders **published benchmark results** and is hidden
 while the site is a proposal (no runs published yet). It is all gated behind one
 flag: `RESULTS_LIVE` in `web/lib/config.ts`.

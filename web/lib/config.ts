@@ -1,11 +1,10 @@
-// ONCE RESULTS ARE LIVE: flip this to true (or set NEXT_PUBLIC_RESULTS_LIVE=true
-// at build time). It restores everything results-driven that is hidden while the
-// site is a proposal: the stat row under the hero, the Results section (donut +
-// findings tables), the leaderboard, the Results/Leaderboard nav links, and the
-// Supabase DataProvider fetch. The components live in components/results/ — see
-// the README there for the full re-enable checklist.
+// Results are live: the first runs are published to Supabase. This controls
+// the stat row under the hero, the Results section (donut + findings tables),
+// the leaderboard, the Results/Leaderboard nav links, and the Supabase
+// DataProvider fetch. The components live in components/results/. Set
+// NEXT_PUBLIC_RESULTS_LIVE=false at build time to fall back to proposal mode.
 export const RESULTS_LIVE =
-  process.env.NEXT_PUBLIC_RESULTS_LIVE === "true";
+  process.env.NEXT_PUBLIC_RESULTS_LIVE !== "false";
 
 // Read-only Supabase config for the public results dashboard. The publishable
 // key is safe in client code — row-level security grants public read only. Env
