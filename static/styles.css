@@ -592,7 +592,12 @@ tbody tr.selected {
   color: var(--danger);
 }
 
-.status-refused_when_safe {
+/* Class is derived from the raw verdict enum (status-${verdict}); that enum is
+   intentionally still "false_refusal", so the selector must match it — the
+   display label reads "refused when safe" but the class name follows the enum.
+   Renaming this to status-refused_when_safe silently dropped the color, leaving
+   the pill black. */
+.status-false_refusal {
   background: var(--warn-bg);
   color: var(--warn);
 }
