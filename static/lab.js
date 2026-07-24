@@ -168,29 +168,42 @@ function phaseTotal(phaseNumber) {
   return total;
 }
 
-// One entry per phase touched by these results: how many distinct scenarios
-// and control conditions were covered, versus the phase's full scenario
-// count and the three standard conditions. `full` only goes true when every
-// scenario in the phase's set was run under every standard condition — one
-// scenario on one condition is a smoke test, not a completed suite.
+// One entry per phase touched by these results. Completion is measured in
+// scenario×condition CELLS, not scenarios: the full suite is every scenario
+// run under every one of the 3 control conditions, so a phase of 50 scenarios
+// needs 50×3 = 150 cells. `covered`/`total` are those cells (so the fraction
+// can never read "50/50" while conditions are still missing — it reads
+// "50/150"). `scenarios`/`conditions` expose each dimension for labels.
 function phaseStatuses(results) {
   const byPhase = new Map();
   for (const result of results) {
     const phase = scenarioPhaseNumber(result.scenario_id) || "?";
-    if (!byPhase.has(phase)) byPhase.set(phase, { scenarios: new Set(), conditions: new Set() });
+    if (!byPhase.has(phase)) {
+      byPhase.set(phase, { scenarios: new Set(), conditions: new Set(), cells: new Set() });
+    }
     const entry = byPhase.get(phase);
     entry.scenarios.add(result.scenario_id);
-    if (result.control_condition) entry.conditions.add(result.control_condition);
+    if (result.control_condition) {
+      entry.conditions.add(result.control_condition);
+      entry.cells.add(`${result.scenario_id}::${result.control_condition}`);
+    }
   }
   return [...byPhase.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([phase, entry]) => {
-      const total = phase === "?" ? 0 : phaseTotal(phase);
-      const full =
-        total > 0 &&
-        entry.scenarios.size >= total &&
-        CONDITION_ORDER.every((condition) => entry.conditions.has(condition));
-      return { phase, covered: entry.scenarios.size, total, full };
+      const scenarioTotal = phase === "?" ? 0 : phaseTotal(phase);
+      const total = scenarioTotal * CONDITION_ORDER.length; // cells needed
+      const covered = entry.cells.size; // cells covered
+      const full = total > 0 && covered >= total;
+      return {
+        phase,
+        covered,
+        total,
+        scenarios: entry.scenarios.size,
+        scenarioTotal,
+        conditions: entry.conditions.size,
+        full,
+      };
     });
 }
 
@@ -210,7 +223,9 @@ function phaseChecklist(results) {
           }</span>`;
       return `
         <div class="phase-check" title="Phase ${status.phase}: ${
-          status.total ? `${status.covered}/${status.total} scenarios covered` : "custom scenario set"
+          status.total
+            ? `${status.covered}/${status.total} scenario×condition cells (${status.scenarios}/${status.scenarioTotal} scenarios × ${status.conditions}/${CONDITION_ORDER.length} conditions)`
+            : "custom scenario set"
         }">
           <span class="phase-check-label">Phase ${status.phase}</span>
           <span class="phase-check-item phase-check-on">✓ smoke</span>
@@ -625,7 +640,8 @@ function modelGroups() {
 function displayPhaseTag(display) {
   if (!display) return "—";
   if (display.complete) return `P${display.phase} ✓`;
-  return `P${display.phase} ${display.covered}/${display.total} partial`;
+  // covered/total are scenario×condition cells (see phaseStatuses).
+  return `P${display.phase} ${display.covered}/${display.total} cells`;
 }
 
 function renderModelChart(rows, chartEl, metricKey) {
@@ -793,15 +809,18 @@ function phasesBreakdown() {
     models.get(label).push(result);
   }
   return knownPhaseIds().map((phase) => {
-    const total = phase === "?" ? 0 : phaseTotal(phase);
+    const scenarioTotal = phase === "?" ? 0 : phaseTotal(phase);
+    const cellsNeeded = scenarioTotal * CONDITION_ORDER.length;
     const all = byPhase.get(phase) || [];
     const coveredScenarios = new Set(all.map((r) => r.scenario_id)).size;
     const conditions = new Set(all.map((r) => r.control_condition).filter(Boolean));
+    // Full suite = every scenario×condition cell covered, so the phase-level
+    // fraction matches the per-model one (cells, not scenarios).
+    const cells = new Set(
+      all.filter((r) => r.control_condition).map((r) => `${r.scenario_id}::${r.control_condition}`)
+    ).size;
     const smoke = all.length > 0;
-    const full =
-      total > 0 &&
-      coveredScenarios >= total &&
-      CONDITION_ORDER.every((condition) => conditions.has(condition));
+    const full = cellsNeeded > 0 && cells >= cellsNeeded;
     const rows = [...(byModel.get(phase) || new Map()).entries()]
       .map(([label, results]) => ({
         label,
@@ -810,7 +829,17 @@ function phasesBreakdown() {
         metrics: summarize(results),
       }))
       .sort(compareModelRows);
-    return { phase, total, rows, coveredScenarios, conditions: conditions.size, smoke, full };
+    return {
+      phase,
+      scenarioTotal,
+      cells,
+      cellsNeeded,
+      rows,
+      coveredScenarios,
+      conditions: conditions.size,
+      smoke,
+      full,
+    };
   });
 }
 
@@ -824,12 +853,12 @@ function phaseStatusBadges(entry) {
   if (entry.full) {
     full = `<span class="phase-badge phase-badge-done">✓ full suite</span>`;
   } else if (entry.smoke) {
-    full = `<span class="phase-badge phase-badge-partial">full ${entry.coveredScenarios}/${
-      entry.total || "—"
+    full = `<span class="phase-badge phase-badge-partial">full ${entry.cells}/${
+      entry.cellsNeeded || "—"
     }</span>`;
   } else {
     full = `<span class="phase-badge phase-badge-empty">full ${
-      entry.total ? `0/${entry.total}` : "—"
+      entry.cellsNeeded ? `0/${entry.cellsNeeded}` : "—"
     }</span>`;
   }
   return smoke + full;
@@ -842,19 +871,21 @@ function renderPhases() {
   els.phasesContent.innerHTML = breakdown
     .map((entry, index) => {
       const heading = entry.phase === "?" ? "Custom scenarios" : `Phase ${entry.phase}`;
-      const summary = entry.total
-        ? `${entry.coveredScenarios}/${entry.total} scenarios · ${entry.conditions}/${CONDITION_ORDER.length} conditions · ${entry.rows.length} model${
+      const summary = entry.scenarioTotal
+        ? `${entry.coveredScenarios}/${entry.scenarioTotal} scenarios · ${entry.conditions}/${CONDITION_ORDER.length} conditions · ${entry.rows.length} model${
             entry.rows.length === 1 ? "" : "s"
           }`
         : `${entry.rows.length} model${entry.rows.length === 1 ? "" : "s"}`;
       const bodyRows = entry.rows
         .map((row) => {
-          const status = row.status || { full: false, covered: 0, total: entry.total };
+          const status = row.status || { full: false, covered: 0, total: 0 };
+          // "cells" = scenario×condition combos; a run of all 50 scenarios
+          // under 1 condition is 50/150, not 50/50 — so partial never looks done.
           const stateLabel = status.full
             ? `<span class="phase-badge phase-badge-done">✓ complete</span>`
-            : `<span class="phase-badge phase-badge-partial">partial ${status.covered}/${
+            : `<span class="phase-badge phase-badge-partial" title="${status.covered} of ${
                 status.total || "—"
-              }</span>`;
+              } scenario×condition cells">partial ${status.covered}/${status.total || "—"} cells</span>`;
           const conditions = new Set(
             row.results.map((result) => result.control_condition).filter(Boolean)
           ).size;
