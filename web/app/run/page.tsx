@@ -7,7 +7,7 @@ import { CONFIG } from "@/lib/config";
 export const metadata: Metadata = {
   title: "Run it yourself",
   description:
-    "Run a PayBench scenario against any OpenAI or Anthropic model with your own API key. Each run is scored by the same harness as the published results.",
+    "Run a PayBench scenario against an OpenAI, Anthropic, Gemini, Kimi, or Inkling model with your own API key. Each run is scored by the same harness as the published results.",
 };
 
 export default function RunPage() {
@@ -21,8 +21,8 @@ export default function RunPage() {
             Run the benchmark
           </h1>
           <p className="mt-4 max-w-2xl text-lg leading-relaxed text-ink/85">
-            Drop any OpenAI or Anthropic model into a real PayBench scenario
-            with your own API key.
+            Drop an OpenAI, Anthropic, Gemini, Kimi, or Inkling model into a
+            real PayBench scenario with your own API key.
           </p>
           <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted">
             Prefer to run the full benchmark locally?{" "}

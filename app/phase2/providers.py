@@ -20,8 +20,16 @@ from ..providers import ProviderError, _is_openai_reasoning_model
 from .sandbox import MAX_TURNS, SandboxWorld, evaluate_payment_policy, tool_schemas
 
 
-PHASE2_MODEL_IDS = ["openai", "anthropic", "openweights", "scripted_diligent", "scripted_naive"]
-LIVE_MODEL_IDS = {"openai", "anthropic", "openweights"}
+PHASE2_MODEL_IDS = [
+    "openai",
+    "anthropic",
+    "kimi",
+    "inkling",
+    "openweights",
+    "scripted_diligent",
+    "scripted_naive",
+]
+LIVE_MODEL_IDS = {"openai", "anthropic", "kimi", "inkling", "openweights"}
 
 
 @dataclass
@@ -343,6 +351,157 @@ class OpenWeightsToolProvider(ToolLoopProvider):
         return message.get("content") or "", tool_calls
 
 
+class KimiToolProvider(ToolLoopProvider):
+    """Kimi (Moonshot AI) via its OpenAI-compatible chat-completions endpoint.
+
+    Same tool-loop shape as OpenWeightsToolProvider; only the base URL and
+    auth differ (mirrors app/providers.py::KimiProvider for Phase 1).
+    """
+
+    provider_id = "kimi"
+    _base_url = "https://api.moonshot.ai/v1"
+
+    def __init__(self, model_name: Optional[str] = None, api_key: Optional[str] = None):
+        self.model_name = model_name or os.environ.get("KIMI_MODEL", "")
+        self.api_key = api_key
+        self._messages: List[Dict[str, Any]] = []
+        self._tools: List[Dict[str, Any]] = []
+        self._temperature = 0.7
+
+    def _resolved_api_key(self) -> str:
+        api_key = self.api_key or os.environ.get("KIMI_API_KEY") or os.environ.get("MOONSHOT_API_KEY")
+        if not api_key:
+            raise ProviderError("Set KIMI_API_KEY to run the Kimi Phase 2 provider.")
+        return api_key
+
+    def preflight(self) -> None:
+        self._resolved_api_key()
+        if not self.model_name:
+            raise ProviderError("Set KIMI_MODEL to run the Kimi Phase 2 provider.")
+
+    def start_conversation(self, system_prompt, user_prompt, tools, temperature):
+        if not self.model_name:
+            raise ProviderError("Set KIMI_MODEL to run the Kimi Phase 2 provider.")
+        self._temperature = temperature
+        self._tools = [
+            {"type": "function", "function": {"name": tool["name"], "description": tool["description"], "parameters": tool["parameters"]}}
+            for tool in tools
+        ]
+        self._messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
+
+    def step(self, tool_results):
+        if tool_results:
+            for item in tool_results:
+                self._messages.append(
+                    {"role": "tool", "tool_call_id": item["id"], "content": json.dumps(item["content"])}
+                )
+        try:
+            response = httpx.post(
+                f"{self._base_url}/chat/completions",
+                headers={"Authorization": f"Bearer {self._resolved_api_key()}"},
+                json={
+                    "model": self.model_name,
+                    "messages": self._messages,
+                    "temperature": self._temperature,
+                    "tools": self._tools,
+                },
+                timeout=180,
+            )
+            response.raise_for_status()
+        except Exception as exc:
+            raise ProviderError(f"Kimi request failed: {exc}") from exc
+        message = response.json()["choices"][0]["message"]
+        self._messages.append(message)
+        tool_calls = [
+            {
+                "id": call["id"],
+                "name": call["function"]["name"],
+                "arguments": json.loads(call["function"].get("arguments") or "{}"),
+            }
+            for call in message.get("tool_calls") or []
+        ]
+        return message.get("content") or "", tool_calls
+
+
+class InklingToolProvider(ToolLoopProvider):
+    """Inkling (Thinking Machines Lab) via an OpenAI-compatible inference host.
+
+    Defaults to Together AI's slug/endpoint (mirrors
+    app/providers.py::InklingProvider for Phase 1); point
+    INKLING_BASE_URL/INKLING_MODEL at another host to switch providers.
+    """
+
+    provider_id = "inkling"
+    _default_base_url = "https://api.together.xyz/v1"
+    _default_model = "thinkingmachines/Inkling"
+
+    def __init__(self, model_name: Optional[str] = None, api_key: Optional[str] = None):
+        self.model_name = model_name or os.environ.get("INKLING_MODEL", self._default_model)
+        self.base_url = (os.environ.get("INKLING_BASE_URL") or self._default_base_url).rstrip("/")
+        self.api_key = api_key
+        self._messages: List[Dict[str, Any]] = []
+        self._tools: List[Dict[str, Any]] = []
+        self._temperature = 0.7
+        self._seed: Optional[int] = None
+
+    def _resolved_api_key(self) -> str:
+        api_key = self.api_key or os.environ.get("INKLING_API_KEY") or os.environ.get("TOGETHER_API_KEY")
+        if not api_key:
+            raise ProviderError("Set INKLING_API_KEY (or TOGETHER_API_KEY) to run the Inkling Phase 2 provider.")
+        return api_key
+
+    def preflight(self) -> None:
+        self._resolved_api_key()
+
+    def start_conversation(self, system_prompt, user_prompt, tools, temperature):
+        self._temperature = temperature
+        self._tools = [
+            {"type": "function", "function": {"name": tool["name"], "description": tool["description"], "parameters": tool["parameters"]}}
+            for tool in tools
+        ]
+        self._messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
+
+    def step(self, tool_results):
+        if tool_results:
+            for item in tool_results:
+                self._messages.append(
+                    {"role": "tool", "tool_call_id": item["id"], "content": json.dumps(item["content"])}
+                )
+        try:
+            response = httpx.post(
+                f"{self.base_url}/chat/completions",
+                headers={"Authorization": f"Bearer {self._resolved_api_key()}"},
+                json={
+                    "model": self.model_name,
+                    "messages": self._messages,
+                    "temperature": self._temperature,
+                    **({"seed": self._seed} if self._seed is not None else {}),
+                    "tools": self._tools,
+                },
+                timeout=180,
+            )
+            response.raise_for_status()
+        except Exception as exc:
+            raise ProviderError(f"Inkling request failed: {exc}") from exc
+        message = response.json()["choices"][0]["message"]
+        self._messages.append(message)
+        tool_calls = [
+            {
+                "id": call["id"],
+                "name": call["function"]["name"],
+                "arguments": json.loads(call["function"].get("arguments") or "{}"),
+            }
+            for call in message.get("tool_calls") or []
+        ]
+        return message.get("content") or "", tool_calls
+
+
 # ---------------------------------------------------------------------------
 # Scripted offline agents
 # ---------------------------------------------------------------------------
@@ -514,6 +673,10 @@ def create_phase2_provider(
         return OpenAIToolProvider(model_name=model_name, api_key=api_key)
     if model_id == "anthropic":
         return AnthropicToolProvider(model_name=model_name, api_key=api_key)
+    if model_id == "kimi":
+        return KimiToolProvider(model_name=model_name, api_key=api_key)
+    if model_id == "inkling":
+        return InklingToolProvider(model_name=model_name, api_key=api_key)
     if model_id == "openweights":
         return OpenWeightsToolProvider(model_name=model_name)
     raise KeyError(f"Unknown Phase 2 model id {model_id}")

@@ -118,10 +118,13 @@ python -m app.cli eval --models openai --conditions no_policy,prompt_policy,tool
 ```
 
 Each provider defaults to its **cheapest current model** when its `*_MODEL` env
-var is unset: `gpt-5.4-nano`, `claude-haiku-4-5`, `gemini-3.1-flash-lite`
-(prices in `app/providers.py`; list valid ids with `python -m app.cli models`).
-Results are saved under `runtime/runs/` and the CLI prints a safety-autonomy
-summary with Wilson confidence intervals.
+var is unset: `gpt-5.4-nano`, `claude-haiku-4-5`, `gemini-3.1-flash-lite`,
+`kimi-k2.6` (prices in `app/providers.py`; list valid ids with
+`python -m app.cli models`). `inkling` (Thinking Machines Lab's open-weight
+model, served OpenAI-compatible by Together AI by default) and `openweights`
+are single-endpoint providers configured directly via `INKLING_MODEL`/
+`OPENWEIGHTS_MODEL`. Results are saved under `runtime/runs/` and the CLI
+prints a safety-autonomy summary with Wilson confidence intervals.
 
 ### Temperature vs. reasoning effort
 

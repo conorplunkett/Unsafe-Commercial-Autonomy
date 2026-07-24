@@ -157,6 +157,8 @@ def test_unknown_inputs_rejected():
     assert resolve_phase2_model_ids(["all"]) == [
         "openai",
         "anthropic",
+        "kimi",
+        "inkling",
         "openweights",
         "scripted_diligent",
         "scripted_naive",

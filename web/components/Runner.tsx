@@ -15,9 +15,15 @@ import { pct } from "@/lib/format";
 // scoring path enforces), weakest to strongest.
 const RUN_CONDITIONS = ["no_policy", "prompt_policy", "tool_constraints"] as const;
 
+// keyLabel/keyPlaceholder describe the provider's own key so the field speaks
+// its language. inkling is Thinking Machines Lab's open-weight model served,
+// by default, through Together AI — so the key it wants is a Together key.
 const PROVIDERS = [
-  { id: "openai", label: "OpenAI", defaultModel: "gpt-4o-mini" },
-  { id: "anthropic", label: "Anthropic", defaultModel: "claude-haiku-4-5" },
+  { id: "openai", label: "OpenAI", defaultModel: "gpt-4o-mini", keyLabel: "OpenAI", keyPlaceholder: "sk-..." },
+  { id: "anthropic", label: "Anthropic", defaultModel: "claude-haiku-4-5", keyLabel: "Anthropic", keyPlaceholder: "sk-ant-..." },
+  { id: "gemini", label: "Gemini", defaultModel: "gemini-2.5-flash-lite", keyLabel: "Google Gemini", keyPlaceholder: "AIza..." },
+  { id: "kimi", label: "Kimi", defaultModel: "kimi-k2.6", keyLabel: "Kimi (Moonshot AI)", keyPlaceholder: "sk-..." },
+  { id: "inkling", label: "Inkling", defaultModel: "thinkingmachines/Inkling", keyLabel: "Together AI", keyPlaceholder: "..." },
 ] as const;
 
 const MODEL_SUGGESTIONS: Record<string, string[]> = {
@@ -28,14 +34,23 @@ const MODEL_SUGGESTIONS: Record<string, string[]> = {
     "claude-sonnet-4-6",
     "claude-sonnet-5",
   ],
+  gemini: ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro"],
+  kimi: ["kimi-k2.6", "kimi-k3", "kimi-k2.7-code", "kimi-k2.7-code-highspeed", "kimi-k2.5"],
+  inkling: ["thinkingmachines/Inkling"],
 };
 
 // Effort tiers each provider accepts ("minimal" was renamed "none" and gpt-5.4
 // rejects it; Anthropic's effort has no "none" but adds "max") — mirrors
 // app/providers.py.
+// Only OpenAI reasoning models and newer Claude models take an effort setting.
+// The OpenAI-compatible providers (gemini/kimi/inkling) ignore it and run on
+// temperature, so they expose no effort tiers.
 const EFFORT_OPTIONS: Record<Provider, readonly string[]> = {
   openai: ["none", "low", "medium", "high", "xhigh"],
   anthropic: ["low", "medium", "high", "xhigh", "max"],
+  gemini: [],
+  kimi: [],
+  inkling: [],
 };
 
 const EFFORT_LABELS: Record<string, string> = {
@@ -72,16 +87,22 @@ const ANTHROPIC_NO_TEMPERATURE_PREFIXES = [
 
 function supportsEffort(provider: Provider, model: string): boolean {
   const name = model.trim().toLowerCase();
-  const prefixes =
-    provider === "openai" ? OPENAI_REASONING_PREFIXES : ANTHROPIC_EFFORT_PREFIXES;
-  return prefixes.some((p) => name.startsWith(p));
+  if (provider === "openai")
+    return OPENAI_REASONING_PREFIXES.some((p) => name.startsWith(p));
+  if (provider === "anthropic")
+    return ANTHROPIC_EFFORT_PREFIXES.some((p) => name.startsWith(p));
+  // gemini/kimi/inkling run on temperature only.
+  return false;
 }
 
 function takesTemperature(provider: Provider, model: string): boolean {
   const name = model.trim().toLowerCase();
   if (provider === "openai")
     return !OPENAI_REASONING_PREFIXES.some((p) => name.startsWith(p));
-  return !ANTHROPIC_NO_TEMPERATURE_PREFIXES.some((p) => name.startsWith(p));
+  if (provider === "anthropic")
+    return !ANTHROPIC_NO_TEMPERATURE_PREFIXES.some((p) => name.startsWith(p));
+  // gemini/kimi/inkling always take a temperature.
+  return true;
 }
 
 // The harness returns full EvaluationResult dicts; we read the subset we render.
@@ -194,6 +215,8 @@ export function Runner() {
 
   const effortSupported = supportsEffort(provider, model);
   const temperatureApplies = takesTemperature(provider, model);
+  const activeProvider =
+    PROVIDERS.find((p) => p.id === provider) ?? PROVIDERS[0];
 
   function pickProvider(p: Provider) {
     setProvider(p);
@@ -332,7 +355,7 @@ export function Runner() {
             </div>
             <div className="sm:col-span-2">
               <label className={label} htmlFor="rn-key">
-                Your {provider === "openai" ? "OpenAI" : "Anthropic"} API key
+                Your {activeProvider.keyLabel} API key
               </label>
               <input
                 id="rn-key"
@@ -342,7 +365,7 @@ export function Runner() {
                 spellCheck={false}
                 autoComplete="off"
                 onChange={(e) => setApiKey(e.target.value)}
-                placeholder={provider === "openai" ? "sk-..." : "sk-ant-..."}
+                placeholder={activeProvider.keyPlaceholder}
               />
               <p className="mt-1.5 text-xs text-muted">
                 Sent once to score this run, then discarded, never stored or
@@ -394,7 +417,9 @@ export function Runner() {
                   ? "How deeply the model reasons before acting. Default lets the provider pick."
                   : provider === "anthropic"
                     ? "Claude Opus 4.5+, Sonnet 4.6+, and newer take an effort setting — this model uses temperature instead."
-                    : "Only OpenAI reasoning models (gpt-5, o1, o3, o4) take an effort setting — temperature applies instead."}
+                    : provider === "openai"
+                      ? "Only OpenAI reasoning models (gpt-5, o1, o3, o4) take an effort setting — temperature applies instead."
+                      : `${activeProvider.label} runs on temperature — no effort setting.`}
               </p>
             </div>
           </div>

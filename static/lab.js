@@ -74,6 +74,8 @@ const MODEL_SUGGESTIONS = {
   // available to new users"), so it's not runnable. 3.1-flash-lite is the
   // cheapest currently-servable Gemini and the backend default.
   gemini: ["gemini-3.1-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro"],
+  kimi: ["kimi-k2.6", "kimi-k3", "kimi-k2.7-code", "kimi-k2.7-code-highspeed", "kimi-k2.5"],
+  inkling: ["thinkingmachines/Inkling"],
 };
 
 // Mirrored from web/lib/labels.ts so the Lab speaks the site's language.
