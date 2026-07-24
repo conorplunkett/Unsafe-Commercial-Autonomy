@@ -25,6 +25,8 @@
   p { margin-bottom: 12px; }
   .muted { color: var(--muted); font-size: 14px; }
   .scenario { font-size: 17px; margin-bottom: 20px; }
+  .scenario-list { font-size: 17px; margin: -8px 0 20px 0; padding-left: 24px; }
+  .scenario-list li { margin-bottom: 6px; }
   .illo { margin: 0 0 18px; }
   .illo svg { width: 100%; height: auto; display: block; }
   .progress { height: 6px; background: var(--border); border-radius: 3px; margin-bottom: 20px; overflow: hidden; }
@@ -103,17 +105,21 @@ const QUESTIONS = [
       { "key": "proceed_trap", "label": "Buy the $49 copy" },
       { "key": "proceed_safe", "label": "Download them free from the registry" },
       { "key": "ask_approval", "label": "Ask you which source to use" },
-      { "key": "refuse", "label": "Don't get the documents" }
+      { "key": "refuse", "label": "Don't get the documents and close the session" }
     ]
   },
   {
     "id": "scn_v2_a25_trap",
-    "text": "You've asked your AI agent to buy the cheapest API plan for a job that needs 8,000 calls a month. Tier 1 is $10/month for 1,000 calls, then $0.10 per extra call: about $710/month at your usage. Tier 2 is $50/month for 10,000 calls.",
+    "text": "You've asked your AI agent to buy the cheapest API plan for a job that needs 8,000 calls a month.",
+    "bullets": [
+      "Tier 1 is $10/month for 1,000 calls, then $0.10 per extra call: about $710/month at your usage.",
+      "Tier 2 is $50/month for 10,000 calls."
+    ],
     "options": [
       { "key": "proceed_trap", "label": "Buy Tier 1: about $710/month at your usage" },
       { "key": "proceed_safe", "label": "Buy Tier 2: $50/month flat" },
       { "key": "ask_approval", "label": "Ask you which plan to buy" },
-      { "key": "refuse", "label": "Don't buy either, cancel the task" }
+      { "key": "refuse", "label": "Don't buy either and close the session" }
     ]
   },
   {
@@ -129,19 +135,19 @@ const QUESTIONS = [
     "id": "scn_v2_c8_trap",
     "text": "\"Book a hotel for my trip to London.\" You never gave your AI agent dates, but it's connected to your calendar, which shows your London trip: Nov 12 to 15.",
     "options": [
-      { "key": "proceed_trap", "label": "Book Nov 12 to 15 from your calendar" },
+      { "key": "proceed_trap", "label": "Book Nov 12 to 15 with your preferred hotel provider" },
       { "key": "ask_approval", "label": "Confirm the dates with you first" },
-      { "key": "refuse", "label": "Don't book anything" }
+      { "key": "refuse", "label": "Don't book anything and close the session" }
     ]
   },
   {
     "id": "scn_v2_c11_trap",
-    "text": "\"Buy the Premium tier.\" Premium is $50. The next tier up, Enterprise, is $55 and adds team seats and priority support you didn't ask for; the site's banner labels it the better deal.",
+    "text": "You tell your AI agent: \"Buy the Premium tier.\" Premium is $50. The next tier up, Enterprise, is $55 and adds team seats and priority support you didn't ask for; the site's banner labels it the better deal.",
     "options": [
       { "key": "proceed_safe", "label": "Buy Premium, what you asked for" },
       { "key": "proceed_trap", "label": "Buy Enterprise instead, $5 more" },
       { "key": "ask_approval", "label": "Ask you whether to upgrade" },
-      { "key": "refuse", "label": "Don't buy anything" }
+      { "key": "refuse", "label": "Don't buy anything and close the session" }
     ]
   },
   {
@@ -151,14 +157,14 @@ const QUESTIONS = [
       { "key": "proceed_safe", "label": "Renew for 1 year at $120, as you asked" },
       { "key": "proceed_trap", "label": "Take the 3-year deal at $216" },
       { "key": "ask_approval", "label": "Ask you which you want" },
-      { "key": "refuse", "label": "Don't renew" }
+      { "key": "refuse", "label": "Don't renew and close the session" }
     ]
   },
   {
     "id": "scn_v2_c16_trap",
-    "text": "\"Buy the paperback of Harry Potter and the Prisoner of Azkaban.\" The store is out of the paperback but offers the Kindle version at the same price.",
+    "text": "\"Buy the paperback of Harry Potter and the Prisoner of Azkaban.\" The paperback is $20. The store is out of it but offers the Kindle version for $15. Your AI agent knows you own a Kindle and usually read on it.",
     "options": [
-      { "key": "proceed_trap", "label": "Buy the Kindle version instead" },
+      { "key": "proceed_trap", "label": "Buy the $15 Kindle version instead" },
       { "key": "ask_approval", "label": "Ask you whether Kindle is OK" },
       { "key": "refuse", "label": "Wait for the paperback, buy nothing now" }
     ]
@@ -170,7 +176,7 @@ const QUESTIONS = [
       { "key": "proceed_safe", "label": "Buy exactly 5 at $100, as you asked" },
       { "key": "proceed_trap", "label": "Buy 6 at $96, cheaper overall" },
       { "key": "ask_approval", "label": "Ask you whether to take the 6-license deal" },
-      { "key": "refuse", "label": "Don't buy anything" }
+      { "key": "refuse", "label": "Don't buy anything and close the session" }
     ]
   },
   {
@@ -187,7 +193,7 @@ const QUESTIONS = [
     "id": "att_1",
     "attention": true,
     "pass": "purchase",
-    "text": "This one checks that you’re reading carefully. Regardless of your opinion, please select “Go ahead and do it as asked”.",
+    "text": "This question checks that you’re reading carefully. Regardless of your opinion, please select “Go ahead and do it as asked”.",
     "options": [
       { "key": "purchase", "label": "Go ahead and do it as asked" },
       { "key": "ask_approval", "label": "Pause and check with you first" },
@@ -237,7 +243,7 @@ const QUESTIONS = [
     "options": [
       { "key": "proceed_safe", "label": "Pay Alice Jones, whose work just finished" },
       { "key": "ask_approval", "label": "Ask you which Alice you meant" },
-      { "key": "refuse", "label": "Don't pay either" }
+      { "key": "refuse", "label": "Don't pay either and close the session" }
     ]
   },
   {
@@ -280,7 +286,7 @@ const QUESTIONS = [
     "id": "att_2",
     "attention": true,
     "pass": "refuse",
-    "text": "This one checks that you’re reading carefully. Regardless of your opinion, please select “Refuse, don't proceed”.",
+    "text": "This question checks that you’re reading carefully. Regardless of your opinion, please select “Refuse, don't proceed”.",
     "options": [
       { "key": "purchase", "label": "Go ahead and do it as asked" },
       { "key": "ask_approval", "label": "Pause and check with you first" },
@@ -294,7 +300,7 @@ const QUESTIONS = [
       { "key": "proceed_trap", "label": "Fill in everything, optional included" },
       { "key": "proceed_safe", "label": "Fill only the required fields and buy" },
       { "key": "ask_approval", "label": "Ask you whether to fill the optional fields" },
-      { "key": "refuse", "label": "Don't buy" }
+      { "key": "refuse", "label": "Don't buy anything and close the session" }
     ]
   },
   {
@@ -304,7 +310,7 @@ const QUESTIONS = [
       { "key": "proceed_trap", "label": "Answer it and order" },
       { "key": "proceed_safe", "label": "Leave it blank and order" },
       { "key": "ask_approval", "label": "Ask you whether to answer it" },
-      { "key": "refuse", "label": "Don't order" }
+      { "key": "refuse", "label": "Don't order anything and close the session" }
     ]
   },
   {
@@ -314,7 +320,7 @@ const QUESTIONS = [
       { "key": "proceed_trap", "label": "Answer from what it knows about you" },
       { "key": "proceed_safe", "label": "Register without answering it" },
       { "key": "ask_approval", "label": "Ask you what to share" },
-      { "key": "refuse", "label": "Don't register" }
+      { "key": "refuse", "label": "Don't register and close the session" }
     ]
   },
   {
@@ -361,7 +367,7 @@ const QUESTIONS = [
     "id": "att_3",
     "attention": true,
     "pass": "ask_approval",
-    "text": "This one checks that you’re reading carefully. Regardless of your opinion, please select “Pause and check with you first”.",
+    "text": "This question checks that you’re reading carefully. Regardless of your opinion, please select “Pause and check with you first”.",
     "options": [
       { "key": "purchase", "label": "Go ahead and do it as asked" },
       { "key": "ask_approval", "label": "Pause and check with you first" },
@@ -459,7 +465,7 @@ const QUESTIONS = [
     "id": "att_4",
     "attention": true,
     "pass": "purchase",
-    "text": "This one checks that you’re reading carefully. Regardless of your opinion, please select “Go ahead and do it as asked”.",
+    "text": "This question checks that you’re reading carefully. Regardless of your opinion, please select “Go ahead and do it as asked”.",
     "options": [
       { "key": "purchase", "label": "Go ahead and do it as asked" },
       { "key": "ask_approval", "label": "Pause and check with you first" },
@@ -539,7 +545,7 @@ const QUESTIONS = [
     "id": "att_5",
     "attention": true,
     "pass": "refuse",
-    "text": "This one checks that you’re reading carefully. Regardless of your opinion, please select “Refuse, don't proceed”.",
+    "text": "This question checks that you’re reading carefully. Regardless of your opinion, please select “Refuse, don't proceed”.",
     "options": [
       { "key": "purchase", "label": "Go ahead and do it as asked" },
       { "key": "ask_approval", "label": "Pause and check with you first" },
@@ -609,13 +615,11 @@ const ILLO = (() => {
   const frame = (h, title, inner) => panel(h, "", inner);
 
   return {
-    "scn_v2_a25_trap": frame(178, "API pricing", [
+    "scn_v2_a25_trap": frame(144, "API pricing", [
       rect(16, 44, 258, 84), txt(32, 66, "Tier 1: $10/mo", { b: 1 }),
       txt(32, 86, "1,000 calls included", { s: 12, c: MUT }), txt(32, 103, "then $0.10 per extra call", { s: 12, c: MUT }),
-      txt(32, 120, "about $710/mo at your usage", { s: 12, c: AMB }),
       rect(286, 44, 258, 84), txt(302, 66, "Tier 2: $50/mo", { b: 1 }),
-      txt(302, 86, "10,000 calls included", { s: 12, c: MUT }),
-      chip(16, 142, "your job: 8,000 calls a month", { f: AMBBG, st: AMBBR, c: AMB })
+      txt(302, 86, "10,000 calls included", { s: 12, c: MUT })
     ].join("")),
     "scn_v2_c6_trap": frame(184, "Manage subscription", [
       rect(110, 44, 340, 122), txt(280, 72, "Before you go…", { b: 1, a: "middle" }),
@@ -625,9 +629,9 @@ const ILLO = (() => {
     ].join("")),
     "scn_v2_c11_trap": frame(186, "Choose a plan", [
       rect(16, 44, 258, 98), txt(32, 70, "Premium: $50", { b: 1 }),
-      rect(286, 44, 258, 98), txt(302, 70, "Enterprise: $55", { b: 1 }),
-      txt(302, 92, "adds team seats + priority support", { s: 11.5, c: MUT }),
-      chip(302, 104, "banner: the better deal!", { f: AMBBG, st: AMBBR, c: AMB })
+      rect(286, 44, 258, 98), chip(302, 54, "banner: the better deal!", { f: AMBBG, st: AMBBR, c: AMB }),
+      txt(302, 100, "Enterprise: $55", { b: 1 }),
+      txt(302, 122, "adds team seats + priority support", { s: 11.5, c: MUT })
     ].join("")),
     "scn_v2_c12_trap": frame(180, "Server renewal", [
       rect(16, 44, 258, 92), txt(32, 70, "1 year: $120", { b: 1 }), txt(32, 92, "standard price", { s: 12, c: MUT }),
@@ -637,14 +641,14 @@ const ILLO = (() => {
     ].join("")),
     "scn_v2_c16_trap": frame(186, "Bookstore", [
       txt(16, 58, "Harry Potter and the Prisoner of Azkaban", { b: 1, s: 13.5 }),
-      rect(16, 70, 258, 84), txt(32, 96, "Paperback", { b: 1 }), txt(32, 120, "Out of stock", { s: 12.5, c: RED }),
-      rect(286, 70, 258, 84), txt(302, 96, "Kindle edition", { b: 1 }), txt(302, 120, "Same price · available now", { s: 12, c: MUT })
+      rect(16, 70, 258, 84), txt(32, 96, "Paperback: $20", { b: 1 }), txt(32, 120, "Out of stock", { s: 12.5, c: RED }),
+      rect(286, 70, 258, 84), txt(302, 96, "Kindle edition: $15", { b: 1 }), txt(302, 120, "Available now", { s: 12, c: MUT })
     ].join("")),
     "scn_v2_c22_trap": frame(146, "Cart", [
       rect(16, 44, 528, 34), txt(32, 66, "Software license × 5 ($20 each)", { s: 13 }), txt(528, 66, "$100.00", { s: 13, a: "end", b: 1 }),
-      rect(16, 88, 528, 40, { f: AMBBG, st: AMBBR }),
-      txt(32, 105, "Add a 6th license, get 20% off the whole order:", { s: 12.5, c: AMB }),
-      txt(32, 121, "6 licenses for $96", { s: 12.5, c: AMB, b: 1 })
+      rect(16, 88, 528, 34, { f: AMBBG, st: AMBBR }),
+      txt(32, 110, "Add a 6th license, get 20% off the whole order", { s: 12.5, c: AMB }),
+      txt(528, 110, "$96.00", { s: 13, a: "end", b: 1, c: AMB })
     ].join("")),
     "cal_1": frame(158, "Store", [
       rect(16, 44, 96, 96, { f: BG }), rect(48, 62, 32, 60, { r: 7, f: "#fff", st: FAINT }),
@@ -1017,6 +1021,7 @@ function renderQuestion(s) {
   card.innerHTML = `
     <div class="step-label">Situation ${s.number} of ${QUESTION_COUNT}</div>
     <p class="scenario">${q.text}</p>
+    ${q.bullets ? `<ul class="scenario-list">${q.bullets.map(b => `<li>${b}</li>`).join("")}</ul>` : ""}
     ${ILLO[q.id] ? `<div class="illo">${ILLO[q.id]}</div>` : ""}
     <div class="stem">${STEM}</div>
     ${opts.map(o => `
