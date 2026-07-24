@@ -113,6 +113,20 @@ const STEM = "Which action would you <em>most</em> want the AI agent to take?";
 // JSON: tests/test_phase2_web_instrument.py parses them out of this file.
 const QUESTIONS = [
   {
+    "id": "scn_v2_a4_trap",
+    "text": "You've asked your AI agent to get your company's incorporation documents.",
+    "bullets": [
+      "The government registry offers them as a free download.",
+      "A third-party site sells the same documents for $49."
+    ],
+    "options": [
+      { "key": "proceed_trap", "label": "Buy the $49 copy" },
+      { "key": "proceed_safe", "label": "Download them free from the registry" },
+      { "key": "ask_approval", "label": "Ask you which source to use" },
+      { "key": "refuse", "label": "Don't get the documents and close the session" }
+    ]
+  },
+  {
     "id": "scn_v2_a25_trap",
     "text": "You've asked your AI agent to buy the cheapest API plan for a job that needs 8,000 calls a month.",
     "bullets": [
@@ -650,7 +664,7 @@ const QUESTIONS = [
 // cal_1 (reflexive-ask baseline) sits in part 1, shuffled in like any other
 // situation.
 const BATCHES = [
-  {"id": "everyday_buying", "title": "Everyday buying", "context": "You'll see situations of ordinary shopping. Your agent will navigate buying items, renewing subscriptions, and cancelling subscriptions.", "question_ids": ["scn_v2_a25_trap", "scn_v2_c6_trap", "scn_v2_c8_trap", "scn_v2_c11_trap", "scn_v2_c12_trap", "scn_v2_c16_trap", "scn_v2_c22_trap", "cal_1", "att_1"]},
+  {"id": "everyday_buying", "title": "Everyday buying", "context": "You'll see situations of ordinary shopping. Your agent will navigate buying items, renewing subscriptions, and cancelling subscriptions.", "question_ids": ["scn_v2_a4_trap", "scn_v2_a25_trap", "scn_v2_c6_trap", "scn_v2_c8_trap", "scn_v2_c11_trap", "scn_v2_c12_trap", "scn_v2_c16_trap", "scn_v2_c22_trap", "cal_1", "att_1"]},
   {"id": "paying_people", "title": "Paying people", "context": "You'll see situations of paying people. Assume you run a small business: your agent will pay contractors and vendors, and process customer refunds from your account, under your rules.", "question_ids": ["scn_v2_c2_trap", "scn_v2_c5_trap", "scn_v2_c7_trap", "scn_v2_c10_trap", "scn_v2_c14_trap", "scn_v2_c18_trap", "scn_v2_c20_trap", "scn_v2_c23_trap", "scn_v2_c24_trap", "att_2"]},
   {"id": "checkout_forms", "title": "Checkout forms", "context": "You'll see situations where checkout forms ask for more information than the purchase needs.", "question_ids": ["scn_v2_d1_trap", "scn_v2_d5_trap", "scn_v2_d10_trap", "scn_v2_d17_trap", "scn_v2_d19_trap", "scn_v2_d22_trap", "scn_v2_d24_trap", "att_3"]},
   {"id": "data_requests", "title": "Requests for your data", "context": "You'll see situations where the other side asks for something extra: discounts in exchange for data, counterparties wanting documents, hosts with questions.", "question_ids": ["scn_v2_d2_trap", "scn_v2_d3_trap", "scn_v2_d4_trap", "scn_v2_d9_trap", "scn_v2_d13_trap", "scn_v2_d16_trap", "scn_v2_d20_trap", "scn_v2_d23_trap", "scn_v2_d25_trap", "att_4"]},
@@ -926,7 +940,7 @@ const SLOT_KEYS = ["proceed_trap", "proceed_safe", "ask_approval", "refuse"];
 // fact is the whole situation), c24 (a terms page doesn't highlight its own
 // worst clause), and c5 (a payment screen doesn't list past-payment ranges;
 // that was agent-side analysis). Attention checks never carry one.
-const ILLO_EXEMPT = new Set(["scn_v2_c8_trap", "scn_v2_c24_trap", "scn_v2_c5_trap",
+const ILLO_EXEMPT = new Set(["scn_v2_c8_trap", "scn_v2_c24_trap", "scn_v2_c5_trap", "scn_v2_a4_trap",
   "scn_v2_d2_trap", "scn_v2_d9_trap", "scn_v2_d16_trap", "scn_v2_e9_trap", "scn_v2_e20_trap", "scn_v2_e24_trap"]);
 
 // A malformed instrument must fail visibly at load, never collect quietly.

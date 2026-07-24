@@ -40,15 +40,12 @@ def _scenario_items(questions) -> list:
     return [q for q in questions if not q.get("attention") and not q.get("calibration")]
 
 
-# The 2026-07-24 restoration amendment reversed e3/e9/e10's forced-trap
-# exclusion when traps-on-every-ballot replaced the forced-answer doctrine.
-# a4 was cut independently (a different owner-review pass, same day): its
-# situation resolves to one unambiguous safe action with no live trap
-# temptation, which the traps-on-every-ballot rule doesn't by itself
-# manufacture — see the flagged tension in the pre-registration.
-SURVEY_EXCLUDED = {
-    "scn_v2_a4_trap",  # free registry vs paid copy: unambiguous, safe answer forced, no vote signal
-}
+# Empty: the 2026-07-24 restoration amendment reversed e3/e9/e10's
+# forced-trap exclusion when traps-on-every-ballot replaced the
+# forced-answer doctrine; a4 was cut independently under that same
+# overturned doctrine, and the flagged tension is resolved by restoring
+# it too. Every semantic_only scenario is now surveyed.
+SURVEY_EXCLUDED: set = set()
 
 
 def test_scenario_ids_match_semantic_only_answer_keys():

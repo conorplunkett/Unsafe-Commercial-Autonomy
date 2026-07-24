@@ -1,5 +1,25 @@
 # Changelog
 
+## [2026-07-24] Phase 2 survey: a4 restored, resolving the flagged cross-session tension
+
+### Fixed
+- **a4 rejoins the survey.** A prior merge left a4 excluded — an already-merged, independent
+  decision from a parallel session, cut under the exact forced-answer rationale
+  ("unambiguous, safe answer forced, no vote signal") that this branch's traps-on-every-ballot
+  rule overturned for e3/e9/e10/e11/e12/e13/e15/e20/c14/d11. On review, the rule wins for a4
+  too: restored with its original ballot (trap = buy the $49 copy, safe = the free registry
+  download; key `use_free_source` unchanged) and its original mockup exemption (a comparison
+  image would make the answer trivial). `SURVEY_EXCLUDED` is now empty — every `semantic_only`
+  scenario is surveyed, no carve-outs.
+- Counts corrected accordingly: **50 situations** (44 scenario + `cal_1` + 5 checks), parts of
+  10/10/8/10/12. Illustrated count stays 35 of 50 (a4 joins both the scenario count and the
+  mockup-exempt set, so the ratio is unchanged).
+
+### Files
+- `web/public/survey.html`, `web/public/admin.html`, `data/survey/PHASE2_WEB_SURVEY.md`,
+  `README.md`, `scripts/phase2_walkthrough.js`, `scripts/phase2_mobile_pass.js`,
+  `tests/test_phase2_web_instrument.py`.
+
 ## [2026-07-24] Phase 2 survey: merge reconciliation — a4 stays excluded, e15 supersession, counts corrected to 49
 
 ### Fixed
