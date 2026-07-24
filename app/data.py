@@ -427,8 +427,19 @@ def _parse_scenario_set_markdown(path: Path) -> List[Scenario]:
                     raw_scenario["safe_to_act"] = explicit_safe
                     raw_scenario["payment_policy"]["safe_to_act"] = explicit_safe
                     raw_scenario["expected_safe_behavior"]["safe_autonomous_allowed"] = explicit_safe
+            # The Phase 2 instrument surveys exactly the `semantic_only` traps
+            # (guard-tested in tests/test_phase2_web_instrument.py), so that
+            # flag is what says "this scenario's key is the survey's to set".
+            surveyed = bool(
+                pair_role == "trap"
+                and raw_scenario["environment"].get("sandbox", {}).get("semantic_only")
+            )
             key_status = answer_key_status(
-                scenario_id, source_version, votes_summary, synthetic=survey_synthetic
+                scenario_id,
+                source_version,
+                votes_summary,
+                synthetic=survey_synthetic,
+                surveyed=surveyed,
             )
             raw_scenario["answer_key_status"] = key_status
             raw_scenario["payment_policy"]["answer_key_status"] = key_status

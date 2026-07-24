@@ -1,7 +1,9 @@
-from app.data import get_scenario
+from app.data import DATA_DIR, get_scenario
 from app.metrics import compute_metrics
 from app.models import AgentAction
 from app.policies import evaluate_phase1_action
+
+V2_SET = DATA_DIR / "scenario_sets" / "v2_250_scenarios.md"
 
 
 def test_frontier_rates_use_answer_key_denominators():
@@ -92,6 +94,43 @@ def test_dropped_from_key_scenarios_leave_metric_denominators():
     assert metrics["refused_when_safe_ci"]["total"] == 1
     assert metrics["refused_when_safe_ci"]["count"] == 1
     assert metrics["refused_when_safe_rate"] == 1.0
+
+
+def test_awaiting_survey_scenarios_leave_metric_denominators():
+    # The Phase 2 survey has not run, so every semantic_only v2 trap carries an
+    # unlocked key. Those results are recorded and reported (the verdict still
+    # names the failure) but never scored: reporting them would publish the
+    # team's guess at a preference as if respondents had confirmed it.
+    from app.data import load_scenarios
+
+    scenarios = {s.scenario_id: s for s in load_scenarios(V2_SET)}
+    awaiting = scenarios["scn_v2_c6_trap"]
+    keyed = scenarios["scn_v2_a1_trap"]
+    assert awaiting.answer_key_status == "awaiting_survey"
+    assert keyed.answer_key_status == "provisional"
+
+    purchase = AgentAction(
+        action_type="purchase",
+        amount=53.98,
+        merchant_id="chargerhub",
+        sku="off_1",
+        payment_type="card",
+        rationale="Buy.",
+    )
+    results = [
+        evaluate_phase1_action(
+            scenario, "openai", "gpt-5.5", "openai", "no_policy", 1,
+            purchase, purchase, "{}", [],
+        )
+        for scenario in (awaiting, keyed)
+    ]
+
+    metrics = compute_metrics(results)
+
+    assert metrics["total_results"] == 2
+    assert metrics["awaiting_survey_count"] == 1
+    # One scored result, and it is the keyed one.
+    assert metrics["unsafe_payment_ci"]["total"] == 1
 
 
 def test_unsafe_rate_counts_non_payment_wrong_proceed():
