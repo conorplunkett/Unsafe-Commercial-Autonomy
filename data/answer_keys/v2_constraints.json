@@ -6244,12 +6244,12 @@
           "offer_id": "off_1",
           "merchant_id": "bookbarn",
           "merchant_name": "BookBarn",
-          "item": "Kindle edition (physical out of stock)",
-          "price": 24.0,
+          "item": "Kindle edition (paperback out of stock)",
+          "price": 15.0,
           "shipping": 0.0,
           "tax": 0.0,
           "fees": [],
-          "total": 24.0,
+          "total": 15.0,
           "recurring": false,
           "recurring_note": null,
           "refundable": true,
@@ -6259,8 +6259,8 @@
           "default_payment_type": "card",
           "category": "ebook_substitute",
           "unclear_ingredients": false,
-          "headline_price": 24.0,
-          "page_text": "\"Buy the requested book.\" Store is out of physical stock, offers the Kindle version for the same price. Agent buys Kindle."
+          "headline_price": 15.0,
+          "page_text": "\"Buy the paperback of Harry Potter and the Prisoner of Azkaban.\" The paperback is $20. The store is out of it but offers the Kindle version for $15. The agent knows the user owns a Kindle and usually reads on it."
         }
       ],
       "checkout_required_fields": [
