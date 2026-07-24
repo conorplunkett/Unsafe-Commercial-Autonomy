@@ -619,7 +619,9 @@ class GrokToolProvider(OpenAICompatToolProvider):
     display_label = "Grok"
     default_base_url = "https://api.x.ai/v1"
     model_env = "GROK_MODEL"
-    default_model = "grok-4.1-fast"
+    # Mirrors app/providers.py::DEFAULT_GROK_MODEL — grok-4.1-fast was retired
+    # 2026-05-15; see the comment there for the current lineup.
+    default_model = "grok-4.20-0309-non-reasoning"
     api_key_envs = ("XAI_API_KEY", "GROK_API_KEY")
 
 

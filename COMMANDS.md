@@ -497,11 +497,11 @@ path is used. Otherwise `agent_ids` run through scripted deterministic agents.
 | `gemini` | Gemini OpenAI-compatible endpoint | `GEMINI_API_KEY` (or `GOOGLE_API_KEY`); optional `GEMINI_MODEL` (default `gemini-3.1-flash-lite`, the cheapest current Gemini available to new API keys) |
 | `kimi` | Kimi (Moonshot AI) OpenAI-compatible endpoint | `KIMI_API_KEY` (or `MOONSHOT_API_KEY`); optional `KIMI_MODEL` (default `kimi-k2.6`; also available: `kimi-k3`, `kimi-k2.7-code`, `kimi-k2.7-code-highspeed`, `kimi-k2.5` — see `models --provider kimi`) |
 | `inkling` | Thinking Machines Lab's Inkling open-weight model, via an OpenAI-compatible inference host | `INKLING_API_KEY` (or `TOGETHER_API_KEY`); optional `INKLING_MODEL`/`INKLING_BASE_URL` (default Together AI's `thinkingmachines/Inkling`) |
-| `grok` | xAI Grok OpenAI-compatible endpoint | `XAI_API_KEY` (or `GROK_API_KEY`); optional `GROK_MODEL` (default `grok-4.1-fast`; also `grok-4.3`, `grok-4-heavy`) |
+| `grok` | xAI Grok OpenAI-compatible endpoint | `XAI_API_KEY` (or `GROK_API_KEY`); optional `GROK_MODEL` (default `grok-4.20-0309-non-reasoning`; also `grok-4.3`, `grok-4.20-0309-reasoning`, `grok-4.5`. `grok-4.1-fast` was retired 2026-05-15 — model names churn, check `models --provider grok` against your own key) |
 | `deepseek` | DeepSeek OpenAI-compatible endpoint | `DEEPSEEK_API_KEY`; optional `DEEPSEEK_MODEL` (default `deepseek-v4-flash`; also `deepseek-v4-pro`). Uses `json_object` output mode |
 | `mistral` | Mistral OpenAI-compatible endpoint | `MISTRAL_API_KEY`; optional `MISTRAL_MODEL` (default `mistral-small-latest`; also `mistral-large-latest`, `magistral-medium-latest`) |
 | `qwen` | Alibaba Qwen via DashScope compatible-mode endpoint | `DASHSCOPE_API_KEY` (or `QWEN_API_KEY`); optional `QWEN_MODEL` (default `qwen-flash`), `QWEN_BASE_URL` for a regional host. Uses `json_object` output mode |
-| `openrouter` | OpenRouter gateway (300+ models) OpenAI-compatible | `OPENROUTER_API_KEY`; **required** `OPENROUTER_MODEL` (namespaced slug, e.g. `x-ai/grok-4.1-fast`) |
+| `openrouter` | OpenRouter gateway (300+ models) OpenAI-compatible | `OPENROUTER_API_KEY`; **required** `OPENROUTER_MODEL` (namespaced slug, e.g. `x-ai/grok-4.3`) |
 | `openweights` | OpenAI-compatible `/v1/chat/completions` | `OPENWEIGHTS_BASE_URL`, `OPENWEIGHTS_MODEL`; optional `OPENWEIGHTS_API_KEY` (default `local`) |
 | `baseline_naive` | Offline heuristic — always cheapest, never ask | None |
 | `all` | Runs every provider above | All configured keys/URLs |
@@ -589,7 +589,7 @@ startup — see Setup). Shell-exported values override the file.
 | `INKLING_MODEL` | Inkling model slug on the inference host (default `thinkingmachines/Inkling`) |
 | `INKLING_BASE_URL` | OpenAI-compatible inference host base URL (default Together AI; point at Fireworks/Modal/Databricks/Baseten instead) |
 | `XAI_API_KEY` | Live Grok evals (`GROK_API_KEY` also accepted) |
-| `GROK_MODEL` | Grok model name (default `grok-4.1-fast`) |
+| `GROK_MODEL` | Grok model name (default `grok-4.20-0309-non-reasoning`; model names churn — check `models --provider grok`) |
 | `DEEPSEEK_API_KEY` | Live DeepSeek evals |
 | `DEEPSEEK_MODEL` | DeepSeek model name (default `deepseek-v4-flash`) |
 | `MISTRAL_API_KEY` | Live Mistral evals |
@@ -598,7 +598,7 @@ startup — see Setup). Shell-exported values override the file.
 | `QWEN_MODEL` | Qwen model name (default `qwen-flash`) |
 | `QWEN_BASE_URL` | Qwen DashScope compatible-mode base URL (default international host) |
 | `OPENROUTER_API_KEY` | Live OpenRouter evals |
-| `OPENROUTER_MODEL` | OpenRouter model slug, required (e.g. `x-ai/grok-4.1-fast`) |
+| `OPENROUTER_MODEL` | OpenRouter model slug, required (e.g. `x-ai/grok-4.3`) |
 | `OPENWEIGHTS_BASE_URL` | OpenAI-compatible local server base URL |
 | `OPENWEIGHTS_MODEL` | Model name on that server |
 | `OPENWEIGHTS_API_KEY` | Auth header for open-weights server (default `local`) |
