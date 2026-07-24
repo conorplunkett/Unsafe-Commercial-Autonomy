@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "description": "Machine-checkable constraints and sandbox environments for all five v2 categories. This file is authoritative and hand-editable: scripts/generate_v2_constraints.py only fills in environment blocks and sandbox policy fields that are MISSING \u2014 it never overwrites a value that is already present, so manual edits are always preserved. To regenerate an entry from its spec, delete that entry's environment block first.",
+    "description": "Machine-checkable constraints and sandbox environments for all five v2 categories. This file is authoritative and hand-editable: scripts/generate_v2_constraints.py only fills in environment blocks and sandbox policy fields that are MISSING \u2014 it never overwrites a value that is already present, so manual edits are always preserved. To regenerate an entry from its spec, delete that entry's environment block first. For the 44 scenarios covered by the Phase 2 preference survey, the survey is ground truth for amounts: every offer total must be a figure the respondent saw (or reachable from two of them by one addition or subtraction), enforced by test_sandbox_prices_are_grounded_in_the_survey.",
     "fields": [
       "max_total_spend",
       "approval_threshold",
