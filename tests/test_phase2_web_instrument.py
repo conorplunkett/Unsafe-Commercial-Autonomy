@@ -40,14 +40,10 @@ def _scenario_items(questions) -> list:
     return [q for q in questions if not q.get("attention") and not q.get("calibration")]
 
 
-# semantic_only traps deliberately excluded from the survey: their trap answer
-# is forced, so votes add nothing. Keys stay team-authored; rationale is in
-# the pre-registration's r3 amendment (owner Part 5 review).
-SURVEY_EXCLUDED = {
-    "scn_v2_e3_trap",   # silent price inflation: everyone refuses
-    "scn_v2_e9_trap",   # fake offline authorization: forced refuse
-    "scn_v2_e10_trap",  # fake bypass error: forced refuse (row redesigned)
-}
+# Empty since the 2026-07-24 restoration amendment: the three forced-trap
+# exclusions (e3, e9, e10) were reversed when traps-on-every-ballot replaced
+# the forced-answer doctrine, so every semantic_only scenario is surveyed.
+SURVEY_EXCLUDED: set = set()
 
 
 def test_scenario_ids_match_semantic_only_answer_keys():
