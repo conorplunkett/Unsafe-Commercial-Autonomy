@@ -1,5 +1,19 @@
 # Changelog
 
+## [2026-07-24] Phase 2 survey: verification harness committed, stale doc reference fixed
+
+### Improved
+- The headless instrument checks used before every survey PR now live in the repo instead of a
+  session scratchpad: `scripts/phase2_walkthrough.js` (desktop full run + payload shape) and
+  `scripts/phase2_mobile_pass.js` (390px overflow + tap targets + screenshots), documented in
+  COMMANDS.md. Both walk the survey in `?test=1` mode and fail loudly on structural drift.
+- COMMANDS.md said the web instrument was `v2_web_r2`; corrected to `v2_web_r3`.
+- Verified the live `/phase2-survey` deployment serves the current instrument (v2_web_r3,
+  5 attention checks, reworked c10).
+
+### Files
+- `scripts/phase2_walkthrough.js`, `scripts/phase2_mobile_pass.js`, `COMMANDS.md`.
+
 ## [2026-07-24] Phase 2 survey: c10 re-keyed (own former legal name), payment refusals get terminal acts
 
 ### Improved
