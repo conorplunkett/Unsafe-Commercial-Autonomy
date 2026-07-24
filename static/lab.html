@@ -261,8 +261,122 @@
       </div>
 
       <p id="labEmpty" class="lab-empty" hidden>No runs yet. Pick a model and hit Run experiment.</p>
+
+      <section class="taxonomy-panel ladder-panel" aria-label="CLI cost ladder">
+        <div class="panel-heading">
+          <h2>Cost ladder</h2>
+          <span class="run-stamp">phase2-eval · cheapest model is the default</span>
+        </div>
+        <div class="ladder-models" id="ladderModels" role="group" aria-label="Model">
+          <button type="button" class="ladder-modelbtn is-active" data-model="openai">openai</button>
+          <button type="button" class="ladder-modelbtn" data-model="anthropic">anthropic</button>
+          <button type="button" class="ladder-modelbtn" data-model="kimi">kimi</button>
+          <button type="button" class="ladder-modelbtn" data-model="grok">grok</button>
+          <button type="button" class="ladder-modelbtn" data-model="deepseek">deepseek</button>
+          <button type="button" class="ladder-modelbtn" data-model="mistral">mistral</button>
+          <button type="button" class="ladder-modelbtn" data-model="qwen">qwen</button>
+          <button type="button" class="ladder-modelbtn" data-model="inkling">inkling</button>
+          <button type="button" class="ladder-modelbtn" data-model="openrouter">openrouter</button>
+          <button type="button" class="ladder-modelbtn" data-model="openweights">openweights</button>
+          <button type="button" class="ladder-modelbtn" data-model="scripted_naive">scripted_naive</button>
+        </div>
+        <p class="panel-legend">
+          1 episode = one model &times; condition &times; framing &times; scenario &times; seed.
+          Runs above 50 episodes need <code>--yes</code> when non-interactive.
+        </p>
+        <div class="ladder-rungs">
+          <div class="ladder-rung">
+            <div class="ladder-rung-head"><span class="ladder-name">Offline pipeline check</span><span class="ladder-count">free</span><button type="button" class="ladder-copy">Copy</button></div>
+            <pre>python -m app.cli phase2-eval --dry-run --models <span class="ladder-model">openai</span> \
+  --conditions no_policy --framings deployment \
+  --scenario-ids scn_v2_a1_trap --seeds 1</pre>
+          </div>
+          <div class="ladder-rung">
+            <div class="ladder-rung-head"><span class="ladder-name">Smoke</span><span class="ladder-count">1 episode</span><button type="button" class="ladder-copy">Copy</button></div>
+            <pre>python -m app.cli phase2-eval --models <span class="ladder-model">openai</span> \
+  --conditions no_policy --framings deployment \
+  --scenario-ids scn_v2_a1_trap --seeds 1</pre>
+          </div>
+          <div class="ladder-rung">
+            <div class="ladder-rung-head"><span class="ladder-name">One scenario, full ablation</span><span class="ladder-count">6 episodes</span><button type="button" class="ladder-copy">Copy</button></div>
+            <pre>python -m app.cli phase2-eval --models <span class="ladder-model">openai</span> \
+  --framings deployment --scenario-ids scn_v2_a1_trap --seeds 1</pre>
+          </div>
+          <div class="ladder-rung">
+            <div class="ladder-rung-head"><span class="ladder-name">Five scenarios</span><span class="ladder-count">10 episodes</span><button type="button" class="ladder-copy">Copy</button></div>
+            <pre>python -m app.cli phase2-eval --models <span class="ladder-model">openai</span> \
+  --conditions no_policy,tool_constraints --framings deployment \
+  --scenario-ids scn_v2_a1_trap,scn_v2_a1_lookalike,scn_v2_a2_trap,scn_v2_a2_lookalike,scn_v2_a3_trap \
+  --seeds 1</pre>
+          </div>
+          <div class="ladder-rung">
+            <div class="ladder-rung-head"><span class="ladder-name">One trap per category</span><span class="ladder-count">10 episodes</span><button type="button" class="ladder-copy">Copy</button></div>
+            <pre>python -m app.cli phase2-eval --models <span class="ladder-model">openai</span> \
+  --conditions no_policy,tool_constraints --framings deployment \
+  --scenario-ids scn_v2_a1_trap,scn_v2_b1_trap,scn_v2_c1_trap,scn_v2_d1_trap,scn_v2_e1_trap \
+  --seeds 1</pre>
+          </div>
+          <div class="ladder-rung">
+            <div class="ladder-rung-head"><span class="ladder-name">Every scenario once</span><span class="ladder-count">250 episodes</span><button type="button" class="ladder-copy">Copy</button></div>
+            <pre>python -m app.cli phase2-eval --models <span class="ladder-model">openai</span> \
+  --conditions no_policy --framings deployment --seeds 1 --yes</pre>
+          </div>
+          <div class="ladder-rung">
+            <div class="ladder-rung-head"><span class="ladder-name">Every scenario, five seeds</span><span class="ladder-count">2,500 episodes</span><button type="button" class="ladder-copy">Copy</button></div>
+            <pre>python -m app.cli phase2-eval --models <span class="ladder-model">openai</span> \
+  --conditions no_policy,tool_constraints --framings deployment \
+  --seeds 1,2,3,4,5 --yes</pre>
+          </div>
+        </div>
+        <p class="panel-legend ladder-foot">
+          Full grid (6 conditions &times; 2 framings &times; 5 seeds) = 15,000 episodes per model.
+          <code>--temperature</code> only affects temperature-based models; reasoning models (gpt-5.x) vary by seed.
+          Phase 1: same rungs with <code>eval</code> (drop <code>--framings</code>).
+        </p>
+      </section>
     </div>
 
+    <style>
+      .ladder-models { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+      .ladder-modelbtn { padding: 4px 12px; border: 1px solid rgba(128, 128, 128, 0.4); border-radius: 999px; background: transparent; color: inherit; cursor: pointer; font-size: 0.82em; font-family: inherit; }
+      .ladder-modelbtn:hover { background: rgba(128, 128, 128, 0.12); }
+      .ladder-modelbtn.is-active { border-color: currentColor; background: rgba(128, 128, 128, 0.22); font-weight: 700; }
+      .ladder-rungs { display: flex; flex-direction: column; gap: 12px; }
+      .ladder-rung { border: 1px solid rgba(128, 128, 128, 0.28); border-radius: 10px; overflow: hidden; }
+      .ladder-rung-head { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: rgba(128, 128, 128, 0.08); }
+      .ladder-name { font-weight: 600; }
+      .ladder-count { margin-left: auto; font-variant-numeric: tabular-nums; opacity: 0.7; font-size: 0.85em; }
+      .ladder-rung-head .ladder-copy { margin-left: 0; padding: 3px 12px; border: 1px solid rgba(128, 128, 128, 0.4); border-radius: 6px; background: transparent; color: inherit; cursor: pointer; font-size: 0.8em; }
+      .ladder-rung-head .ladder-copy:hover { background: rgba(128, 128, 128, 0.16); }
+      .ladder-rung pre { margin: 0; padding: 12px; overflow-x: auto; font-size: 0.82em; line-height: 1.5; white-space: pre; }
+      .ladder-rung pre .ladder-model { border-radius: 3px; padding: 0 3px; background: rgba(128, 128, 128, 0.2); font-weight: 600; }
+      .ladder-foot { margin-top: 12px; }
+    </style>
+    <script>
+      (function () {
+        var models = document.getElementById('ladderModels');
+        var spans = document.querySelectorAll('.ladder-model');
+        if (models) {
+          models.addEventListener('click', function (event) {
+            var btn = event.target.closest('.ladder-modelbtn');
+            if (!btn) return;
+            models.querySelectorAll('.ladder-modelbtn').forEach(function (b) { b.classList.remove('is-active'); });
+            btn.classList.add('is-active');
+            spans.forEach(function (span) { span.textContent = btn.dataset.model; });
+          });
+        }
+        document.querySelectorAll('.ladder-copy').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var cmd = btn.closest('.ladder-rung').querySelector('pre').innerText;
+            navigator.clipboard.writeText(cmd).then(function () {
+              var prev = btn.textContent;
+              btn.textContent = 'Copied';
+              setTimeout(function () { btn.textContent = prev; }, 1200);
+            });
+          });
+        });
+      })();
+    </script>
     <script src="/static/lab.js?v=11"></script>
   </body>
 </html>

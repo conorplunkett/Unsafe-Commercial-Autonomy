@@ -34,6 +34,11 @@ DEFAULT_MODEL_IDS = [
     "openweights",
     "baseline_naive",
 ]
+# Providers that run fully offline and make zero API calls. They must never
+# count toward the live-cost confirmation guard (see cli._phase1_grid_size),
+# otherwise the documented offline command
+# `eval --models baseline_naive` is refused in non-interactive contexts.
+OFFLINE_MODEL_IDS = {"baseline_naive"}
 # Defaults are each provider's cheapest current text model, so an eval without
 # an explicit *_MODEL env var burns the fewest dollars. Prices verified
 # 2026-07-23 (per 1M input/output tokens):
