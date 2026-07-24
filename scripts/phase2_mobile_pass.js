@@ -45,7 +45,7 @@ function fail(msg) { console.error("FAIL: " + msg); process.exit(1); }
   let minTap = Infinity;
   async function checkTaps() {
     const h = await page.evaluate(() =>
-      Math.min(...[...document.querySelectorAll(".opt, button:not([disabled])")].filter(e => e.offsetParent).map(e => e.getBoundingClientRect().height), Infinity)
+      Math.min(...[...document.querySelectorAll(".opt, button:not([disabled])")].filter(e => e.offsetParent && !e.closest("#testjump")).map(e => e.getBoundingClientRect().height), Infinity)
     );
     if (h < minTap) minTap = h;
   }

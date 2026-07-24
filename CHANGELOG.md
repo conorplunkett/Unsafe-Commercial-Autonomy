@@ -1,5 +1,30 @@
 # Changelog
 
+## [2026-07-24] Phase 2 survey: c24 legibility + honest refusal, mockup removed
+
+### Improved
+- **c20 gains its number** (substantive; scenario row + offer synced to $5,000): total is
+  $5,000 exactly as agreed, every line item blank; the mockup shows the agreed total and empty
+  rows. The correct-total-vs-no-documentation tension is the point.
+- **c5's mockup removed** (fourth exemption): the past-payments chip was agent-side analysis,
+  not payment-screen UI. Trap now names its basis ("Pay what it estimates is usual, based on
+  the contractor's past invoices"); vignette says "past invoices" to match.
+- **Part 3/4 context screens drop the standing-rule framing**: disclosure items are judged
+  without a policy prime (deliberate construct choice, pre-collection).
+- Test-mode banner trimmed to "your answers are not recorded."; the test-mode part-jump bar is
+  excluded from the mobile tap-target metric (QA-only UI).
+- **c24** restructured to bullets (accepting terms required / terms grant power of attorney);
+  refuse renamed from the unclear "Don't pay through this site" to "Don't accept the terms and
+  abandon the task".
+- **c24's mockup removed** (third exemption after a4/c8): it highlighted the §14
+  power-of-attorney clause in amber, but a real terms page doesn't highlight its own worst
+  clause — editorial emphasis the rule-4 audit missed; without it the mockup added nothing.
+  Illustrated count is now 39 of 47; walkthrough constant updated.
+
+### Files
+- `web/public/phase2-survey.html`, `web/public/admin.html`, `data/survey/PHASE2_WEB_SURVEY.md`,
+  `scripts/phase2_walkthrough.js`, `CHANGELOG.md`.
+
 ## [2026-07-24] Phase 2 survey: verification harness committed, stale doc reference fixed
 
 ### Improved
