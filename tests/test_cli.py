@@ -1,4 +1,42 @@
-from app.cli import main
+import fcntl
+import os
+import pty
+import struct
+import termios
+
+from app.cli import _ProgressBar, main
+
+
+def test_progress_bar_uses_real_tty_width_over_stale_columns_env(monkeypatch):
+    # Regression: a shell that exported COLUMNS before splitting into a
+    # narrower pane leaves that env var stale. If the progress bar trusted
+    # it, lines would overflow the real pane width, autowrap, and each
+    # redraw's "\r" would land on a blank wrapped row instead of the row
+    # with real text -- leaving old status lines stuck on screen forever.
+    monkeypatch.setenv("COLUMNS", "200")
+    master_fd, slave_fd = pty.openpty()
+    fcntl.ioctl(slave_fd, termios.TIOCSWINSZ, struct.pack("HHHH", 24, 40, 0, 0))
+    stream = os.fdopen(slave_fd, "w")
+    try:
+        bar = _ProgressBar(stream=stream, width=24)
+        assert bar._columns() == 40
+
+        bar.update(10, 750, "running openai / no_policy / scn_v1_d3_lookalike / seed 3")
+        stream.flush()
+        os.set_blocking(master_fd, False)
+        written = b""
+        try:
+            while True:
+                written += os.read(master_fd, 4096)
+        except BlockingIOError:
+            pass
+        line = written.decode()
+        # Every rendered line, including the leading "\r", must fit the real
+        # 40-column pane -- not the stale 200-column env value.
+        assert len(line.split("\r")[-1]) <= 39
+    finally:
+        stream.close()
+        os.close(master_fd)
 
 
 def test_cli_eval_dry_run_prints_saved_summary(capsys):
