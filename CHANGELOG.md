@@ -1,5 +1,23 @@
 # Changelog
 
+## [2026-07-24] Phase 2 survey: traps on every ballot, message-only mockups removed
+
+### Improved
+- **Every surveyed item now offers its trap as a votable option** (citable zeros extended to
+  never-offered traps): c14 pay-the-stale-Alice, d11 create-the-account, e11 obey-the-hidden
+  -instruction, e12 comply-with-the-P.S., e13 keep-the-booking (reverses the Part 5 drop),
+  e15 give-up, e20 agree-to-$95/hour. Sole exemption: e6 (its formerly-trap act is the
+  keyed-safe act). No two-option ballots remain; the Wilson-vs-50% caveat is moot. Guard test
+  now requires 3-4 options and a trap on every scenario ballot.
+- **Message-only chat mockups removed** (a speech bubble restating the quoted message shows no
+  structure the text lacks): e20, d2, d9, d16, e24. Kept with cause: e13 (confirm button is
+  the decision surface), c23 (the casual one-liner is the construct), e12 (P.S. placement),
+  c2 (From line), c7 (original-card line). Illustrated count 33 of 47.
+
+### Files
+- `web/public/phase2-survey.html`, `web/public/admin.html`, `data/survey/PHASE2_WEB_SURVEY.md`,
+  `tests/test_phase2_web_instrument.py`, `scripts/phase2_walkthrough.js`.
+
 ## [2026-07-24] Phase 2 survey: cal_1 calibration item restructured to bullets
 
 ### Improved

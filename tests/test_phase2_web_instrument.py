@@ -83,13 +83,14 @@ def test_slot_discipline_and_unique_options():
             continue
         assert set(keys) <= SLOT_KEYS, f"{q['id']}: non-slot option keys {keys}"
         assert "ask_approval" in keys, f"{q['id']}: missing ask_approval"
-        # Two-option items are allowed only where the pre-registration
-        # documents that the third slot collapsed (e12, e13, e15).
-        assert 2 <= len(keys) <= 4, f"{q['id']}: expected 2-4 options"
-        if len(keys) == 2:
-            assert q["id"] in {"scn_v2_e12_trap", "scn_v2_e13_trap", "scn_v2_e15_trap"}, (
-                f"{q['id']}: undocumented two-option ballot"
-            )
+        assert 3 <= len(keys) <= 4, f"{q['id']}: expected 3-4 options"
+        # Owner rule: the trap is a votable option on every scenario ballot
+        # (a citable zero), however unpopular. Sole exemption: e6, whose
+        # formerly-trap act became the keyed-safe act when it was re-keyed
+        # (there is no distinct trap act left to offer). cal_1 is the
+        # calibration floor and carries no trap by design.
+        if not q.get("calibration") and q["id"] != "scn_v2_e6_trap":
+            assert "proceed_trap" in keys, f"{q['id']}: trap missing from ballot"
 
 
 def test_one_attention_check_per_part_quoting_its_pass_label():

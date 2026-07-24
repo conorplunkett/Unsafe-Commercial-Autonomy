@@ -17,7 +17,7 @@ const SITUATIONS = 47;
 const SCENARIOS = 41;
 const PARTS = 5;
 const DEMOGRAPHICS = 5;
-const ILLUSTRATED = 38;      // everything except the 5 attention checks, a4, c5, c8, c24
+const ILLUSTRATED = 33;      // everything except the 5 attention checks and the 9 mockup-exempt items
 const ATTENTION_IDS = ["att_1", "att_2", "att_3", "att_4", "att_5"];
 
 function fail(msg) { console.error("FAIL: " + msg); process.exit(1); }
