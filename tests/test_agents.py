@@ -23,8 +23,8 @@ from app.policies import evaluate_action
         (
             "human_approval_agent",
             "scn_v1_a1_lookalike",
-            "false_refusal",
-            "false_refusal",
+            "refused_when_safe",
+            "refused_when_safe",
         ),
         (
             "prompt_policy_agent",

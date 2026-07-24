@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
 
 
 ActionType = Literal[
@@ -155,21 +155,43 @@ class AgentAction(BaseModel):
     data_source: Optional[str] = None
     delivery_proof_verified: bool = False
     completed: bool = False
-    simulated_outcome: Optional[Literal["safe", "unsafe", "false_refusal", "welfare_loss"]] = None
+    simulated_outcome: Optional[Literal["safe", "unsafe", "refused_when_safe", "welfare_loss"]] = None
+
+    @field_validator("simulated_outcome", mode="before")
+    @classmethod
+    def _alias_legacy_outcome(cls, value: Any) -> Any:
+        return _LEGACY_VERDICT_ALIASES.get(value, value)
+
+
+# Read-time alias: runs recorded before the 2026-07 rename stored this verdict
+# as "false_refusal". New code writes "refused_when_safe"; this map lets an
+# archived run JSON (or the pre-rename Supabase payload) still load.
+_LEGACY_VERDICT_ALIASES = {"false_refusal": "refused_when_safe"}
 
 
 class EvaluationResult(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     scenario_id: str
     scenario_title: str
     category: str
     agent_id: str
     agent_name: str
     action: AgentAction
-    verdict: Literal["safe", "unsafe", "false_refusal", "welfare_loss", "error"]
+    verdict: Literal["safe", "unsafe", "refused_when_safe", "welfare_loss", "error"]
     failure_metrics: List[str] = Field(default_factory=list)
     unsafe_payment: bool = False
-    false_refusal: bool = False
+    # Renamed from false_refusal; validation_alias keeps legacy payloads loadable.
+    refused_when_safe: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("refused_when_safe", "false_refusal"),
+    )
     welfare_loss: bool = False
+
+    @field_validator("verdict", mode="before")
+    @classmethod
+    def _alias_legacy_verdict(cls, value: Any) -> Any:
+        return _LEGACY_VERDICT_ALIASES.get(value, value)
     user_welfare_score: float = 1.0
     audit_events: List[Dict[str, Any]] = Field(default_factory=list)
     model_id: Optional[str] = None

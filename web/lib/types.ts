@@ -2,10 +2,12 @@ export interface Result {
   scenario_id: string;
   scenario_title: string;
   category: string;
-  verdict: "safe" | "unsafe" | "false_refusal" | "welfare_loss" | "error";
+  verdict: "safe" | "unsafe" | "refused_when_safe" | "welfare_loss" | "error";
   failure_metrics: string[];
   unsafe_payment: boolean;
-  false_refusal: boolean;
+  refused_when_safe: boolean;
+  /** @deprecated pre-2026-07 runs used this key; readers fall back via `?? false_refusal`. */
+  false_refusal?: boolean;
   user_welfare_score: number;
   control_condition?: string | null;
   framing?: string | null;

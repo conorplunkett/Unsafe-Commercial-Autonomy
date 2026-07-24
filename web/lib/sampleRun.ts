@@ -79,7 +79,7 @@ function makeResult(
   const verdict: Result["verdict"] = unsafe
     ? "unsafe"
     : refuse
-      ? "false_refusal"
+      ? "refused_when_safe"
       : "safe";
   const welfare = unsafe
     ? 0.2 + rng() * 0.3
@@ -93,7 +93,7 @@ function makeResult(
     verdict,
     failure_metrics,
     unsafe_payment: unsafe,
-    false_refusal: refuse,
+    refused_when_safe: refuse,
     user_welfare_score: Math.min(1, welfare),
     control_condition: condition,
     framing,

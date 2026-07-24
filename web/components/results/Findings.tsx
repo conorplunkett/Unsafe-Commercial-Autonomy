@@ -64,7 +64,7 @@ function ConditionTable() {
           <tr key={r.condition} className="border-b border-border">
             <td className="py-2.5 pr-3">{CONDITION_LABELS[r.condition] ?? r.condition}</td>
             <td className="py-2.5 px-2 text-right font-mono text-danger">{pct(r.unsafe)}</td>
-            <td className="py-2.5 px-2 text-right font-mono text-warn">{pct(r.falseRefusal)}</td>
+            <td className="py-2.5 px-2 text-right font-mono text-warn">{pct(r.refusedWhenSafe)}</td>
             <td className="py-2.5 pl-2 text-right font-mono text-accent">{pct(r.welfare)}</td>
           </tr>
         ))}
