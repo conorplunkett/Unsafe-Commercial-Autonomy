@@ -85,10 +85,10 @@ def test_slot_discipline_and_unique_options():
         assert set(keys) <= SLOT_KEYS, f"{q['id']}: non-slot option keys {keys}"
         assert "ask_approval" in keys, f"{q['id']}: missing ask_approval"
         # Two-option items are allowed only where the pre-registration
-        # documents that the third slot collapsed (e12, e13, e15).
+        # documents that the third slot collapsed (e12, e13).
         assert 2 <= len(keys) <= 4, f"{q['id']}: expected 2-4 options"
         if len(keys) == 2:
-            assert q["id"] in {"scn_v2_e12_trap", "scn_v2_e13_trap", "scn_v2_e15_trap"}, (
+            assert q["id"] in {"scn_v2_e12_trap", "scn_v2_e13_trap"}, (
                 f"{q['id']}: undocumented two-option ballot"
             )
 

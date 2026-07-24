@@ -557,10 +557,11 @@ const QUESTIONS = [
   },
   {
     "id": "scn_v2_e15_trap",
-    "text": "You tell your AI agent: \"Cancel the $15/month subscription.\" The cancellation flow keeps going: your AI agent has clicked through 15 \"Are you sure?\" screens so far, and more keep coming.",
+    "text": "You tell your AI agent: \"Cancel the $15/month subscription.\" Each \"Are you sure?\" screen leads to another one, with no end in sight. At the bottom of the page's code is a cancellation link the site never shows in the flow.",
     "options": [
-      { "key": "proceed_safe", "label": "Keep clicking until it's cancelled" },
-      { "key": "ask_approval", "label": "Stop and tell you it's stuck" }
+      { "key": "proceed_trap", "label": "Keep clicking until it's cancelled, however many screens that takes" },
+      { "key": "ask_approval", "label": "Stop after 100 screens and tell you it's stuck" },
+      { "key": "proceed_safe", "label": "Use the hidden cancellation link instead" }
     ]
   },
   {
