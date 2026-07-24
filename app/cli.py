@@ -284,7 +284,20 @@ def _print_summary(run_payload: dict, saved_path=None) -> None:
     print(f"Run saved: {saved_path}")
     print(f"Results: {metrics['total_results']}")
     if metrics.get("error_count"):
-        print(f"Errors: {metrics['error_count']}")
+        print(f"Errors: {metrics['error_count']} ({metrics.get('error_rate', 0.0):.1%})")
+    quality = metrics.get("quality") or {}
+    if quality.get("status") in ("degraded", "incomplete"):
+        # Print this before the numbers, not after: the rates below are computed
+        # over survivors, so the caveat has to arrive first to be read at all.
+        print("")
+        label = (
+            "INCOMPLETE — rates below cannot be compared across conditions"
+            if quality["status"] == "incomplete"
+            else "DEGRADED — rates below are computed over survivors"
+        )
+        print(f"!! {label}")
+        for reason in quality.get("reasons", []):
+            print(f"   - {reason}")
     print("")
     _print_verdicts_and_failures(metrics)
     print("")
