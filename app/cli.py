@@ -30,29 +30,43 @@ def _csv_conditions(value: Optional[str]) -> Optional[List[ControlCondition]]:
     return items if items is not None else None  # type: ignore[return-value]
 
 
-def _confirm_run_all(model_ids: Optional[List[str]], *, live: bool, assume_yes: bool, label: str) -> bool:
-    """Guard the expensive ``--models all`` case behind an explicit confirmation.
+# Any live run at or under this many total API calls/episodes proceeds
+# without a prompt; above it needs an explicit "yes". Deliberately low: a
+# single model against the full v1 set (50 scenarios x 3 conditions x 5
+# seeds = 750 calls) is already what most users mean by "a real run", and
+# that is exactly the size of run that's easy to fire by accident and easy
+# to make prohibitively expensive across a dozen paid providers.
+CONFIRM_LIVE_CALL_THRESHOLD = 50
 
-    ``all`` fans out across every configured provider — on a live run that is
-    real, billed API calls against ~a dozen paid vendors at once, which is easy
-    to trigger by accident. Returns True to proceed, False to abort. Dry runs
-    are offline and free, so they pass through untouched; ``--yes`` (or a
-    non-``all`` model list) also skips the prompt so scripts/CI aren't broken.
+
+def _confirm_live_run(total_calls: int, breakdown: str, *, live: bool, assume_yes: bool, label: str) -> bool:
+    """Guard a large live run behind an explicit confirmation.
+
+    Triggers on TOTAL GRID SIZE, not on how the run was requested — so this
+    catches both an explicit ``--models all`` and an ordinary default-sized
+    grid on a single model, since both can rack up a real bill against paid
+    providers. Returns True to proceed, False to abort. Dry runs, ``--yes``,
+    and runs at or under the threshold pass straight through so smoke tests
+    and scripts/CI aren't disrupted. ``total_calls`` of 0 (grid size couldn't
+    be estimated, e.g. a bad model id) also passes through, so the real,
+    actionable error surfaces from the run itself instead of being masked
+    here.
     """
-    requested = [item.strip() for item in (model_ids or [])]
-    if "all" not in requested or not live or assume_yes:
+    if not live or assume_yes or total_calls <= CONFIRM_LIVE_CALL_THRESHOLD:
         return True
     if not sys.stdin.isatty():
         # No interactive terminal to answer the prompt; refuse rather than
-        # silently launching a full paid sweep from a pipe/CI job.
+        # silently launching a large paid run from a pipe/CI job.
         print(
-            f"Refusing to run '--models all' live without confirmation. "
-            f"Re-run with --yes to proceed non-interactively, or pass an explicit --models list."
+            f"Refusing to run this live {label} without confirmation: {breakdown}. "
+            "This can be prohibitively expensive. Re-run with --yes to proceed "
+            "non-interactively, or shrink the run (--scenario-ids/--seeds/--models)."
         )
         return False
     prompt = (
-        f"'--models all' runs a LIVE {label} against EVERY provider — real API "
-        f"calls billed by each vendor. Type 'yes' to continue: "
+        f"WARNING: about to run a live {label} — {breakdown}. "
+        "This can be prohibitively expensive: real API calls, billed by each "
+        "provider. Please confirm this is intended. Type 'yes' to continue: "
     )
     try:
         answer = input(prompt).strip().lower()
@@ -63,6 +77,41 @@ def _confirm_run_all(model_ids: Optional[List[str]], *, live: bool, assume_yes: 
         return True
     print("Aborted.")
     return False
+
+
+def _phase1_grid_size(
+    model_ids: Optional[List[str]],
+    control_conditions: Optional[List[str]],
+    scenario_ids: Optional[List[str]],
+    scenario_set_path: Optional[Path],
+    seeds: Optional[List[int]],
+) -> tuple[int, str]:
+    """Estimate the (model x condition x scenario x seed) call count for a
+    Phase 1 eval, and a human-readable breakdown string for the confirmation
+    prompt. Returns (0, "") if the grid can't be estimated (e.g. a bad model
+    id or scenario-set path) — the real run below then raises the actual
+    error instead of this estimate masking it.
+    """
+    from .data import load_scenarios
+    from .providers import resolve_model_ids
+
+    try:
+        models = resolve_model_ids(model_ids or ["openai"])
+        conditions = list(control_conditions or DEFAULT_CONTROL_CONDITIONS)
+        if "all" in conditions:
+            conditions = DEFAULT_CONTROL_CONDITIONS.copy()
+        seed_list = list(seeds or DEFAULT_SEEDS)
+        scenario_count = (
+            len(set(scenario_ids)) if scenario_ids else len(load_scenarios(scenario_set_path))
+        )
+    except Exception:
+        return 0, ""
+    total = len(models) * len(conditions) * scenario_count * len(seed_list)
+    breakdown = (
+        f"{len(models)} model(s) x {len(conditions)} condition(s) x "
+        f"{scenario_count} scenario(s) x {len(seed_list)} seed(s) = {total} live API calls"
+    )
+    return total, breakdown
 
 
 class _ProgressBar:
@@ -246,20 +295,29 @@ def _print_summary(run_payload: dict, saved_path=None) -> None:
 
 def eval_command(args: argparse.Namespace) -> int:
     model_ids = _csv(args.models) or ["openai"]
-    if not _confirm_run_all(
-        model_ids, live=not args.dry_run, assume_yes=args.yes, label="Phase 1 eval"
-    ):
-        return 2
     control_conditions = _csv_conditions(args.conditions) or DEFAULT_CONTROL_CONDITIONS
     scenario_ids = _csv(args.scenario_ids)
     seeds = _csv_int(args.seeds) or DEFAULT_SEEDS
+    scenario_set_path = Path(args.scenario_set) if args.scenario_set else None
+    live = not args.dry_run
+    total_calls, breakdown = _phase1_grid_size(
+        model_ids, control_conditions, scenario_ids, scenario_set_path, seeds
+    )
+    # Small runs print the estimate and proceed; large ones show it inside the
+    # confirmation prompt instead, so it isn't printed twice.
+    if live and breakdown and total_calls <= CONFIRM_LIVE_CALL_THRESHOLD:
+        print(f"Live run: {breakdown}.\n")
+    if not _confirm_live_run(
+        total_calls, breakdown, live=live, assume_yes=args.yes, label="Phase 1 eval"
+    ):
+        return 2
     progress = _ProgressBar()
     try:
         run = run_phase1_evaluation(
             model_ids=model_ids,
             control_conditions=control_conditions,
             scenario_ids=scenario_ids,
-            scenario_set_path=Path(args.scenario_set) if args.scenario_set else None,
+            scenario_set_path=scenario_set_path,
             seeds=seeds,
             temperature=args.temperature,
             reasoning_effort=args.reasoning_effort,
@@ -464,28 +522,39 @@ def smoketest_openai_5_command(args: argparse.Namespace) -> int:
 # ---------------------------------------------------------------------------
 
 
-def phase2_eval_command(args: argparse.Namespace) -> int:
-    """Phase 2 six-condition sandbox ablation with framing variation."""
-    from .phase2 import run_phase2_evaluation
+def _phase2_grid_size(args: argparse.Namespace) -> tuple[int, str]:
+    """Estimate the (model x condition x framing x scenario x seed) episode
+    count for a Phase 2 eval, and a breakdown string for the confirmation
+    prompt. Returns (0, "") if it can't be estimated (e.g. a bad model id).
+    """
+    from .phase2.providers import resolve_phase2_model_ids
 
-    if not _confirm_run_all(
-        _csv(args.models), live=not args.dry_run, assume_yes=args.yes, label="Phase 2 eval"
-    ):
-        return 2
-    if not args.dry_run:
-        from .phase2.providers import resolve_phase2_model_ids
-
+    try:
         scenario_count = len(_csv(args.scenario_ids) or []) or 250
         conditions = len(_csv(args.conditions) or []) or 6
         framings = len(_csv(args.framings) or []) or 2
         seeds = len(_csv_int(args.seeds) or []) or 5
         models = len(resolve_phase2_model_ids(_csv(args.models)))
-        episodes = scenario_count * conditions * framings * seeds * models
-        print(
-            f"Live run: ~{episodes} multi-turn episodes "
-            f"({scenario_count} scenarios x {conditions} conditions x {framings} framings "
-            f"x {seeds} seeds x {models} models). Consider subsetting.\n"
-        )
+    except Exception:
+        return 0, ""
+    episodes = scenario_count * conditions * framings * seeds * models
+    breakdown = (
+        f"{models} model(s) x {conditions} condition(s) x {framings} framing(s) x "
+        f"{scenario_count} scenario(s) x {seeds} seed(s) = {episodes} multi-turn episodes"
+    )
+    return episodes, breakdown
+
+
+def phase2_eval_command(args: argparse.Namespace) -> int:
+    """Phase 2 six-condition sandbox ablation with framing variation."""
+    from .phase2 import run_phase2_evaluation
+
+    live = not args.dry_run
+    episodes, breakdown = _phase2_grid_size(args)
+    if live and breakdown and episodes <= CONFIRM_LIVE_CALL_THRESHOLD:
+        print(f"Live run: {breakdown}.\n")
+    if not _confirm_live_run(episodes, breakdown, live=live, assume_yes=args.yes, label="Phase 2 eval"):
+        return 2
     progress = _ProgressBar()
     try:
         run = run_phase2_evaluation(

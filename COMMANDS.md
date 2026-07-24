@@ -116,13 +116,16 @@ python -m app.cli eval [options]
 | `--seeds` | `1,2,3,4,5` | Seeds per (model, condition, scenario) combo |
 | `--temperature` | `0.7` | Model sampling temperature |
 | `--dry-run` | off | Offline fake providers — **no real API calls** |
-| `--yes` / `-y` | off | Skip the live `--models all` confirmation prompt (for scripts/CI) |
+| `--yes` / `-y` | off | Skip the large-live-run confirmation prompt (for scripts/CI) |
 
-A **live `--models all`** run fans out across every configured provider (~a
-dozen paid vendors at once), so it asks for an interactive `yes` first. Dry
-runs, explicit model lists, and `--yes` skip the prompt; with no TTY (a pipe
-or CI job) a live `all` refuses unless `--yes` is passed. Same guard on
-`phase2-eval`.
+A **large live run** (more than 50 total model x condition x scenario x seed
+calls) asks for an interactive `yes` before spending real money. This is
+size-based, not just an `all`-models check: the default `eval --models
+openai` is already 1 x 3 x 50 x 5 = 750 calls, so it triggers the prompt too,
+same as `--models all`. Dry runs, `--yes`, and small/targeted runs (few
+scenario ids, one seed, etc.) skip the prompt; with no TTY (a pipe or CI job)
+a large live run refuses outright unless `--yes` is passed. Same guard on
+`phase2-eval`, sized in multi-turn episodes instead of calls.
 
 Results save to `runtime/runs/run_<id>.json`. CLI prints unsafe-payment and
 false-refusal rates with Wilson CIs per model/control combo.

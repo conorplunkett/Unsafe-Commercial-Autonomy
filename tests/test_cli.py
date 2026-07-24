@@ -203,51 +203,101 @@ def test_cli_models_rejects_unknown_provider(capsys):
     assert "Unknown provider" in output
 
 
-def test_confirm_run_all_passes_through_safe_cases():
-    from app.cli import _confirm_run_all
+def test_confirm_live_run_passes_through_safe_cases():
+    from app.cli import _confirm_live_run
 
-    # Dry runs are offline/free; a non-all list is targeted; --yes is explicit.
-    assert _confirm_run_all(["all"], live=False, assume_yes=False, label="x") is True
-    assert _confirm_run_all(["openai"], live=True, assume_yes=False, label="x") is True
-    assert _confirm_run_all(["all"], live=True, assume_yes=True, label="x") is True
+    # Dry runs are offline/free; small grids don't need a prompt; --yes is
+    # explicit; a 0-estimate (grid size couldn't be computed) defers to the
+    # real run's own error instead of blocking here.
+    assert _confirm_live_run(1000, "big", live=False, assume_yes=False, label="x") is True
+    assert _confirm_live_run(10, "small", live=True, assume_yes=False, label="x") is True
+    assert _confirm_live_run(1000, "big", live=True, assume_yes=True, label="x") is True
+    assert _confirm_live_run(0, "", live=True, assume_yes=False, label="x") is True
 
 
-def test_confirm_run_all_refuses_live_all_without_tty(monkeypatch, capsys):
+def test_confirm_live_run_refuses_large_run_without_tty(monkeypatch, capsys):
     import app.cli as cli
 
     monkeypatch.setattr(cli.sys.stdin, "isatty", lambda: False)
-    assert _confirm_all_live(cli) is False
-    assert "Refusing to run '--models all'" in capsys.readouterr().out
+    result = cli._confirm_live_run(1000, "1 model x 1000 calls", live=True, assume_yes=False, label="Phase 1 eval")
+
+    assert result is False
+    assert "Refusing to run this live Phase 1 eval without confirmation" in capsys.readouterr().out
 
 
-def _confirm_all_live(cli):
-    return cli._confirm_run_all(["all"], live=True, assume_yes=False, label="Phase 1 eval")
-
-
-def test_confirm_run_all_interactive_yes_and_abort(monkeypatch):
+def test_confirm_live_run_interactive_yes_and_abort(monkeypatch):
     import app.cli as cli
 
     monkeypatch.setattr(cli.sys.stdin, "isatty", lambda: True)
 
-    monkeypatch.setattr("builtins.input", lambda _prompt: "yes")
-    assert _confirm_all_live(cli) is True
+    def _confirm(answer):
+        monkeypatch.setattr("builtins.input", lambda _prompt: answer)
+        return cli._confirm_live_run(1000, "big grid", live=True, assume_yes=False, label="Phase 1 eval")
 
-    monkeypatch.setattr("builtins.input", lambda _prompt: "")
-    assert _confirm_all_live(cli) is False
-
-    monkeypatch.setattr("builtins.input", lambda _prompt: "no")
-    assert _confirm_all_live(cli) is False
+    assert _confirm("yes") is True
+    assert _confirm("") is False
+    assert _confirm("no") is False
 
 
-def test_cli_eval_all_live_aborts_without_confirmation(capsys, monkeypatch):
-    # The full command path: a live `--models all` with no TTY must abort
-    # (exit 2) before touching any provider, so it can't run by accident.
+def test_phase1_grid_size_computes_breakdown():
+    from app.cli import _phase1_grid_size
+
+    total, breakdown = _phase1_grid_size(["openai"], None, ["scn_v1_a1_trap"], None, [1, 2])
+    assert total == 1 * 3 * 1 * 2  # 1 model x default 3 conditions x 1 scenario x 2 seeds
+    assert "2 seed(s)" in breakdown
+
+    # Unknown model id can't be resolved -- returns the "defer to real error" 0.
+    assert _phase1_grid_size(["not-a-real-provider"], None, None, None, None) == (0, "")
+
+
+def test_cli_eval_large_grid_aborts_without_confirmation(capsys, monkeypatch):
+    # The full command path: a live default eval (single model x full v1 set)
+    # is already a 750-call grid, so it must abort (exit 2) with no TTY,
+    # before touching any provider -- this is the "full grid" case, not just
+    # an explicit --models all.
     import app.cli as cli
 
     monkeypatch.setattr(cli.sys.stdin, "isatty", lambda: False)
-    status = main(["eval", "--models", "all", "--scenario-ids", "scn_v1_a1_trap", "--seeds", "1"])
+    status = main(["eval", "--models", "openai"])
 
     output = capsys.readouterr().out
     assert status == 2
-    assert "Refusing to run '--models all'" in output
+    assert "Refusing to run this live Phase 1 eval without confirmation" in output
     assert "Run saved:" not in output
+
+
+def test_cli_eval_small_live_grid_skips_confirmation(capsys, monkeypatch):
+    # A small, explicitly-scoped live run (well under the threshold) proceeds
+    # straight to the real provider call without any prompt.
+    import app.cli as cli
+
+    monkeypatch.setattr(cli.sys.stdin, "isatty", lambda: False)
+    status = main(
+        ["eval", "--models", "openai", "--scenario-ids", "scn_v1_a1_trap", "--seeds", "1"]
+    )
+
+    output = capsys.readouterr().out
+    assert status == 2  # fails on the missing API key, not the confirmation gate
+    assert "Refusing to run" not in output
+    assert "Cannot start eval: Provide an OpenAI API key" in output
+
+
+def test_cli_eval_dry_run_all_skips_confirmation(capsys):
+    # --dry-run is offline and free, so even '--models all' runs unprompted.
+    status = main(["eval", "--models", "all", "--dry-run", "--scenario-ids", "scn_v1_a1_trap", "--seeds", "1"])
+
+    output = capsys.readouterr().out
+    assert status == 0
+    assert "Refusing to run" not in output
+    assert "Run saved:" in output
+
+
+def test_cli_phase2_eval_large_grid_aborts_without_confirmation(capsys, monkeypatch):
+    import app.cli as cli
+
+    monkeypatch.setattr(cli.sys.stdin, "isatty", lambda: False)
+    status = main(["phase2-eval", "--models", "openai"])
+
+    output = capsys.readouterr().out
+    assert status == 2
+    assert "Refusing to run this live Phase 2 eval without confirmation" in output
