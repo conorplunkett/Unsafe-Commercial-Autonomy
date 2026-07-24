@@ -3,14 +3,14 @@
 // done, and asserts structure and the final payload shape. Nothing is
 // written: ?test=1 short-circuits submission.
 //
-// Usage: node scripts/phase2_walkthrough.js [path/to/phase2-survey.html]
+// Usage: node scripts/phase2_walkthrough.js [path/to/survey.html]
 // Needs playwright-core (npm i --no-save playwright-core) and a Chromium
 // binary (override with PHASE2_CHROME=/path/to/chrome).
 const { chromium } = require("playwright-core");
 const path = require("path");
 
 const CHROME = process.env.PHASE2_CHROME || "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
-const FILE = "file://" + path.resolve(process.argv[2] || "web/public/phase2-survey.html") + "?test=1";
+const FILE = "file://" + path.resolve(process.argv[2] || "web/public/survey.html") + "?test=1";
 
 // Instrument constants, kept in one place so a redesign updates one block.
 const SITUATIONS = 47;

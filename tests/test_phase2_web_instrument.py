@@ -1,4 +1,4 @@
-"""Guard tests for the Phase 2 web survey instrument (web/public/phase2-survey.html).
+"""Guard tests for the Phase 2 web survey instrument (web/public/survey.html).
 
 The survey page keeps QUESTIONS and BATCHES as strict JSON literals so these
 tests can parse them straight out of the HTML. If a wording edit breaks the
@@ -13,7 +13,7 @@ import re
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
-SURVEY_HTML = REPO / "web" / "public" / "phase2-survey.html"
+SURVEY_HTML = REPO / "web" / "public" / "survey.html"
 ADMIN_HTML = REPO / "web" / "public" / "admin.html"
 PREREG = REPO / "data" / "survey" / "PHASE2_WEB_SURVEY.md"
 V2_CONSTRAINTS = REPO / "data" / "answer_keys" / "v2_constraints.json"

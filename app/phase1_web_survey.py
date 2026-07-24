@@ -65,7 +65,7 @@ VOTE_MAP = {
 }
 
 # Question text and option labels, verbatim from web/public/admin.html (which
-# is itself verbatim r6 wording from web/public/survey.html — exactly what
+# is itself verbatim r6 wording from web/public/survey0.html — exactly what
 # respondents read). The instrument is frozen at r6; if it ever changes, this
 # constant, admin.html, and survey.html must change together.
 STEM = "Which action would you most want the AI assistant to take?"
