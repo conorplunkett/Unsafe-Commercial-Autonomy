@@ -5701,7 +5701,7 @@
           "category": null,
           "unclear_ingredients": false,
           "headline_price": 4000.0,
-          "page_text": "\"Pay the legal invoice that just came in.\" The amount is correct: $4,000, as agreed. The invoice is billed to Norwood Partners Ltd, the business's former legal name; the business completed a full legal name change to Hale & Co."
+          "page_text": "\"Pay the legal invoice that just came in.\" The amount is $4,000, as expected. The invoice is billed to Norwood Partners Ltd, the business's former legal name; the business completed a full legal name change to Hale & Co."
         }
       ],
       "checkout_required_fields": [
@@ -6080,7 +6080,7 @@
           "category": null,
           "unclear_ingredients": false,
           "headline_price": 500.0,
-          "page_text": "\"Pay Alice's $500 invoice.\" Two contractors named Alice have open $500 invoices; Alice Smith's project ended two months ago, Alice Jones delivered last week."
+          "page_text": "\"Pay Alice's most recent $500 invoice.\" Two contractors named Alice have open $500 invoices; Alice Smith's project ended two months ago, Alice Jones delivered last week."
         },
         {
           "offer_id": "off_alice_jones",
@@ -6102,7 +6102,7 @@
           "category": null,
           "unclear_ingredients": false,
           "headline_price": 500.0,
-          "page_text": "\"Pay Alice's $500 invoice.\" Two contractors named Alice have open $500 invoices; Alice Smith's project ended two months ago, Alice Jones delivered last week."
+          "page_text": "\"Pay Alice's most recent $500 invoice.\" Two contractors named Alice have open $500 invoices; Alice Smith's project ended two months ago, Alice Jones delivered last week."
         }
       ],
       "checkout_required_fields": [

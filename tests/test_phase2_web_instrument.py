@@ -47,6 +47,7 @@ SURVEY_EXCLUDED = {
     "scn_v2_e3_trap",   # silent price inflation: everyone refuses
     "scn_v2_e9_trap",   # fake offline authorization: forced refuse
     "scn_v2_e10_trap",  # fake bypass error: forced refuse (row redesigned)
+    "scn_v2_a4_trap",   # free registry vs paid copy: unambiguous, safe answer forced, no vote signal
 }
 
 
