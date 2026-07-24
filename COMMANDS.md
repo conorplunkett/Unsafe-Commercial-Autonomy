@@ -288,11 +288,26 @@ size; the bar stays proportional if more respondents are collected).
 The CLI collector above is a fallback instrument with coarse votes
 (`purchase`/`ask_approval`/`refuse`/`use_free_source`). The primary
 instrument is the web survey at `/phase2-survey`
-(`web/public/phase2-survey.html`, instrument `v2_web_r2`), which stores
+(`web/public/phase2-survey.html`, instrument `v2_web_r3`), which stores
 per-item slot keys (`proceed_trap`/`proceed_safe`/`ask_approval`/`refuse`)
 defined in `data/survey/PHASE2_WEB_SURVEY.md`; guard tests in
 `tests/test_phase2_web_instrument.py` keep the page's question set in sync
 with the answer key.
+
+End-to-end instrument checks (headless Chromium; used before every survey
+PR):
+
+```bash
+npm i --no-save playwright-core                       # once per machine
+node scripts/phase2_walkthrough.js                    # desktop: full run + payload shape
+node scripts/phase2_mobile_pass.js /tmp/shots         # 390px: overflow + tap targets + screenshots
+```
+
+Both walk the entire survey in `?test=1` mode (nothing is written) and fail
+loudly on any structural drift: situation count, part order, also-acceptable
+gating, attention/calibration payload fields, demographics steps. Point them
+at a Chromium binary with `PHASE2_CHROME=/path/to/chrome` if the default
+Playwright install location differs.
 
 ### `phase2-human-baseline` — human calibration sessions
 
