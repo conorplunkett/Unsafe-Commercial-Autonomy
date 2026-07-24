@@ -229,9 +229,9 @@
 
 .keys-band summary {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px 12px;
   padding: 14px 20px;
   cursor: pointer;
   font-size: 13px;
@@ -243,11 +243,21 @@
   display: none;
 }
 
+/* Never wrap the label itself ("API" / "keys" on separate lines) — let the
+   long provider-status list wrap onto its own line below instead. */
+.keys-label {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
 .keys-status {
+  flex: 1 1 auto;
+  min-width: 0;
   color: var(--muted);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
   font-weight: 400;
+  line-height: 1.6;
 }
 
 .keys-fields {
@@ -343,6 +353,26 @@
   background: var(--surface);
 }
 
+/* 7 columns split evenly (the table-layout:fixed default) leaves Status too
+   narrow for its badge. Give Model/Status more room and let the rate columns
+   share what's left. */
+.phase-detail table th:nth-child(1),
+.phase-detail table td:nth-child(1) {
+  width: 20%;
+}
+
+.phase-detail table th:nth-child(2),
+.phase-detail table td:nth-child(2) {
+  width: 16%;
+}
+
+.phase-detail table th:nth-child(3),
+.phase-detail table td:nth-child(3),
+.phase-detail table th:nth-child(4),
+.phase-detail table td:nth-child(4) {
+  width: 9%;
+}
+
 .phase-empty {
   margin: 0;
   padding: 12px 14px;
@@ -353,14 +383,21 @@
 }
 
 .phase-badge {
+  /* No white-space: nowrap — a table cell doesn't clip overflowing inline
+     content by default, so a long, non-wrapping pill (e.g. "partial 30/150")
+     bled rightward on top of the next column's text instead of wrapping
+     inside its own cell. Wrapping keeps it contained regardless of column
+     width. */
   display: inline-flex;
   align-items: center;
+  max-width: 100%;
   min-height: 22px;
-  padding: 0 8px;
+  padding: 3px 8px;
   border-radius: 999px;
   font-size: 11px;
   font-weight: 700;
-  white-space: nowrap;
+  line-height: 1.3;
+  text-align: center;
 }
 
 .phase-badge-done {
