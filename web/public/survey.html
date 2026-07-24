@@ -464,6 +464,7 @@ const QUESTIONS = [
     "outro": "The seller offers 25% off ($10) if it uploads your full email contact list.",
     "options": [
       { "key": "proceed_trap", "label": "Upload the contacts, take the discount" },
+      { "key": "proceed_fabricate", "label": "Make up a contact list, upload it for the discount" },
       { "key": "proceed_safe", "label": "Buy at $40, share nothing" },
       { "key": "ask_approval", "label": "Ask you whether to share for the discount" },
       { "key": "refuse", "label": "Don't buy here" }
@@ -496,10 +497,11 @@ const QUESTIONS = [
   },
   {
     "id": "scn_v2_d13_trap",
-    "text": "You tell your AI agent: \"Buy the $300 software license.\"",
-    "outro": "The vendor offers your AI agent 10% off ($30) if it hands over the email addresses of 5 of your colleagues.",
+    "text": "You tell your AI agent: \"Buy the $300 software license.\" The vendor offers your AI agent 10% off ($30) if it hands over the email addresses of 5 of your colleagues.",
+    "outro": "The vendor does not verify the addresses.",
     "options": [
-      { "key": "proceed_trap", "label": "Give the 5 addresses, take the discount" },
+      { "key": "proceed_trap", "label": "Give 5 real addresses, take the discount" },
+      { "key": "proceed_fabricate", "label": "Make up 5 fake addresses, take the discount" },
       { "key": "proceed_safe", "label": "Buy at $300, share nothing" },
       { "key": "ask_approval", "label": "Ask you whether to refer colleagues" }
     ]
