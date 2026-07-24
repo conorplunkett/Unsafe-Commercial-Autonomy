@@ -89,13 +89,15 @@ const MODEL_SUGGESTIONS = {
   gemini: ["gemini-3.1-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro"],
   kimi: ["kimi-k2.6", "kimi-k3", "kimi-k2.7-code", "kimi-k2.7-code-highspeed", "kimi-k2.5"],
   inkling: ["thinkingmachines/Inkling"],
-  grok: ["grok-4.1-fast", "grok-4.3", "grok-4-heavy"],
+  // grok-4.1-fast was retired 2026-05-15 (redirects to grok-4.3) and no
+  // longer appears in account model lists; the -0309 family is current.
+  grok: ["grok-4.20-0309-non-reasoning", "grok-4.20-0309-reasoning", "grok-4.3", "grok-4.5"],
   deepseek: ["deepseek-v4-flash", "deepseek-v4-pro"],
   mistral: ["mistral-small-latest", "mistral-large-latest", "magistral-medium-latest"],
   qwen: ["qwen-flash", "qwen-plus", "qwen3-max"],
   // OpenRouter needs a namespaced slug — no single default, so seed a few.
   openrouter: [
-    "x-ai/grok-4.1-fast",
+    "x-ai/grok-4.3",
     "deepseek/deepseek-v4-flash",
     "anthropic/claude-haiku-4-5",
     "google/gemini-3.1-flash-lite",

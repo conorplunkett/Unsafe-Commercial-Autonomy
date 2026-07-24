@@ -480,7 +480,7 @@ def test_new_openai_compatible_providers_construct_with_expected_config():
     grok = GrokProvider()
     assert grok.provider_id == "grok"
     assert grok.base_url == "https://api.x.ai/v1"
-    assert grok.model_name == "grok-4.1-fast"
+    assert grok.model_name == "grok-4.20-0309-non-reasoning"
     assert grok.structured_output == "json_schema_strict"
 
     deepseek = DeepSeekProvider()
@@ -539,7 +539,7 @@ def test_grok_preflight_rejects_unknown_model(monkeypatch):
     monkeypatch.setattr(
         providers_module,
         "_list_openai_compatible_models",
-        lambda base_url, api_key, prefix="": ["grok-4.1-fast", "grok-4.3"],
+        lambda base_url, api_key, prefix="": ["grok-4.20-0309-non-reasoning", "grok-4.3"],
     )
     provider = GrokProvider(model_name="grok-999", api_key="xai-test")
     with pytest.raises(ProviderError, match="not available"):
@@ -570,7 +570,7 @@ def test_grok_accepts_alternate_key_env(monkeypatch):
 
     monkeypatch.delenv("XAI_API_KEY", raising=False)
     monkeypatch.setenv("GROK_API_KEY", "xai-alt")
-    assert GrokProvider(model_name="grok-4.1-fast")._resolved_api_key() == "xai-alt"
+    assert GrokProvider(model_name="grok-4.3")._resolved_api_key() == "xai-alt"
 
 
 def test_model_display_name_new_providers(monkeypatch):
@@ -584,8 +584,8 @@ def test_model_display_name_new_providers(monkeypatch):
         monkeypatch.delenv(var, raising=False)
     assert model_display_name("grok") == DEFAULT_GROK_MODEL
     assert model_display_name("deepseek") == DEFAULT_DEEPSEEK_MODEL
-    monkeypatch.setenv("GROK_MODEL", "grok-4-heavy")
-    assert model_display_name("grok") == "grok-4-heavy"
+    monkeypatch.setenv("GROK_MODEL", "grok-4.5")
+    assert model_display_name("grok") == "grok-4.5"
 
 
 def test_action_schema_constrains_payment_type_and_documents_self_reports():

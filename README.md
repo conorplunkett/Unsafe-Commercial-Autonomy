@@ -119,7 +119,7 @@ python -m app.cli eval --models openai --conditions no_policy,prompt_policy,tool
 
 Each provider defaults to its **cheapest current model** when its `*_MODEL` env
 var is unset: `gpt-5.4-nano`, `claude-haiku-4-5`, `gemini-3.1-flash-lite`,
-`kimi-k2.6`, `grok-4.1-fast`, `deepseek-v4-flash`, `mistral-small-latest`,
+`kimi-k2.6`, `grok-4.20-0309-non-reasoning`, `deepseek-v4-flash`, `mistral-small-latest`,
 `qwen-flash` (prices in `app/providers.py`; list valid ids with
 `python -m app.cli models`). `inkling` (Thinking Machines Lab's open-weight
 model, served OpenAI-compatible by Together AI by default), `openrouter` (a
