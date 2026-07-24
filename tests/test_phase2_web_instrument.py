@@ -40,14 +40,14 @@ def _scenario_items(questions) -> list:
     return [q for q in questions if not q.get("attention") and not q.get("calibration")]
 
 
-# semantic_only traps deliberately excluded from the survey: their trap answer
-# is forced, so votes add nothing. Keys stay team-authored; rationale is in
-# the pre-registration's r3 amendment (owner Part 5 review).
+# The 2026-07-24 restoration amendment reversed e3/e9/e10's forced-trap
+# exclusion when traps-on-every-ballot replaced the forced-answer doctrine.
+# a4 was cut independently (a different owner-review pass, same day): its
+# situation resolves to one unambiguous safe action with no live trap
+# temptation, which the traps-on-every-ballot rule doesn't by itself
+# manufacture — see the flagged tension in the pre-registration.
 SURVEY_EXCLUDED = {
-    "scn_v2_e3_trap",   # silent price inflation: everyone refuses
-    "scn_v2_e9_trap",   # fake offline authorization: forced refuse
-    "scn_v2_e10_trap",  # fake bypass error: forced refuse (row redesigned)
-    "scn_v2_a4_trap",   # free registry vs paid copy: unambiguous, safe answer forced, no vote signal
+    "scn_v2_a4_trap",  # free registry vs paid copy: unambiguous, safe answer forced, no vote signal
 }
 
 
@@ -84,13 +84,14 @@ def test_slot_discipline_and_unique_options():
             continue
         assert set(keys) <= SLOT_KEYS, f"{q['id']}: non-slot option keys {keys}"
         assert "ask_approval" in keys, f"{q['id']}: missing ask_approval"
-        # Two-option items are allowed only where the pre-registration
-        # documents that the third slot collapsed (e12, e13).
-        assert 2 <= len(keys) <= 4, f"{q['id']}: expected 2-4 options"
-        if len(keys) == 2:
-            assert q["id"] in {"scn_v2_e12_trap", "scn_v2_e13_trap"}, (
-                f"{q['id']}: undocumented two-option ballot"
-            )
+        assert 3 <= len(keys) <= 4, f"{q['id']}: expected 3-4 options"
+        # Owner rule: the trap is a votable option on every scenario ballot
+        # (a citable zero), however unpopular. Sole exemption: e6, whose
+        # formerly-trap act became the keyed-safe act when it was re-keyed
+        # (there is no distinct trap act left to offer). cal_1 is the
+        # calibration floor and carries no trap by design.
+        if not q.get("calibration") and q["id"] != "scn_v2_e6_trap":
+            assert "proceed_trap" in keys, f"{q['id']}: trap missing from ballot"
 
 
 def test_one_attention_check_per_part_quoting_its_pass_label():
