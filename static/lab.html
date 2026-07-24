@@ -6,7 +6,7 @@
     <title>Experiment Lab · Unsafe Commercial Autonomy</title>
     <link rel="icon" href="/favicon.ico">
     <link rel="stylesheet" href="/static/styles.css?v=12">
-    <link rel="stylesheet" href="/static/lab.css?v=11">
+    <link rel="stylesheet" href="/static/lab.css?v=12">
   </head>
   <body>
     <div class="app-shell lab-shell">
@@ -21,39 +21,42 @@
       </header>
 
       <section class="runner-card" aria-label="Experiment controls">
+        <div class="runner-card-heading">
+          <h2>Run</h2>
+        </div>
         <div class="runner-grid">
           <div>
-            <span class="runner-label">Provider</span>
+            <span class="runner-label" title="Which API the run calls. Only providers with a key configured (via .env or pasted below) can run live.">Provider</span>
             <div id="providerChips" class="chip-row"></div>
           </div>
           <div>
-            <label class="runner-label" for="modelSelect">Model</label>
+            <label class="runner-label" for="modelSelect" title="Exact model id sent to the provider's API. Pick a suggestion or type a custom id.">Model</label>
             <select id="modelSelect" class="runner-field"></select>
             <input id="modelCustomInput" class="runner-field" spellcheck="false" autocomplete="off" placeholder="Exact model id" hidden>
           </div>
           <div>
-            <label class="runner-label" for="categoryFilter">Category</label>
+            <label class="runner-label" for="categoryFilter" title="Narrow the scenario pool to one behavioral category before picking a scenario.">Category</label>
             <select id="categoryFilter" class="runner-field"></select>
           </div>
           <div>
-            <label class="runner-label" for="scenarioFilter">Scenario</label>
+            <label class="runner-label" for="scenarioFilter" title="Run every scenario in the pool, one at random, or a single specific scenario.">Scenario</label>
             <select id="scenarioFilter" class="runner-field"></select>
           </div>
           <div class="runner-span">
-            <span class="runner-label">Control conditions</span>
+            <span class="runner-label" title="System-prompt framing given to the model alongside each scenario.">Control conditions</span>
             <div id="conditionChips" class="chip-row"></div>
             <p class="runner-hint">Each selected condition multiplies the run: scenarios &times; conditions &times; seeds.</p>
           </div>
           <div>
-            <label class="runner-label" for="seedsInput">Seeds</label>
+            <label class="runner-label" for="seedsInput" title="Comma-separated random seeds. Each seed repeats every scenario/condition pair for variance.">Seeds</label>
             <input id="seedsInput" class="runner-field" type="text" value="1,2,3,4,5" spellcheck="false">
           </div>
           <div>
-            <label class="runner-label" for="temperatureInput">Temperature</label>
+            <label class="runner-label" for="temperatureInput" title="Sampling temperature sent to the model. Higher values increase response variability.">Temperature</label>
             <input id="temperatureInput" class="runner-field" type="number" min="0" max="2" step="0.1" value="0.7">
           </div>
           <div>
-            <label class="runner-label" for="reasoningEffort">Reasoning effort</label>
+            <label class="runner-label" for="reasoningEffort" title="Reasoning effort passed to models that support it. Leave as Default to omit the parameter.">Reasoning effort</label>
             <select id="reasoningEffort" class="runner-field">
               <option value="">Default</option>
               <option value="minimal">Minimal</option>
@@ -63,7 +66,7 @@
             </select>
           </div>
           <div>
-            <span class="runner-label">Mode</span>
+            <span class="runner-label" title="Toggle to preview the run with canned offline responses instead of calling the provider's API.">Mode</span>
             <div class="chip-row">
               <button id="dryRunChip" class="chip" type="button" title="Canned offline actions, no API calls, no key needed.">Dry run</button>
             </div>
@@ -73,6 +76,10 @@
         <div class="runner-actions">
           <button id="runBenchmark" class="runner-button" type="button">Run benchmark</button>
           <span id="runCount" class="runner-hint"></span>
+          <div class="cli-snippet" title="Equivalent command for running this from a terminal instead of clicking Run benchmark.">
+            <code id="cliCommand"></code>
+            <button id="copyCliButton" type="button" class="cli-copy-btn">Copy</button>
+          </div>
         </div>
 
         <div id="runProgress" class="runner-progress" hidden>
@@ -377,6 +384,6 @@
         });
       })();
     </script>
-    <script src="/static/lab.js?v=11"></script>
+    <script src="/static/lab.js?v=12"></script>
   </body>
 </html>
