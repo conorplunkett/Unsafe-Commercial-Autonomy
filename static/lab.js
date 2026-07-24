@@ -380,18 +380,34 @@ function saveKeys() {
   localStorage.setItem(KEY_STORAGE, JSON.stringify(keys));
   renderKeysStatus();
   renderProviderChips();
+  updateKeyFieldDots();
+}
+
+// Single source of truth for "is this provider ready to run live" — a
+// provider that needs no key is always ready; otherwise it's ready if the
+// server already has one via .env, or this browser has a saved override.
+// Every key-related indicator (chips, status line, field labels) reads this
+// one function so "active" means the same thing and looks the same color
+// everywhere, instead of three places each deciding it slightly differently.
+function keyIsActive(providerId) {
+  const profile = state.providerProfiles[providerId] || {};
+  if (!profile.needs_key) return true;
+  if (profile.configured) return true;
+  return Boolean(loadKeys()[providerId]);
 }
 
 function renderKeysStatus() {
   const keys = loadKeys();
   const parts = Object.entries(state.providerProfiles)
     .filter(([, profile]) => profile.needs_key)
-    .map(([providerId, profile]) =>
-      profile.configured
-        ? `${profile.name} via .env`
-        : `${profile.name} ${keys[providerId] ? "✓" : "—"}`
-    );
-  els.keysStatus.textContent = parts.join(" · ");
+    .map(([providerId, profile]) => {
+      const active = keyIsActive(providerId);
+      const detail = profile.configured ? "via .env" : keys[providerId] ? "saved" : "not set";
+      return `<span class="key-status-item ${active ? "key-status-on" : ""}">${
+        active ? "●" : "○"
+      } ${profile.name} ${detail}</span>`;
+    });
+  els.keysStatus.innerHTML = parts.join("");
 }
 
 // One password field per key-needing provider, built from the backend
@@ -405,8 +421,11 @@ function renderKeyFields() {
   els.keysFields.innerHTML = providers
     .map(
       ([providerId, profile]) => `
-        <div>
-          <label class="runner-label" for="key-${providerId}">${profile.name}</label>
+        <div class="key-field">
+          <label class="runner-label" for="key-${providerId}">
+            <span class="key-field-dot" data-key-dot="${providerId}"></span>
+            ${profile.name}
+          </label>
           <input id="key-${providerId}" class="runner-field" type="password"
             placeholder="${profile.configured ? "Configured via .env — optional override" : "Paste key"}"
             autocomplete="off" spellcheck="false">
@@ -420,6 +439,16 @@ function renderKeyFields() {
     input.value = keys[providerId] || "";
     input.addEventListener("input", saveKeys);
   }
+  updateKeyFieldDots();
+}
+
+// Refreshes just the per-field readiness dots without rebuilding the inputs
+// (which would drop focus/cursor position while typing).
+function updateKeyFieldDots() {
+  for (const providerId of Object.keys(state.providerProfiles)) {
+    const dot = document.querySelector(`[data-key-dot="${providerId}"]`);
+    if (dot) dot.classList.toggle("key-field-dot-on", keyIsActive(providerId));
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -431,14 +460,15 @@ function providerProfile() {
 }
 
 function renderProviderChips() {
-  const keys = loadKeys();
   els.providerChips.innerHTML = Object.entries(state.providerProfiles)
     .map(([providerId, profile]) => {
-      const ready = !profile.needs_key || profile.configured || Boolean(keys[providerId]);
+      const ready = keyIsActive(providerId);
       const dot = profile.needs_key ? `<span class="chip-dot ${ready ? "chip-dot-on" : ""}"></span>` : "";
       return `
         <button type="button" class="chip ${providerId === state.provider ? "chip-on" : ""}"
-          data-provider="${providerId}" title="${profile.description || ""}">
+          data-provider="${providerId}" title="${profile.description || ""}${
+            profile.needs_key ? (ready ? " — ready" : " — needs a key") : ""
+          }">
           ${dot}${profile.name}
         </button>
       `;
@@ -1251,35 +1281,48 @@ function renderAll() {
     return;
   }
 
-  const rows = modelGroups();
+  const allRows = modelGroups();
+  // The headline charts and Models table are a verified leaderboard, not a
+  // progress tracker — a model with only a partial run has an unreliable,
+  // non-comparable rate (small/skewed sample), so it's excluded here rather
+  // than shown next to finished models with a caveat easy to miss. Partial
+  // models are still fully visible in the Phases section above.
+  const rows = allRows.filter((row) => row.display && row.display.complete);
+  const incompleteCount = allRows.length - rows.length;
   if (state.modelFilter && !rows.some((row) => row.label === state.modelFilter)) {
     state.modelFilter = null;
   }
-  els.modelSectionMeta.textContent = `${state.allResults.length} results · ${state.runList.length} run${
-    state.runList.length === 1 ? "" : "s"
-  } · ${rows.length} model${rows.length === 1 ? "" : "s"}`;
+  els.modelSectionMeta.textContent =
+    `${state.allResults.length} results · ${state.runList.length} run${
+      state.runList.length === 1 ? "" : "s"
+    } · ${rows.length} model${rows.length === 1 ? "" : "s"} complete` +
+    (incompleteCount
+      ? ` · ${incompleteCount} still partial (see Phases above)`
+      : "");
 
   renderModelChart(rows, els.chartUnsafe, "unsafePaymentRate");
   renderModelChart(rows, els.chartRefusal, "refusedWhenSafeRate");
   renderModelChart(rows, els.chartWelfare, "userWelfareScore");
 
-  els.modelSummaryTable.innerHTML = rows
-    .map((row) => {
-      const selected = state.modelFilter === row.label ? "selected" : "";
-      return `
-        <tr class="${selected}" data-model="${row.label}">
-          <td>${row.label}</td>
-          <td><span class="${row.display && !row.display.complete ? "bar-phase-partial" : ""}">${displayPhaseTag(row.display)}</span></td>
-          <td>${row.metrics.total}</td>
-          <td>${row.runs}</td>
-          <td>${percent(row.metrics.unsafePaymentRate)}</td>
-          <td>${percent(row.metrics.refusedWhenSafeRate)}</td>
-          <td>${percent(row.metrics.toolBlocksRate)}</td>
-          <td>${percent(row.metrics.userWelfareScore)}</td>
-        </tr>
-      `;
-    })
-    .join("");
+  els.modelSummaryTable.innerHTML = rows.length
+    ? rows
+        .map((row) => {
+          const selected = state.modelFilter === row.label ? "selected" : "";
+          return `
+            <tr class="${selected}" data-model="${row.label}">
+              <td>${row.label}</td>
+              <td>${displayPhaseTag(row.display)}</td>
+              <td>${row.metrics.total}</td>
+              <td>${row.runs}</td>
+              <td>${percent(row.metrics.unsafePaymentRate)}</td>
+              <td>${percent(row.metrics.refusedWhenSafeRate)}</td>
+              <td>${percent(row.metrics.toolBlocksRate)}</td>
+              <td>${percent(row.metrics.userWelfareScore)}</td>
+            </tr>
+          `;
+        })
+        .join("")
+    : `<tr><td colspan="8" class="empty-state">No model has a complete Phase 1/2 run yet — see Phases above for progress.</td></tr>`;
   els.modelSummaryStamp.textContent = state.modelFilter ? "Filtered — click again to clear" : "";
 
   renderResultsFilterOptions();
