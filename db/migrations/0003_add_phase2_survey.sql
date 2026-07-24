@@ -1,4 +1,4 @@
--- Phase 2 answer-key survey responses (the /phase2-survey web instrument).
+-- Phase 2 answer-key survey responses (the /survey web instrument).
 --
 -- Mirrors the ad-hoc phase1_survey_responses table, but for the v2 answer key:
 -- respondents vote on the preference-dependent (semantic_only) v2 scenarios,

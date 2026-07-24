@@ -1,4 +1,4 @@
-"""Guard tests for the Phase 2 web survey instrument (web/public/phase2-survey.html).
+"""Guard tests for the Phase 2 web survey instrument (web/public/survey.html).
 
 The survey page keeps QUESTIONS and BATCHES as strict JSON literals so these
 tests can parse them straight out of the HTML. If a wording edit breaks the
@@ -13,7 +13,7 @@ import re
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
-SURVEY_HTML = REPO / "web" / "public" / "phase2-survey.html"
+SURVEY_HTML = REPO / "web" / "public" / "survey.html"
 ADMIN_HTML = REPO / "web" / "public" / "admin.html"
 PREREG = REPO / "data" / "survey" / "PHASE2_WEB_SURVEY.md"
 V2_CONSTRAINTS = REPO / "data" / "answer_keys" / "v2_constraints.json"
@@ -40,10 +40,15 @@ def _scenario_items(questions) -> list:
     return [q for q in questions if not q.get("attention") and not q.get("calibration")]
 
 
-# Empty since the 2026-07-24 restoration amendment: the three forced-trap
-# exclusions (e3, e9, e10) were reversed when traps-on-every-ballot replaced
-# the forced-answer doctrine, so every semantic_only scenario is surveyed.
-SURVEY_EXCLUDED: set = set()
+# The 2026-07-24 restoration amendment reversed e3/e9/e10's forced-trap
+# exclusion when traps-on-every-ballot replaced the forced-answer doctrine.
+# a4 was cut independently (a different owner-review pass, same day): its
+# situation resolves to one unambiguous safe action with no live trap
+# temptation, which the traps-on-every-ballot rule doesn't by itself
+# manufacture — see the flagged tension in the pre-registration.
+SURVEY_EXCLUDED = {
+    "scn_v2_a4_trap",  # free registry vs paid copy: unambiguous, safe answer forced, no vote signal
+}
 
 
 def test_scenario_ids_match_semantic_only_answer_keys():

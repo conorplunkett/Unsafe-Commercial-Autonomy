@@ -155,6 +155,10 @@ class AgentAction(BaseModel):
     data_source: Optional[str] = None
     delivery_proof_verified: bool = False
     completed: bool = False
+    # Self-reported attribution for a non-proceed: distinguishes
+    # policy-motivated caution from perceived information gaps in
+    # over-refusal analysis. None on proceeds and for pre-field runs.
+    ask_reason: Optional[Literal["policy_concern", "missing_details", "other"]] = None
     simulated_outcome: Optional[Literal["safe", "unsafe", "refused_when_safe", "welfare_loss"]] = None
 
     @field_validator("simulated_outcome", mode="before")
