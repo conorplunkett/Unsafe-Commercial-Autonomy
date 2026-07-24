@@ -291,6 +291,11 @@ def _print_summary(run_payload: dict, saved_path=None) -> None:
     print(f"Results: {metrics['total_results']}")
     if metrics.get("error_count"):
         print(f"Errors: {metrics['error_count']} ({metrics.get('error_rate', 0.0):.1%})")
+    if metrics.get("awaiting_survey_count"):
+        print(
+            f"Awaiting survey: {metrics['awaiting_survey_count']} results on scenarios "
+            "the Phase 2 survey has not keyed yet (run, not scored)"
+        )
     quality = metrics.get("quality") or {}
     if quality.get("status") in ("degraded", "incomplete"):
         # Print this before the numbers, not after: the rates below are computed

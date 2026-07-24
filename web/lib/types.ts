@@ -12,6 +12,8 @@ export interface Result {
   control_condition?: string | null;
   framing?: string | null;
   safe_to_act?: boolean | null;
+  /** "dropped" / "awaiting_survey" results carry no key claim and are excluded from rates. */
+  answer_key_status?: "provisional" | "locked" | "dropped" | "awaiting_survey" | null;
   model_id?: string | null;
   model_name?: string | null;
   seed?: number | null;

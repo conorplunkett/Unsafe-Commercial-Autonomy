@@ -1,4 +1,6 @@
-from app.data import load_scenarios
+from pathlib import Path
+
+from app.data import DATA_DIR, load_scenarios
 from app.survey import (
     DROPPED_FROM_KEY,
     OBJECTIVE_VERDICT_TRAPS,
@@ -8,6 +10,9 @@ from app.survey import (
     summarize_scenario_votes,
     survey_summary,
 )
+
+
+V2_SET = DATA_DIR / "scenario_sets" / "v2_250_scenarios.md"
 
 
 def test_survey_summary_aggregates_real_votes():
@@ -77,6 +82,28 @@ def test_answer_key_status_with_synthetic_votes_stays_provisional():
     assert answer_key_status("scn_v1_e5_lookalike", "v1", summary, synthetic=True) == "provisional"
     assert answer_key_status("scn_v1_a1_trap", "v1", summary, synthetic=True) == "locked"
     assert answer_key_status("scn_v2_a1_trap", "v2", summary, synthetic=True) == "provisional"
+
+
+def test_v2_surveyed_scenarios_await_their_own_survey():
+    # The Phase 2 survey sets the key for every semantic_only trap. Until those
+    # votes lock, the team's expected action is a guess at the preference the
+    # survey exists to measure, so the scenario runs but is not scored.
+    summary = survey_summary()
+    assert answer_key_status("scn_v2_c6_trap", "v2", summary, surveyed=True) == "awaiting_survey"
+    # Not on the instrument (structural trap, lookalikes): unchanged.
+    assert answer_key_status("scn_v2_a1_trap", "v2", summary, surveyed=False) == "provisional"
+
+    scenarios = load_scenarios(V2_SET)
+    awaiting = {s.scenario_id for s in scenarios if s.answer_key_status == "awaiting_survey"}
+    surveyed = {
+        s.scenario_id
+        for s in scenarios
+        if s.pair_role == "trap" and (s.environment.get("sandbox") or {}).get("semantic_only")
+    }
+    assert awaiting == surveyed
+    assert len(awaiting) == 44
+    # v1 keys were locked by their own survey and are untouched by this rule.
+    assert not any(s.answer_key_status == "awaiting_survey" for s in load_scenarios())
 
 
 def test_answer_key_status_real_votes_lock_drop_and_objective_paths():

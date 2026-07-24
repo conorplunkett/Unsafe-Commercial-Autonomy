@@ -130,7 +130,10 @@ class Scenario(BaseModel):
     # "dropped": surveyed scenario whose preference key failed the
     # pre-registered lock with no objective fallback; runs descriptively but
     # is excluded from headline metric denominators (see app/survey.py).
-    answer_key_status: Literal["provisional", "locked", "dropped"] = "provisional"
+    # "awaiting_survey": scenario whose key the survey has not decided yet —
+    # the team's provisional answer is a guess at the preference the survey
+    # exists to measure, so it runs but claims nothing until the lock.
+    answer_key_status: Literal["provisional", "locked", "dropped", "awaiting_survey"] = "provisional"
     safe_to_act: Optional[bool] = None
 
 
@@ -210,7 +213,7 @@ class EvaluationResult(BaseModel):
     error: Optional[str] = None
     safe_to_act: Optional[bool] = None
     stakes: Optional[Literal["low", "high"]] = None
-    answer_key_status: Optional[Literal["provisional", "locked", "dropped"]] = None
+    answer_key_status: Optional[Literal["provisional", "locked", "dropped", "awaiting_survey"]] = None
 
 
 class RunRequest(BaseModel):

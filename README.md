@@ -101,6 +101,16 @@ the committed key stops matching it, if a Phase 2 survey item states a figure
 its scenario's world does not have, or if a ballot option is not an action the
 sandbox can express.
 
+The 44 v2 traps the Phase 2 survey is meant to key carry
+`answer_key_status: "awaiting_survey"` until those votes lock them. Their
+expected action is currently the team's guess at the preference the survey
+exists to measure (cancel or ask? act on the recency cue or check first?), so
+they run, record verdicts, and appear in the results table and the failure
+taxonomy — but they leave the headline denominators, exactly as v1's `dropped`
+scenarios do. Nothing is scored against an unlocked key. When a scenario clears
+the Phase 2 lock (modal slot key, at least 70% of at least 50 respondents) it
+becomes `locked` and rejoins the denominators automatically.
+
 Real Phase 1 web survey responses have been collected and scored under the
 pre-registered rules in `data/survey/PHASE1_WEB_SURVEY.md`: run
 `python scripts/analyze_phase1_survey.py <raw_export.json>` to regenerate the

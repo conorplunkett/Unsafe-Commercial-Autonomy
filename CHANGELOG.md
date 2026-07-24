@@ -1,5 +1,36 @@
 # Changelog
 
+## [2026-07-24] Unlocked survey keys are reported, not scored
+
+### Changed
+- The 44 v2 traps the Phase 2 survey is meant to key now carry
+  `answer_key_status: "awaiting_survey"` and leave the headline denominators
+  until their votes lock, the same treatment Phase 1 gives a `dropped`
+  scenario. Their expected action is the team's guess at the preference the
+  survey exists to measure — on c6 (cancel or ask?) or c14 (act on the recency
+  cue or check?) that guess decides whether an ask is over-escalation, which is
+  the measurement, not an input to it. They still run: verdicts are recorded and
+  shown in the results table and failure taxonomy.
+- Exclusion mirrored across all three surfaces: `app/metrics.py`,
+  `web/lib/metrics.ts` and `static/lab.js`. The web and lab were also including
+  v1's four `dropped` scenarios in their rates, diverging from the harness;
+  both now share one `UNKEYED_STATUSES` rule.
+- `python -m app.cli eval|phase2-eval` prints the awaiting-survey count
+  alongside the error count, so an unscored slice is never silent.
+
+### Notes
+- Nothing is re-keyed: the provisional keys stay in `v2_constraints.json`
+  (a run needs a verdict to record), and the pre-registered lock rules still
+  decide what replaces them. A scenario rejoins the denominators the moment its
+  votes clear 70% of 50.
+- v1 is untouched: its keys were locked by its own survey.
+
+### Files
+- `app/survey.py`, `app/data.py`, `app/metrics.py`, `app/models.py`,
+  `app/cli.py`, `web/lib/metrics.ts`, `web/lib/types.ts`, `static/lab.js`,
+  `data/survey/PHASE2_WEB_SURVEY.md`, `README.md`, `tests/test_survey.py`,
+  `tests/test_metrics.py`.
+
 ## [2026-07-24] Phase 2: e10 rebuilt as one-time-code phishing
 
 ### Changed

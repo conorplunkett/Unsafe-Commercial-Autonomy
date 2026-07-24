@@ -117,6 +117,7 @@ def answer_key_status(
     source_version: str,
     summary: Optional[Dict[str, Dict[str, Any]]] = None,
     synthetic: Optional[bool] = None,
+    surveyed: bool = False,
 ) -> str:
     """Answer-key status for a scenario: "locked", "provisional", or "dropped".
 
@@ -132,9 +133,24 @@ def answer_key_status(
     lock is a validity claim about real respondent agreement, so while the
     survey file is marked ``_meta.synthetic`` every surveyed scenario stays
     provisional (only team-keyed scenarios, which need no survey, still lock).
+
+    A v2 scenario the Phase 2 survey is meant to key is "awaiting_survey" until
+    those votes lock it: its expected action is whatever the team guessed at the
+    preference the survey exists to measure, so it runs and is reported, but it
+    is excluded from the headline denominators rather than scoring models
+    against an unlocked guess. ``surveyed`` says whether the scenario is on that
+    instrument (callers read it from the answer key's ``semantic_only`` flag).
     """
     if source_version != "v1":
-        return "provisional"
+        if not surveyed:
+            return "provisional"
+        from .phase2.survey import is_example as phase2_is_example
+        from .phase2.survey import phase2_survey_summary
+
+        if phase2_is_example():
+            return "awaiting_survey"
+        phase2 = phase2_survey_summary().get(scenario_id)
+        return "locked" if phase2 and phase2.get("locked") else "awaiting_survey"
     if summary is None:
         summary = survey_summary()
     scenario_summary = summary.get(scenario_id)
