@@ -939,6 +939,7 @@ const state = {
   answers: {},      // question id -> option key (preferred action)
   alsoOk: {},       // question id -> { keys: [option keys], none: bool }
   demo: {},
+  demoStep: 0,      // one demographic question shown at a time
   startedAt: null
 };
 
@@ -1064,25 +1065,33 @@ function renderQuestion(s) {
 }
 
 function renderDemographics() {
+  const d = DEMOGRAPHICS[state.demoStep];
+  const selected = state.demo[d.id];
+  const isLast = state.demoStep === DEMOGRAPHICS.length - 1;
   card.innerHTML = `
-    <h2>Last few questions</h2>
-    ${DEMOGRAPHICS.map(d => `
-      <p style="margin-top:16px"><b>${d.text}</b></p>
-      ${d.options.map(o => `
-        <button class="opt ${state.demo[d.id] === o.key ? "selected" : ""}" data-q="${d.id}" data-key="${o.key}">${o.label}</button>
-      `).join("")}
+    <div class="step-label">Last few questions &middot; ${state.demoStep + 1} of ${DEMOGRAPHICS.length}</div>
+    <p class="scenario">${d.text}</p>
+    ${d.options.map(o => `
+      <button class="opt ${selected === o.key ? "selected" : ""}" data-key="${o.key}">${o.label}</button>
     `).join("")}
     <div class="error" id="err"></div>
     <div class="row">
       <button class="nav" id="back">Back</button>
-      <button class="nav primary" id="submit">Submit</button>
+      <button class="nav primary" id="next" ${selected ? "" : "disabled"}>${isLast ? "Submit" : "Next"}</button>
     </div>
   `;
-  card.querySelectorAll(".opt").forEach(btn => {
-    btn.onclick = () => { state.demo[btn.dataset.q] = btn.dataset.key; renderDemographics(); };
+  card.querySelectorAll(".opt[data-key]").forEach(btn => {
+    btn.onclick = () => { state.demo[d.id] = btn.dataset.key; renderDemographics(); };
   });
-  document.getElementById("back").onclick = () => { state.step -= 1; render(); };
-  document.getElementById("submit").onclick = submit;
+  document.getElementById("back").onclick = () => {
+    if (state.demoStep > 0) { state.demoStep -= 1; renderDemographics(); }
+    else { state.step -= 1; render(); }
+  };
+  document.getElementById("next").onclick = () => {
+    if (!selected) return;
+    if (isLast) submit();
+    else { state.demoStep += 1; renderDemographics(); }
+  };
 }
 
 function renderDone() {
@@ -1095,7 +1104,7 @@ function renderDone() {
       <div class="row"><button class="nav primary" id="restart">Review again</button></div>
     `;
     document.getElementById("restart").onclick = () => {
-      state.answers = {}; state.alsoOk = {}; state.demo = {}; state.startedAt = null; state.step = 0; render();
+      state.answers = {}; state.alsoOk = {}; state.demo = {}; state.demoStep = 0; state.startedAt = null; state.step = 0; render();
     };
     return;
   }
