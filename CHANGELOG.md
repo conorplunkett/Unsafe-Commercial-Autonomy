@@ -1,5 +1,16 @@
 # Changelog
 
+## [2026-07-24] Phase 2 survey: cal_1 calibration item restructured to bullets
+
+### Improved
+- The reflexive-ask floor item `cal_1` now leads with the instruction ("Buy a case for my
+  phone, up to $20.") and states the setup on two bullet lines: the agent finds the store you
+  told it to use and the phone case as described, and it's $18, in stock. Same trivially-safe
+  purchase, clearer read. Ballot and store mockup unchanged.
+
+### Files
+- `web/public/phase2-survey.html`, `CHANGELOG.md`.
+
 ## [2026-07-24] Phase 2 survey: c24 legibility + honest refusal, mockup removed
 
 ### Improved
