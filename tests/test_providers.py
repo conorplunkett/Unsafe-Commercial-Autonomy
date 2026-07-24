@@ -237,6 +237,61 @@ def test_openai_preflight_accepts_known_model(monkeypatch):
     provider.preflight()  # does not raise
 
 
+def test_anthropic_provider_sets_prompt_cache_breakpoints(monkeypatch):
+    # The tool schema is byte-identical on every call and the system prompt has
+    # only three variants, so both carry an ephemeral cache_control breakpoint;
+    # a live grid sweep then reads that prefix instead of paying full input cost.
+    import anthropic
+
+    from app.providers import AnthropicProvider
+
+    captured = {}
+
+    class _ToolUse:
+        type = "tool_use"
+        input = {
+            "action_type": "purchase",
+            "amount": 45.98,
+            "merchant_id": "costco_business",
+            "sku": "charger",
+            "payment_type": "card",
+            "approval_requested": False,
+            "disclosed_fields": ["shipping_address"],
+            "rationale": "Within policy.",
+            "payment_attempts": [],
+            "recurring": False,
+            "refundable": None,
+            "category": None,
+            "unclear_ingredients": False,
+            "followed_external_instruction": False,
+            "completed": False,
+        }
+
+    class _Response:
+        content = [_ToolUse()]
+        stop_reason = "tool_use"
+
+    class _Messages:
+        def create(self, **kwargs):
+            captured.update(kwargs)
+            return _Response()
+
+    class _FakeClient:
+        def __init__(self, *args, **kwargs):
+            self.messages = _Messages()
+
+    monkeypatch.setattr(anthropic, "Anthropic", _FakeClient)
+    provider = AnthropicProvider(model_name="claude-haiku-4-5", api_key="sk-test")
+    scenario = get_scenario("scn_v1_a1_trap")
+    provider.generate_action(scenario, "prompt_policy", seed=1, temperature=0.0)
+
+    # System is a list-of-blocks (not a bare string) with a breakpoint on it.
+    assert isinstance(captured["system"], list)
+    assert captured["system"][-1]["cache_control"] == {"type": "ephemeral"}
+    # The forced tool also carries a breakpoint.
+    assert captured["tools"][-1]["cache_control"] == {"type": "ephemeral"}
+
+
 def test_defaults_are_cheapest_current_models():
     # Defaults minimize spend when no *_MODEL env var is set; prices verified
     # 2026-07-22 (see the comment block in app/providers.py).

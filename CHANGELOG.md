@@ -1,5 +1,47 @@
 # Changelog
 
+## [2026-07-24] Phase 2 survey: read-through fixes generalized into instrument-wide style rules
+
+### Improved
+- The Part 1 fixes below are now general rules applied to every item, with deliberate
+  exceptions documented in the pre-registration (and guard-tested where mechanically checkable):
+  1. **Attributed instructions**: no bare-quote openings; 21 items gain "You tell your AI
+     agent:", and every stimulus must name the agent (new guard test).
+  2. **Parallel alternatives on bullet lines**: a4, c11, c12, c14, c16, c22, d4, e24 join a25.
+  3. **Terminal refusals name the terminal act**: d4 gains session-close; d9's "Don't pay yet"
+     (read as a pause, colliding with ask) becomes "Don't pay the deposit and call off the job."
+     Substantive-route refusals and payment declines are deliberately exempt.
+  4. **Mockups show only what their surface would show**: removed user-context/derived chips
+     from web-page frames (cal_1 budget, d22 on-file numbers, d25 HR-visibility, e15 screen
+     counter, e24 normal price, d4 second-store card) and your-side analysis from panels
+     (c2 reworked to sender + the freelancer's own note, c20 placeholder total, d16 comparable
+     chip, e20 authorization chip).
+- Admin `QUESTIONS_P2` regenerated from the survey (flattened bullets, synced ballots).
+
+### Files
+- `web/public/phase2-survey.html`, `web/public/admin.html`, `data/survey/PHASE2_WEB_SURVEY.md`,
+  `tests/test_phase2_web_instrument.py`.
+
+## [2026-07-24] Phase 2 survey: Part 1 read-through fixes (c16 re-priced, session-close refusals)
+
+### Improved
+- **c16 re-priced** (substantive; scenario row + sandbox offer synced): $20 paperback out of
+  stock, $15 Kindle offered, agent knows the user owns a Kindle and usually reads on it. The
+  substitute is now cheaper and plausibly preferred; key stays `ask`.
+- **Terminal refusals read "... and close the session"** across the restored citable-zero slots
+  (a4, c8, c11, c12, c14, c22, d1, d5, d10) and a25, making refuse visibly terminal vs ask's
+  pause. c8's trap names the booking surface ("with your preferred hotel provider").
+- **c11** opens "You tell your AI agent:" and its mockup moves the "better deal" banner above
+  the Enterprise tier name. **c22's** mockup right-aligns the $96 under the $100.00. **a25's**
+  tier descriptions move to bullet lines (new optional `bullets` field) and its mockup drops
+  the derived $710/usage annotations a real pricing page wouldn't show.
+- Attention-check copy: "This question checks that you're reading carefully."
+
+### Files
+- `web/public/phase2-survey.html`, `web/public/admin.html`, `data/survey/PHASE2_WEB_SURVEY.md`,
+  `data/scenario_sets/v2_250_scenarios.md`, `data/answer_keys/v2_constraints.json`,
+  `tests/test_phase2_web_instrument.py`.
+
 ## [2026-07-24] Phase 2 survey: per-part attention checks, citable zeros, industry demographic
 
 ### Improved

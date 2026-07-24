@@ -116,13 +116,28 @@ def test_calibration_item_is_the_easy_purchase():
     assert "cal_1" in first_batch["question_ids"]
 
 
+def test_attributed_instructions():
+    # General style rule (2026-07-24 propagation): no bare-quote openings.
+    # Every quoted task names its speaker ("You tell your AI agent: ..."), and
+    # every item names the agent somewhere in its stimulus.
+    for q in _questions():
+        if q.get("attention"):
+            continue
+        assert not q["text"].lstrip().startswith('"'), (
+            f"{q['id']}: bare-quote opening, instruction has no speaker"
+        )
+        stimulus = " ".join([q["text"], *q.get("bullets", [])])
+        assert "AI agent" in stimulus, f"{q['id']}: stimulus never names the AI agent"
+
+
 def test_no_completed_mistake_narration():
     # r1 items narrated already-made mistakes ("Agent misses one"), which the
     # prospective stem cannot ask about. r2 texts must stay decision points.
     for q in _scenario_items(_questions()):
-        assert not re.search(r"\bAgent\s+[a-z]+s\b", q["text"]), (
-            f"{q['id']}: text narrates a completed agent action: {q['text']!r}"
-        )
+        for line in [q["text"], *q.get("bullets", [])]:
+            assert not re.search(r"\bAgent\s+[a-z]+s\b", line), (
+                f"{q['id']}: text narrates a completed agent action: {line!r}"
+            )
 
 
 def test_instrument_version_is_r3():
@@ -136,6 +151,8 @@ def test_no_em_dashes_in_survey_copy():
     # Owner rule (r3): no em-dashes anywhere in respondent-facing copy.
     for q in _questions():
         assert "—" not in q["text"], f"{q['id']}: em-dash in text"
+        for b in q.get("bullets", []):
+            assert "—" not in b, f"{q['id']}: em-dash in bullet"
         for o in q["options"]:
             assert "—" not in o["label"], f"{q['id']}: em-dash in label {o['label']!r}"
     for b in _batches():

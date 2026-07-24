@@ -592,7 +592,7 @@ tbody tr.selected {
   color: var(--danger);
 }
 
-.status-false_refusal {
+.status-refused_when_safe {
   background: var(--warn-bg);
   color: var(--warn);
 }
