@@ -19,6 +19,13 @@ const state = {
   dryRun: false,
   conditions: new Set(["no_policy", "prompt_policy", "tool_constraints"]),
   modelFilter: null,
+  // Results-panel slice filters, independent of the model click-filter above.
+  // runFilter holds a run_id; verdictFilter/conditionFilter hold an enum value
+  // or "all". null/"all" both mean "no filter" — kept distinct so run_id "all"
+  // can never collide with the sentinel.
+  runFilter: null,
+  verdictFilter: "all",
+  conditionFilter: "all",
   selectedKey: null,
 };
 
@@ -52,6 +59,10 @@ for (const id of [
   "phasesContent",
   "modelSummaryTable",
   "modelSummaryStamp",
+  "resultRunFilter",
+  "resultVerdictFilter",
+  "resultConditionFilter",
+  "resultsFilterReset",
   "modelResultsTable",
   "modelResultsStamp",
   "modelDetailVerdict",
@@ -691,6 +702,11 @@ const VERDICT_LABELS = {
   refused_when_safe: "refused when safe",
 };
 
+// Fixed display order for the verdict filter dropdown (app/models.py's
+// Literal enum order); only verdicts actually present in the data are shown,
+// same pattern as the category filter in the runner card above.
+const VERDICT_ORDER = ["safe", "unsafe", "refused_when_safe", "welfare_loss", "error"];
+
 function verdictLabel(verdict) {
   return VERDICT_LABELS[verdict] || (verdict ? verdict.replaceAll("_", " ") : "none");
 }
@@ -698,6 +714,12 @@ function verdictLabel(verdict) {
 function statusPill(verdict) {
   const label = verdict ? verdictLabel(verdict) : "none";
   return `<span class="status-pill status-${verdict || "safe"}">${label}</span>`;
+}
+
+// Results with no control_condition predate the 3-condition split and are
+// labeled "legacy" everywhere they're shown (table cells and this filter).
+function controlConditionLabel(condition) {
+  return condition ? CONDITION_LABELS[condition] || condition.replaceAll("_", " ") : "legacy";
 }
 
 function renderResultsTable(results) {
@@ -713,20 +735,94 @@ function renderResultsTable(results) {
     .map((result) => {
       const failures = result.failure_metrics.length ? result.failure_metrics.join(", ") : "none";
       const selected = resultKey(result) === state.selectedKey ? "selected" : "";
-      const conditionLabel = result.control_condition
-        ? CONDITION_LABELS[result.control_condition] || result.control_condition.replaceAll("_", " ")
-        : "legacy";
       return `
         <tr class="${selected}" data-result-key="${resultKey(result)}">
           <td>${statusPill(result.verdict)}</td>
           <td>${result.scenario_title}</td>
           <td>${modelLabel(result)}</td>
-          <td>${conditionLabel}</td>
+          <td>${controlConditionLabel(result.control_condition)}</td>
           <td>${failures}</td>
         </tr>
       `;
     })
     .join("");
+}
+
+// Rebuilds the three Results-panel filter dropdowns from whatever's actually
+// in state.allResults/state.runList (same "only show options that exist"
+// pattern as the runner card's category filter), then restores the current
+// selection — or falls back to "all"/none if that value no longer exists
+// (e.g. the selected run was just deleted).
+function renderResultsFilterOptions() {
+  const runOptions = state.runList
+    .map((run) => `<option value="${run.run_id}">${runOptionLabel(run)}</option>`)
+    .join("");
+  els.resultRunFilter.innerHTML = `<option value="all">All runs</option>${runOptions}`;
+  if (state.runFilter && !state.runList.some((run) => run.run_id === state.runFilter)) {
+    state.runFilter = null;
+  }
+  els.resultRunFilter.value = state.runFilter || "all";
+
+  const verdictsPresent = new Set(state.allResults.map((result) => result.verdict || "none"));
+  const verdictOptions = VERDICT_ORDER.filter((verdict) => verdictsPresent.has(verdict))
+    .map((verdict) => `<option value="${verdict}">${verdictLabel(verdict)}</option>`)
+    .join("");
+  els.resultVerdictFilter.innerHTML = `<option value="all">All verdicts</option>${verdictOptions}`;
+  if (state.verdictFilter !== "all" && !verdictsPresent.has(state.verdictFilter)) {
+    state.verdictFilter = "all";
+  }
+  els.resultVerdictFilter.value = state.verdictFilter;
+
+  const conditionsPresent = new Set(
+    state.allResults.map((result) => result.control_condition || "legacy")
+  );
+  const conditionOptions = [...CONDITION_ORDER, "legacy"]
+    .filter((condition) => conditionsPresent.has(condition))
+    .map((condition) => `<option value="${condition}">${controlConditionLabel(condition === "legacy" ? null : condition)}</option>`)
+    .join("");
+  els.resultConditionFilter.innerHTML = `<option value="all">All conditions</option>${conditionOptions}`;
+  if (state.conditionFilter !== "all" && !conditionsPresent.has(state.conditionFilter)) {
+    state.conditionFilter = "all";
+  }
+  els.resultConditionFilter.value = state.conditionFilter;
+
+  const anyFilterActive =
+    Boolean(state.modelFilter) ||
+    Boolean(state.runFilter) ||
+    state.verdictFilter !== "all" ||
+    state.conditionFilter !== "all";
+  els.resultsFilterReset.hidden = !anyFilterActive;
+}
+
+// Slices state.allResults by every active Results-panel filter: the Models
+// table's click-filter, the Run dropdown (or a Runs-table row click, which
+// sets the same state.runFilter), and the Verdict/Control selects.
+function applyResultFilters(results) {
+  let filtered = results;
+  if (state.modelFilter) {
+    filtered = filtered.filter((result) => modelLabel(result) === state.modelFilter);
+  }
+  if (state.runFilter) {
+    filtered = filtered.filter((result) => result.run_id === state.runFilter);
+  }
+  if (state.verdictFilter !== "all") {
+    filtered = filtered.filter((result) => (result.verdict || "none") === state.verdictFilter);
+  }
+  if (state.conditionFilter !== "all") {
+    filtered = filtered.filter(
+      (result) => (result.control_condition || "legacy") === state.conditionFilter
+    );
+  }
+  return filtered;
+}
+
+function resetResultFilters() {
+  state.modelFilter = null;
+  state.runFilter = null;
+  state.verdictFilter = "all";
+  state.conditionFilter = "all";
+  state.selectedKey = null;
+  renderAll();
 }
 
 function renderDetail(results) {
@@ -956,14 +1052,24 @@ function renderPhases() {
     .join("");
 }
 
+// Label shown for a run in the Results-panel run dropdown: time + model(s),
+// matching how the Runs table below identifies a run.
+function runOptionLabel(run) {
+  const models = [...new Set(run.results.map(modelLabel))].join(", ") || "no results";
+  return `${compactTime(run.created_at)} · ${models}`;
+}
+
 function renderRunList() {
-  els.runListStamp.textContent = `${state.runList.length} stored`;
+  els.runListStamp.textContent = state.runFilter
+    ? `${state.runList.length} stored — filtered, click again to clear`
+    : `${state.runList.length} stored`;
   els.runListTable.innerHTML = state.runList
     .map((run) => {
       const metrics = summarize(run.results);
       const models = [...new Set(run.results.map(modelLabel))].join(", ");
+      const selected = state.runFilter === run.run_id ? "selected" : "";
       return `
-        <tr>
+        <tr class="${selected}" data-run-id="${run.run_id}" title="Click to filter Results to this run">
           <td>${compactTime(run.created_at)}</td>
           <td>${models}</td>
           <td>${phaseChecklist(run.results)}</td>
@@ -1049,12 +1155,18 @@ function renderAll() {
     .join("");
   els.modelSummaryStamp.textContent = state.modelFilter ? "Filtered — click again to clear" : "";
 
-  const filtered = state.modelFilter
-    ? state.allResults.filter((result) => modelLabel(result) === state.modelFilter)
-    : state.allResults;
-  els.modelResultsStamp.textContent = state.modelFilter
-    ? `${state.modelFilter} · ${filtered.length} results`
-    : `All models · ${filtered.length} results`;
+  renderResultsFilterOptions();
+  const filtered = applyResultFilters(state.allResults);
+  const stampParts = [state.modelFilter || "All models"];
+  if (state.runFilter) {
+    const run = state.runList.find((item) => item.run_id === state.runFilter);
+    stampParts.push(run ? runOptionLabel(run) : "1 run");
+  }
+  if (state.verdictFilter !== "all") stampParts.push(verdictLabel(state.verdictFilter));
+  if (state.conditionFilter !== "all") {
+    stampParts.push(controlConditionLabel(state.conditionFilter === "legacy" ? null : state.conditionFilter));
+  }
+  els.modelResultsStamp.textContent = `${stampParts.join(" · ")} · ${filtered.length} results`;
   renderResultsTable(filtered);
   renderDetail(filtered);
   renderRunList();
@@ -1111,9 +1223,32 @@ function bindEvents() {
   });
   els.runListTable.addEventListener("click", (event) => {
     const button = event.target.closest(".run-delete");
-    if (!button) return;
-    deleteRun(button.dataset.runId, button.dataset.runLabel);
+    if (button) {
+      deleteRun(button.dataset.runId, button.dataset.runLabel);
+      return;
+    }
+    const row = event.target.closest("tr[data-run-id]");
+    if (!row) return;
+    state.runFilter = state.runFilter === row.dataset.runId ? null : row.dataset.runId;
+    state.selectedKey = null;
+    renderAll();
   });
+  els.resultRunFilter.addEventListener("change", () => {
+    state.runFilter = els.resultRunFilter.value === "all" ? null : els.resultRunFilter.value;
+    state.selectedKey = null;
+    renderAll();
+  });
+  els.resultVerdictFilter.addEventListener("change", () => {
+    state.verdictFilter = els.resultVerdictFilter.value;
+    state.selectedKey = null;
+    renderAll();
+  });
+  els.resultConditionFilter.addEventListener("change", () => {
+    state.conditionFilter = els.resultConditionFilter.value;
+    state.selectedKey = null;
+    renderAll();
+  });
+  els.resultsFilterReset.addEventListener("click", resetResultFilters);
 }
 
 async function init() {

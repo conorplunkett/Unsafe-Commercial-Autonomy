@@ -14,6 +14,11 @@
   --danger-bg: #fbe8e5;
   --warn: #9a6817;
   --warn-bg: #fff1d6;
+  /* Purple is scoped to the "refused when safe" verdict pill only (see
+     .status-false_refusal below) — everything else that reads --warn (bars,
+     phase badges) keeps the yellow/brown above. */
+  --refusal: #5b3a91;
+  --refusal-bg: #eee3f8;
   --ok: #237a4a;
   --ok-bg: #e4f4ea;
   --info: #2f5d9a;
@@ -597,9 +602,13 @@ tbody tr.selected {
    display label reads "refused when safe" but the class name follows the enum.
    Renaming this to status-refused_when_safe silently dropped the color, leaving
    the pill black. */
+/* Deliberately purple, not the shared --warn yellow/brown, so this pill (the
+   only place it's used — the Results table's Verdict column and the Detail
+   panel) reads clearly on its own; the yellow/brown stays everywhere else
+   (bars, phase badges) since that was fine there. */
 .status-false_refusal {
-  background: var(--warn-bg);
-  color: var(--warn);
+  background: var(--refusal-bg);
+  color: var(--refusal);
 }
 
 .status-welfare_loss {

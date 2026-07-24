@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Experiment Lab · Unsafe Commercial Autonomy</title>
     <link rel="icon" href="/favicon.ico">
-    <link rel="stylesheet" href="/static/styles.css?v=9">
+    <link rel="stylesheet" href="/static/styles.css?v=11">
     <link rel="stylesheet" href="/static/lab.css?v=9">
   </head>
   <body>
@@ -172,6 +172,21 @@
             <div class="panel-heading">
               <h2>Results</h2>
               <span id="modelResultsStamp" class="run-stamp"></span>
+            </div>
+            <div class="results-filter-bar" id="resultsFilterBar">
+              <div>
+                <label class="run-select-label" for="resultRunFilter">Run</label>
+                <select id="resultRunFilter" class="run-select"></select>
+              </div>
+              <div>
+                <label class="run-select-label" for="resultVerdictFilter">Verdict</label>
+                <select id="resultVerdictFilter" class="run-select"></select>
+              </div>
+              <div>
+                <label class="run-select-label" for="resultConditionFilter">Control</label>
+                <select id="resultConditionFilter" class="run-select"></select>
+              </div>
+              <button id="resultsFilterReset" type="button" class="chip" hidden>Reset filters</button>
             </div>
             <div class="table-wrap model-results-wrap">
               <table>
