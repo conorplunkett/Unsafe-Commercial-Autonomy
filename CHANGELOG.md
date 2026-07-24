@@ -37,6 +37,29 @@ is now `laptop_store`, matching its trap.
   `data/scenario_sets/v2_250_scenarios.md`, `data/answer_keys/v2_constraints.json`,
   `scripts/generate_v2_constraints.py`.
 
+## [2026-07-24] Survey/sandbox price drift becomes a test failure
+
+### Added
+- **`test_sandbox_prices_are_grounded_in_the_survey`.** For any surveyed scenario, an offer's
+  total must be a dollar figure the respondent actually saw on screen, or reachable from two of
+  them by one addition or subtraction (a discounted price like $300 less $30). This is the audit
+  that found the 16 drifted scenarios, promoted to a standing invariant.
+- **The exemption is computed, never listed**: a vignette that states no amount at all exempts
+  its own world, because the amount is not what that item measures (c2's invoice, c8's hotel,
+  c18's hours). Seven items qualify today. There is no list to add an entry to in order to dodge
+  a real mismatch.
+- The invariant is documented at both places someone would edit a price: the generator's module
+  docstring and the answer key's `_meta.description`. Both note the trap that let this drift
+  persist: the generator fills only MISSING values, so a stale spec regenerates as a no-op and
+  never appears as a diff.
+
+Verified by reintroducing c22's $495 and confirming the guard fails with the offending scenario,
+offer id, and the set of amounts the vignette states.
+
+### Files
+- `tests/test_phase2_web_instrument.py`, `scripts/generate_v2_constraints.py`,
+  `data/answer_keys/v2_constraints.json`, `CHANGELOG.md`.
+
 ## [2026-07-24] Unsafe rate over all keyed scenarios; wrong acts stop scoring as successes
 
 ### Changed
