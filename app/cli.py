@@ -94,7 +94,7 @@ def _phase1_grid_size(
     error instead of this estimate masking it.
     """
     from .data import load_scenarios
-    from .providers import resolve_model_ids
+    from .providers import OFFLINE_MODEL_IDS, resolve_model_ids
 
     try:
         models = resolve_model_ids(model_ids or ["openai"])
@@ -107,9 +107,15 @@ def _phase1_grid_size(
         )
     except Exception:
         return 0, ""
-    total = len(models) * len(conditions) * scenario_count * len(seed_list)
+    # Offline providers (e.g. baseline_naive) make no API calls, so only live
+    # providers count toward the cost-confirmation guard. An all-offline run
+    # estimates 0 live calls and passes through without a prompt.
+    live_models = [m for m in models if m not in OFFLINE_MODEL_IDS]
+    total = len(live_models) * len(conditions) * scenario_count * len(seed_list)
+    if total == 0:
+        return 0, ""
     breakdown = (
-        f"{len(models)} model(s) x {len(conditions)} condition(s) x "
+        f"{len(live_models)} model(s) x {len(conditions)} condition(s) x "
         f"{scenario_count} scenario(s) x {len(seed_list)} seed(s) = {total} live API calls"
     )
     return total, breakdown
@@ -528,17 +534,20 @@ def _phase2_grid_size(args: argparse.Namespace) -> tuple[int, str]:
     count for a Phase 2 eval, and a breakdown string for the confirmation
     prompt. Returns (0, "") if it can't be estimated (e.g. a bad model id).
     """
-    from .phase2.providers import resolve_phase2_model_ids
+    from .phase2.providers import LIVE_MODEL_IDS, resolve_phase2_model_ids
 
     try:
         scenario_count = len(_csv(args.scenario_ids) or []) or 250
         conditions = len(_csv(args.conditions) or []) or 6
         framings = len(_csv(args.framings) or []) or 2
         seeds = len(_csv_int(args.seeds) or []) or 5
-        models = len(resolve_phase2_model_ids(_csv(args.models)))
+        # Scripted agents run offline; only live providers incur episode API calls.
+        models = len([m for m in resolve_phase2_model_ids(_csv(args.models)) if m in LIVE_MODEL_IDS])
     except Exception:
         return 0, ""
     episodes = scenario_count * conditions * framings * seeds * models
+    if episodes == 0:
+        return 0, ""
     breakdown = (
         f"{models} model(s) x {conditions} condition(s) x {framings} framing(s) x "
         f"{scenario_count} scenario(s) x {seeds} seed(s) = {episodes} multi-turn episodes"

@@ -250,6 +250,50 @@ def test_phase1_grid_size_computes_breakdown():
     assert _phase1_grid_size(["not-a-real-provider"], None, None, None, None) == (0, "")
 
 
+def test_phase1_grid_size_excludes_offline_models():
+    # Offline providers (baseline_naive) make no API calls, so they never count
+    # toward the live-cost confirmation grid.
+    from app.cli import _phase1_grid_size
+
+    assert _phase1_grid_size(["baseline_naive"], None, None, None, [1]) == (0, "")
+    # A mixed run counts only the live model(s).
+    total, breakdown = _phase1_grid_size(
+        ["openai", "baseline_naive"], ["no_policy"], ["scn_v1_a1_trap"], None, [1]
+    )
+    assert total == 1  # 1 live model x 1 condition x 1 scenario x 1 seed
+    assert "1 model(s)" in breakdown
+
+
+def test_cli_eval_offline_baseline_skips_confirmation(capsys, monkeypatch):
+    # The documented offline baseline command must run in non-interactive
+    # contexts (CI, pipes) without tripping the live-cost guard.
+    import app.cli as cli
+
+    monkeypatch.setattr(cli.sys.stdin, "isatty", lambda: False)
+    status = main(["eval", "--models", "baseline_naive", "--seeds", "1"])
+
+    output = capsys.readouterr().out
+    assert status == 0
+    assert "Refusing to run" not in output
+    assert "Run saved:" in output
+
+
+def test_cli_phase2_eval_offline_scripted_skips_confirmation(capsys, monkeypatch):
+    # Scripted Phase 2 agents run offline, so a scripted-only grid never trips
+    # the episode-cost confirmation.
+    import app.cli as cli
+
+    monkeypatch.setattr(cli.sys.stdin, "isatty", lambda: False)
+    status = main(
+        ["phase2-eval", "--models", "scripted_naive", "--scenario-ids", "scn_v2_a1_trap", "--seeds", "1"]
+    )
+
+    output = capsys.readouterr().out
+    assert status == 0
+    assert "Refusing to run" not in output
+    assert "Run saved:" in output
+
+
 def test_cli_eval_large_grid_aborts_without_confirmation(capsys, monkeypatch):
     # The full command path: a live default eval (single model x full v1 set)
     # is already a 750-call grid, so it must abort (exit 2) with no TTY,

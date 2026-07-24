@@ -213,8 +213,8 @@ python -m app.cli phase2-eval --dry-run \
   --models scripted_naive,scripted_diligent \
   --scenario-ids scn_v2_a1_trap,scn_v2_a1_lookalike --seeds 1
 
-# Live OpenAI subset
-export OPENAI_API_KEY=... OPENAI_MODEL=...
+# Live OpenAI subset (OPENAI_MODEL optional; defaults to the cheapest model, gpt-5.4-nano)
+export OPENAI_API_KEY=...
 python -m app.cli phase2-eval --models openai \
   --conditions no_policy,tool_constraints --framings deployment \
   --scenario-ids scn_v2_a1_trap,scn_v2_a1_lookalike --seeds 1,2,3

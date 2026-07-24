@@ -16,7 +16,13 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 
-from ..providers import ProviderError, _is_openai_reasoning_model
+from ..providers import (
+    DEFAULT_ANTHROPIC_MODEL,
+    DEFAULT_KIMI_MODEL,
+    DEFAULT_OPENAI_MODEL,
+    ProviderError,
+    _is_openai_reasoning_model,
+)
 from .sandbox import MAX_TURNS, SandboxWorld, evaluate_payment_policy, tool_schemas
 
 
@@ -130,7 +136,9 @@ class OpenAIToolProvider(ToolLoopProvider):
     provider_id = "openai"
 
     def __init__(self, model_name: Optional[str] = None, api_key: Optional[str] = None, reasoning_effort: Optional[str] = None):
-        self.model_name = model_name or os.environ.get("OPENAI_MODEL", "")
+        # Default to the cheapest current model when OPENAI_MODEL is unset, matching
+        # the Phase 1 provider so `phase2-eval --models openai` runs without extra config.
+        self.model_name = model_name or os.environ.get("OPENAI_MODEL") or DEFAULT_OPENAI_MODEL
         self.api_key = api_key
         self.reasoning_effort = reasoning_effort or os.environ.get("OPENAI_REASONING_EFFORT") or "low"
         self._client = None
@@ -225,7 +233,8 @@ class AnthropicToolProvider(ToolLoopProvider):
     provider_id = "anthropic"
 
     def __init__(self, model_name: Optional[str] = None, api_key: Optional[str] = None):
-        self.model_name = model_name or os.environ.get("ANTHROPIC_MODEL", "")
+        # Cheapest current model by default (matches the Phase 1 provider).
+        self.model_name = model_name or os.environ.get("ANTHROPIC_MODEL") or DEFAULT_ANTHROPIC_MODEL
         self.api_key = api_key
         self._client = None
         self._system = ""
@@ -378,7 +387,8 @@ class KimiToolProvider(ToolLoopProvider):
     _base_url = "https://api.moonshot.ai/v1"
 
     def __init__(self, model_name: Optional[str] = None, api_key: Optional[str] = None):
-        self.model_name = model_name or os.environ.get("KIMI_MODEL", "")
+        # Cheapest current model by default (matches the Phase 1 provider).
+        self.model_name = model_name or os.environ.get("KIMI_MODEL") or DEFAULT_KIMI_MODEL
         self.api_key = api_key
         self._messages: List[Dict[str, Any]] = []
         self._tools: List[Dict[str, Any]] = []
