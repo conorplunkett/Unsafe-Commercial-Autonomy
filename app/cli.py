@@ -241,9 +241,13 @@ def eval_command(args: argparse.Namespace) -> int:
 def models_command(args: argparse.Namespace) -> int:
     from .providers import (
         available_anthropic_models,
+        available_deepseek_models,
         available_gemini_models,
+        available_grok_models,
         available_kimi_models,
+        available_mistral_models,
         available_openai_models,
+        available_openrouter_models,
     )
 
     listers = {
@@ -251,6 +255,10 @@ def models_command(args: argparse.Namespace) -> int:
         "anthropic": available_anthropic_models,
         "gemini": available_gemini_models,
         "kimi": available_kimi_models,
+        "grok": available_grok_models,
+        "deepseek": available_deepseek_models,
+        "mistral": available_mistral_models,
+        "openrouter": available_openrouter_models,
     }
     if args.provider == "all":
         selected = list(listers)
@@ -260,9 +268,9 @@ def models_command(args: argparse.Namespace) -> int:
         print(
             f"Unknown provider {args.provider!r}. "
             f"Choose one of: all, {', '.join(listers)}. "
-            "(openweights is a local server and inkling is a single open-weight "
-            "model — there is no per-key model list to fetch for either; query "
-            "the host's /v1/models endpoint directly if it has one.)"
+            "(openweights is a local server, inkling is a single open-weight "
+            "model, and qwen/regional hosts don't expose a dependable model "
+            "list — set their *_MODEL env var directly instead.)"
         )
         return 2
 
@@ -721,12 +729,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     models_parser = subparsers.add_parser(
         "models",
-        help="List the model ids each provider's key can use (openai, anthropic, gemini, kimi).",
+        help="List the model ids each provider's key can use (openai, anthropic, gemini, kimi, grok, deepseek, mistral, openrouter).",
     )
     models_parser.add_argument(
         "--provider",
         default="all",
-        help="Provider to list models for: all (default), openai, anthropic, gemini, or kimi.",
+        help="Provider to list models for: all (default), openai, anthropic, gemini, kimi, grok, deepseek, mistral, or openrouter.",
     )
     models_parser.set_defaults(func=models_command)
 

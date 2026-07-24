@@ -171,6 +171,11 @@ def test_cli_models_lists_all_providers_and_skips_missing_keys(capsys, monkeypat
         "GOOGLE_API_KEY",
         "KIMI_API_KEY",
         "MOONSHOT_API_KEY",
+        "XAI_API_KEY",
+        "GROK_API_KEY",
+        "DEEPSEEK_API_KEY",
+        "MISTRAL_API_KEY",
+        "OPENROUTER_API_KEY",
     ):
         monkeypatch.delenv(var, raising=False)
 
@@ -182,11 +187,16 @@ def test_cli_models_lists_all_providers_and_skips_missing_keys(capsys, monkeypat
     assert "== anthropic ==" in output
     assert "== gemini ==" in output
     assert "== kimi ==" in output
-    assert output.count("skipped:") == 4
+    assert "== grok ==" in output
+    assert "== deepseek ==" in output
+    assert "== mistral ==" in output
+    assert "== openrouter ==" in output
+    # openai, anthropic, gemini, kimi, grok, deepseek, mistral, openrouter.
+    assert output.count("skipped:") == 8
 
 
 def test_cli_models_rejects_unknown_provider(capsys):
-    status = main(["models", "--provider", "grok"])
+    status = main(["models", "--provider", "not-a-provider"])
 
     output = capsys.readouterr().out
     assert status == 2

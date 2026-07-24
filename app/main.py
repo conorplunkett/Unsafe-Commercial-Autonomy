@@ -23,11 +23,16 @@ from .models import AgentAction, RunRequest, model_to_dict
 from .policies import evaluate_action
 from .providers import (
     DEFAULT_ANTHROPIC_MODEL,
+    DEFAULT_DEEPSEEK_MODEL,
     DEFAULT_GEMINI_MODEL,
+    DEFAULT_GROK_MODEL,
     DEFAULT_INKLING_MODEL,
     DEFAULT_KIMI_MODEL,
+    DEFAULT_MISTRAL_MODEL,
     DEFAULT_OPENAI_MODEL,
+    DEFAULT_OPENROUTER_MODEL,
     DEFAULT_OPENWEIGHTS_MODEL,
+    DEFAULT_QWEN_MODEL,
 )
 from .runner import run_benchmark
 from .storage import RunStorage
@@ -57,6 +62,26 @@ MODEL_PROFILES = {
         "name": "Inkling",
         "description": "Runs Thinking Machines Lab's Inkling open-weight model through an OpenAI-compatible inference host.",
     },
+    "grok": {
+        "name": "Grok",
+        "description": "Runs the configured xAI Grok model through its OpenAI-compatible endpoint.",
+    },
+    "deepseek": {
+        "name": "DeepSeek",
+        "description": "Runs the configured DeepSeek model through its OpenAI-compatible endpoint.",
+    },
+    "mistral": {
+        "name": "Mistral",
+        "description": "Runs the configured Mistral model through its OpenAI-compatible endpoint.",
+    },
+    "qwen": {
+        "name": "Qwen",
+        "description": "Runs the configured Alibaba Qwen model through the DashScope OpenAI-compatible endpoint.",
+    },
+    "openrouter": {
+        "name": "OpenRouter",
+        "description": "Routes to any of OpenRouter's 300+ models via its OpenAI-compatible gateway.",
+    },
     "openweights": {
         "name": "Open-weights",
         "description": "Runs an OpenAI-compatible local open-weights endpoint.",
@@ -77,6 +102,11 @@ PROVIDER_ENV_KEYS: Dict[str, list[str]] = {
     "gemini": ["GEMINI_API_KEY", "GOOGLE_API_KEY"],
     "kimi": ["KIMI_API_KEY", "MOONSHOT_API_KEY"],
     "inkling": ["INKLING_API_KEY", "TOGETHER_API_KEY"],
+    "grok": ["XAI_API_KEY", "GROK_API_KEY"],
+    "deepseek": ["DEEPSEEK_API_KEY"],
+    "mistral": ["MISTRAL_API_KEY"],
+    "qwen": ["DASHSCOPE_API_KEY", "QWEN_API_KEY"],
+    "openrouter": ["OPENROUTER_API_KEY"],
     "openweights": [],
     "baseline_naive": [],
 }
@@ -87,6 +117,11 @@ PROVIDER_DEFAULT_MODEL: Dict[str, str] = {
     "gemini": DEFAULT_GEMINI_MODEL,
     "kimi": DEFAULT_KIMI_MODEL,
     "inkling": DEFAULT_INKLING_MODEL,
+    "grok": DEFAULT_GROK_MODEL,
+    "deepseek": DEFAULT_DEEPSEEK_MODEL,
+    "mistral": DEFAULT_MISTRAL_MODEL,
+    "qwen": DEFAULT_QWEN_MODEL,
+    "openrouter": DEFAULT_OPENROUTER_MODEL,
     "openweights": DEFAULT_OPENWEIGHTS_MODEL,
     "baseline_naive": "",
 }

@@ -84,7 +84,7 @@ is marked `_meta.synthetic` (the shipped placeholder), surveyed scenarios stay
 
 ```bash
 python -m app.cli models                        # all providers with a key set
-python -m app.cli models --provider openai      # or anthropic / gemini / kimi
+python -m app.cli models --provider openai      # anthropic / gemini / kimi / grok / deepseek / mistral / openrouter
 ```
 
 Lists the model ids each provider's API key can use (providers without a key
@@ -109,7 +109,7 @@ python -m app.cli eval [options]
 
 | Flag | Default | Description |
 | --- | --- | --- |
-| `--models` | `openai` | Comma-separated: `openai`, `anthropic`, `gemini`, `kimi`, `inkling`, `openweights`, `baseline_naive`, or `all` |
+| `--models` | `openai` | Comma-separated: `openai`, `anthropic`, `gemini`, `kimi`, `inkling`, `grok`, `deepseek`, `mistral`, `qwen`, `openrouter`, `openweights`, `baseline_naive`, or `all` |
 | `--conditions` | `no_policy,prompt_policy,tool_constraints` | Control layers to test |
 | `--scenario-ids` | all in set | Filter, e.g. `scn_v1_a1_trap,scn_v1_a1_lookalike` |
 | `--scenario-set` | v1 (50 scenarios) | Path to Markdown set, e.g. `data/scenario_sets/v2_250_scenarios.md` |
@@ -212,7 +212,7 @@ python -m app.cli phase2-eval --models openai \
 
 | Flag | Default | Description |
 | --- | --- | --- |
-| `--models` | `openai` | `openai`, `anthropic`, `kimi`, `inkling`, `openweights`, `scripted_diligent`, `scripted_naive`, `all` |
+| `--models` | `openai` | `openai`, `anthropic`, `kimi`, `inkling`, `grok`, `deepseek`, `mistral`, `qwen`, `openrouter`, `openweights`, `scripted_diligent`, `scripted_naive`, `all` |
 | `--conditions` | all six | `no_policy`, `prompt_policy`, `structured_policy`, `preflight_check`, `tool_constraints`, `approval_gate` |
 | `--framings` | both | `evaluation` (benchmark framing) vs `deployment` (live-task framing) |
 | `--scenario-set` | v2 (250) | Markdown scenario-set path |
@@ -487,9 +487,14 @@ path is used. Otherwise `agent_ids` run through scripted deterministic agents.
 | `gemini` | Gemini OpenAI-compatible endpoint | `GEMINI_API_KEY` (or `GOOGLE_API_KEY`); optional `GEMINI_MODEL` (default `gemini-3.1-flash-lite`, the cheapest current Gemini available to new API keys) |
 | `kimi` | Kimi (Moonshot AI) OpenAI-compatible endpoint | `KIMI_API_KEY` (or `MOONSHOT_API_KEY`); optional `KIMI_MODEL` (default `kimi-k2.6`; also available: `kimi-k3`, `kimi-k2.7-code`, `kimi-k2.7-code-highspeed`, `kimi-k2.5` — see `models --provider kimi`) |
 | `inkling` | Thinking Machines Lab's Inkling open-weight model, via an OpenAI-compatible inference host | `INKLING_API_KEY` (or `TOGETHER_API_KEY`); optional `INKLING_MODEL`/`INKLING_BASE_URL` (default Together AI's `thinkingmachines/Inkling`) |
+| `grok` | xAI Grok OpenAI-compatible endpoint | `XAI_API_KEY` (or `GROK_API_KEY`); optional `GROK_MODEL` (default `grok-4.1-fast`; also `grok-4.3`, `grok-4-heavy`) |
+| `deepseek` | DeepSeek OpenAI-compatible endpoint | `DEEPSEEK_API_KEY`; optional `DEEPSEEK_MODEL` (default `deepseek-v4-flash`; also `deepseek-v4-pro`). Uses `json_object` output mode |
+| `mistral` | Mistral OpenAI-compatible endpoint | `MISTRAL_API_KEY`; optional `MISTRAL_MODEL` (default `mistral-small-latest`; also `mistral-large-latest`, `magistral-medium-latest`) |
+| `qwen` | Alibaba Qwen via DashScope compatible-mode endpoint | `DASHSCOPE_API_KEY` (or `QWEN_API_KEY`); optional `QWEN_MODEL` (default `qwen-flash`), `QWEN_BASE_URL` for a regional host. Uses `json_object` output mode |
+| `openrouter` | OpenRouter gateway (300+ models) OpenAI-compatible | `OPENROUTER_API_KEY`; **required** `OPENROUTER_MODEL` (namespaced slug, e.g. `x-ai/grok-4.1-fast`) |
 | `openweights` | OpenAI-compatible `/v1/chat/completions` | `OPENWEIGHTS_BASE_URL`, `OPENWEIGHTS_MODEL`; optional `OPENWEIGHTS_API_KEY` (default `local`) |
 | `baseline_naive` | Offline heuristic — always cheapest, never ask | None |
-| `all` | Runs all seven above | All configured keys/URLs |
+| `all` | Runs every provider above | All configured keys/URLs |
 
 With `--dry-run`, live model IDs use `DryRunProvider` (offline scripted
 actions). `baseline_naive` is always offline regardless of `--dry-run`.
@@ -573,6 +578,17 @@ startup — see Setup). Shell-exported values override the file.
 | `INKLING_API_KEY` | Live Inkling evals (`TOGETHER_API_KEY` also accepted) |
 | `INKLING_MODEL` | Inkling model slug on the inference host (default `thinkingmachines/Inkling`) |
 | `INKLING_BASE_URL` | OpenAI-compatible inference host base URL (default Together AI; point at Fireworks/Modal/Databricks/Baseten instead) |
+| `XAI_API_KEY` | Live Grok evals (`GROK_API_KEY` also accepted) |
+| `GROK_MODEL` | Grok model name (default `grok-4.1-fast`) |
+| `DEEPSEEK_API_KEY` | Live DeepSeek evals |
+| `DEEPSEEK_MODEL` | DeepSeek model name (default `deepseek-v4-flash`) |
+| `MISTRAL_API_KEY` | Live Mistral evals |
+| `MISTRAL_MODEL` | Mistral model name (default `mistral-small-latest`) |
+| `DASHSCOPE_API_KEY` | Live Qwen evals (`QWEN_API_KEY` also accepted) |
+| `QWEN_MODEL` | Qwen model name (default `qwen-flash`) |
+| `QWEN_BASE_URL` | Qwen DashScope compatible-mode base URL (default international host) |
+| `OPENROUTER_API_KEY` | Live OpenRouter evals |
+| `OPENROUTER_MODEL` | OpenRouter model slug, required (e.g. `x-ai/grok-4.1-fast`) |
 | `OPENWEIGHTS_BASE_URL` | OpenAI-compatible local server base URL |
 | `OPENWEIGHTS_MODEL` | Model name on that server |
 | `OPENWEIGHTS_API_KEY` | Auth header for open-weights server (default `local`) |
@@ -634,7 +650,7 @@ Agent actions must be one of: `purchase`, `pay_tool`, `send_stablecoin`,
 | `app/cli.py` | `survey` and `eval` commands |
 | `app/main.py` | FastAPI app and routes |
 | `app/runner.py` | Eval loop (`run_phase1_evaluation`, `run_benchmark`) |
-| `app/providers.py` | OpenAI, Anthropic, Gemini, Kimi, Inkling, open-weights, naive baseline, dry-run |
+| `app/providers.py` | OpenAI, Anthropic, Gemini, Kimi, Inkling, Grok, DeepSeek, Mistral, Qwen, OpenRouter (shared `OpenAICompatibleProvider` base), open-weights, naive baseline, dry-run |
 | `app/policies.py` | Tool constraints and action scoring |
 | `app/data.py` | Markdown scenario parsing, catalog load |
 | `app/survey.py` | Survey aggregation and lock status |
@@ -642,7 +658,7 @@ Agent actions must be one of: `purchase`, `pay_tool`, `send_stablecoin`,
 | `app/metrics.py` | Safety-autonomy metrics |
 | `app/storage.py` | Run JSON persistence |
 | `app/phase2/sandbox.py` | Phase 2 tools, SandboxWorld, policy engine, prompts |
-| `app/phase2/providers.py` | Tool-loop adapters (OpenAI/Anthropic/Kimi/Inkling/openweights) + scripted agents |
+| `app/phase2/providers.py` | Tool-loop adapters (OpenAI/Anthropic/Kimi/Inkling/Grok/DeepSeek/Mistral/Qwen/OpenRouter/openweights) + scripted agents |
 | `app/phase2/runner.py` | Phase 2 eval loop (model × condition × framing × scenario × seed) |
 | `app/phase2/survey.py` | 50-respondent survey aggregation, lock, collection |
 | `app/phase2/humans.py` | Human-baseline sessions: report + interactive collection |
