@@ -18,7 +18,20 @@ from .models import (
 from .policy_text import render_policy_text, structured_policy_json
 
 
-DEFAULT_MODEL_IDS = ["openai", "anthropic", "gemini", "kimi", "inkling", "openweights", "baseline_naive"]
+DEFAULT_MODEL_IDS = [
+    "openai",
+    "anthropic",
+    "gemini",
+    "kimi",
+    "inkling",
+    "grok",
+    "deepseek",
+    "mistral",
+    "qwen",
+    "openrouter",
+    "openweights",
+    "baseline_naive",
+]
 # Defaults are each provider's cheapest current text model, so an eval without
 # an explicit *_MODEL env var burns the fewest dollars. Prices verified
 # 2026-07-23 (per 1M input/output tokens):
@@ -64,6 +77,47 @@ DEFAULT_KIMI_MODEL = "kimi-k2.6"
 # and can be pointed at another provider via INKLING_BASE_URL/INKLING_MODEL.
 DEFAULT_INKLING_BASE_URL = "https://api.together.xyz/v1"
 DEFAULT_INKLING_MODEL = "thinkingmachines/Inkling"
+
+# --- Additional OpenAI-compatible hosted providers -------------------------
+# Each exposes an OpenAI-shaped /chat/completions endpoint, so they share the
+# OpenAICompatibleProvider machinery below and only differ by base URL, auth
+# env var(s), default model, and how they express structured JSON output.
+# Prices/model families verified 2026-07-24; defaults pick each vendor's
+# cheapest current general model so an eval without an explicit *_MODEL burns
+# the fewest dollars. The live-eval preflight validates the chosen id first.
+
+# xAI Grok — OpenAI- and Anthropic-SDK compatible at api.x.ai. Flagships:
+# grok-4.3 (hard reasoning, 1M ctx), grok-4.1-fast (cheap, 2M ctx),
+# grok-4-heavy (parallel-agent max effort). Supports OpenAI structured outputs.
+GROK_BASE_URL = "https://api.x.ai/v1"
+DEFAULT_GROK_MODEL = "grok-4.1-fast"
+
+# DeepSeek — OpenAI-compatible at api.deepseek.com. deepseek-v4-flash
+# ($0.14/$0.28) and deepseek-v4-pro ($0.435/$0.87); thinking mode is toggled
+# in-request, not by model id. Reliable JSON via json_object mode (its
+# json_schema support lags), so this provider asks for json_object.
+DEEPSEEK_BASE_URL = "https://api.deepseek.com/v1"
+DEFAULT_DEEPSEEK_MODEL = "deepseek-v4-flash"
+
+# Mistral — OpenAI-compatible at api.mistral.ai. mistral-large-latest /
+# mistral-small-latest (general) and magistral-* (reasoning). Supports
+# json_schema structured outputs with a strict flag.
+MISTRAL_BASE_URL = "https://api.mistral.ai/v1"
+DEFAULT_MISTRAL_MODEL = "mistral-small-latest"
+
+# Qwen (Alibaba Model Studio / DashScope) — OpenAI-compatible "compatible-mode"
+# endpoint. Defaults to the international host; set QWEN_BASE_URL for a
+# regional one (e.g. dashscope-us / the China mainland host). qwen3-max,
+# qwen-plus, qwen-flash. Uses json_object mode for broad model coverage.
+DEFAULT_QWEN_BASE_URL = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
+DEFAULT_QWEN_MODEL = "qwen-flash"
+
+# OpenRouter — a gateway, not a lab: one key reaches 300+ models from 60+
+# providers via namespaced slugs (e.g. "x-ai/grok-4.3",
+# "deepseek/deepseek-v4-pro"). There is no single "cheapest" default, so
+# OPENROUTER_MODEL must be set explicitly (like the open-weights server).
+OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+DEFAULT_OPENROUTER_MODEL = ""
 
 
 class ProviderError(Exception):
@@ -308,6 +362,73 @@ def available_kimi_models(api_key: Optional[str] = None, prefix: str = "kimi") -
     return sorted(model_id for model_id in ids if model_id.startswith(prefix))
 
 
+def _list_openai_compatible_models(base_url: str, api_key: str, prefix: str = "") -> list[str]:
+    """GET {base_url}/models on an OpenAI-compatible host and return the ids.
+
+    Shared by every hosted provider that follows the OpenAI `/models` shape
+    (``{"data": [{"id": ...}, ...]}``); `prefix` filters to one model family.
+    """
+    try:
+        response = httpx.get(
+            f"{base_url.rstrip('/')}/models",
+            headers={"Authorization": f"Bearer {api_key}"},
+            timeout=30,
+        )
+        response.raise_for_status()
+    except Exception as exc:
+        raise ProviderError(f"Could not list models from {base_url}: {exc}") from exc
+    ids = (item.get("id", "") for item in response.json().get("data", []))
+    return sorted(model_id for model_id in ids if model_id.startswith(prefix))
+
+
+def _first_env(names: Iterable[str]) -> Optional[str]:
+    for name in names:
+        value = os.environ.get(name)
+        if value:
+            return value
+    return None
+
+
+def available_grok_models(api_key: Optional[str] = None, prefix: str = "grok") -> list[str]:
+    """List xAI Grok model ids this key can use, via /v1/models."""
+    key = api_key or _first_env(("XAI_API_KEY", "GROK_API_KEY"))
+    if not key:
+        raise ProviderError("Provide an xAI API key (or set XAI_API_KEY) to list Grok models.")
+    return _list_openai_compatible_models(GROK_BASE_URL, key, prefix)
+
+
+def available_deepseek_models(api_key: Optional[str] = None, prefix: str = "deepseek") -> list[str]:
+    """List DeepSeek model ids this key can use, via /v1/models."""
+    key = api_key or _first_env(("DEEPSEEK_API_KEY",))
+    if not key:
+        raise ProviderError("Provide a DeepSeek API key (or set DEEPSEEK_API_KEY) to list DeepSeek models.")
+    return _list_openai_compatible_models(DEEPSEEK_BASE_URL, key, prefix)
+
+
+def available_mistral_models(api_key: Optional[str] = None, prefix: str = "") -> list[str]:
+    """List Mistral model ids this key can use, via /v1/models.
+
+    No prefix filter by default: the chat family spans several name stems
+    (``mistral-*``, ``magistral-*``, ``ministral-*``).
+    """
+    key = api_key or _first_env(("MISTRAL_API_KEY",))
+    if not key:
+        raise ProviderError("Provide a Mistral API key (or set MISTRAL_API_KEY) to list Mistral models.")
+    return _list_openai_compatible_models(MISTRAL_BASE_URL, key, prefix)
+
+
+def available_openrouter_models(api_key: Optional[str] = None, prefix: str = "") -> list[str]:
+    """List OpenRouter model slugs this key can use, via /api/v1/models.
+
+    OpenRouter exposes 300+ namespaced slugs; pass a prefix (e.g. ``"x-ai/"``)
+    to narrow to one upstream provider.
+    """
+    key = api_key or _first_env(("OPENROUTER_API_KEY",))
+    if not key:
+        raise ProviderError("Provide an OpenRouter API key (or set OPENROUTER_API_KEY) to list OpenRouter models.")
+    return _list_openai_compatible_models(OPENROUTER_BASE_URL, key, prefix)
+
+
 def model_display_name(model_id: str) -> str:
     if model_id == "openai":
         return os.environ.get("OPENAI_MODEL", DEFAULT_OPENAI_MODEL)
@@ -319,6 +440,16 @@ def model_display_name(model_id: str) -> str:
         return os.environ.get("KIMI_MODEL", DEFAULT_KIMI_MODEL)
     if model_id == "inkling":
         return os.environ.get("INKLING_MODEL", DEFAULT_INKLING_MODEL)
+    if model_id == "grok":
+        return os.environ.get("GROK_MODEL", DEFAULT_GROK_MODEL)
+    if model_id == "deepseek":
+        return os.environ.get("DEEPSEEK_MODEL", DEFAULT_DEEPSEEK_MODEL)
+    if model_id == "mistral":
+        return os.environ.get("MISTRAL_MODEL", DEFAULT_MISTRAL_MODEL)
+    if model_id == "qwen":
+        return os.environ.get("QWEN_MODEL", DEFAULT_QWEN_MODEL)
+    if model_id == "openrouter":
+        return os.environ.get("OPENROUTER_MODEL", DEFAULT_OPENROUTER_MODEL)
     if model_id == "openweights":
         return os.environ.get("OPENWEIGHTS_MODEL", DEFAULT_OPENWEIGHTS_MODEL)
     return model_id
@@ -1000,6 +1131,194 @@ class InklingProvider(BaseProvider):
         )
 
 
+class OpenAICompatibleProvider(BaseProvider):
+    """Shared Phase 1 adapter for hosted OpenAI-compatible chat endpoints.
+
+    xAI Grok, DeepSeek, Mistral, Qwen, and OpenRouter all speak the same
+    ``POST {base}/chat/completions`` protocol as the open-weights/Gemini/Kimi
+    paths, so they only differ in config. A subclass sets the class attributes
+    below; everything else (key resolution, /models preflight, request shape,
+    structured-output mode, error-body surfacing, parsing) is inherited.
+    """
+
+    # Subclasses override these.
+    provider_id = "openai_compatible"
+    display_label = "OpenAI-compatible"          # used in error messages
+    base_url = ""                                # OpenAI-compatible root, no trailing /
+    base_url_env: Optional[str] = None           # optional env var to override base_url
+    model_env = ""                               # env var holding the model name
+    default_model = ""                           # cheapest current model (may be "")
+    api_key_envs: tuple[str, ...] = ()           # accepted key env vars, canonical first
+    list_prefix: Optional[str] = None            # None = no /models preflight (key-check only)
+    # How structured JSON output is requested: "json_schema_strict" (name +
+    # strict + schema), "json_schema" (name + schema, no strict), or
+    # "json_object" (plain JSON mode; relies on the prompt's schema text).
+    structured_output = "json_schema"
+    send_seed = False                            # pass a sampler seed where the host supports it
+
+    def __init__(
+        self,
+        model_name: Optional[str] = None,
+        api_key: Optional[str] = None,
+        base_url: Optional[str] = None,
+    ):
+        env_model = os.environ.get(self.model_env) if self.model_env else None
+        self.model_name = model_name or env_model or self.default_model
+        self.api_key = api_key
+        env_base = os.environ.get(self.base_url_env) if self.base_url_env else None
+        self.base_url = (base_url or env_base or self.base_url).rstrip("/")
+
+    def _canonical_key_env(self) -> str:
+        return self.api_key_envs[0] if self.api_key_envs else ""
+
+    def _resolved_api_key(self) -> str:
+        if not self.model_name:
+            raise ProviderError(
+                f"Provide a {self.display_label} model name (or set {self.model_env}) "
+                f"to run the {self.display_label} provider."
+            )
+        api_key = self.api_key or _first_env(self.api_key_envs)
+        if not api_key:
+            raise ProviderError(
+                f"Provide a {self.display_label} API key (or set {self._canonical_key_env()}) "
+                f"to run the {self.display_label} provider."
+            )
+        return api_key
+
+    def available_models(self, api_key: str) -> list[str]:
+        return _list_openai_compatible_models(self.base_url, api_key, self.list_prefix or "")
+
+    def preflight(self) -> None:
+        api_key = self._resolved_api_key()
+        # Providers with a reliable /models list validate the id up front (one
+        # cheap call) so a typo aborts the run instead of failing per cell.
+        # Others (list_prefix is None) can only key-check here.
+        if self.list_prefix is None:
+            return
+        model_ids = self.available_models(api_key)
+        if model_ids and self.model_name not in model_ids:
+            raise ProviderError(
+                f"{self.display_label} model {self.model_name!r} is not available to this key. "
+                f"List valid ids with `python -m app.cli models --provider {self.provider_id}` "
+                f"and set {self.model_env}."
+            )
+
+    def _response_format(self) -> Dict[str, Any]:
+        if self.structured_output == "json_object":
+            return {"type": "json_object"}
+        json_schema: Dict[str, Any] = {"name": "phase1_agent_action", "schema": ACTION_JSON_SCHEMA}
+        if self.structured_output == "json_schema_strict":
+            json_schema["strict"] = True
+        return {"type": "json_schema", "json_schema": json_schema}
+
+    def generate_action(
+        self,
+        scenario: Scenario,
+        control_condition: ControlCondition,
+        seed: int,
+        temperature: float,
+    ) -> ProviderAction:
+        api_key = self._resolved_api_key()
+        # The OpenAI-compat layer accepts system/user/assistant roles only, so
+        # remap the "developer" message (same as Gemini/Kimi/open-weights).
+        messages = [
+            {**message, "role": "system"} if message["role"] == "developer" else message
+            for message in build_messages(scenario, control_condition, seed)
+        ]
+        body: Dict[str, Any] = {
+            "model": self.model_name,
+            "messages": messages,
+            "temperature": temperature,
+            "response_format": self._response_format(),
+        }
+        if self.send_seed:
+            body["seed"] = seed
+        try:
+            response = httpx.post(
+                f"{self.base_url}/chat/completions",
+                headers={"Authorization": f"Bearer {api_key}"},
+                json=body,
+                timeout=120,
+            )
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            # The host explains *why* it rejected the request in the body
+            # (unsupported param/schema feature, unknown model, etc.), which
+            # raise_for_status() drops. Surface it (mirrors GeminiProvider).
+            raise ProviderError(
+                f"{self.display_label} request failed: {exc}\nResponse body: {exc.response.text}"
+            ) from exc
+        except Exception as exc:
+            raise ProviderError(f"{self.display_label} request failed: {exc}") from exc
+        payload = response.json()
+        raw_output = payload["choices"][0]["message"]["content"]
+        return ProviderAction(
+            raw_output=raw_output,
+            action=parse_action_json(raw_output),
+            provider_id=self.provider_id,
+            model_name=self.model_name,
+        )
+
+
+class GrokProvider(OpenAICompatibleProvider):
+    provider_id = "grok"
+    display_label = "Grok"
+    base_url = GROK_BASE_URL
+    model_env = "GROK_MODEL"
+    default_model = DEFAULT_GROK_MODEL
+    api_key_envs = ("XAI_API_KEY", "GROK_API_KEY")
+    list_prefix = "grok"
+    structured_output = "json_schema_strict"  # xAI supports OpenAI structured outputs
+
+
+class DeepSeekProvider(OpenAICompatibleProvider):
+    provider_id = "deepseek"
+    display_label = "DeepSeek"
+    base_url = DEEPSEEK_BASE_URL
+    model_env = "DEEPSEEK_MODEL"
+    default_model = DEFAULT_DEEPSEEK_MODEL
+    api_key_envs = ("DEEPSEEK_API_KEY",)
+    list_prefix = "deepseek"
+    structured_output = "json_object"  # json_schema support lags; json_object is reliable
+
+
+class MistralProvider(OpenAICompatibleProvider):
+    provider_id = "mistral"
+    display_label = "Mistral"
+    base_url = MISTRAL_BASE_URL
+    model_env = "MISTRAL_MODEL"
+    default_model = DEFAULT_MISTRAL_MODEL
+    api_key_envs = ("MISTRAL_API_KEY",)
+    list_prefix = ""  # chat family spans mistral-/magistral-/ministral- stems
+    structured_output = "json_schema_strict"  # Mistral custom structured outputs
+
+
+class QwenProvider(OpenAICompatibleProvider):
+    provider_id = "qwen"
+    display_label = "Qwen"
+    base_url = DEFAULT_QWEN_BASE_URL
+    base_url_env = "QWEN_BASE_URL"  # swap the international host for a regional one
+    model_env = "QWEN_MODEL"
+    default_model = DEFAULT_QWEN_MODEL
+    api_key_envs = ("DASHSCOPE_API_KEY", "QWEN_API_KEY")
+    # DashScope's compatible-mode /models list isn't dependable across regions,
+    # so preflight only key-checks; a bad id then surfaces on first call.
+    list_prefix = None
+    structured_output = "json_object"
+
+
+class OpenRouterProvider(OpenAICompatibleProvider):
+    provider_id = "openrouter"
+    display_label = "OpenRouter"
+    base_url = OPENROUTER_BASE_URL
+    base_url_env = "OPENROUTER_BASE_URL"
+    model_env = "OPENROUTER_MODEL"
+    default_model = DEFAULT_OPENROUTER_MODEL
+    api_key_envs = ("OPENROUTER_API_KEY",)
+    list_prefix = ""  # 300+ namespaced slugs; membership check catches typos
+    structured_output = "json_schema"  # pass-through; strict varies by upstream model
+
+
 class NaiveBaselineProvider(BaseProvider):
     """Always-cheapest, never-ask heuristic baseline from the research plan.
 
@@ -1113,6 +1432,16 @@ def create_provider(
         return KimiProvider(model_name=model_name, api_key=api_key)
     if model_id == "inkling":
         return InklingProvider(model_name=model_name, api_key=api_key)
+    if model_id == "grok":
+        return GrokProvider(model_name=model_name, api_key=api_key)
+    if model_id == "deepseek":
+        return DeepSeekProvider(model_name=model_name, api_key=api_key)
+    if model_id == "mistral":
+        return MistralProvider(model_name=model_name, api_key=api_key)
+    if model_id == "qwen":
+        return QwenProvider(model_name=model_name, api_key=api_key)
+    if model_id == "openrouter":
+        return OpenRouterProvider(model_name=model_name, api_key=api_key)
     if model_id == "openweights":
         return OpenWeightsProvider(model_name=model_name)
     raise KeyError(f"Unknown model id {model_id}")

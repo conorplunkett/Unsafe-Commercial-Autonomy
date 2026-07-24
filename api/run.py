@@ -25,7 +25,18 @@ _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 
-ALLOWED_PROVIDERS = {"openai", "anthropic", "gemini", "kimi", "inkling"}
+ALLOWED_PROVIDERS = {
+    "openai",
+    "anthropic",
+    "gemini",
+    "kimi",
+    "inkling",
+    "grok",
+    "deepseek",
+    "mistral",
+    "qwen",
+    "openrouter",
+}
 ALLOWED_CONDITIONS = {"no_policy", "prompt_policy", "tool_constraints"}
 # Union of the tiers the providers accept: OpenAI gpt-5.x reasoning models
 # take none/low/medium/high/xhigh ("minimal" was renamed "none" and is rejected);

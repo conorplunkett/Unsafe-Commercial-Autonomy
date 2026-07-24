@@ -24,15 +24,23 @@ def test_allowed_providers_include_all_live_providers():
         "gemini",
         "kimi",
         "inkling",
+        "grok",
+        "deepseek",
+        "mistral",
+        "qwen",
+        "openrouter",
     }
 
 
 def test_run_cell_rejects_unknown_provider():
     with pytest.raises(ValueError, match="provider must be one of"):
-        api_run.run_cell({"provider": "grok", "model": "x", "apiKey": "k"})
+        api_run.run_cell({"provider": "not-a-provider", "model": "x", "apiKey": "k"})
 
 
-@pytest.mark.parametrize("provider", ["openai", "anthropic", "gemini", "kimi", "inkling"])
+@pytest.mark.parametrize(
+    "provider",
+    ["openai", "anthropic", "gemini", "kimi", "inkling", "grok", "deepseek", "mistral", "qwen", "openrouter"],
+)
 def test_run_cell_accepts_provider_then_validates_rest(provider):
     # A known provider must pass the provider gate and fail on the *next* check
     # (missing model) rather than being rejected as an unknown provider. This

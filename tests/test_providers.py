@@ -350,6 +350,128 @@ def test_inkling_base_url_overridable(monkeypatch):
     assert InklingProvider().base_url == "https://api.fireworks.ai/inference/v1"
 
 
+# --- Grok / DeepSeek / Mistral / Qwen / OpenRouter (OpenAICompatibleProvider) --
+
+def test_new_openai_compatible_providers_construct_with_expected_config():
+    from app.providers import (
+        DeepSeekProvider,
+        GrokProvider,
+        MistralProvider,
+        OpenRouterProvider,
+        QwenProvider,
+    )
+
+    grok = GrokProvider()
+    assert grok.provider_id == "grok"
+    assert grok.base_url == "https://api.x.ai/v1"
+    assert grok.model_name == "grok-4.1-fast"
+    assert grok.structured_output == "json_schema_strict"
+
+    deepseek = DeepSeekProvider()
+    assert deepseek.base_url == "https://api.deepseek.com/v1"
+    assert deepseek.model_name == "deepseek-v4-flash"
+    assert deepseek.structured_output == "json_object"
+
+    assert MistralProvider().base_url == "https://api.mistral.ai/v1"
+    assert QwenProvider().base_url.endswith("/compatible-mode/v1")
+    # OpenRouter has no single cheapest default — it must be set explicitly.
+    assert OpenRouterProvider().model_name == ""
+
+
+@pytest.mark.parametrize("model_id", ["grok", "deepseek", "mistral", "qwen", "openrouter"])
+def test_create_provider_returns_new_providers_when_live(model_id):
+    from app.providers import DryRunProvider, create_provider
+
+    live = create_provider(model_id, live=True)
+    assert live.provider_id == model_id
+    assert isinstance(create_provider(model_id, live=False), DryRunProvider)
+
+
+@pytest.mark.parametrize("model_id", ["grok", "deepseek", "mistral", "qwen", "openrouter"])
+def test_resolve_model_ids_and_all_include_new_providers(model_id):
+    from app.providers import resolve_model_ids
+
+    assert resolve_model_ids([model_id]) == [model_id]
+    assert model_id in resolve_model_ids(["all"])
+
+
+def test_new_provider_response_format_modes():
+    from app.providers import DeepSeekProvider, GrokProvider, OpenRouterProvider
+
+    # json_object mode is a plain type with no schema block.
+    assert DeepSeekProvider()._response_format() == {"type": "json_object"}
+    # strict mode includes the strict flag; non-strict omits it.
+    grok_fmt = GrokProvider()._response_format()
+    assert grok_fmt["type"] == "json_schema"
+    assert grok_fmt["json_schema"]["strict"] is True
+    assert "strict" not in OpenRouterProvider()._response_format()["json_schema"]
+
+
+def test_grok_preflight_requires_api_key(monkeypatch):
+    from app.providers import GrokProvider, ProviderError
+
+    for var in ("XAI_API_KEY", "GROK_API_KEY"):
+        monkeypatch.delenv(var, raising=False)
+    with pytest.raises(ProviderError, match="API key"):
+        GrokProvider().preflight()
+
+
+def test_grok_preflight_rejects_unknown_model(monkeypatch):
+    import app.providers as providers_module
+    from app.providers import GrokProvider, ProviderError
+
+    monkeypatch.setattr(
+        providers_module,
+        "_list_openai_compatible_models",
+        lambda base_url, api_key, prefix="": ["grok-4.1-fast", "grok-4.3"],
+    )
+    provider = GrokProvider(model_name="grok-999", api_key="xai-test")
+    with pytest.raises(ProviderError, match="not available"):
+        provider.preflight()
+
+
+def test_qwen_preflight_is_key_check_only(monkeypatch):
+    # Qwen sets list_prefix=None, so preflight must not attempt a /models call;
+    # a present key + model is enough to pass.
+    from app.providers import QwenProvider
+
+    monkeypatch.setenv("DASHSCOPE_API_KEY", "sk-test")
+    QwenProvider(model_name="qwen-flash").preflight()  # does not raise
+
+
+def test_qwen_base_url_overridable(monkeypatch):
+    from app.providers import DEFAULT_QWEN_BASE_URL, QwenProvider
+
+    monkeypatch.delenv("QWEN_BASE_URL", raising=False)
+    assert QwenProvider().base_url == DEFAULT_QWEN_BASE_URL
+    monkeypatch.setenv("QWEN_BASE_URL", "https://dashscope-us.aliyuncs.com/compatible-mode/v1")
+    assert QwenProvider().base_url == "https://dashscope-us.aliyuncs.com/compatible-mode/v1"
+
+
+def test_grok_accepts_alternate_key_env(monkeypatch):
+    # GROK_API_KEY works as a fallback for XAI_API_KEY.
+    from app.providers import GrokProvider
+
+    monkeypatch.delenv("XAI_API_KEY", raising=False)
+    monkeypatch.setenv("GROK_API_KEY", "xai-alt")
+    assert GrokProvider(model_name="grok-4.1-fast")._resolved_api_key() == "xai-alt"
+
+
+def test_model_display_name_new_providers(monkeypatch):
+    from app.providers import (
+        DEFAULT_DEEPSEEK_MODEL,
+        DEFAULT_GROK_MODEL,
+        model_display_name,
+    )
+
+    for var in ("GROK_MODEL", "DEEPSEEK_MODEL"):
+        monkeypatch.delenv(var, raising=False)
+    assert model_display_name("grok") == DEFAULT_GROK_MODEL
+    assert model_display_name("deepseek") == DEFAULT_DEEPSEEK_MODEL
+    monkeypatch.setenv("GROK_MODEL", "grok-4-heavy")
+    assert model_display_name("grok") == "grok-4-heavy"
+
+
 def test_action_schema_constrains_payment_type_and_documents_self_reports():
     # payment_type must be an enum (free text drifts into invented composites
     # that misread as disallowed rails), and the self-report booleans the

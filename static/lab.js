@@ -76,6 +76,18 @@ const MODEL_SUGGESTIONS = {
   gemini: ["gemini-3.1-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro"],
   kimi: ["kimi-k2.6", "kimi-k3", "kimi-k2.7-code", "kimi-k2.7-code-highspeed", "kimi-k2.5"],
   inkling: ["thinkingmachines/Inkling"],
+  grok: ["grok-4.1-fast", "grok-4.3", "grok-4-heavy"],
+  deepseek: ["deepseek-v4-flash", "deepseek-v4-pro"],
+  mistral: ["mistral-small-latest", "mistral-large-latest", "magistral-medium-latest"],
+  qwen: ["qwen-flash", "qwen-plus", "qwen3-max"],
+  // OpenRouter needs a namespaced slug — no single default, so seed a few.
+  openrouter: [
+    "x-ai/grok-4.1-fast",
+    "deepseek/deepseek-v4-flash",
+    "anthropic/claude-haiku-4-5",
+    "google/gemini-3.1-flash-lite",
+    "qwen/qwen3-max",
+  ],
 };
 
 // Mirrored from web/lib/labels.ts so the Lab speaks the site's language.

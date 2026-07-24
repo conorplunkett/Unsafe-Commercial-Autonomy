@@ -25,11 +25,27 @@ PHASE2_MODEL_IDS = [
     "anthropic",
     "kimi",
     "inkling",
+    "grok",
+    "deepseek",
+    "mistral",
+    "qwen",
+    "openrouter",
     "openweights",
     "scripted_diligent",
     "scripted_naive",
 ]
-LIVE_MODEL_IDS = {"openai", "anthropic", "kimi", "inkling", "openweights"}
+LIVE_MODEL_IDS = {
+    "openai",
+    "anthropic",
+    "kimi",
+    "inkling",
+    "grok",
+    "deepseek",
+    "mistral",
+    "qwen",
+    "openrouter",
+    "openweights",
+}
 
 
 @dataclass
@@ -502,6 +518,149 @@ class InklingToolProvider(ToolLoopProvider):
         return message.get("content") or "", tool_calls
 
 
+class OpenAICompatToolProvider(ToolLoopProvider):
+    """Shared Phase 2 transport for hosted OpenAI-compatible chat endpoints.
+
+    Grok, DeepSeek, Mistral, Qwen, and OpenRouter drive the same
+    ``POST {base}/chat/completions`` tool loop as the open-weights/Kimi paths;
+    a subclass only sets the config below.
+    """
+
+    # Subclasses override these.
+    provider_id = "openai_compatible"
+    display_label = "OpenAI-compatible"
+    default_base_url = ""
+    base_url_env: Optional[str] = None
+    model_env = ""
+    default_model = ""
+    api_key_envs: tuple[str, ...] = ()
+    send_seed = False
+
+    def __init__(self, model_name: Optional[str] = None, api_key: Optional[str] = None):
+        env_model = os.environ.get(self.model_env, "") if self.model_env else ""
+        self.model_name = model_name or env_model or self.default_model
+        env_base = os.environ.get(self.base_url_env) if self.base_url_env else None
+        self.base_url = (env_base or self.default_base_url).rstrip("/")
+        self.api_key = api_key
+        self._messages: List[Dict[str, Any]] = []
+        self._tools: List[Dict[str, Any]] = []
+        self._temperature = 0.7
+        self._seed: Optional[int] = None
+
+    def _resolved_api_key(self) -> str:
+        for name in self.api_key_envs:
+            value = self.api_key or os.environ.get(name)
+            if value:
+                return value
+        canonical = self.api_key_envs[0] if self.api_key_envs else ""
+        raise ProviderError(f"Set {canonical} to run the {self.display_label} Phase 2 provider.")
+
+    def preflight(self) -> None:
+        self._resolved_api_key()
+        if not self.model_name:
+            raise ProviderError(f"Set {self.model_env} to run the {self.display_label} Phase 2 provider.")
+
+    def start_conversation(self, system_prompt, user_prompt, tools, temperature):
+        if not self.model_name:
+            raise ProviderError(f"Set {self.model_env} to run the {self.display_label} Phase 2 provider.")
+        self._temperature = temperature
+        self._tools = [
+            {"type": "function", "function": {"name": tool["name"], "description": tool["description"], "parameters": tool["parameters"]}}
+            for tool in tools
+        ]
+        self._messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
+
+    def step(self, tool_results):
+        if tool_results:
+            for item in tool_results:
+                self._messages.append(
+                    {"role": "tool", "tool_call_id": item["id"], "content": json.dumps(item["content"])}
+                )
+        body: Dict[str, Any] = {
+            "model": self.model_name,
+            "messages": self._messages,
+            "temperature": self._temperature,
+            "tools": self._tools,
+        }
+        if self.send_seed and self._seed is not None:
+            body["seed"] = self._seed
+        try:
+            response = httpx.post(
+                f"{self.base_url}/chat/completions",
+                headers={"Authorization": f"Bearer {self._resolved_api_key()}"},
+                json=body,
+                timeout=180,
+            )
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            raise ProviderError(
+                f"{self.display_label} request failed: {exc}\nResponse body: {exc.response.text}"
+            ) from exc
+        except Exception as exc:
+            raise ProviderError(f"{self.display_label} request failed: {exc}") from exc
+        message = response.json()["choices"][0]["message"]
+        self._messages.append(message)
+        tool_calls = [
+            {
+                "id": call["id"],
+                "name": call["function"]["name"],
+                "arguments": json.loads(call["function"].get("arguments") or "{}"),
+            }
+            for call in message.get("tool_calls") or []
+        ]
+        return message.get("content") or "", tool_calls
+
+
+class GrokToolProvider(OpenAICompatToolProvider):
+    provider_id = "grok"
+    display_label = "Grok"
+    default_base_url = "https://api.x.ai/v1"
+    model_env = "GROK_MODEL"
+    default_model = "grok-4.1-fast"
+    api_key_envs = ("XAI_API_KEY", "GROK_API_KEY")
+
+
+class DeepSeekToolProvider(OpenAICompatToolProvider):
+    provider_id = "deepseek"
+    display_label = "DeepSeek"
+    default_base_url = "https://api.deepseek.com/v1"
+    model_env = "DEEPSEEK_MODEL"
+    default_model = "deepseek-v4-flash"
+    api_key_envs = ("DEEPSEEK_API_KEY",)
+
+
+class MistralToolProvider(OpenAICompatToolProvider):
+    provider_id = "mistral"
+    display_label = "Mistral"
+    default_base_url = "https://api.mistral.ai/v1"
+    model_env = "MISTRAL_MODEL"
+    default_model = "mistral-small-latest"
+    api_key_envs = ("MISTRAL_API_KEY",)
+
+
+class QwenToolProvider(OpenAICompatToolProvider):
+    provider_id = "qwen"
+    display_label = "Qwen"
+    default_base_url = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
+    base_url_env = "QWEN_BASE_URL"
+    model_env = "QWEN_MODEL"
+    default_model = "qwen-flash"
+    api_key_envs = ("DASHSCOPE_API_KEY", "QWEN_API_KEY")
+
+
+class OpenRouterToolProvider(OpenAICompatToolProvider):
+    provider_id = "openrouter"
+    display_label = "OpenRouter"
+    default_base_url = "https://openrouter.ai/api/v1"
+    base_url_env = "OPENROUTER_BASE_URL"
+    model_env = "OPENROUTER_MODEL"
+    default_model = ""
+    api_key_envs = ("OPENROUTER_API_KEY",)
+
+
 # ---------------------------------------------------------------------------
 # Scripted offline agents
 # ---------------------------------------------------------------------------
@@ -677,6 +836,16 @@ def create_phase2_provider(
         return KimiToolProvider(model_name=model_name, api_key=api_key)
     if model_id == "inkling":
         return InklingToolProvider(model_name=model_name, api_key=api_key)
+    if model_id == "grok":
+        return GrokToolProvider(model_name=model_name, api_key=api_key)
+    if model_id == "deepseek":
+        return DeepSeekToolProvider(model_name=model_name, api_key=api_key)
+    if model_id == "mistral":
+        return MistralToolProvider(model_name=model_name, api_key=api_key)
+    if model_id == "qwen":
+        return QwenToolProvider(model_name=model_name, api_key=api_key)
+    if model_id == "openrouter":
+        return OpenRouterToolProvider(model_name=model_name, api_key=api_key)
     if model_id == "openweights":
         return OpenWeightsToolProvider(model_name=model_name)
     raise KeyError(f"Unknown Phase 2 model id {model_id}")
