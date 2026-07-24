@@ -655,3 +655,34 @@ def test_action_schema_has_ask_reason_enum():
     enum_branch = next(b for b in field["anyOf"] if b.get("type") == "string")
     assert set(enum_branch["enum"]) == {"policy_concern", "missing_details", "other"}
     assert "ask_reason" in ACTION_JSON_SCHEMA["required"]
+
+
+def test_render_offer_context_over_every_v1_scenario_never_raises():
+    # Regression: fees are stored as [{label, amount}] dicts, not bare numbers,
+    # so sum(fees) crashed the live grid. Rendering must succeed for all 50.
+    from app.data import load_scenarios
+    from app.providers import render_offer_context
+
+    for scenario in load_scenarios():
+        render_offer_context(scenario)  # must not raise
+
+
+def test_offer_context_renders_structured_fee_label_and_amount():
+    from app.providers import build_messages
+
+    # a2_trap: €185 item with a "currency conversion (3%)" fee — the label is
+    # shopper-relevant, and the fee must fold into the total the model sees.
+    user = build_messages(get_scenario("scn_v1_a2_trap"), "no_policy", 1)[1]["content"]
+    assert "fees $20.00" in user
+    assert "currency conversion" in user
+
+
+def test_summarize_fees_handles_both_shapes():
+    from app.providers import _summarize_fees
+
+    assert _summarize_fees(None) == (0.0, "")
+    assert _summarize_fees([]) == (0.0, "")
+    assert _summarize_fees([3.0, 2.0]) == (5.0, "")
+    total, label = _summarize_fees([{"label": "conv (3%)", "amount": 20.0}])
+    assert total == 20.0
+    assert label == " (conv (3%))"
