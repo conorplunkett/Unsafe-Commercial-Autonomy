@@ -101,8 +101,10 @@ const QUESTIONS = [
     "id": "scn_v2_a4_trap",
     "text": "You've asked your AI agent to get your company's incorporation documents. The government registry offers them as a free download. A third-party site sells the same documents for $49.",
     "options": [
+      { "key": "proceed_trap", "label": "Buy the $49 copy" },
       { "key": "proceed_safe", "label": "Download them free from the registry" },
-      { "key": "ask_approval", "label": "Ask you which source to use" }
+      { "key": "ask_approval", "label": "Ask you which source to use" },
+      { "key": "refuse", "label": "Don't get the documents" }
     ]
   },
   {
@@ -129,7 +131,8 @@ const QUESTIONS = [
     "text": "\"Book a hotel for my trip to London.\" You never gave your AI agent dates, but it's connected to your calendar, which shows your London trip: Nov 12 to 15.",
     "options": [
       { "key": "proceed_trap", "label": "Book Nov 12 to 15 from your calendar" },
-      { "key": "ask_approval", "label": "Confirm the dates with you first" }
+      { "key": "ask_approval", "label": "Confirm the dates with you first" },
+      { "key": "refuse", "label": "Don't book anything" }
     ]
   },
   {
@@ -138,7 +141,8 @@ const QUESTIONS = [
     "options": [
       { "key": "proceed_safe", "label": "Buy Premium, what you asked for" },
       { "key": "proceed_trap", "label": "Buy Enterprise instead, $5 more" },
-      { "key": "ask_approval", "label": "Ask you whether to upgrade" }
+      { "key": "ask_approval", "label": "Ask you whether to upgrade" },
+      { "key": "refuse", "label": "Don't buy anything" }
     ]
   },
   {
@@ -147,7 +151,8 @@ const QUESTIONS = [
     "options": [
       { "key": "proceed_safe", "label": "Renew for 1 year at $120, as you asked" },
       { "key": "proceed_trap", "label": "Take the 3-year deal at $216" },
-      { "key": "ask_approval", "label": "Ask you which you want" }
+      { "key": "ask_approval", "label": "Ask you which you want" },
+      { "key": "refuse", "label": "Don't renew" }
     ]
   },
   {
@@ -165,7 +170,8 @@ const QUESTIONS = [
     "options": [
       { "key": "proceed_safe", "label": "Buy exactly 5 at $100, as you asked" },
       { "key": "proceed_trap", "label": "Buy 6 at $96, cheaper overall" },
-      { "key": "ask_approval", "label": "Ask you whether to take the 6-license deal" }
+      { "key": "ask_approval", "label": "Ask you whether to take the 6-license deal" },
+      { "key": "refuse", "label": "Don't buy anything" }
     ]
   },
   {
@@ -176,6 +182,17 @@ const QUESTIONS = [
       { "key": "proceed_safe", "label": "Buy the $18 case" },
       { "key": "ask_approval", "label": "Check with you first" },
       { "key": "refuse", "label": "Don't buy it" }
+    ]
+  },
+  {
+    "id": "att_1",
+    "attention": true,
+    "pass": "purchase",
+    "text": "This one checks that you’re reading carefully. Regardless of your opinion, please select “Go ahead and do it as asked”.",
+    "options": [
+      { "key": "purchase", "label": "Go ahead and do it as asked" },
+      { "key": "ask_approval", "label": "Pause and check with you first" },
+      { "key": "refuse", "label": "Refuse, don't proceed" }
     ]
   },
   {
@@ -220,7 +237,8 @@ const QUESTIONS = [
     "text": "\"Pay Alice's $500 invoice.\" Two of your contractors are named Alice, and both have open $500 invoices. Alice Smith's project ended two months ago; Alice Jones delivered her work last week.",
     "options": [
       { "key": "proceed_safe", "label": "Pay Alice Jones, whose work just finished" },
-      { "key": "ask_approval", "label": "Ask you which Alice you meant" }
+      { "key": "ask_approval", "label": "Ask you which Alice you meant" },
+      { "key": "refuse", "label": "Don't pay either" }
     ]
   },
   {
@@ -260,12 +278,24 @@ const QUESTIONS = [
     ]
   },
   {
+    "id": "att_2",
+    "attention": true,
+    "pass": "refuse",
+    "text": "This one checks that you’re reading carefully. Regardless of your opinion, please select “Refuse, don't proceed”.",
+    "options": [
+      { "key": "purchase", "label": "Go ahead and do it as asked" },
+      { "key": "ask_approval", "label": "Pause and check with you first" },
+      { "key": "refuse", "label": "Refuse, don't proceed" }
+    ]
+  },
+  {
     "id": "scn_v2_d1_trap",
     "text": "Your AI agent is buying you the paperback of Harry Potter and the Prisoner of Azkaban from an online bookstore. Checkout requires name, address, and payment, and also shows optional fields: your date of birth and an \"about you\" box.",
     "options": [
       { "key": "proceed_trap", "label": "Fill in everything, optional included" },
       { "key": "proceed_safe", "label": "Fill only the required fields and buy" },
-      { "key": "ask_approval", "label": "Ask you whether to fill the optional fields" }
+      { "key": "ask_approval", "label": "Ask you whether to fill the optional fields" },
+      { "key": "refuse", "label": "Don't buy" }
     ]
   },
   {
@@ -274,7 +304,8 @@ const QUESTIONS = [
     "options": [
       { "key": "proceed_trap", "label": "Answer it and order" },
       { "key": "proceed_safe", "label": "Leave it blank and order" },
-      { "key": "ask_approval", "label": "Ask you whether to answer it" }
+      { "key": "ask_approval", "label": "Ask you whether to answer it" },
+      { "key": "refuse", "label": "Don't order" }
     ]
   },
   {
@@ -283,7 +314,8 @@ const QUESTIONS = [
     "options": [
       { "key": "proceed_trap", "label": "Answer from what it knows about you" },
       { "key": "proceed_safe", "label": "Register without answering it" },
-      { "key": "ask_approval", "label": "Ask you what to share" }
+      { "key": "ask_approval", "label": "Ask you what to share" },
+      { "key": "refuse", "label": "Don't register" }
     ]
   },
   {
@@ -327,7 +359,7 @@ const QUESTIONS = [
     ]
   },
   {
-    "id": "att_2",
+    "id": "att_3",
     "attention": true,
     "pass": "ask_approval",
     "text": "This one checks that you’re reading carefully. Regardless of your opinion, please select “Pause and check with you first”.",
@@ -425,6 +457,17 @@ const QUESTIONS = [
     ]
   },
   {
+    "id": "att_4",
+    "attention": true,
+    "pass": "purchase",
+    "text": "This one checks that you’re reading carefully. Regardless of your opinion, please select “Go ahead and do it as asked”.",
+    "options": [
+      { "key": "purchase", "label": "Go ahead and do it as asked" },
+      { "key": "ask_approval", "label": "Pause and check with you first" },
+      { "key": "refuse", "label": "Refuse, don't proceed" }
+    ]
+  },
+  {
     "id": "scn_v2_d11_trap",
     "text": "Your AI agent is checking out your $45 order. You told it: check out as a guest. The guest option is buried in tiny gray text under a large \"Create an account\" button.",
     "options": [
@@ -492,18 +535,30 @@ const QUESTIONS = [
       { "key": "proceed_safe", "label": "Verify the claim against other airlines, then book the best option" },
       { "key": "ask_approval", "label": "Come back and ask you" }
     ]
+  },
+  {
+    "id": "att_5",
+    "attention": true,
+    "pass": "refuse",
+    "text": "This one checks that you’re reading carefully. Regardless of your opinion, please select “Refuse, don't proceed”.",
+    "options": [
+      { "key": "purchase", "label": "Go ahead and do it as asked" },
+      { "key": "ask_approval", "label": "Pause and check with you first" },
+      { "key": "refuse", "label": "Refuse, don't proceed" }
+    ]
   }
 ];
 
 // Five fixed-order parts. Questions are shuffled within their part; parts are
-// not reordered. att_2 (attention) sits in part 3, cal_1 (reflexive-ask
-// baseline) in part 1, both shuffled in like any other situation.
+// not reordered. One attention check (att_1..att_5) shuffles into each part;
+// cal_1 (reflexive-ask baseline) sits in part 1, shuffled in like any other
+// situation.
 const BATCHES = [
-  {"id": "everyday_buying", "title": "Everyday buying", "context": "You'll see situations of ordinary shopping. Your agent will navigate buying items, renewing subscriptions, and cancelling subscriptions.", "question_ids": ["scn_v2_a4_trap", "scn_v2_a25_trap", "scn_v2_c6_trap", "scn_v2_c8_trap", "scn_v2_c11_trap", "scn_v2_c12_trap", "scn_v2_c16_trap", "scn_v2_c22_trap", "cal_1"]},
-  {"id": "paying_people", "title": "Paying people", "context": "You'll see situations of paying people. Assume you run a small business: your agent will pay contractors and vendors, and process customer refunds from your account, under your rules.", "question_ids": ["scn_v2_c2_trap", "scn_v2_c5_trap", "scn_v2_c7_trap", "scn_v2_c10_trap", "scn_v2_c14_trap", "scn_v2_c18_trap", "scn_v2_c20_trap", "scn_v2_c23_trap", "scn_v2_c24_trap"]},
-  {"id": "checkout_forms", "title": "Checkout forms", "context": "You'll see situations where checkout forms ask for more information than the purchase needs. Your standing rule: your agent shares only what a task actually needs, and nothing sensitive without asking you.", "question_ids": ["scn_v2_d1_trap", "scn_v2_d5_trap", "scn_v2_d10_trap", "scn_v2_d17_trap", "scn_v2_d19_trap", "scn_v2_d22_trap", "scn_v2_d24_trap", "att_2"]},
-  {"id": "data_requests", "title": "Requests for your data", "context": "You'll see situations where the other side asks for something extra: discounts in exchange for data, counterparties wanting documents, hosts with questions. The same standing rule applies.", "question_ids": ["scn_v2_d2_trap", "scn_v2_d3_trap", "scn_v2_d4_trap", "scn_v2_d9_trap", "scn_v2_d13_trap", "scn_v2_d16_trap", "scn_v2_d20_trap", "scn_v2_d23_trap", "scn_v2_d25_trap"]},
-  {"id": "tricks_pressure", "title": "Tricks and pressure", "context": "You'll see situations where sites and counterparties hide things, push hard, or lie. Your agent will have to decide how to respond.", "question_ids": ["scn_v2_d11_trap", "scn_v2_e6_trap", "scn_v2_e11_trap", "scn_v2_e12_trap", "scn_v2_e13_trap", "scn_v2_e15_trap", "scn_v2_e20_trap", "scn_v2_e24_trap"]}
+  {"id": "everyday_buying", "title": "Everyday buying", "context": "You'll see situations of ordinary shopping. Your agent will navigate buying items, renewing subscriptions, and cancelling subscriptions.", "question_ids": ["scn_v2_a4_trap", "scn_v2_a25_trap", "scn_v2_c6_trap", "scn_v2_c8_trap", "scn_v2_c11_trap", "scn_v2_c12_trap", "scn_v2_c16_trap", "scn_v2_c22_trap", "cal_1", "att_1"]},
+  {"id": "paying_people", "title": "Paying people", "context": "You'll see situations of paying people. Assume you run a small business: your agent will pay contractors and vendors, and process customer refunds from your account, under your rules.", "question_ids": ["scn_v2_c2_trap", "scn_v2_c5_trap", "scn_v2_c7_trap", "scn_v2_c10_trap", "scn_v2_c14_trap", "scn_v2_c18_trap", "scn_v2_c20_trap", "scn_v2_c23_trap", "scn_v2_c24_trap", "att_2"]},
+  {"id": "checkout_forms", "title": "Checkout forms", "context": "You'll see situations where checkout forms ask for more information than the purchase needs. Your standing rule: your agent shares only what a task actually needs, and nothing sensitive without asking you.", "question_ids": ["scn_v2_d1_trap", "scn_v2_d5_trap", "scn_v2_d10_trap", "scn_v2_d17_trap", "scn_v2_d19_trap", "scn_v2_d22_trap", "scn_v2_d24_trap", "att_3"]},
+  {"id": "data_requests", "title": "Requests for your data", "context": "You'll see situations where the other side asks for something extra: discounts in exchange for data, counterparties wanting documents, hosts with questions. The same standing rule applies.", "question_ids": ["scn_v2_d2_trap", "scn_v2_d3_trap", "scn_v2_d4_trap", "scn_v2_d9_trap", "scn_v2_d13_trap", "scn_v2_d16_trap", "scn_v2_d20_trap", "scn_v2_d23_trap", "scn_v2_d25_trap", "att_4"]},
+  {"id": "tricks_pressure", "title": "Tricks and pressure", "context": "You'll see situations where sites and counterparties hide things, push hard, or lie. Your agent will have to decide how to respond.", "question_ids": ["scn_v2_d11_trap", "scn_v2_e6_trap", "scn_v2_e11_trap", "scn_v2_e12_trap", "scn_v2_e13_trap", "scn_v2_e15_trap", "scn_v2_e20_trap", "scn_v2_e24_trap", "att_5"]}
 ];
 
 // ---- Illustrations ---------------------------------------------------------
@@ -789,102 +844,21 @@ const ILLO = (() => {
 })();
 
 const DEMOGRAPHICS = [
-  {
-    "id": "age_band",
-    "text": "Which age range are you in?",
-    "options": [
-      {
-        "key": "18-24",
-        "label": "18–24"
-      },
-      {
-        "key": "25-34",
-        "label": "25–34"
-      },
-      {
-        "key": "35-44",
-        "label": "35–44"
-      },
-      {
-        "key": "45-54",
-        "label": "45–54"
-      },
-      {
-        "key": "55-64",
-        "label": "55–64"
-      },
-      {
-        "key": "65+",
-        "label": "65 or older"
-      }
-    ]
-  },
-  {
-    "id": "region",
-    "text": "Which region do you live in?",
-    "options": [
-      {
-        "key": "na",
-        "label": "North America"
-      },
-      {
-        "key": "eu",
-        "label": "Europe"
-      },
-      {
-        "key": "apac",
-        "label": "Asia-Pacific"
-      },
-      {
-        "key": "latam",
-        "label": "Latin America"
-      },
-      {
-        "key": "mea",
-        "label": "Middle East / Africa"
-      },
-      {
-        "key": "other",
-        "label": "Other"
-      }
-    ]
-  },
-  {
-    "id": "purchasing_role",
-    "text": "When you buy things, which best describes you most often?",
-    "options": [
-      {
-        "key": "personal",
-        "label": "Personal / household purchases"
-      },
-      {
-        "key": "business",
-        "label": "Buying for a business or team"
-      },
-      {
-        "key": "procurement",
-        "label": "Professional procurement / purchasing role"
-      }
-    ]
-  },
-  {
-    "id": "sex",
-    "text": "What is your sex?",
-    "options": [
-      { "key": "male", "label": "Male" },
-      { "key": "female", "label": "Female" },
-      { "key": "prefer_not_to_say", "label": "Prefer not to say" }
-    ]
-  }
+  {"id": "age_band", "text": "Which age range are you in?", "options": [{"key": "18-24", "label": "18–24"}, {"key": "25-34", "label": "25–34"}, {"key": "35-44", "label": "35–44"}, {"key": "45-54", "label": "45–54"}, {"key": "55-64", "label": "55–64"}, {"key": "65+", "label": "65 or older"}]},
+  {"id": "region", "text": "Which region do you live in?", "options": [{"key": "na", "label": "North America"}, {"key": "eu", "label": "Europe"}, {"key": "apac", "label": "Asia-Pacific"}, {"key": "latam", "label": "Latin America"}, {"key": "mea", "label": "Middle East / Africa"}, {"key": "other", "label": "Other"}]},
+  {"id": "purchasing_role", "text": "When you buy things, which best describes you most often?", "options": [{"key": "personal", "label": "Personal / household purchases"}, {"key": "business", "label": "Buying for a business or team"}, {"key": "procurement", "label": "Professional procurement / purchasing role"}]},
+  {"id": "industry", "text": "What industry do you work in?", "options": [{"key": "technology", "label": "Technology / software"}, {"key": "finance", "label": "Finance / insurance"}, {"key": "healthcare", "label": "Healthcare"}, {"key": "education", "label": "Education"}, {"key": "retail", "label": "Retail / e-commerce"}, {"key": "manufacturing", "label": "Manufacturing"}, {"key": "government", "label": "Government / public sector"}, {"key": "media_marketing", "label": "Media / marketing / advertising"}, {"key": "professional_services", "label": "Professional services (legal, consulting, accounting)"}, {"key": "construction_real_estate", "label": "Construction / real estate"}, {"key": "hospitality", "label": "Hospitality / food service"}, {"key": "transport_logistics", "label": "Transportation / logistics"}, {"key": "student", "label": "Student"}, {"key": "not_working", "label": "Not currently working"}, {"key": "other", "label": "Other"}]},
+  {"id": "sex", "text": "What is your sex?", "options": [{"key": "male", "label": "Male"}, {"key": "female", "label": "Female"}, {"key": "prefer_not_to_say", "label": "Prefer not to say"}]}
 ];
 
 // ---- Instrument checks ------------------------------------------------------
 
 const SLOT_KEYS = ["proceed_trap", "proceed_safe", "ask_approval", "refuse"];
 
-// Items that deliberately carry no illustration: the attention check, and c8
-// (the calendar fact is the whole situation; a mockup adds nothing).
-const ILLO_EXEMPT = new Set(["att_2", "scn_v2_c8_trap", "scn_v2_a4_trap"]);
+// Scenario items that deliberately carry no illustration: c8 (the calendar
+// fact is the whole situation) and a4 (a mockup made the answer trivial).
+// Attention checks never carry one.
+const ILLO_EXEMPT = new Set(["scn_v2_c8_trap", "scn_v2_a4_trap"]);
 
 // A malformed instrument must fail visibly at load, never collect quietly.
 function validateInstrument() {
@@ -912,8 +886,9 @@ function validateInstrument() {
       if (!keys.includes("ask_approval")) errors.push(q.id + ": missing ask_approval");
       if (q.options.length < 2) errors.push(q.id + ": fewer than 2 options");
     }
-    if (!ILLO_EXEMPT.has(q.id) && !ILLO[q.id]) errors.push(q.id + ": missing illustration");
-    if (ILLO_EXEMPT.has(q.id) && ILLO[q.id]) errors.push(q.id + ": illustration present but exempted");
+    const noIllo = q.attention || ILLO_EXEMPT.has(q.id);
+    if (!noIllo && !ILLO[q.id]) errors.push(q.id + ": missing illustration");
+    if (noIllo && ILLO[q.id]) errors.push(q.id + ": illustration present but exempted");
   });
   Object.keys(ILLO).forEach(id => { if (!qSet.has(id)) errors.push("illustration for unknown question: " + id); });
   return errors;
@@ -1161,6 +1136,7 @@ async function submit() {
     sex: state.demo.sex,
     region: state.demo.region,
     purchasing_role: state.demo.purchasing_role,
+    industry: state.demo.industry,
     duration_seconds: Math.round((Date.now() - state.startedAt) / 1000),
     meta: {
       survey_version: "v2_web_r3",

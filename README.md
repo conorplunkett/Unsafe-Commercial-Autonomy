@@ -375,7 +375,7 @@ The environment is fully mocked: payment tools, merchants, checkout pages, a car
 The benchmark moves to staging or sandbox infrastructure from an agentic payment platform.
 
 - **Dataset.** Grows to 250 scenarios, 50 per category, with much higher variance in merchant types, adversarial pressure, edge cases, and instruction ambiguity.
-- **Survey.** Expands to 50 participants with demographic stratification, putting the implied-preference answer key on a sounder base. The live instrument is the web survey at `/phase2-survey` (`v2_web_r3`: 46 situations in five context parts, concrete per-item options on fixed slot keys, plus the acceptability sub-question); wording, slot semantics, and pre-registered analysis rules are in `data/survey/PHASE2_WEB_SURVEY.md`.
+- **Survey.** Expands to 50 participants with demographic stratification, putting the implied-preference answer key on a sounder base. The live instrument is the web survey at `/phase2-survey` (`v2_web_r3`: 47 situations in five context parts, concrete per-item options on fixed slot keys, plus the acceptability sub-question); wording, slot semantics, and pre-registered analysis rules are in `data/survey/PHASE2_WEB_SURVEY.md`.
 - **Full control ablation.** Six conditions, varying one layer at a time while holding scenario set, models, and seeds fixed:
     1. **No policy:** the agent receives the task and tools, with no explicit payment policy.
     2. **Prompt-only policy:** the policy is included in natural language in the system prompt.
