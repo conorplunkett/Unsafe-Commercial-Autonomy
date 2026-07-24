@@ -175,6 +175,57 @@ fixes, pre-collection:
 - Attention-check copy reads "This question checks..." instead of "This one
   checks...".
 
+**General style rules (2026-07-24, propagated instrument-wide).** The
+same-day fixes above are one-off instances of general rules; those rules now
+apply to every item, enforced by `tests/test_phase2_web_instrument.py` where
+mechanically checkable. Where a rule was deliberately *not* applied, the
+exception is listed here rather than silently skipped.
+
+1. **Attributed instructions.** No item opens with a bare quote; every
+   quoted task names its speaker ("You tell your AI agent: ..."), and every
+   stimulus names the agent (guard-tested). Applied to c5, c6, c7, c8, c12,
+   c14, c16, c18, c20, c22, c24, d10, d13, d16, d17, d19, d24, e13, e15,
+   e24, and `cal_1` (whose ballot stays Phase 1's for floor comparability).
+2. **Parallel alternatives go on bullet lines.** When the decision core is
+   a comparison of two priced or dated alternatives, they render as bullets
+   (a4, a25, c11, c12, c14, c16, c22, d4, e24). *Not* applied: c5 (a range,
+   not alternatives), d16 (the $520 comparable is one trailing fact; the
+   host's question is the core), d22 (two phone numbers, no arithmetic).
+3. **Terminal refusals name the terminal act.** Total-abandonment refusals
+   in shopping/booking sessions read "... and close the session" (the
+   restored citable-zero set, a25, and now d4). d9's "Don't pay yet" read
+   as a pause and collided with ask; it becomes "Don't pay the deposit and
+   call off the job." *Not* applied, deliberately: refusals that encode a
+   substantive route or stance (c16 wait-for-restock, d23 different mouse,
+   d16 book the $520 listing, e6 walk-away-and-report, e20 stop replying,
+   d2/d3/d17 leave-this-store, c24/d24 not-through-this-site, d25
+   cancel-and-recommend, c23 not-on-one-message, d22 skip the whitepaper,
+   d19 walk away) — replacing these with a generic session-close would
+   erase the compliant-alternative distinction the ballot exists to
+   measure; payment declines (c2, c5, c7, c10, c18, c20) — there is no
+   browsing session to close in a pay-an-invoice task and "Don't pay" is
+   already the named terminal act; and `cal_1` ("Don't buy it", Phase 1
+   comparability).
+4. **A mockup shows only what its surface would show.** Web-page frames
+   carry site-rendered content only: removed cal_1's budget chip, d22's
+   "on file" phone chips, d25's agent-can-see-HR chip, e15's
+   screen-counter chip, e24's normal-price chip, and d4's second-store
+   card (one frame is one page; the $38 alternative lives in the vignette).
+   Working-surface panels (inbox, chat, invoice list) may show the
+   artifact's own metadata but not your-side analysis: c2's email now
+   shows a sender line and the freelancer's own note instead of an
+   analysis chip, c20's total renders as a placeholder bar instead of
+   "matches your agreement", d16's comparable chip and e20's
+   you-authorized chip are removed. Kept as plausible surface content: c5
+   (payment history and irreversibility warnings are real banking UI), c18
+   (usual-week average), c14 (invoice list), e13 (deposit terms on a
+   cancellation screen), d20 (address-entered checkmark), c10 (your own
+   inbox knows your company name), c23/d9 (context pinned in your own
+   agent chat / the job thread).
+5. **Option labels name the real surface or actor** (c8's "with your
+   preferred hotel provider" pattern). Audited all 41 ballots; no further
+   violations found.
+
 ## Instrument
 
 - Live at `https://unsafe-commercial-autonomy.vercel.app/phase2-survey`
