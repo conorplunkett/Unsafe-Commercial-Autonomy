@@ -830,6 +830,33 @@ async function refreshData() {
   state.runsFailed = runList.length - state.runList.length;
 }
 
+// Best single complete run for a model: a run only counts as "full" if that
+// run *alone* covers every scenario×condition cell for a phase — merging
+// cells across several separate runs would let a pile of partial runs
+// masquerade as one finished one. Among runs that each complete the same
+// highest phase, a run with more seeds takes precedence over one with fewer.
+function bestCompleteRun(results) {
+  const byRun = new Map();
+  for (const result of results) {
+    if (!byRun.has(result.run_id)) byRun.set(result.run_id, []);
+    byRun.get(result.run_id).push(result);
+  }
+  let best = null;
+  for (const runResults of byRun.values()) {
+    const seeds = new Set(runResults.map((result) => result.seed)).size;
+    for (const status of phaseStatuses(runResults)) {
+      if (!status.full) continue;
+      const candidate = { ...status, complete: true, results: runResults, seeds };
+      const better =
+        !best ||
+        Number(candidate.phase) > Number(best.phase) ||
+        (Number(candidate.phase) === Number(best.phase) && candidate.seeds > best.seeds);
+      if (better) best = candidate;
+    }
+  }
+  return best;
+}
+
 function modelGroups() {
   const groups = new Map();
   for (const result of state.allResults) {
@@ -838,17 +865,19 @@ function modelGroups() {
     groups.get(label).push(result);
   }
   const rows = [...groups.entries()].map(([label, results]) => {
-    // Headline metrics report only the model's highest completed phase, so the
-    // charts and Models table never mix a finished phase with a half-run one.
-    // The full cross-phase picture lives in the Phases section below.
-    const display = displayPhaseFor(results);
-    const displayResults = display ? resultsInPhase(results, display.phase) : results;
+    // Headline metrics come from a single complete run, so the charts and
+    // Models table never blend several separate runs (some possibly partial)
+    // into one inflated N. The full cross-phase, cross-run picture lives in
+    // the Phases section below.
+    const best = bestCompleteRun(results);
+    const display = best || displayPhaseFor(results);
+    const displayResults = best ? best.results : display ? resultsInPhase(results, display.phase) : results;
     return {
       label,
       results,
       displayResults,
       display,
-      runs: new Set(results.map((result) => result.run_id)).size,
+      runs: new Set(displayResults.map((result) => result.run_id)).size,
       metrics: summarize(displayResults),
     };
   });
