@@ -4,7 +4,7 @@
 // screens (intro, context, illustrated item, also-acceptable, attention,
 // demographics).
 //
-// Usage: node scripts/phase2_mobile_pass.js [outdir] [path/to/phase2-survey.html]
+// Usage: node scripts/phase2_mobile_pass.js [outdir] [path/to/survey.html]
 // Needs playwright-core (npm i --no-save playwright-core) and a Chromium
 // binary (override with PHASE2_CHROME=/path/to/chrome).
 const { chromium } = require("playwright-core");
@@ -13,8 +13,8 @@ const path = require("path");
 
 const CHROME = process.env.PHASE2_CHROME || "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
 const OUT = process.argv[2] || "/tmp/phase2-mobile";
-const FILE = "file://" + path.resolve(process.argv[3] || "web/public/phase2-survey.html") + "?test=1";
-const SITUATIONS = 47;
+const FILE = "file://" + path.resolve(process.argv[3] || "web/public/survey.html") + "?test=1";
+const SITUATIONS = 50;
 
 function fail(msg) { console.error("FAIL: " + msg); process.exit(1); }
 

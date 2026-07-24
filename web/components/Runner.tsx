@@ -24,11 +24,13 @@ const PROVIDERS = [
   { id: "gemini", label: "Gemini", defaultModel: "gemini-3.1-flash-lite", keyLabel: "Google Gemini", keyPlaceholder: "AIza..." },
   { id: "kimi", label: "Kimi", defaultModel: "kimi-k2.6", keyLabel: "Kimi (Moonshot AI)", keyPlaceholder: "sk-..." },
   { id: "inkling", label: "Inkling", defaultModel: "thinkingmachines/Inkling", keyLabel: "Together AI", keyPlaceholder: "..." },
-  { id: "grok", label: "Grok", defaultModel: "grok-4.1-fast", keyLabel: "xAI (Grok)", keyPlaceholder: "xai-..." },
+  // grok-4.1-fast was retired 2026-05-15 (redirects to grok-4.3) and no
+  // longer appears in account model lists; the -0309 family is current.
+  { id: "grok", label: "Grok", defaultModel: "grok-4.20-0309-non-reasoning", keyLabel: "xAI (Grok)", keyPlaceholder: "xai-..." },
   { id: "deepseek", label: "DeepSeek", defaultModel: "deepseek-v4-flash", keyLabel: "DeepSeek", keyPlaceholder: "sk-..." },
   { id: "mistral", label: "Mistral", defaultModel: "mistral-small-latest", keyLabel: "Mistral", keyPlaceholder: "..." },
   { id: "qwen", label: "Qwen", defaultModel: "qwen-flash", keyLabel: "Alibaba DashScope", keyPlaceholder: "sk-..." },
-  { id: "openrouter", label: "OpenRouter", defaultModel: "x-ai/grok-4.1-fast", keyLabel: "OpenRouter", keyPlaceholder: "sk-or-..." },
+  { id: "openrouter", label: "OpenRouter", defaultModel: "x-ai/grok-4.3", keyLabel: "OpenRouter", keyPlaceholder: "sk-or-..." },
 ] as const;
 
 const MODEL_SUGGESTIONS: Record<string, string[]> = {
@@ -42,12 +44,12 @@ const MODEL_SUGGESTIONS: Record<string, string[]> = {
   gemini: ["gemini-3.1-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro"],
   kimi: ["kimi-k2.6", "kimi-k3", "kimi-k2.7-code", "kimi-k2.7-code-highspeed", "kimi-k2.5"],
   inkling: ["thinkingmachines/Inkling"],
-  grok: ["grok-4.1-fast", "grok-4.3", "grok-4-heavy"],
+  grok: ["grok-4.20-0309-non-reasoning", "grok-4.20-0309-reasoning", "grok-4.3", "grok-4.5"],
   deepseek: ["deepseek-v4-flash", "deepseek-v4-pro"],
   mistral: ["mistral-small-latest", "mistral-large-latest", "magistral-medium-latest"],
   qwen: ["qwen-flash", "qwen-plus", "qwen3-max"],
   openrouter: [
-    "x-ai/grok-4.1-fast",
+    "x-ai/grok-4.3",
     "deepseek/deepseek-v4-flash",
     "anthropic/claude-haiku-4-5",
     "google/gemini-3.1-flash-lite",

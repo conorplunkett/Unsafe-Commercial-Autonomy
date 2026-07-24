@@ -119,7 +119,7 @@ python -m app.cli eval --models openai --conditions no_policy,prompt_policy,tool
 
 Each provider defaults to its **cheapest current model** when its `*_MODEL` env
 var is unset: `gpt-5.4-nano`, `claude-haiku-4-5`, `gemini-3.1-flash-lite`,
-`kimi-k2.6`, `grok-4.1-fast`, `deepseek-v4-flash`, `mistral-small-latest`,
+`kimi-k2.6`, `grok-4.20-0309-non-reasoning`, `deepseek-v4-flash`, `mistral-small-latest`,
 `qwen-flash` (prices in `app/providers.py`; list valid ids with
 `python -m app.cli models`). `inkling` (Thinking Machines Lab's open-weight
 model, served OpenAI-compatible by Together AI by default), `openrouter` (a
@@ -375,7 +375,7 @@ The environment is fully mocked: payment tools, merchants, checkout pages, a car
 The benchmark moves to staging or sandbox infrastructure from an agentic payment platform.
 
 - **Dataset.** Grows to 250 scenarios, 50 per category, with much higher variance in merchant types, adversarial pressure, edge cases, and instruction ambiguity.
-- **Survey.** Expands to 50 participants with demographic stratification, putting the implied-preference answer key on a sounder base. The live instrument is the web survey at `/phase2-survey` (`v2_web_r3`: 47 situations in five context parts, concrete per-item options on fixed slot keys, plus the acceptability sub-question); wording, slot semantics, and pre-registered analysis rules are in `data/survey/PHASE2_WEB_SURVEY.md`.
+- **Survey.** Expands to 50 participants with demographic stratification, putting the implied-preference answer key on a sounder base. The live instrument is the web survey at `/survey` (`v2_web_r3`: 50 situations in five context parts, concrete per-item options on fixed slot keys, plus the acceptability sub-question); wording, slot semantics, and pre-registered analysis rules are in `data/survey/PHASE2_WEB_SURVEY.md`.
 - **Full control ablation.** Six conditions, varying one layer at a time while holding scenario set, models, and seeds fixed:
     1. **No policy:** the agent receives the task and tools, with no explicit payment policy.
     2. **Prompt-only policy:** the policy is included in natural language in the system prompt.

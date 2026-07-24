@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, Iterable, List, Optional
@@ -16,6 +17,7 @@ from .providers import (
     ProviderError,
     ProviderOutputError,
     create_provider,
+    is_retryable_provider_error,
     resolve_model_ids,
 )
 
@@ -27,6 +29,37 @@ DEFAULT_CONTROL_CONDITIONS: List[ControlCondition] = [
 ]
 DEFAULT_SEEDS = [1, 2, 3, 4, 5]
 DEFAULT_TEMPERATURE = 0.7
+DEFAULT_TRANSIENT_RETRIES = 3
+BACKOFF_BASE_SECONDS = 0.5
+BACKOFF_MAX_SECONDS = 8.0
+# Transient failures are scattered; an outage is contiguous. Once this many
+# cells in a row have failed *after* exhausting their retries, the link or the
+# provider is down and the rest of the grid would only record error rows.
+DEFAULT_CONSECUTIVE_ERROR_LIMIT = 10
+
+
+class RunAbortedError(ProviderError):
+    """A run stopped mid-grid because the provider stopped responding.
+
+    Subclasses ProviderError so existing callers abort without persisting a
+    partially-filled run — a half-finished grid scores as though the missing
+    cells never existed, which reads as a clean result rather than a dead one.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        completed_units: int = 0,
+        total_units: int = 0,
+        consecutive_errors: int = 0,
+        last_error: Optional[str] = None,
+    ):
+        super().__init__(message)
+        self.completed_units = completed_units
+        self.total_units = total_units
+        self.consecutive_errors = consecutive_errors
+        self.last_error = last_error
 
 
 def _select_scenarios(
@@ -105,17 +138,37 @@ def _generate_with_retry(
     seed: int,
     temperature: float,
     retries: int = 1,
+    transient_retries: int = DEFAULT_TRANSIENT_RETRIES,
+    sleep: Callable[[float], None] = time.sleep,
 ) -> tuple[ProviderAction, Optional[str]]:
+    """One grid cell, with separate budgets for the two ways a call can fail.
+
+    Malformed JSON is the model's fault and retries immediately (``retries``).
+    A transport failure is the network's fault and retries with exponential
+    backoff (``transient_retries``) — a hotspot blip used to burn the whole
+    remaining grid because every ProviderError broke out on the first attempt.
+    The budgets are separate so a flapping link cannot consume the allowance
+    for bad output, or vice versa.
+    """
     last_error: Optional[Exception] = None
-    for _ in range(retries + 1):
+    output_retries_left = retries
+    transient_retries_left = transient_retries
+    transient_attempts = 0
+    while True:
         try:
             return provider.generate_action(scenario, control_condition, seed, temperature), None
         except ProviderOutputError as exc:
             last_error = exc
-            continue
+            if output_retries_left <= 0:
+                break
+            output_retries_left -= 1
         except ProviderError as exc:
             last_error = exc
-            break
+            if transient_retries_left <= 0 or not is_retryable_provider_error(exc):
+                break
+            transient_retries_left -= 1
+            sleep(min(BACKOFF_BASE_SECONDS * (2**transient_attempts), BACKOFF_MAX_SECONDS))
+            transient_attempts += 1
     assert last_error is not None
     return _error_provider_action(provider.provider_id, last_error), str(last_error)
 
@@ -133,6 +186,7 @@ def run_phase1_evaluation(
     model_name: Optional[str] = None,
     provider_factory: Optional[Callable[[str, bool], BaseProvider]] = None,
     progress_cb: Optional[Callable[[int, int, str], None]] = None,
+    consecutive_error_limit: int = DEFAULT_CONSECUTIVE_ERROR_LIMIT,
 ) -> BenchmarkRun:
     selected_model_ids = resolve_model_ids(model_ids)
     selected_conditions = _select_control_conditions(control_conditions)
@@ -171,6 +225,7 @@ def run_phase1_evaluation(
         * len(selected_seeds)
     )
     completed_units = 0
+    consecutive_errors = 0
 
     for model_id in selected_model_ids:
         provider = providers[model_id]
@@ -190,6 +245,22 @@ def run_phase1_evaluation(
                         seed,
                         resolved_temperature,
                     )
+                    if error:
+                        consecutive_errors += 1
+                        if consecutive_errors >= consecutive_error_limit:
+                            raise RunAbortedError(
+                                f"{consecutive_errors} provider calls in a row failed after "
+                                f"retries — stopping at {completed_units + 1}/{total_units} "
+                                f"cells instead of filling the rest of the grid with errors. "
+                                f"Last failure ({model_id} / {control_condition} / "
+                                f"{scenario.scenario_id} / seed {seed}): {error}",
+                                completed_units=completed_units,
+                                total_units=total_units,
+                                consecutive_errors=consecutive_errors,
+                                last_error=error,
+                            )
+                    else:
+                        consecutive_errors = 0
                     effective_action, block_reasons = apply_tool_constraints(
                         scenario,
                         provider_action.action,

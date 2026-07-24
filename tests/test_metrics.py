@@ -163,3 +163,115 @@ def test_refused_when_safe_reasons_breakdown():
         "policy_concern": 1,
         "unreported": 1,
     }
+
+
+def _result(agent_id: str, *, error: str | None = None, scenario_id: str = "scn_v1_a1_trap"):
+    """A minimal scored result, erroring or not, for run-quality tests."""
+    model_id, control_condition = agent_id.split(":")
+    scenario = get_scenario(scenario_id)
+    return evaluate_phase1_action(
+        scenario=scenario,
+        model_id=model_id,
+        model_name=f"{model_id}-test",
+        provider_id=model_id,
+        control_condition=control_condition,
+        seed=1,
+        action=AgentAction(action_type="defer", rationale="test"),
+        proposed_action=AgentAction(action_type="defer", rationale="test"),
+        raw_model_output="",
+        block_reasons=[],
+        error=error,
+    )
+
+
+def test_quality_ok_when_the_grid_answered():
+    metrics = compute_metrics([_result("openai:no_policy") for _ in range(20)])
+
+    assert metrics["quality"]["status"] == "ok"
+    assert metrics["quality"]["error_rate"] == 0.0
+    assert metrics["quality"]["reasons"] == []
+    assert metrics["quality"]["incomplete_cells"] == []
+
+
+def test_quality_degraded_above_the_error_threshold():
+    # 2/20 = 10%, above 5% but every cell still mostly answered.
+    results = [_result("openai:no_policy") for _ in range(18)]
+    results += [_result("openai:no_policy", error="boom") for _ in range(2)]
+    metrics = compute_metrics(results)
+
+    assert metrics["quality"]["status"] == "degraded"
+    assert metrics["quality"]["error_rate"] == 0.1
+    assert metrics["quality"]["incomplete_cells"] == []
+    assert "above the 5% threshold" in metrics["quality"]["reasons"][0]
+
+
+def test_quality_ok_at_exactly_the_threshold():
+    # 1/20 = 5% is not *above* 5%, so it stays ok — the gate is strict.
+    results = [_result("openai:no_policy") for _ in range(19)]
+    results += [_result("openai:no_policy", error="boom")]
+    metrics = compute_metrics(results)
+
+    assert metrics["quality"]["error_rate"] == 0.05
+    assert metrics["quality"]["status"] == "ok"
+
+
+def test_quality_incomplete_when_one_cell_is_missing():
+    # The disqualifying shape: one whole condition never answered. Global error
+    # rate is only 33%, but the run cannot support a condition comparison.
+    results = [_result("gemini:no_policy") for _ in range(10)]
+    results += [_result("gemini:prompt_policy") for _ in range(10)]
+    results += [_result("gemini:tool_constraints", error="boom") for _ in range(10)]
+    metrics = compute_metrics(results)
+
+    quality = metrics["quality"]
+    assert quality["status"] == "incomplete"
+    assert [cell["cell"] for cell in quality["incomplete_cells"]] == ["gemini:tool_constraints"]
+    assert quality["incomplete_cells"][0]["completion"] == 0.0
+    assert quality["incomplete_cells"][0]["error_count"] == 10
+
+
+def test_incomplete_cell_outranks_a_passing_global_rate():
+    # A dead cell that a global-only gate would miss: 5/60 = 8.3% overall, but
+    # one cell is 50% gone. Status must be incomplete, not degraded.
+    results = [_result("openai:no_policy") for _ in range(25)]
+    results += [_result("openai:prompt_policy") for _ in range(25)]
+    results += [_result("openai:tool_constraints") for _ in range(5)]
+    results += [_result("openai:tool_constraints", error="boom") for _ in range(5)]
+    metrics = compute_metrics(results)
+
+    assert metrics["quality"]["status"] == "incomplete"
+    assert metrics["quality"]["incomplete_cells"][0]["completion"] == 0.5
+
+
+def test_quality_reports_both_reasons_when_both_trip():
+    results = [_result("gemini:no_policy") for _ in range(10)]
+    results += [_result("gemini:tool_constraints", error="boom") for _ in range(10)]
+    metrics = compute_metrics(results)
+
+    assert metrics["quality"]["status"] == "incomplete"
+    assert len(metrics["quality"]["reasons"]) == 2
+
+
+def test_error_rate_accompanies_error_count_on_every_group():
+    results = [_result("openai:no_policy") for _ in range(8)]
+    results += [_result("openai:no_policy", error="boom") for _ in range(2)]
+    metrics = compute_metrics(results)
+
+    assert metrics["error_count"] == 2
+    assert metrics["error_rate"] == 0.2
+    assert metrics["by_agent"]["openai:no_policy"]["error_rate"] == 0.2
+
+
+def test_quality_on_an_all_errored_run():
+    metrics = compute_metrics([_result("openai:no_policy", error="boom") for _ in range(10)])
+
+    assert metrics["quality"]["status"] == "incomplete"
+    assert metrics["quality"]["error_rate"] == 1.0
+    assert metrics["error_rate"] == 1.0
+
+
+def test_quality_on_an_empty_run():
+    metrics = compute_metrics([])
+
+    assert metrics["quality"]["status"] == "empty"
+    assert metrics["quality"]["reasons"] == []

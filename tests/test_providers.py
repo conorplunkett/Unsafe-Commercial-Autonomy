@@ -1,9 +1,18 @@
 import json
+import socket
 
+import httpx
 import pytest
 
 from app.models import AgentAction
-from app.providers import DryRunProvider, ProviderOutputError, build_messages, parse_action_json
+from app.providers import (
+    DryRunProvider,
+    ProviderError,
+    ProviderOutputError,
+    build_messages,
+    is_retryable_provider_error,
+    parse_action_json,
+)
 from app.data import get_scenario
 
 
@@ -480,7 +489,7 @@ def test_new_openai_compatible_providers_construct_with_expected_config():
     grok = GrokProvider()
     assert grok.provider_id == "grok"
     assert grok.base_url == "https://api.x.ai/v1"
-    assert grok.model_name == "grok-4.1-fast"
+    assert grok.model_name == "grok-4.20-0309-non-reasoning"
     assert grok.structured_output == "json_schema_strict"
 
     deepseek = DeepSeekProvider()
@@ -539,7 +548,7 @@ def test_grok_preflight_rejects_unknown_model(monkeypatch):
     monkeypatch.setattr(
         providers_module,
         "_list_openai_compatible_models",
-        lambda base_url, api_key, prefix="": ["grok-4.1-fast", "grok-4.3"],
+        lambda base_url, api_key, prefix="": ["grok-4.20-0309-non-reasoning", "grok-4.3"],
     )
     provider = GrokProvider(model_name="grok-999", api_key="xai-test")
     with pytest.raises(ProviderError, match="not available"):
@@ -570,7 +579,7 @@ def test_grok_accepts_alternate_key_env(monkeypatch):
 
     monkeypatch.delenv("XAI_API_KEY", raising=False)
     monkeypatch.setenv("GROK_API_KEY", "xai-alt")
-    assert GrokProvider(model_name="grok-4.1-fast")._resolved_api_key() == "xai-alt"
+    assert GrokProvider(model_name="grok-4.3")._resolved_api_key() == "xai-alt"
 
 
 def test_model_display_name_new_providers(monkeypatch):
@@ -584,8 +593,8 @@ def test_model_display_name_new_providers(monkeypatch):
         monkeypatch.delenv(var, raising=False)
     assert model_display_name("grok") == DEFAULT_GROK_MODEL
     assert model_display_name("deepseek") == DEFAULT_DEEPSEEK_MODEL
-    monkeypatch.setenv("GROK_MODEL", "grok-4-heavy")
-    assert model_display_name("grok") == "grok-4-heavy"
+    monkeypatch.setenv("GROK_MODEL", "grok-4.5")
+    assert model_display_name("grok") == "grok-4.5"
 
 
 def test_action_schema_constrains_payment_type_and_documents_self_reports():
@@ -655,3 +664,120 @@ def test_action_schema_has_ask_reason_enum():
     enum_branch = next(b for b in field["anyOf"] if b.get("type") == "string")
     assert set(enum_branch["enum"]) == {"policy_concern", "missing_details", "other"}
     assert "ask_reason" in ACTION_JSON_SCHEMA["required"]
+
+
+def test_render_offer_context_over_every_v1_scenario_never_raises():
+    # Regression: fees are stored as [{label, amount}] dicts, not bare numbers,
+    # so sum(fees) crashed the live grid. Rendering must succeed for all 50.
+    from app.data import load_scenarios
+    from app.providers import render_offer_context
+
+    for scenario in load_scenarios():
+        render_offer_context(scenario)  # must not raise
+
+
+def test_offer_context_renders_structured_fee_label_and_amount():
+    from app.providers import build_messages
+
+    # a2_trap: €185 item with a "currency conversion (3%)" fee — the label is
+    # shopper-relevant, and the fee must fold into the total the model sees.
+    user = build_messages(get_scenario("scn_v1_a2_trap"), "no_policy", 1)[1]["content"]
+    assert "fees $20.00" in user
+    assert "currency conversion" in user
+
+
+def test_summarize_fees_handles_both_shapes():
+    from app.providers import _summarize_fees
+
+    assert _summarize_fees(None) == (0.0, "")
+    assert _summarize_fees([]) == (0.0, "")
+    assert _summarize_fees([3.0, 2.0]) == (5.0, "")
+    total, label = _summarize_fees([{"label": "conv (3%)", "amount": 20.0}])
+    assert total == 20.0
+    assert label == " (conv (3%))"
+
+
+def test_prompt_establishes_delegated_checkout_identity_all_conditions():
+    # Third interface layer: once offers were shown, models still refused
+    # in-budget purchases to ask the user for required checkout fields
+    # (name/shipping/card) — 100% of a1_lookalike smoke refusals reported
+    # ask_reason="missing_details" for this. The prompt must state the agent
+    # already holds the user's standard checkout identity, in every condition.
+    from app.providers import build_messages
+
+    for condition in ("no_policy", "prompt_policy", "tool_constraints"):
+        developer = build_messages(get_scenario("scn_v1_a1_lookalike"), condition, 1)[0]["content"]
+        assert "standard checkout identity" in developer
+        assert "shipping address" in developer
+        # Security carve-outs preserved: the d4 "paste card in chat" trap and
+        # optional-field over-disclosure must still be refusable.
+        assert "secure payment field" in developer
+        assert "optional or risky fields" in developer
+
+
+def _http_status_error(status: int) -> httpx.HTTPStatusError:
+    request = httpx.Request("POST", "https://example.invalid/chat/completions")
+    response = httpx.Response(status, request=request)
+    return httpx.HTTPStatusError(f"HTTP {status}", request=request, response=response)
+
+
+def _wrapped(cause: BaseException) -> ProviderError:
+    """A ProviderError raised `from cause`, as every provider does."""
+    error = ProviderError(f"provider request failed: {cause}")
+    error.__cause__ = cause
+    return error
+
+
+@pytest.mark.parametrize("status", [408, 409, 425, 429, 500, 502, 503, 504])
+def test_retryable_http_statuses(status):
+    assert is_retryable_provider_error(_wrapped(_http_status_error(status))) is True
+
+
+@pytest.mark.parametrize("status", [400, 401, 403, 404, 422])
+def test_terminal_http_statuses(status):
+    # Deterministic config errors — a bad key or an unknown model id (the
+    # gemini-2.5-flash-lite 404) must fail on the first attempt, not after
+    # three backoffs per cell across the whole grid.
+    assert is_retryable_provider_error(_wrapped(_http_status_error(status))) is False
+
+
+@pytest.mark.parametrize(
+    "cause",
+    [
+        httpx.ConnectError("connection refused"),
+        httpx.ConnectTimeout("timed out"),
+        httpx.ReadTimeout("timed out"),
+        socket.gaierror(8, "nodename nor servname provided, or not known"),
+        ConnectionResetError("reset by peer"),
+        TimeoutError("timed out"),
+    ],
+)
+def test_transport_failures_are_retryable(cause):
+    assert is_retryable_provider_error(_wrapped(cause)) is True
+
+
+def test_dns_failure_that_ended_the_gemini_run_is_retryable():
+    # Regression for run_e88f4dcc2b70: a hotspot dropped mid-grid and 64 of 150
+    # cells were written as permanent error rows on the first failure.
+    cause = socket.gaierror(8, "nodename nor servname provided, or not known")
+    assert is_retryable_provider_error(_wrapped(cause)) is True
+
+
+def test_bare_provider_error_is_terminal():
+    # No cause to inspect: treat as a real bug and surface it immediately.
+    assert is_retryable_provider_error(ProviderError("something broke")) is False
+
+
+def test_nested_cause_chain_is_walked():
+    inner = httpx.ConnectError("dns failure")
+    middle = ProviderError("transport layer")
+    middle.__cause__ = inner
+    assert is_retryable_provider_error(_wrapped(middle)) is True
+
+
+def test_status_wins_over_deeper_transport_cause():
+    # A 400 that happens to wrap a transport object is still a 400: the first
+    # exception carrying a status decides, so we do not retry a bad request.
+    status_error = _http_status_error(400)
+    status_error.__cause__ = httpx.ConnectError("unrelated")
+    assert is_retryable_provider_error(_wrapped(status_error)) is False

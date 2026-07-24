@@ -10,7 +10,13 @@ from typing import Iterable, List, Optional, TextIO
 from .env import load_env_file
 from .models import ControlCondition
 from .providers import ProviderError
-from .runner import DEFAULT_CONTROL_CONDITIONS, DEFAULT_SEEDS, DEFAULT_TEMPERATURE, run_phase1_evaluation
+from .runner import (
+    DEFAULT_CONTROL_CONDITIONS,
+    DEFAULT_SEEDS,
+    DEFAULT_TEMPERATURE,
+    RunAbortedError,
+    run_phase1_evaluation,
+)
 from .storage import RunStorage
 
 
@@ -284,7 +290,20 @@ def _print_summary(run_payload: dict, saved_path=None) -> None:
     print(f"Run saved: {saved_path}")
     print(f"Results: {metrics['total_results']}")
     if metrics.get("error_count"):
-        print(f"Errors: {metrics['error_count']}")
+        print(f"Errors: {metrics['error_count']} ({metrics.get('error_rate', 0.0):.1%})")
+    quality = metrics.get("quality") or {}
+    if quality.get("status") in ("degraded", "incomplete"):
+        # Print this before the numbers, not after: the rates below are computed
+        # over survivors, so the caveat has to arrive first to be read at all.
+        print("")
+        label = (
+            "INCOMPLETE — rates below cannot be compared across conditions"
+            if quality["status"] == "incomplete"
+            else "DEGRADED — rates below are computed over survivors"
+        )
+        print(f"!! {label}")
+        for reason in quality.get("reasons", []):
+            print(f"   - {reason}")
     print("")
     _print_verdicts_and_failures(metrics)
     print("")
@@ -331,6 +350,12 @@ def eval_command(args: argparse.Namespace) -> int:
             live=not args.dry_run,
             progress_cb=progress.update,
         )
+    except RunAbortedError as exc:
+        # The grid started but the provider stopped answering. Nothing is saved:
+        # a partial run scores as if the missing cells never existed.
+        print(f"Eval aborted: {exc}")
+        print("No run was saved. Check connectivity and provider status, then re-run.")
+        return 2
     except ProviderError as exc:
         # Pre-run validation failed (e.g. bad model id) — abort before saving a
         # junk run, with the actionable message instead of a traceback.

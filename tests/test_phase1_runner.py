@@ -1,9 +1,10 @@
+import httpx
 import pytest
 
 from app.data import get_scenario
 from app.models import AgentAction
 from app.providers import BaseProvider, ProviderAction, ProviderError, ProviderOutputError
-from app.runner import run_phase1_evaluation
+from app.runner import RunAbortedError, _generate_with_retry, run_phase1_evaluation
 
 
 class AlwaysPurchaseProvider(BaseProvider):
@@ -134,6 +135,179 @@ def test_provider_invalid_json_after_retry_is_marked_errored():
     assert result.refused_when_safe is False
     assert result.unsafe_payment is False
     assert result.failure_metrics == []
+
+
+def _transient(message: str = "connection failed") -> ProviderError:
+    """A ProviderError wrapping a transport failure, as the providers raise it."""
+    error = ProviderError(message)
+    error.__cause__ = httpx.ConnectError(message)
+    return error
+
+
+class FlakyThenPurchaseProvider(AlwaysPurchaseProvider):
+    """Fails with a transport error `failures` times, then succeeds."""
+
+    def __init__(self, failures: int):
+        self.failures = failures
+        self.calls = 0
+
+    def generate_action(self, scenario, control_condition, seed, temperature):
+        self.calls += 1
+        if self.calls <= self.failures:
+            raise _transient()
+        return super().generate_action(scenario, control_condition, seed, temperature)
+
+
+class AlwaysTerminalProvider(BaseProvider):
+    """Fails with a non-retryable error (e.g. a 400), so retries are skipped."""
+
+    provider_id = "terminal"
+    model_name = "terminal-model"
+
+    def __init__(self):
+        self.calls = 0
+
+    def generate_action(self, scenario, control_condition, seed, temperature):
+        self.calls += 1
+        raise ProviderError("bad request")
+
+
+def test_transient_transport_error_is_retried_with_backoff():
+    provider = FlakyThenPurchaseProvider(failures=2)
+    delays: list[float] = []
+
+    action, error = _generate_with_retry(
+        provider,
+        get_scenario("scn_v1_a1_trap"),
+        "no_policy",
+        seed=1,
+        temperature=0.7,
+        sleep=delays.append,
+    )
+
+    assert error is None
+    assert action.action.action_type == "purchase"
+    assert provider.calls == 3
+    # Exponential, not a flat sleep.
+    assert delays == [0.5, 1.0]
+
+
+def test_transient_transport_error_gives_up_after_budget():
+    provider = FlakyThenPurchaseProvider(failures=99)
+    delays: list[float] = []
+
+    _, error = _generate_with_retry(
+        provider,
+        get_scenario("scn_v1_a1_trap"),
+        "no_policy",
+        seed=1,
+        temperature=0.7,
+        transient_retries=3,
+        sleep=delays.append,
+    )
+
+    assert error == "connection failed"
+    assert provider.calls == 4  # one attempt plus three retries
+    assert len(delays) == 3
+
+
+def test_terminal_provider_error_is_not_retried():
+    # A 400/404-class failure is deterministic: retrying only burns wall-clock,
+    # so it must surface on the first attempt.
+    provider = AlwaysTerminalProvider()
+    delays: list[float] = []
+
+    _, error = _generate_with_retry(
+        provider,
+        get_scenario("scn_v1_a1_trap"),
+        "no_policy",
+        seed=1,
+        temperature=0.7,
+        sleep=delays.append,
+    )
+
+    assert error == "bad request"
+    assert provider.calls == 1
+    assert delays == []
+
+
+def test_output_and_transport_retry_budgets_are_separate():
+    # Bad JSON must not consume the transport allowance: this provider emits one
+    # transport failure and one bad-JSON response before succeeding, and both
+    # should be absorbed.
+    class MixedProvider(AlwaysPurchaseProvider):
+        def __init__(self):
+            self.calls = 0
+
+        def generate_action(self, scenario, control_condition, seed, temperature):
+            self.calls += 1
+            if self.calls == 1:
+                raise _transient()
+            if self.calls == 2:
+                raise ProviderOutputError("invalid json")
+            return super().generate_action(scenario, control_condition, seed, temperature)
+
+    provider = MixedProvider()
+    action, error = _generate_with_retry(
+        provider,
+        get_scenario("scn_v1_a1_trap"),
+        "no_policy",
+        seed=1,
+        temperature=0.7,
+        sleep=lambda _: None,
+    )
+
+    assert error is None
+    assert action.action.action_type == "purchase"
+    assert provider.calls == 3
+
+
+def test_run_aborts_after_consecutive_failures():
+    provider = AlwaysTerminalProvider()
+
+    with pytest.raises(RunAbortedError) as excinfo:
+        run_phase1_evaluation(
+            model_ids=["openai"],
+            control_conditions=["no_policy"],
+            scenario_ids=["scn_v1_a1_trap"],
+            seeds=[1, 2, 3, 4, 5],
+            live=False,
+            provider_factory=lambda model_id, live: provider,
+            consecutive_error_limit=3,
+        )
+
+    # Stopped at the limit rather than walking the rest of the grid.
+    assert provider.calls == 3
+    assert excinfo.value.consecutive_errors == 3
+    assert excinfo.value.total_units == 5
+    assert "bad request" in str(excinfo.value)
+
+
+def test_consecutive_error_counter_resets_on_success():
+    # Scattered blips are not an outage: two failures, a success, two more
+    # failures must not trip a limit of three.
+    class IntermittentProvider(AlwaysPurchaseProvider):
+        def __init__(self):
+            self.calls = 0
+
+        def generate_action(self, scenario, control_condition, seed, temperature):
+            self.calls += 1
+            if self.calls in (1, 2, 4, 5):
+                raise ProviderError("bad request")
+            return super().generate_action(scenario, control_condition, seed, temperature)
+
+    run = run_phase1_evaluation(
+        model_ids=["openai"],
+        control_conditions=["no_policy"],
+        scenario_ids=["scn_v1_a1_trap"],
+        seeds=[1, 2, 3, 4, 5],
+        live=False,
+        provider_factory=lambda model_id, live: IntermittentProvider(),
+        consecutive_error_limit=3,
+    )
+
+    assert len(run.results) == 5
+    assert run.metrics["error_count"] == 4
 
 
 def test_errored_results_excluded_from_rate_denominators():

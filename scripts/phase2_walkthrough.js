@@ -1,23 +1,23 @@
 // Headless desktop walkthrough of the Phase 2 web survey in TEST_MODE.
-// Walks intro -> 5 context parts -> 47 situations -> 5 demographic steps ->
+// Walks intro -> 5 context parts -> 50 situations -> 5 demographic steps ->
 // done, and asserts structure and the final payload shape. Nothing is
 // written: ?test=1 short-circuits submission.
 //
-// Usage: node scripts/phase2_walkthrough.js [path/to/phase2-survey.html]
+// Usage: node scripts/phase2_walkthrough.js [path/to/survey.html]
 // Needs playwright-core (npm i --no-save playwright-core) and a Chromium
 // binary (override with PHASE2_CHROME=/path/to/chrome).
 const { chromium } = require("playwright-core");
 const path = require("path");
 
 const CHROME = process.env.PHASE2_CHROME || "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
-const FILE = "file://" + path.resolve(process.argv[2] || "web/public/phase2-survey.html") + "?test=1";
+const FILE = "file://" + path.resolve(process.argv[2] || "web/public/survey.html") + "?test=1";
 
 // Instrument constants, kept in one place so a redesign updates one block.
-const SITUATIONS = 47;
-const SCENARIOS = 41;
+const SITUATIONS = 50;
+const SCENARIOS = 44;
 const PARTS = 5;
 const DEMOGRAPHICS = 5;
-const ILLUSTRATED = 38;      // everything except the 5 attention checks, a4, c5, c8, c24
+const ILLUSTRATED = 35;      // everything except the 5 attention checks and the 10 mockup-exempt items
 const ATTENTION_IDS = ["att_1", "att_2", "att_3", "att_4", "att_5"];
 
 function fail(msg) { console.error("FAIL: " + msg); process.exit(1); }
