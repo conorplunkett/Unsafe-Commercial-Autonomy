@@ -102,15 +102,21 @@
 
 /* Provider readiness: lit when a key is available (server .env or browser
    override), dim when the provider still needs one before it can run live. */
+/* Readiness indicator: green/filled = this provider can run live right now
+   (a key is available, from .env or the browser); gray/hollow = it can't yet.
+   Same green (--ok) and same on/off logic (keyIsActive) everywhere a
+   readiness dot appears — chips, the keys-panel summary, and each key field. */
 .chip-dot {
-  width: 6px;
-  height: 6px;
+  width: 9px;
+  height: 9px;
   border-radius: 999px;
-  background: var(--border);
+  background: transparent;
+  border: 1.5px solid var(--border);
 }
 
 .chip-dot-on {
-  background: var(--accent);
+  background: var(--ok);
+  border-color: var(--ok);
 }
 
 .chip:hover {
@@ -253,11 +259,42 @@
 .keys-status {
   flex: 1 1 auto;
   min-width: 0;
-  color: var(--muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
   font-weight: 400;
   line-height: 1.6;
+}
+
+.key-status-item {
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.key-status-on {
+  color: var(--ok);
+  font-weight: 700;
+}
+
+.key-field .runner-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.key-field-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: transparent;
+  border: 1.5px solid var(--border);
+}
+
+.key-field-dot-on {
+  background: var(--ok);
+  border-color: var(--ok);
 }
 
 .keys-fields {
