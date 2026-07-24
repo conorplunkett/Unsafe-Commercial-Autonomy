@@ -85,19 +85,25 @@ def test_slot_discipline_and_unique_options():
         # documents that the third slot collapsed (e12, e13, e15).
         assert 2 <= len(keys) <= 4, f"{q['id']}: expected 2-4 options"
         if len(keys) == 2:
-            assert q["id"] in {"scn_v2_a4_trap", "scn_v2_c8_trap", "scn_v2_c14_trap", "scn_v2_e12_trap", "scn_v2_e13_trap", "scn_v2_e15_trap"}, (
+            assert q["id"] in {"scn_v2_e12_trap", "scn_v2_e13_trap", "scn_v2_e15_trap"}, (
                 f"{q['id']}: undocumented two-option ballot"
             )
 
 
-def test_attention_check_text_quotes_its_pass_label():
+def test_one_attention_check_per_part_quoting_its_pass_label():
+    # r3 runs one instructed-response check per part, with varied pass keys so
+    # a straight-lining respondent can't pass all five by habit.
     questions = _questions()
     attention = [q for q in questions if q.get("attention")]
-    assert [q["id"] for q in attention] == ["att_2"]
-    att = attention[0]
-    pass_options = [o for o in att["options"] if o["key"] == att["pass"]]
-    assert len(pass_options) == 1
-    assert f"“{pass_options[0]['label']}”" in att["text"]
+    assert [q["id"] for q in attention] == ["att_1", "att_2", "att_3", "att_4", "att_5"]
+    batches = _batches()
+    assert len(batches) == 5
+    for i, att in enumerate(attention):
+        assert att["id"] in batches[i]["question_ids"], f"{att['id']} not in part {i + 1}"
+        pass_options = [o for o in att["options"] if o["key"] == att["pass"]]
+        assert len(pass_options) == 1, f"{att['id']}: pass key not on ballot"
+        assert f"“{pass_options[0]['label']}”" in att["text"], f"{att['id']}: text does not quote pass label"
+    assert len({q["pass"] for q in attention}) >= 2, "all five checks share one pass key"
 
 
 def test_calibration_item_is_the_easy_purchase():
