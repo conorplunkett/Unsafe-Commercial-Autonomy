@@ -19,7 +19,7 @@
   .wrap { width: 100%; max-width: 640px; }
   .brand { font-size: 14px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 16px; }
   .brand b { color: var(--ink); }
-  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 28px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .card { position: relative; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 28px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
   h1 { font-size: 24px; margin-bottom: 12px; letter-spacing: -0.01em; }
   h2 { font-size: 18px; margin-bottom: 14px; font-weight: 600; }
   p { margin-bottom: 12px; }
@@ -56,11 +56,11 @@
   ul.intro-list { margin: 0 0 12px 20px; }
   ul.intro-list li { margin-bottom: 6px; }
   @media (max-width: 480px) { .card { padding: 20px; } h1 { font-size: 21px; } }
-  /* Debug only: faint label of the scenario being tested, bottom-right. */
+  /* Debug only: faint label of the scenario being tested, inside the card's bottom-right corner. */
   #debugScenario {
-    position: fixed; bottom: 8px; right: 10px; z-index: 50;
+    position: absolute; bottom: 10px; right: 14px;
     font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px;
-    color: var(--muted); opacity: 0.28; pointer-events: none; user-select: none;
+    color: var(--muted); opacity: 0.45; pointer-events: none; user-select: none;
     letter-spacing: 0.02em;
   }
 </style>
@@ -72,7 +72,6 @@
   <div class="progress"><div id="bar"></div></div>
   <div class="card" id="card"></div>
 </div>
-<div id="debugScenario"></div>
 
 <script>
 "use strict";
@@ -939,6 +938,7 @@ const state = {
   answers: {},      // question id -> option key (preferred action)
   alsoOk: {},       // question id -> { keys: [option keys], none: bool }
   demo: {},
+  demoStep: 0,      // one demographic question shown at a time
   startedAt: null
 };
 
@@ -1064,25 +1064,33 @@ function renderQuestion(s) {
 }
 
 function renderDemographics() {
+  const d = DEMOGRAPHICS[state.demoStep];
+  const selected = state.demo[d.id];
+  const isLast = state.demoStep === DEMOGRAPHICS.length - 1;
   card.innerHTML = `
-    <h2>Last few questions</h2>
-    ${DEMOGRAPHICS.map(d => `
-      <p style="margin-top:16px"><b>${d.text}</b></p>
-      ${d.options.map(o => `
-        <button class="opt ${state.demo[d.id] === o.key ? "selected" : ""}" data-q="${d.id}" data-key="${o.key}">${o.label}</button>
-      `).join("")}
+    <div class="step-label">Last few questions &middot; ${state.demoStep + 1} of ${DEMOGRAPHICS.length}</div>
+    <p class="scenario">${d.text}</p>
+    ${d.options.map(o => `
+      <button class="opt ${selected === o.key ? "selected" : ""}" data-key="${o.key}">${o.label}</button>
     `).join("")}
     <div class="error" id="err"></div>
     <div class="row">
       <button class="nav" id="back">Back</button>
-      <button class="nav primary" id="submit">Submit</button>
+      <button class="nav primary" id="next" ${selected ? "" : "disabled"}>${isLast ? "Submit" : "Next"}</button>
     </div>
   `;
-  card.querySelectorAll(".opt").forEach(btn => {
-    btn.onclick = () => { state.demo[btn.dataset.q] = btn.dataset.key; renderDemographics(); };
+  card.querySelectorAll(".opt[data-key]").forEach(btn => {
+    btn.onclick = () => { state.demo[d.id] = btn.dataset.key; renderDemographics(); };
   });
-  document.getElementById("back").onclick = () => { state.step -= 1; render(); };
-  document.getElementById("submit").onclick = submit;
+  document.getElementById("back").onclick = () => {
+    if (state.demoStep > 0) { state.demoStep -= 1; renderDemographics(); }
+    else { state.step -= 1; render(); }
+  };
+  document.getElementById("next").onclick = () => {
+    if (!selected) return;
+    if (isLast) submit();
+    else { state.demoStep += 1; renderDemographics(); }
+  };
 }
 
 function renderDone() {
@@ -1095,7 +1103,7 @@ function renderDone() {
       <div class="row"><button class="nav primary" id="restart">Review again</button></div>
     `;
     document.getElementById("restart").onclick = () => {
-      state.answers = {}; state.alsoOk = {}; state.demo = {}; state.startedAt = null; state.step = 0; render();
+      state.answers = {}; state.alsoOk = {}; state.demo = {}; state.demoStep = 0; state.startedAt = null; state.step = 0; render();
     };
     return;
   }
@@ -1193,14 +1201,17 @@ function render() {
   setProgress();
   window.scrollTo({ top: 0 });
   const s = STEPS[state.step];
-  // Debug only: show the scenario id being tested; blank on non-question steps.
-  const dbg = document.getElementById("debugScenario");
-  if (dbg) dbg.textContent = s.type === "question" ? s.id : "";
-  if (s.type === "intro") return renderIntro();
-  if (s.type === "context") return renderContext(s);
-  if (s.type === "question") return renderQuestion(s);
-  if (s.type === "demographics") return renderDemographics();
-  return renderDone();
+  if (s.type === "intro") renderIntro();
+  else if (s.type === "context") renderContext(s);
+  else if (s.type === "question") renderQuestion(s);
+  else if (s.type === "demographics") renderDemographics();
+  else renderDone();
+  // Debug only: scenario id being tested, anchored inside the card; blank on non-question steps.
+  // Appended after card.innerHTML is set above, since every render*() call replaces it wholesale.
+  const dbg = document.createElement("div");
+  dbg.id = "debugScenario";
+  dbg.textContent = s.type === "question" ? s.id : "";
+  card.appendChild(dbg);
 }
 
 const instrumentErrors = validateInstrument();

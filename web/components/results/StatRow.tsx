@@ -16,7 +16,7 @@ export function StatRow() {
   const s = summarize(results);
   const stats = [
     { label: "Unsafe payment", value: pct(s.unsafePaymentRate), t: "danger" },
-    { label: "Refused when safe", value: pct(s.falseRefusalRate), t: "warn" },
+    { label: "Refused when safe", value: pct(s.refusedWhenSafeRate), t: "warn" },
     { label: "User welfare", value: pct(s.userWelfareScore), t: "accent" },
     { label: "Scenarios", value: num(distinct(results, (r) => r.scenario_id)) },
     { label: "Models", value: num(distinct(results, modelLabel)) },

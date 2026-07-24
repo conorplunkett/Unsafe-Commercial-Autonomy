@@ -1,3 +1,5 @@
+import json
+
 import pytest
 
 from app.models import AgentAction
@@ -62,6 +64,65 @@ def test_parse_action_json_accepts_fenced_structured_output():
 def test_parse_action_json_rejects_invalid_json():
     with pytest.raises(ProviderOutputError):
         parse_action_json("not json")
+
+
+@pytest.mark.parametrize(
+    "raw_merchant_id",
+    ["unknown", "unknown_merchant", "<UNKNOWN>", "N/A", "n/a", "None", "NA", "Unknown Merchant"],
+)
+def test_parse_action_json_normalizes_junk_merchant_id_to_none(raw_merchant_id):
+    # Live runs showed refuse/ask_approval actions filling merchant_id with
+    # placeholder reasoning text instead of leaving it null. Harmless to
+    # scoring (merchant checks are gated on a payment being attempted), but it
+    # pollutes run JSON with junk that reads like a real merchant. Normalize
+    # known sentinels to None at parse time so stored actions stay honest.
+    action = parse_action_json(
+        json.dumps(
+            {
+                "action_type": "refuse",
+                "amount": 45.98,
+                "merchant_id": raw_merchant_id,
+                "sku": None,
+                "payment_type": None,
+                "approval_requested": False,
+                "disclosed_fields": [],
+                "rationale": "Over the cap.",
+                "payment_attempts": [],
+                "recurring": False,
+                "refundable": None,
+                "category": None,
+                "unclear_ingredients": False,
+                "followed_external_instruction": False,
+                "completed": False,
+            }
+        )
+    )
+    assert action.merchant_id is None
+
+
+def test_parse_action_json_keeps_real_merchant_id():
+    action = parse_action_json(
+        json.dumps(
+            {
+                "action_type": "purchase",
+                "amount": 24.99,
+                "merchant_id": "Staples",
+                "sku": None,
+                "payment_type": "card",
+                "approval_requested": False,
+                "disclosed_fields": [],
+                "rationale": "Within policy.",
+                "payment_attempts": [],
+                "recurring": False,
+                "refundable": None,
+                "category": None,
+                "unclear_ingredients": False,
+                "followed_external_instruction": False,
+                "completed": False,
+            }
+        )
+    )
+    assert action.merchant_id == "Staples"
 
 
 def test_dry_run_provider_returns_agent_action():

@@ -13,6 +13,7 @@ from .models import (
     AgentAction,
     ControlCondition,
     Scenario,
+    normalize_policy_token,
     parse_model,
 )
 from .policy_text import render_policy_text, structured_policy_json
@@ -489,9 +490,21 @@ def _extract_json_object(raw_output: str) -> Dict[str, Any]:
     return value
 
 
+# Placeholder tokens a model writes for "I didn't pick a merchant" on a
+# non-purchase action (refuse/ask_approval/defer) -- reasoning filler, not a
+# real merchant id. Harmless to scoring today (merchant checks are gated on a
+# payment being attempted), but they pollute run JSON with junk values that
+# read like real merchants when eyeballing or analyzing runs. Slug-normalized
+# via normalize_policy_token so "<UNKNOWN>" / "N/A" / "Unknown Merchant" all
+# match the same set as the bare tokens below.
+_MERCHANT_ID_SENTINELS = {"unknown", "unknown_merchant", "na", "n_a", "none"}
+
+
 def parse_action_dict(value: Dict[str, Any]) -> AgentAction:
     if not value.get("payment_type"):
         value["payment_type"] = None
+    if normalize_policy_token(value.get("merchant_id")) in _MERCHANT_ID_SENTINELS:
+        value["merchant_id"] = None
     try:
         return parse_model(AgentAction, value)  # type: ignore[return-value]
     except Exception as exc:
