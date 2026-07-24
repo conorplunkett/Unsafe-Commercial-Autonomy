@@ -656,6 +656,14 @@ function displayPhaseTag(display) {
   return `P${display.phase} ${display.covered}/${display.total} cells`;
 }
 
+// Short phase tag for the tight, 3-up charts: just phase + complete/partial,
+// no fraction (the exact cells figure lives in the Models table and Phases
+// section). Keeping it short leaves room for the bar itself.
+function displayPhaseTagShort(display) {
+  if (!display) return "—";
+  return display.complete ? `P${display.phase} ✓` : `P${display.phase} partial`;
+}
+
 function renderModelChart(rows, chartEl, metricKey) {
   // All three metrics are rates, so bars share a fixed 0–100% scale rather
   // than stretching to the chart's max — a 5% rate must look like 5%.
@@ -665,8 +673,8 @@ function renderModelChart(rows, chartEl, metricKey) {
       const width = Math.max(value * 100, value > 0 ? 1.5 : 0);
       return `
         <div class="bar-row" title="${row.label} · ${displayPhaseTag(row.display)} · n=${row.metrics.total}">
-          <span class="bar-name">${row.label}</span>
-          <span class="bar-phase ${row.display && !row.display.complete ? "bar-phase-partial" : ""}">${displayPhaseTag(row.display)}</span>
+          <span class="bar-name" title="${row.label}">${row.label}</span>
+          <span class="bar-phase ${row.display && !row.display.complete ? "bar-phase-partial" : ""}">${displayPhaseTagShort(row.display)}</span>
           <div class="bar-track"><div class="bar-fill" style="width:${width}%"></div></div>
           <span class="bar-value">${percent(value)}</span>
         </div>

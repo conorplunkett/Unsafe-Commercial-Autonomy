@@ -416,3 +416,18 @@
   background: var(--danger-bg);
   color: var(--danger);
 }
+
+/* Definition line under a panel heading — legend for terms a table can't show
+   visually (smoke / full). Not an explainer subtitle; it defines vocabulary. */
+.panel-legend {
+  margin: 0;
+  padding: 10px 16px 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.panel-legend strong {
+  color: var(--ink);
+  font-weight: 700;
+}
