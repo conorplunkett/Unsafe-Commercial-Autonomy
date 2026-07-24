@@ -65,8 +65,9 @@ def _confirm_live_run(total_calls: int, breakdown: str, *, live: bool, assume_ye
         return False
     prompt = (
         f"WARNING: about to run a live {label} — {breakdown}. "
-        "This can be prohibitively expensive: real API calls, billed by each "
-        "provider. Please confirm this is intended. Type 'yes' to continue: "
+        "This can be prohibitively expensive depending on model setup.\n"
+        "Please confirm you are ready to incur this cost and that this run is "
+        "intended. Type 'yes' to continue: "
     )
     try:
         answer = input(prompt).strip().lower()
