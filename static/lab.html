@@ -4,8 +4,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Experiment Lab · Unsafe Commercial Autonomy</title>
-    <link rel="stylesheet" href="/static/styles.css?v=8">
-    <link rel="stylesheet" href="/static/lab.css?v=7">
+    <link rel="icon" href="/favicon.ico">
+    <link rel="stylesheet" href="/static/styles.css?v=12">
+    <link rel="stylesheet" href="/static/lab.css?v=10">
   </head>
   <body>
     <div class="app-shell lab-shell">
@@ -87,7 +88,7 @@
 
       <details class="keys-band" id="keysBand">
         <summary>
-          <span>API keys</span>
+          <span class="keys-label">API keys</span>
           <span id="keysStatus" class="keys-status"></span>
         </summary>
         <div class="keys-fields" id="keysFields">
@@ -109,6 +110,15 @@
           <h2>Phases</h2>
           <span id="phasesStamp" class="run-stamp"></span>
         </div>
+        <p class="panel-legend">
+          <strong>smoke</strong> — at least one scenario has run.
+          <strong>full</strong> — every scenario run under all 3 control
+          conditions (the complete suite); shown as covered/total
+          scenario×condition cells.
+          <strong>Conditions</strong> — the three levels of safety guidance a
+          model gets: no policy (none), prompt policy (told in the prompt), and
+          tool constraints (the payment tool itself blocks unsafe attempts).
+        </p>
         <div id="phasesContent" class="phases-content"></div>
       </section>
 
@@ -163,6 +173,21 @@
               <h2>Results</h2>
               <span id="modelResultsStamp" class="run-stamp"></span>
             </div>
+            <div class="results-filter-bar" id="resultsFilterBar">
+              <div>
+                <label class="run-select-label" for="resultRunFilter">Run</label>
+                <select id="resultRunFilter" class="run-select"></select>
+              </div>
+              <div>
+                <label class="run-select-label" for="resultVerdictFilter">Verdict</label>
+                <select id="resultVerdictFilter" class="run-select"></select>
+              </div>
+              <div>
+                <label class="run-select-label" for="resultConditionFilter">Control</label>
+                <select id="resultConditionFilter" class="run-select"></select>
+              </div>
+              <button id="resultsFilterReset" type="button" class="chip" hidden>Reset filters</button>
+            </div>
             <div class="table-wrap model-results-wrap">
               <table>
                 <thead>
@@ -195,6 +220,12 @@
             <h2>Runs</h2>
             <span id="runListStamp" class="run-stamp"></span>
           </div>
+          <p class="panel-legend">
+            <strong>smoke</strong> — at least one scenario ran.
+            <strong>full</strong> — every scenario under all 3 conditions (no
+            policy, prompt policy, tool constraints — a complete suite), shown
+            as covered/total scenario×condition cells.
+          </p>
           <div class="table-wrap">
             <table>
               <thead>
@@ -213,11 +244,25 @@
             </table>
           </div>
         </section>
+
+        <details class="taxonomy-panel failure-panel" aria-label="Failure modes" open>
+          <summary>
+            <h2>Failure modes</h2>
+            <span id="failureStamp" class="run-stamp"></span>
+          </summary>
+          <p class="panel-legend">
+            Bar &mdash; share of a condition&rsquo;s results hitting the mode.
+            <strong>none</strong> / <strong>prompt</strong> /
+            <strong>tool</strong> are the three control conditions. Follows the
+            Results filters above.
+          </p>
+          <div id="failureChart" class="failure-chart"></div>
+        </details>
       </div>
 
       <p id="labEmpty" class="lab-empty" hidden>No runs yet. Pick a model and hit Run experiment.</p>
     </div>
 
-    <script src="/static/lab.js?v=7"></script>
+    <script src="/static/lab.js?v=10"></script>
   </body>
 </html>

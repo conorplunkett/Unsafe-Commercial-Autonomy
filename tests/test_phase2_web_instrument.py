@@ -1,4 +1,4 @@
-"""Guard tests for the Phase 2 web survey instrument (web/public/phase2-survey.html).
+"""Guard tests for the Phase 2 web survey instrument (web/public/survey.html).
 
 The survey page keeps QUESTIONS and BATCHES as strict JSON literals so these
 tests can parse them straight out of the HTML. If a wording edit breaks the
@@ -13,7 +13,9 @@ import re
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
-SURVEY_HTML = REPO / "web" / "public" / "phase2-survey.html"
+SURVEY_HTML = REPO / "web" / "public" / "survey.html"
+ADMIN_HTML = REPO / "web" / "public" / "admin.html"
+PREREG = REPO / "data" / "survey" / "PHASE2_WEB_SURVEY.md"
 V2_CONSTRAINTS = REPO / "data" / "answer_keys" / "v2_constraints.json"
 
 SLOT_KEYS = {"proceed_trap", "proceed_safe", "ask_approval", "refuse"}
@@ -45,6 +47,7 @@ SURVEY_EXCLUDED = {
     "scn_v2_e3_trap",   # silent price inflation: everyone refuses
     "scn_v2_e9_trap",   # fake offline authorization: forced refuse
     "scn_v2_e10_trap",  # fake bypass error: forced refuse (row redesigned)
+    "scn_v2_a4_trap",   # free registry vs paid copy: unambiguous, safe answer forced, no vote signal
 }
 
 
@@ -82,10 +85,10 @@ def test_slot_discipline_and_unique_options():
         assert set(keys) <= SLOT_KEYS, f"{q['id']}: non-slot option keys {keys}"
         assert "ask_approval" in keys, f"{q['id']}: missing ask_approval"
         # Two-option items are allowed only where the pre-registration
-        # documents that the third slot collapsed (e12, e13, e15).
+        # documents that the third slot collapsed (e12, e13).
         assert 2 <= len(keys) <= 4, f"{q['id']}: expected 2-4 options"
         if len(keys) == 2:
-            assert q["id"] in {"scn_v2_e12_trap", "scn_v2_e13_trap", "scn_v2_e15_trap"}, (
+            assert q["id"] in {"scn_v2_e12_trap", "scn_v2_e13_trap"}, (
                 f"{q['id']}: undocumented two-option ballot"
             )
 
@@ -126,7 +129,7 @@ def test_attributed_instructions():
         assert not q["text"].lstrip().startswith('"'), (
             f"{q['id']}: bare-quote opening, instruction has no speaker"
         )
-        stimulus = " ".join([q["text"], *q.get("bullets", [])])
+        stimulus = " ".join([q["text"], *q.get("bullets", []), q.get("outro", "")])
         assert "AI agent" in stimulus, f"{q['id']}: stimulus never names the AI agent"
 
 
@@ -134,10 +137,55 @@ def test_no_completed_mistake_narration():
     # r1 items narrated already-made mistakes ("Agent misses one"), which the
     # prospective stem cannot ask about. r2 texts must stay decision points.
     for q in _scenario_items(_questions()):
-        for line in [q["text"], *q.get("bullets", [])]:
+        for line in [q["text"], *q.get("bullets", []), *([q["outro"]] if q.get("outro") else [])]:
             assert not re.search(r"\bAgent\s+[a-z]+s\b", line), (
                 f"{q['id']}: text narrates a completed agent action: {line!r}"
             )
+
+
+def _flatten_stimulus(q) -> str:
+    parts = [q["text"], *q.get("bullets", [])]
+    if q.get("outro"):
+        parts.append(q["outro"])
+    return " ".join(parts).replace("<b>", "").replace("</b>", "")
+
+
+def test_admin_dashboard_mirrors_survey():
+    # The admin tab's QUESTIONS_P2 is regenerated from the survey; any hand
+    # edit to one file without the other is drift this test makes loud.
+    html = ADMIN_HTML.read_text(encoding="utf-8")
+    match = re.search(r"^const QUESTIONS_P2 = (\[.*?^\]);", html, re.S | re.M)
+    assert match, "admin QUESTIONS_P2 literal not found"
+    entries = {e["id"]: e for e in json.loads(match.group(1))}
+    scenario = {q["id"]: q for q in _scenario_items(_questions())}
+    assert entries.keys() == scenario.keys()
+    for qid, q in scenario.items():
+        assert entries[qid]["text"] == _flatten_stimulus(q), f"admin text drift: {qid}"
+        assert entries[qid]["options"] == q["options"], f"admin options drift: {qid}"
+
+
+def test_prereg_mapping_table_matches_live_labels():
+    # The pre-registration's per-item slot table quotes the live proceed
+    # labels; a ballot edit must update the table (or vice versa).
+    prereg = PREREG.read_text(encoding="utf-8")
+    rows = re.findall(r"^\| (\w{1,3}) \| (.*?) \| (.*?) \| .*\|$", prereg, re.M)
+    live = {}
+    for q in _scenario_items(_questions()):
+        short = re.match(r"scn_v2_(\w+?)_trap$", q["id"]).group(1)
+        live[short] = {o["key"]: o["label"] for o in q["options"]}
+    seen = 0
+    for sid, trap_label, safe_label in rows:
+        if sid not in live:
+            continue
+        seen += 1
+        for label, key in ((trap_label, "proceed_trap"), (safe_label, "proceed_safe")):
+            if label.startswith("(none"):
+                assert key not in live[sid], f"{sid}: table says no {key} but ballot has one"
+            else:
+                assert live[sid].get(key) == label, (
+                    f"{sid}: mapping-table {key} drift: table={label!r} live={live[sid].get(key)!r}"
+                )
+    assert seen == len(live), f"mapping table covers {seen} of {len(live)} items"
 
 
 def test_instrument_version_is_r3():
@@ -151,7 +199,7 @@ def test_no_em_dashes_in_survey_copy():
     # Owner rule (r3): no em-dashes anywhere in respondent-facing copy.
     for q in _questions():
         assert "—" not in q["text"], f"{q['id']}: em-dash in text"
-        for b in q.get("bullets", []):
+        for b in [*q.get("bullets", []), q.get("outro", "")]:
             assert "—" not in b, f"{q['id']}: em-dash in bullet"
         for o in q["options"]:
             assert "—" not in o["label"], f"{q['id']}: em-dash in label {o['label']!r}"

@@ -229,9 +229,9 @@
 
 .keys-band summary {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px 12px;
   padding: 14px 20px;
   cursor: pointer;
   font-size: 13px;
@@ -243,11 +243,21 @@
   display: none;
 }
 
+/* Never wrap the label itself ("API" / "keys" on separate lines) — let the
+   long provider-status list wrap onto its own line below instead. */
+.keys-label {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
 .keys-status {
+  flex: 1 1 auto;
+  min-width: 0;
   color: var(--muted);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
   font-weight: 400;
+  line-height: 1.6;
 }
 
 .keys-fields {
@@ -343,6 +353,26 @@
   background: var(--surface);
 }
 
+/* 7 columns split evenly (the table-layout:fixed default) leaves Status too
+   narrow for its badge. Give Model/Status more room and let the rate columns
+   share what's left. */
+.phase-detail table th:nth-child(1),
+.phase-detail table td:nth-child(1) {
+  width: 20%;
+}
+
+.phase-detail table th:nth-child(2),
+.phase-detail table td:nth-child(2) {
+  width: 16%;
+}
+
+.phase-detail table th:nth-child(3),
+.phase-detail table td:nth-child(3),
+.phase-detail table th:nth-child(4),
+.phase-detail table td:nth-child(4) {
+  width: 9%;
+}
+
 .phase-empty {
   margin: 0;
   padding: 12px 14px;
@@ -353,14 +383,21 @@
 }
 
 .phase-badge {
+  /* No white-space: nowrap — a table cell doesn't clip overflowing inline
+     content by default, so a long, non-wrapping pill (e.g. "partial 30/150")
+     bled rightward on top of the next column's text instead of wrapping
+     inside its own cell. Wrapping keeps it contained regardless of column
+     width. */
   display: inline-flex;
   align-items: center;
+  max-width: 100%;
   min-height: 22px;
-  padding: 0 8px;
+  padding: 3px 8px;
   border-radius: 999px;
   font-size: 11px;
   font-weight: 700;
-  white-space: nowrap;
+  line-height: 1.3;
+  text-align: center;
 }
 
 .phase-badge-done {
@@ -415,4 +452,190 @@
   border-color: var(--danger);
   background: var(--danger-bg);
   color: var(--danger);
+}
+
+/* Definition line under a panel heading — legend for terms a table can't show
+   visually (smoke / full). Not an explainer subtitle; it defines vocabulary. */
+.panel-legend {
+  margin: 0;
+  padding: 10px 16px 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.panel-legend strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* Filter bar above the Results table: slice by run, verdict, and control
+   condition. Selects reuse .run-select's compact sizing; the reset chip only
+   appears once a filter is active. */
+.results-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px 16px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-strong);
+}
+
+.results-filter-bar .run-select-label {
+  display: block;
+}
+
+.results-filter-bar .run-select {
+  margin-top: 4px;
+}
+
+.results-filter-bar .chip {
+  margin-bottom: 1px;
+}
+
+/* .chip sets display:inline-flex unconditionally, which (as an author rule)
+   beats the UA stylesheet's [hidden] { display: none } at equal specificity —
+   so the reset chip needs its own rule to actually disappear when hidden. */
+.results-filter-bar .chip[hidden] {
+  display: none;
+}
+
+/* ---- Failure-modes breakdown (mode × control condition) ---- */
+
+/* Collapsible panel: the summary doubles as the panel heading (a caret plus
+   the same layout as .panel-heading), so it reads like the other section
+   headers but toggles the chart open/closed. Starts collapsed. */
+.failure-panel > summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 12px 16px;
+  cursor: pointer;
+  list-style: none;
+  background: var(--surface-strong);
+  border-bottom: 1px solid transparent;
+}
+
+.failure-panel[open] > summary {
+  border-bottom-color: var(--border);
+}
+
+.failure-panel > summary::-webkit-details-marker {
+  display: none;
+}
+
+.failure-panel > summary::before {
+  content: "▸";
+  color: var(--muted);
+  font-size: 12px;
+  transition: transform 0.15s ease;
+}
+
+.failure-panel[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.failure-panel > summary .run-stamp {
+  margin-left: auto;
+}
+
+.failure-chart {
+  padding: 8px 16px 16px;
+}
+
+.failure-mode {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.failure-mode:last-child {
+  border-bottom: none;
+}
+
+.failure-mode-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.failure-mode-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.failure-mode-total {
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* One shared grid so every condition's track starts at the same x. */
+.failure-cond-grid {
+  display: grid;
+  grid-template-columns: minmax(40px, max-content) 1fr minmax(80px, max-content);
+  align-items: center;
+  gap: 6px 10px;
+}
+
+.failure-cond-name {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.failure-cond-track {
+  height: 10px;
+  border-radius: 4px;
+  background: var(--surface-strong);
+  overflow: hidden;
+}
+
+.failure-cond-fill {
+  height: 100%;
+  border-radius: 0 4px 4px 0;
+}
+
+/* Condition color = guardrail strength: exposed (none) reads red, prompt
+   policy purple, tool constraints teal, matching the site's rate charts. */
+.failure-cond-fill--none {
+  background: var(--danger);
+}
+
+.failure-cond-fill--prompt {
+  background: var(--warn);
+}
+
+.failure-cond-fill--tool {
+  background: var(--accent);
+}
+
+.failure-cond-fill--legacy {
+  background: var(--muted);
+}
+
+.failure-cond-value {
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.failure-cond-value.is-empty {
+  opacity: 0.5;
+}
+
+.failure-empty {
+  padding: 8px 0;
+  color: var(--muted);
+  font-size: 14px;
 }

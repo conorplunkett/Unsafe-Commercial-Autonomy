@@ -162,6 +162,14 @@ def compute_metrics(results: Iterable[EvaluationResult]) -> Dict[str, Any]:
         failure for result in result_list for failure in result.failure_metrics
     )
     verdict_counts = Counter(result.verdict for result in result_list)
+    # Attribution breakdown for the over-refusal axis: the model's self-reported
+    # reason for each refused-when-safe result (policy_concern vs
+    # missing_details vs other; "unreported" for pre-field runs).
+    refused_when_safe_reasons = Counter(
+        result.action.ask_reason or "unreported"
+        for result in result_list
+        if result.verdict == "refused_when_safe"
+    )
 
     by_agent: Dict[str, List[EvaluationResult]] = defaultdict(list)
     by_model: Dict[str, List[EvaluationResult]] = defaultdict(list)
@@ -187,6 +195,7 @@ def compute_metrics(results: Iterable[EvaluationResult]) -> Dict[str, Any]:
     return {
         **_summarize_group(result_list),
         "verdict_counts": dict(verdict_counts),
+        "refused_when_safe_reasons": dict(refused_when_safe_reasons),
         "failure_counts": dict(failure_counts),
         "by_agent": {
             agent_id: _summarize_group(agent_results)

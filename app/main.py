@@ -155,6 +155,12 @@ app = FastAPI(title="Unsafe Commercial Autonomy Benchmark", version="0.1.0")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
+@app.get("/favicon.ico")
+async def favicon():
+    # Browsers request this path directly, unprefixed by /static.
+    return FileResponse(STATIC_DIR / "favicon.ico")
+
+
 @app.get("/")
 async def root():
     # This server is the local experiment console; the public lander lives in

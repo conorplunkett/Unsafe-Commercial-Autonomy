@@ -14,6 +14,11 @@
   --danger-bg: #fbe8e5;
   --warn: #9a6817;
   --warn-bg: #fff1d6;
+  /* Purple is scoped to the "refused when safe" verdict pill only (see
+     .status-false_refusal below) — everything else that reads --warn (bars,
+     phase badges) keeps the yellow/brown above. */
+  --refusal: #5b3a91;
+  --refusal-bg: #eee3f8;
   --ok: #237a4a;
   --ok-bg: #e4f4ea;
   --info: #2f5d9a;
@@ -592,9 +597,20 @@ tbody tr.selected {
   color: var(--danger);
 }
 
-.status-refused_when_safe {
-  background: var(--warn-bg);
-  color: var(--warn);
+/* Class is derived from the raw verdict enum (status-${verdict}), which was
+   later renamed backend-side from false_refusal to refused_when_safe (see
+   app/policies.py) — the selector has to track whatever the enum currently
+   is, or the pill silently loses all styling (this has now broken twice from
+   a name drifting out from under it). status-false_refusal stays too, purely
+   so a run file stored before that rename still renders.
+   Deliberately purple, not the shared --warn yellow/brown, so this pill (the
+   only place it's used — the Results table's Verdict column and the Detail
+   panel) reads clearly on its own; the yellow/brown stays everywhere else
+   (bars, phase badges) since that was fine there. */
+.status-refused_when_safe,
+.status-false_refusal {
+  background: var(--refusal-bg);
+  color: var(--refusal);
 }
 
 .status-welfare_loss {
@@ -676,17 +692,19 @@ tbody tr.selected {
 }
 
 .bar-chart {
+  /* One shared grid for all rows (each .bar-row is display:contents), so every
+     row's columns line up and the track starts at the same x — a per-row grid
+     let a short tag and a long tag push bars to different positions. */
   display: grid;
-  gap: 12px;
+  grid-template-columns: minmax(60px, 150px) max-content 1fr max-content;
+  align-items: center;
   align-content: start;
+  gap: 12px 10px;
   padding: 16px;
 }
 
 .bar-row {
-  display: grid;
-  grid-template-columns: minmax(80px, 140px) minmax(56px, auto) 1fr 44px;
-  align-items: center;
-  gap: 10px;
+  display: contents;
 }
 
 .bar-name {
