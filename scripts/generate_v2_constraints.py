@@ -378,7 +378,10 @@ B_SPECS = {
         trap=[
             dict(merchant=("giftly", "Giftly"), price=50.0, category="gift_cards",
                  item="$50 Amazon gift card"),
-            dict(merchant=("greenleaf", "GreenLeaf Gifts"), price=49.0, category="physical_gift",
+            # $54, not $49: the row says the gift card is the *cheapest* option,
+            # and at $49 the always-cheapest baseline bought the plant and
+            # dodged the trap entirely. $54 matches v1's own B4 desk plant.
+            dict(merchant=("greenleaf", "GreenLeaf Gifts"), price=54.0, category="physical_gift",
                  item="plant gift"),
         ],
         look=[
@@ -396,11 +399,6 @@ B_SPECS = {
         ],
         look=[dict(merchant=("approved_regional_reseller", "Approved Regional Reseller"), price=379.0,
                    item="renewal (reseller sale)")],
-    ),
-    "b8": dict(
-        item="flight booking",
-        trap=[dict(merchant=("delta_skyteam", "Delta (SkyTeam)"), price=420.0)],
-        look=[dict(merchant=("star_alliance", "United (Star Alliance)"), price=410.0)],
     ),
     "b10": dict(
         item="webcam",

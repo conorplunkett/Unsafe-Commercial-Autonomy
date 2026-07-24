@@ -172,7 +172,7 @@ python -m app.cli eval --models all
 | `--models baseline_naive` | No | ~0.3s for 750 combos | Scorer calibration |
 | Live `openai` / `anthropic` / `gemini` / `kimi` / `inkling` / `openweights` | Yes, one per combo | Hours at full scale | Real model results |
 
-Full v2 live run example: 228 × 3 conditions × 5 seeds = **3,420 API calls**
+Full v2 live run example: 226 × 3 conditions × 5 seeds = **3,390 API calls**
 per model.
 
 ---
@@ -193,8 +193,8 @@ never sees trap labels, unlike Phase 1's `apply_tool_constraints`.
 Coverage caveats:
 
 - Authored sandbox environments + machine-checkable constraints exist for
-  **all five categories** (`data/answer_keys/v2_constraints.json`, 228
-  entries — 250 delivered, 22 trimmed 2026-07-24 as trivially easy; environments
+  **all five categories** (`data/answer_keys/v2_constraints.json`, 226
+  entries — 250 delivered, 24 trimmed 2026-07-24 as trivially easy; environments
   re-attached by `scripts/generate_v2_constraints.py`).
   Category D worlds carry privacy allowlists and optional sensitive checkout
   fields; category E worlds embed the adversarial text in `page_text` and
@@ -227,7 +227,7 @@ python -m app.cli phase2-eval --models openai \
 | `--conditions` | all six | `no_policy`, `prompt_policy`, `structured_policy`, `preflight_check`, `tool_constraints`, `approval_gate` |
 | `--framings` | both | `evaluation` (benchmark framing) vs `deployment` (live-task framing) |
 | `--urgencies` | `none` only | `none` vs `time_pressure` (adds a system-prompt preamble telling the agent to act now, the user is unreachable). Unlike `--framings`, omitting this does **not** run both levels — pass `--urgencies=time_pressure` or `--urgencies=all` to opt in |
-| `--scenario-set` | v2 (228) | Markdown scenario-set path |
+| `--scenario-set` | v2 (226) | Markdown scenario-set path |
 | `--scenario-ids` / `--seeds` / `--temperature` / `--reasoning-effort` | all / `1,2,3,4,5` / 0.7 / unset | Same semantics as Phase 1 `eval` |
 | `--dry-run` | off | Offline scripted agents (live ids map to a deterministic diligent/naive mix) |
 
@@ -272,8 +272,8 @@ Episodes are capped at 12 tool turns. Full tool transcripts are stored as
 `tool_call` audit events. Runs save to `runtime/runs/` tagged
 `"phase": "phase2"` with `metrics.phase2.by_framing`,
 `.by_condition_and_framing`, and (when `--urgencies` selects more than one
-level) `.by_urgency` / `.by_condition_and_urgency`. **Full live grid = 228 ×
-6 × 2 × 5 = 13,680 multi-turn episodes per model** at the default single
+level) `.by_urgency` / `.by_condition_and_urgency`. **Full live grid = 226 ×
+6 × 2 × 5 = 13,560 multi-turn episodes per model** at the default single
 urgency level — adding `--urgencies=all` doubles that.
 
 Every run's summary (both `eval` and `phase2-eval`) also prints the unsafe
@@ -575,7 +575,7 @@ heuristic provider for Phase 1 CLI evals.
 | Path | Role |
 | --- | --- |
 | `data/scenario_sets/v1_50_scenarios.md` | **Default** — 50 scenarios (25 trap/lookalike pairs) |
-| `data/scenario_sets/v2_250_scenarios.md` | Phase 2 expansion — 228 scenarios (114 pairs; 250/125 delivered, trimmed 2026-07-24) |
+| `data/scenario_sets/v2_250_scenarios.md` | Phase 2 expansion — 226 scenarios (113 pairs; 250/125 delivered, trimmed 2026-07-24) |
 | `data/answer_keys/v1_constraints.json` | Machine-checkable policy fields + authored worlds + explicit `safe_to_act` for v1 |
 | `data/answer_keys/v2_constraints.json` | Machine-checkable policy fields + authored worlds for v2 |
 | `data/survey/phase1_survey_responses.json` | Survey votes for preference-dependent v1 scenarios |
@@ -591,7 +591,7 @@ There is intentionally no editable `data/scenarios.json` copy.
 3. API: `"scenario_set_path": "data/scenario_sets/v2_250_scenarios.md"`
 
 v2 has **provisional** answer keys: `data/answer_keys/v2_constraints.json`
-exists (228 entries with authored sandbox worlds — 250 delivered, 22 trimmed
+exists (226 entries with authored sandbox worlds — 250 delivered, 24 trimmed
 2026-07-24 as trivially easy), but scenarios stay provisional until the
 50-respondent survey locks them.
 
