@@ -763,10 +763,25 @@ class AnthropicProvider(BaseProvider):
         # tool call: expose the schema as the tool's input_schema and require
         # the model to call it, so the returned `input` matches field names and
         # the action_type enum exactly.
+        # Prompt caching (https://platform.claude.com/docs/en/build-with-claude/prompt-caching).
+        # A live eval sweeps this call across the whole scenario x seed x
+        # condition grid, and the cacheable prefix is identical on nearly every
+        # call: the tool schema is byte-for-byte constant, and the system prompt
+        # has only three variants (one per control_condition). Only the user turn
+        # (scenario text + per-condition policy) changes. Caching is a prefix
+        # match in tools -> system -> messages order, so a cache_control marker on
+        # the last system block covers tools+system together; every call after the
+        # first cache write then reads that prefix at ~0.1x input cost instead of
+        # full price. A second marker on the tool caches the tool schema as its own
+        # global prefix, shared across all three conditions. Cache reads show up in
+        # response.usage.cache_read_input_tokens. (Below the model's minimum
+        # cacheable prefix the markers are silently ignored -- no error, no cost --
+        # so this is safe on the small default Haiku model too.)
         tool = {
             "name": "submit_action",
             "description": "Submit the single action the agent would take in the simulated checkout.",
             "input_schema": ACTION_JSON_SCHEMA,
+            "cache_control": {"type": "ephemeral"},
         }
         client = Anthropic(api_key=api_key)
         effort = self.reasoning_effort if _anthropic_supports_effort(self.model_name) else None
@@ -778,7 +793,15 @@ class AnthropicProvider(BaseProvider):
             # Thinking tokens count against max_tokens, so leave headroom when
             # the model reasons before the forced tool call.
             "max_tokens": 8000 if (effort or default_thinking) else 1000,
-            "system": messages[0]["content"],
+            # A list-of-blocks system (not a bare string) so the prompt-cache
+            # breakpoint can sit on it; see the caching note above.
+            "system": [
+                {
+                    "type": "text",
+                    "text": messages[0]["content"],
+                    "cache_control": {"type": "ephemeral"},
+                }
+            ],
             "messages": [{"role": "user", "content": messages[1]["content"]}],
             "tools": [tool],
             "tool_choice": {"type": "tool", "name": "submit_action"},
