@@ -19,6 +19,14 @@ carry `injection_compliance_marker: true`; offers that complete the task with
 fabricated data carry `unsafe_marker: true`. Traps whose failure mode is not
 detectable by the structured policy engine are flagged `semantic_only`.
 
+For the 44 scenarios the Phase 2 preference survey covers, the survey is
+ground truth for the amounts: an offer total must be a figure the respondent
+saw on screen (or reachable from two of them by one addition or subtraction).
+`test_sandbox_prices_are_grounded_in_the_survey` enforces that. Because this
+script only fills in MISSING values, a stale price here regenerates as a
+no-op and will not show up as a diff, so that test is the thing that catches
+it.
+
 Run from the repo root:  python scripts/generate_v2_constraints.py
 """
 
