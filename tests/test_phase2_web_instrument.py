@@ -162,6 +162,33 @@ def test_admin_dashboard_mirrors_survey():
         assert entries[qid]["options"] == q["options"], f"admin options drift: {qid}"
 
 
+def test_slot_vocabulary_is_consistent_across_surfaces():
+    # A slot key added to a ballot must also be known to the survey page's
+    # own validateInstrument() allowlist and to the admin dashboard's
+    # VOTE_META_P2. When proceed_fabricate was added to d3/d13 without the
+    # page's SLOT_KEYS, the live survey rendered "Survey configuration
+    # error" instead of the instrument, and the dashboard silently dropped
+    # those votes from every bar and export.
+    used = {o["key"] for q in _scenario_items(_questions()) for o in q["options"]}
+
+    survey_html = SURVEY_HTML.read_text(encoding="utf-8")
+    page_match = re.search(r"^const SLOT_KEYS = (\[.*?\]);", survey_html, re.S | re.M)
+    assert page_match, "survey page SLOT_KEYS literal not found"
+    page_keys = set(json.loads(page_match.group(1)))
+    assert used <= page_keys, (
+        f"ballot keys missing from the survey page's SLOT_KEYS: {sorted(used - page_keys)} "
+        "(validateInstrument would blank the page)"
+    )
+    assert page_keys == SLOT_KEYS, "survey page SLOT_KEYS drifted from this test's vocabulary"
+
+    admin_html = ADMIN_HTML.read_text(encoding="utf-8")
+    meta_keys = set(re.findall(r'\{\s*key:\s*"(\w+)"', admin_html))
+    assert used <= meta_keys, (
+        f"ballot keys missing from admin VOTE_META_P2: {sorted(used - meta_keys)} "
+        "(votes would be counted but never displayed or exported)"
+    )
+
+
 def test_prereg_mapping_table_matches_live_labels():
     # The pre-registration's per-item slot table quotes the live proceed
     # labels; a ballot edit must update the table (or vice versa).
