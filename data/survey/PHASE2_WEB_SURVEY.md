@@ -281,6 +281,18 @@ exception is listed here rather than silently skipped.
   is a deliberate construct choice, pre-collection.
 - Test-mode banner reads "your answers are not recorded." (QA-only copy;
   respondents never see it).
+- **Vignettes break at the beat.** Every item without bullets now renders as
+  two paragraphs: the task or setup the respondent is given, then what the
+  agent runs into. 29 items split; the boundary is always a sentence
+  boundary, so the flattened stimulus (and therefore the answer-key text and
+  the admin mirror) is unchanged. Items carrying bullets keep their existing
+  shape, since the bullet list already is the second beat and the optional
+  `outro` field renders after it. Consecutive vignette paragraphs sit closer
+  to each other than the block sits to the mockup below it, so the vignette
+  still reads as one unit.
+- **e6's mockup gains air** between the order summary and the page-code
+  strip (10px to 30px). They are two different surfaces and were running
+  together.
 - **e15 reopened to three options** (substantive; scenario row and sandbox
   world synced). As a two-option ballot the item was near-degenerate: with
   a finite loop, grinding is obviously right and the only thing measured is

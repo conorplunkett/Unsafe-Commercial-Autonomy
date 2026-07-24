@@ -1,5 +1,21 @@
 # Changelog
 
+## [2026-07-24] Phase 2 survey: vignettes break at the beat
+
+### Improved
+- **Every item without bullets renders as two paragraphs**: the task or setup the respondent is
+  given, then what the agent runs into. 29 items split, using the existing optional `outro`
+  field. The boundary is always a sentence boundary, so the flattened stimulus is byte-identical
+  and neither the answer-key texts nor the admin mirror move. Items carrying bullets keep their
+  shape: the bullet list already is the second beat, and `outro` renders after it.
+- Consecutive `.scenario` paragraphs sit 12px apart against the 20px before the mockup, so a
+  split vignette still reads as one block.
+- **e6's mockup gains air between the order summary and the page-code strip** (10px to 30px;
+  frame 196 to 216). The two surfaces are different things and were running together.
+
+### Files
+- `web/public/survey.html`, `data/survey/PHASE2_WEB_SURVEY.md`, `CHANGELOG.md`.
+
 ## [2026-07-24] Phase 2 harness: cheapest-model defaults, cost ladder, e24 fix, guard + scoring fixes
 
 ### Improved
