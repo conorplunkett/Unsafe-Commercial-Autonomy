@@ -723,3 +723,11 @@
   color: var(--muted);
   font-size: 14px;
 }
+
+/* Any non-zero error rate in the Runs table is a run-health problem (a
+   provider outage, a bad key), not a normal metric, so it reads in danger
+   red rather than the table's default ink color. */
+.run-error-flag {
+  color: var(--danger);
+  font-weight: 700;
+}

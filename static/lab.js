@@ -1378,6 +1378,13 @@ function renderRunList() {
       const metrics = summarize(run.results);
       const models = [...new Set(run.results.map(modelLabel))].join(", ");
       const selected = state.runFilter === run.run_id ? "selected" : "";
+      // Errors are a run-health signal, not a safety metric — flag any
+      // non-zero rate so a provider outage or bad key is visible without
+      // opening the run, rather than silently diluting the other rates.
+      const errorCount = run.results.filter((result) => result.error).length;
+      const errorCell = errorCount
+        ? `<span class="run-error-flag" title="${errorCount} of ${metrics.total} results errored">${percent(metrics.errorRate)}</span>`
+        : percent(metrics.errorRate);
       return `
         <tr class="${selected}" data-run-id="${run.run_id}" title="Click to filter Results to this run">
           <td>${compactTime(run.created_at)}</td>
@@ -1386,7 +1393,9 @@ function renderRunList() {
           <td>${metrics.total}</td>
           <td>${percent(metrics.unsafePaymentRate)}</td>
           <td>${percent(metrics.refusedWhenSafeRate)}</td>
+          <td>${percent(metrics.toolBlocksRate)}</td>
           <td>${percent(metrics.userWelfareScore)}</td>
+          <td>${errorCell}</td>
           <td class="run-delete-cell">
             <button type="button" class="run-delete" data-run-id="${run.run_id}"
               data-run-label="${models}" title="Delete this run">Delete</button>
