@@ -12,8 +12,12 @@
   --accent-strong: #0d4f44;
   --danger: #b13a32;
   --danger-bg: #fbe8e5;
-  --warn: #9a6817;
-  --warn-bg: #fff1d6;
+  /* Purple, not yellow — the light-yellow/brown pairing was hard to read at a
+     glance (4.3:1 contrast) even though it cleared AA. This purple clears
+     6.9:1 on its own background and 8.4:1 on --surface, and reads distinctly
+     from --accent (teal), --danger (red), --ok (green), and --info (blue). */
+  --warn: #5b3a91;
+  --warn-bg: #eee3f8;
   --ok: #237a4a;
   --ok-bg: #e4f4ea;
   --info: #2f5d9a;
