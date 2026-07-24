@@ -58,7 +58,10 @@
   ul.intro-list { margin: 0 0 12px 20px; }
   ul.intro-list li { margin-bottom: 6px; }
   @media (max-width: 480px) { .card { padding: 20px; } h1 { font-size: 21px; } }
-  /* Debug only: faint label of the scenario being tested, inside the card's bottom-right corner. */
+  /* Debug only: faint label of the scenario being tested, inside the card's bottom-right
+     corner. Re-appended to #card by syncDebugLabel() at the end of every render*()
+     function, since card.innerHTML rewrites (including in-place ones after an option
+     click) destroy whatever was previously appended. */
   #debugScenario {
     position: absolute; bottom: 10px; right: 14px;
     font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px;
@@ -1017,6 +1020,7 @@ function renderIntro() {
     state.step = 1;
     render();
   };
+  syncDebugLabel();
 }
 
 function renderContext(s) {
@@ -1032,6 +1036,7 @@ function renderContext(s) {
   `;
   document.getElementById("back").onclick = () => { state.step -= 1; render(); };
   document.getElementById("next").onclick = () => { state.step += 1; render(); };
+  syncDebugLabel();
 }
 
 function renderQuestion(s) {
@@ -1090,6 +1095,7 @@ function renderQuestion(s) {
   });
   document.getElementById("back").onclick = () => { state.step -= 1; render(); };
   document.getElementById("next").onclick = () => { state.step += 1; render(); };
+  syncDebugLabel();
 }
 
 function renderDemographics() {
@@ -1120,6 +1126,7 @@ function renderDemographics() {
     if (isLast) submit();
     else { state.demoStep += 1; renderDemographics(); }
   };
+  syncDebugLabel();
 }
 
 function renderDone() {
@@ -1134,6 +1141,7 @@ function renderDone() {
     document.getElementById("restart").onclick = () => {
       state.answers = {}; state.alsoOk = {}; state.demo = {}; state.demoStep = 0; state.startedAt = null; state.step = 0; render();
     };
+    syncDebugLabel();
     return;
   }
   card.innerHTML = `
@@ -1141,6 +1149,7 @@ function renderDone() {
     <h1>Thank you</h1>
     <p>Your responses are in. You&rsquo;re one of the people whose judgment sets the ground truth for PayBench Phase 2.</p>
   `;
+  syncDebugLabel();
 }
 
 async function submit() {
@@ -1226,6 +1235,19 @@ function escapeHtml(s) {
   return s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
+// Debug only: scenario id being tested. card.innerHTML rewrites destroy whatever was
+// previously appended to #card, and renderQuestion()/renderDemographics() re-render
+// themselves directly (e.g. on every option click) without going through render() —
+// so each render*() function re-appends the label itself, right after it sets
+// card.innerHTML, rather than relying on a single append in the render() wrapper.
+function syncDebugLabel() {
+  const dbg = document.createElement("div");
+  dbg.id = "debugScenario";
+  const s = STEPS[state.step];
+  dbg.textContent = s.type === "question" ? s.id : "";
+  card.appendChild(dbg);
+}
+
 function render() {
   setProgress();
   window.scrollTo({ top: 0 });
@@ -1235,12 +1257,6 @@ function render() {
   else if (s.type === "question") renderQuestion(s);
   else if (s.type === "demographics") renderDemographics();
   else renderDone();
-  // Debug only: scenario id being tested, anchored inside the card; blank on non-question steps.
-  // Appended after card.innerHTML is set above, since every render*() call replaces it wholesale.
-  const dbg = document.createElement("div");
-  dbg.id = "debugScenario";
-  dbg.textContent = s.type === "question" ? s.id : "";
-  card.appendChild(dbg);
 }
 
 const instrumentErrors = validateInstrument();
