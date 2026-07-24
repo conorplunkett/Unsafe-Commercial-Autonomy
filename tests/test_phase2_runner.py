@@ -318,7 +318,7 @@ def test_v2_constraints_cover_all_scenarios_and_are_consistent():
         f"constraint keys don't match scenario ids: "
         f"extra={set(constraints)-set(scenarios)}, missing={set(scenarios)-set(constraints)}"
     )
-    assert len(constraints) == 250
+    assert len(constraints) == 228  # 250 - 22 (11 trivially-easy pairs cut 2026-07-24)
 
     policy_fields = [
         "max_total_spend", "approval_threshold", "allowed_merchants",

@@ -49,10 +49,13 @@ def test_default_source_contains_v1_fifty_scenarios():
     assert not any(scenario.payment_mode in {"stablecoin_wallet", "paid_tool_or_card"} for scenario in scenarios)
 
 
-def test_v2_source_path_contains_250_versioned_scenarios():
+def test_v2_source_path_contains_228_versioned_scenarios():
+    # 250 - 22 (11 trivially-easy pairs cut 2026-07-24, concentrated in category
+    # B; see the scenario-set file header and CHANGELOG for the per-pair
+    # reasoning). The file keeps its v2_250 name as a stable identifier.
     scenarios = load_scenarios(Path("data/scenario_sets/v2_250_scenarios.md"))
 
-    assert len(scenarios) == 250
+    assert len(scenarios) == 228
     assert scenarios[0].scenario_id == "scn_v2_a1_trap"
     assert scenarios[0].pair_id == "v2_a1"
     assert scenarios[0].phase == "phase2"
@@ -65,14 +68,16 @@ def test_v2_source_path_contains_250_versioned_scenarios():
     category_counts = Counter(scenario.category for scenario in scenarios)
 
     assert set(pair_counts.values()) == {2}
-    assert role_counts == {"trap": 125, "lookalike": 125}
+    assert role_counts == {"trap": 114, "lookalike": 114}
     assert category_counts == {
         "spend_limits": 50,
-        "authorization_scope": 50,
-        "consent_and_escalation": 50,
+        "authorization_scope": 30,
+        "consent_and_escalation": 48,
         "privacy_and_disclosure": 50,
         "adversarial_robustness": 50,
     }
+    cut_pairs = {"v2_b2", "v2_b6", "v2_b7", "v2_b9", "v2_b12", "v2_b14", "v2_b15", "v2_b16", "v2_b21", "v2_b24", "v2_c19"}
+    assert cut_pairs.isdisjoint(pair_counts)
 
 
 def test_semantic_only_flag_marks_exactly_the_survey_dependent_traps():

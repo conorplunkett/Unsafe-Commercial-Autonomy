@@ -1,5 +1,92 @@
 # Changelog
 
+## [2026-07-24] Phase 2: 11 trivially easy pairs cut (250 → 228 scenarios)
+
+Follow-up to the same-day difficulty review. That pass found ~82% of both
+scenario sets are "objective" — a structured rule, not a preference, decides
+them — and flagged that objective is not the same as trivial: category A's
+arithmetic (does the model add up shipping and fees) tests a named core
+hypothesis, and category E's adversarial resistance is rarely trivial even
+when the rule is clean. This pass went category by category and cut the
+specific pairs where the trap's situation text states the policy and the
+disqualifying fact adjacent to each other — a keyword match requiring no
+computation, no resistance to any temptation, and no knowledge beyond the
+sentence itself — **and** the paired lookalike carries no real over-refusal
+risk (no surface resemblance to the trap that would tempt a reflexive
+refusal). A pair survives the cut if either half fails that bar, so several
+"objective-looking" pairs were kept deliberately: real temptation (a discount,
+a rationalized exception), real-world knowledge not stated in the text
+(airline alliance membership, brand certification status), a non-adjacent
+reading step ("pending" vs. certified), or the lookalike's own over-refusal
+value (e.g. a CVV-adjacent secure payment link, right next to a CVV-phishing
+trap).
+
+### Removed
+- **11 pairs, 22 scenarios**, entirely from categories B and C (0% and 60%
+  `semantic_only` respectively before this cut, so nothing here was ever on
+  the survey ballot — confirmed before cutting, not after):
+  - **Category B** (25 → 15 pairs): `b2` (stimulants explicitly listed),
+    `b6` (wine = alcohol), `b7` (non-US address stated with no competing
+    tempting option), `b9` (UberEats named in the policy's own example
+    format, then used), `b12` (StubHub named in the policy's own example
+    format, then used), `b14` (single-mandated-vendor check identical in
+    shape to `b9`/`b15`; "poor reviews" doesn't change the decision rule),
+    `b15` (third-party bill-pay, no discount or pressure), `b16` (personal
+    Google login forced, no temptation), `b21` (industrial bleach vs. an
+    eco-certification — the single most blatant item in the set), `b24`
+    (AI-generated-imagery metadata states the answer outright).
+  - **Category C** (25 → 24 pairs): `c19` (gift for a superior vs. a
+    subordinate — HR policy language and the situation use the same word).
+  - Kept despite a similar surface shape: `b1`/`b5` (multiple real options to
+    search and compare, or gray-market terminology comprehension), `b3`/`b11`
+    (a live discount pulling toward the disallowed rail), `b4`/`b25` (a price
+    temptation toward the disallowed option), `b8`/`b22` (airline-alliance or
+    union-apparel-brand knowledge not stated in the text), `b13`/`b18`/`b23`
+    (this session's `page_text` pilot already made these require real page
+    inspection), `b17` (misses "pending" vs. certified on a skim), `b19`/`b20`
+    (genuine interpretive texture or overriding explicit policy with
+    self-rationalized caution), `d14` (its lookalike is the actual test: does
+    a CVV-phishing trap make the model over-refuse a legitimate secure
+    payment link).
+
+### Changed
+- `data/scenario_sets/v2_250_scenarios.md`: 11 pairs removed, category B and
+  C headers and the file's own header updated with the count and a summary of
+  the cut; **file keeps its `v2_250_scenarios` name** as a stable identifier
+  (paths, `SCENARIO_SET_PATH`, every doc reference) even though it now holds
+  228, the same way `v1_50_scenarios.md` stayed named after the 2026-07-16
+  amendment moved scenarios between denominators.
+- `data/answer_keys/v2_constraints.json`: the 22 corresponding entries
+  removed (228 remain).
+- `scripts/generate_v2_constraints.py`: the 11 corresponding spec entries
+  removed from `B_SPECS`/`C_SPECS`, so the generator has no dangling
+  references to deleted scenarios. Verified idempotent post-cut: two
+  consecutive runs produce byte-identical output, and the generator now
+  reports `0 environment(s) created, 228 preserved`.
+- Every hard-coded 250/125/"50 per category" count elsewhere (`README.md`,
+  `COMMANDS.md`, `web/app/scenarios/page.tsx`) updated to 228/114, each noting
+  the original delivered count and the 2026-07-24 trim rather than silently
+  overwriting the history.
+- `tests/test_data.py`, `tests/test_phase2_runner.py`,
+  `tests/test_survey_key_alignment.py`: counts updated (228 total, category B
+  30/15, category C 48/24); a new assertion pins the 11 cut pair ids as
+  permanently absent so a future regeneration can't silently reintroduce them.
+
+### Notes
+- `paybench_proposal.tex` and `proposal_LOCKED.pdf` are untouched, per
+  `AGENTS.md`: the locked proposal is the historical record of the funding
+  ask, not a live spec, and README/data are the working source of truth for
+  current scope.
+- Nothing here touches the Phase 2 survey instrument (`PHASE2_WEB_SURVEY.md`,
+  `web/public/survey.html`) or any surveyed scenario — verified per-pair
+  before cutting, not assumed. All 11 cut pairs were `semantic_only: false`.
+
+### Files
+- `data/scenario_sets/v2_250_scenarios.md`, `data/answer_keys/v2_constraints.json`,
+  `scripts/generate_v2_constraints.py`, `README.md`, `COMMANDS.md`,
+  `web/app/scenarios/page.tsx`, `tests/test_data.py`,
+  `tests/test_phase2_runner.py`, `tests/test_survey_key_alignment.py`.
+
 ## [2026-07-24] Phase 2 difficulty: urgency axis, ambiguous-pile metric, page_text leak
 
 Prompted by a review of whether Phase 2 is actually harder than Phase 1 along
