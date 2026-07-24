@@ -47,6 +47,8 @@ for (const id of [
   "seedsInput",
   "temperatureInput",
   "reasoningEffort",
+  "cliCommand",
+  "copyCliButton",
   "keysBand",
   "keysStatus",
   "keysFields",
@@ -103,6 +105,41 @@ const MODEL_SUGGESTIONS = {
     "google/gemini-3.1-flash-lite",
     "qwen/qwen3-max",
   ],
+};
+
+// The env var each provider's model override reads (app/providers.py). The
+// CLI has no --model flag; a non-default model is only selectable by setting
+// this in the shell or .env, so the copyable command prefixes it inline.
+const PROVIDER_MODEL_ENV = {
+  openai: "OPENAI_MODEL",
+  anthropic: "ANTHROPIC_MODEL",
+  gemini: "GEMINI_MODEL",
+  kimi: "KIMI_MODEL",
+  inkling: "INKLING_MODEL",
+  grok: "GROK_MODEL",
+  deepseek: "DEEPSEEK_MODEL",
+  mistral: "MISTRAL_MODEL",
+  qwen: "QWEN_MODEL",
+  openrouter: "OPENROUTER_MODEL",
+  openweights: "OPENWEIGHTS_MODEL",
+};
+
+const DEFAULT_SEEDS_LIST = [1, 2, 3, 4, 5];
+
+// Primary key env var per provider (app/main.py PROVIDER_ENV_KEYS) — used only
+// to name what's missing in the copyable command's trailing comment, not to
+// read or display any actual secret.
+const PROVIDER_API_KEY_ENV = {
+  openai: "OPENAI_API_KEY",
+  anthropic: "ANTHROPIC_API_KEY",
+  gemini: "GEMINI_API_KEY",
+  kimi: "KIMI_API_KEY",
+  inkling: "INKLING_API_KEY",
+  grok: "XAI_API_KEY",
+  deepseek: "DEEPSEEK_API_KEY",
+  mistral: "MISTRAL_API_KEY",
+  qwen: "DASHSCOPE_API_KEY",
+  openrouter: "OPENROUTER_API_KEY",
 };
 
 // Mirrored from web/lib/labels.ts so the Lab speaks the site's language.
@@ -576,6 +613,93 @@ function updateRunCount() {
       ? ""
       : "Pick at least one condition.";
   els.runBenchmark.disabled = !cells;
+  updateCliCommand();
+}
+
+// Quotes a value for a POSIX shell only if it actually needs it, so the
+// common case (plain ids, numbers) stays readable.
+function shellQuote(value) {
+  const str = String(value);
+  if (/^[A-Za-z0-9_.,/:=@-]+$/.test(str)) return str;
+  return `'${str.replace(/'/g, "'\\''")}'`;
+}
+
+// Scenario selection for the CLI command, mirroring selectedScenarioIds()
+// but never rolling dice: "random" has no CLI equivalent (the flag is a fixed
+// id list), so it becomes a comment instead of silently picking one id that
+// would look deterministic but isn't.
+function scenarioSelectionForCommand() {
+  const pool = scenarioPool();
+  const choice = els.scenarioFilter.value;
+  if (choice === "random") {
+    return { ids: null, note: "“Random” has no CLI flag — pick a --scenario-ids value yourself" };
+  }
+  if (choice !== "all") return { ids: [choice], note: null };
+  if (els.categoryFilter.value !== "all") return { ids: pool.map((s) => s.scenario_id), note: null };
+  return { ids: null, note: null };
+}
+
+// The `python -m app.cli eval` invocation equivalent to the current run form,
+// so a run can be copied into a real terminal/script instead of only clicked.
+// Best-effort: options with no direct CLI flag (a random scenario pick) get a
+// trailing comment instead of a flag. Never includes an actual secret — a
+// missing key becomes a named-env-var reminder, not the pasted value.
+function buildCliCommand() {
+  const provider = state.provider;
+  const profile = providerProfile();
+  const modelName = selectedModelName();
+  const notes = [];
+  const flags = [`--models ${provider}`];
+
+  const conditions = CONDITION_ORDER.filter((condition) => state.conditions.has(condition));
+  if (conditions.length && conditions.length !== CONDITION_ORDER.length) {
+    flags.push(`--conditions ${conditions.join(",")}`);
+  }
+
+  const scenarioSelection = scenarioSelectionForCommand();
+  if (scenarioSelection.ids) {
+    flags.push(`--scenario-ids ${shellQuote(scenarioSelection.ids.join(","))}`);
+  }
+  if (scenarioSelection.note) notes.push(scenarioSelection.note);
+
+  const seeds = parseSeeds();
+  if (seeds.length !== DEFAULT_SEEDS_LIST.length || seeds.some((seed, i) => seed !== DEFAULT_SEEDS_LIST[i])) {
+    flags.push(`--seeds ${seeds.join(",")}`);
+  }
+
+  const temperature = Number.parseFloat(els.temperatureInput.value);
+  if (Number.isFinite(temperature) && temperature !== 0.7) {
+    flags.push(`--temperature ${temperature}`);
+  }
+
+  if (els.reasoningEffort.value) {
+    flags.push(`--reasoning-effort ${els.reasoningEffort.value}`);
+  }
+
+  const liveEquivalent = provider !== "baseline_naive" && !state.dryRun;
+  if (!liveEquivalent && provider !== "baseline_naive") {
+    flags.push("--dry-run");
+  }
+
+  const envParts = [];
+  const envVar = PROVIDER_MODEL_ENV[provider];
+  if (envVar && modelName && modelName !== profile.default_model) {
+    envParts.push(`${envVar}=${shellQuote(modelName)}`);
+  }
+  if (liveEquivalent && profile.needs_key && !profile.configured && !loadKeys()[provider]) {
+    const keyVar = PROVIDER_API_KEY_ENV[provider];
+    notes.push(keyVar ? `needs ${keyVar} set (or paste a key above)` : "needs an API key set (or paste one above)");
+  }
+
+  const prefix = envParts.length ? `${envParts.join(" ")} ` : "";
+  let command = `${prefix}python -m app.cli eval ${flags.join(" ")}`;
+  if (notes.length) command += `  # ${notes.join("; ")}`;
+  return command;
+}
+
+function updateCliCommand() {
+  if (!els.cliCommand) return;
+  els.cliCommand.textContent = buildCliCommand();
 }
 
 function selectedScenarioIds() {
@@ -1372,6 +1496,7 @@ function bindEvents() {
   els.dryRunChip.addEventListener("click", () => {
     state.dryRun = !state.dryRun;
     els.dryRunChip.classList.toggle("chip-on", state.dryRun);
+    updateRunCount();
   });
   els.categoryFilter.addEventListener("change", () => {
     renderScenarioOptions();
@@ -1379,6 +1504,25 @@ function bindEvents() {
   });
   els.scenarioFilter.addEventListener("change", updateRunCount);
   els.seedsInput.addEventListener("input", updateRunCount);
+  els.temperatureInput.addEventListener("input", updateRunCount);
+  els.reasoningEffort.addEventListener("change", updateRunCount);
+  if (els.copyCliButton) {
+    els.copyCliButton.addEventListener("click", async () => {
+      const command = els.cliCommand ? els.cliCommand.textContent : "";
+      try {
+        await navigator.clipboard.writeText(command);
+      } catch (err) {
+        return;
+      }
+      const original = els.copyCliButton.textContent;
+      els.copyCliButton.textContent = "Copied!";
+      els.copyCliButton.disabled = true;
+      setTimeout(() => {
+        els.copyCliButton.textContent = original;
+        els.copyCliButton.disabled = false;
+      }, 1500);
+    });
+  }
   els.modelSummaryTable.addEventListener("click", (event) => {
     const row = event.target.closest("tr[data-model]");
     if (!row) return;
