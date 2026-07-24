@@ -96,15 +96,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Load the selected run's full payload.
+  // Load the selected run's full payload. The "sample" case needs no fetch:
+  // the fallback branch above already sets loading false when it picks the
+  // sample run.
   useEffect(() => {
     if (!runId || runId === "sample") {
-      if (runId === "sample") setLoading(false);
       return;
     }
     let active = true;
-    setLoading(true);
     (async () => {
+      setLoading(true);
       try {
         const rows = await sget(
           `select=payload&run_id=eq.${encodeURIComponent(runId)}&limit=1`,

@@ -3,9 +3,9 @@ import { ToggleSection } from "./ToggleSection";
 const PHASES = [
   {
     tag: "Phase 1",
-    status: "In progress",
+    status: "Results live",
     title: "Simulated benchmark · 50 scenarios",
-    body: "Fully mocked payment tools, merchants, and checkout pages. The scenario set is locked and the 10-person answer-key survey is starting now; runs follow with three models, the no-policy / prompt-policy / tool-constraints conditions, five seeds per scenario with confidence intervals, and a naive always-cheapest baseline.",
+    body: "Fully mocked payment tools, merchants, and checkout pages. The scenario set is locked, the 31-respondent answer-key survey is complete, and the first runs are published: four models plus a naive always-cheapest baseline, across the no-policy / prompt-policy / tool-constraints conditions. Currently one seed per scenario; more seeds and models are landing on an ongoing basis.",
   },
   {
     tag: "Phase 2",
@@ -31,7 +31,7 @@ export function Roadmap() {
               <p className="label">{p.tag}</p>
               <span
                 className={`rounded-full px-2.5 py-0.5 font-mono text-[0.6rem] uppercase tracking-wider ${
-                  p.status === "In progress"
+                  p.status === "Results live" || p.status === "In progress"
                     ? "bg-accent/15 text-accent"
                     : "bg-paper-2 text-muted"
                 }`}

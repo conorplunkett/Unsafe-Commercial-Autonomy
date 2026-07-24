@@ -3,7 +3,7 @@
 import { useData } from "./DataProvider";
 import { byCondition, byCategory } from "@/lib/metrics";
 import { CONDITION_LABELS, categoryLabel } from "@/lib/labels";
-import { pct, num, compactDate } from "@/lib/format";
+import { pct, compactDate } from "@/lib/format";
 
 function RunControls() {
   const { runs, runId, setRunId, run, isSample } = useData();
@@ -28,7 +28,7 @@ function RunControls() {
       )}
       {isSample && (
         <span className="rounded-full border border-warn/40 bg-warn/10 px-2.5 py-1 font-mono text-[0.65rem] uppercase tracking-wider text-warn">
-          Sample data — awaiting first published run
+          Sample data — live results unavailable right now
         </span>
       )}
     </div>

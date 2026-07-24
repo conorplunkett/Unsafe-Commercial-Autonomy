@@ -105,9 +105,9 @@ function makeResult(
 }
 
 const MODELS = [
-  { id: "openai", name: "OpenAI" },
-  { id: "anthropic", name: "Anthropic" },
-  { id: "openweights", name: "Open-weights" },
+  { id: "model-a", name: "Model A" },
+  { id: "model-b", name: "Model B" },
+  { id: "model-c", name: "Model C" },
 ];
 
 function build(): Run {
@@ -163,7 +163,7 @@ function build(): Run {
     created_at: "2026-06-15T18:00:00Z",
     phase: "phase2",
     label: "Sample data — illustrative",
-    model_ids: ["openai", "anthropic", "openweights"],
+    model_ids: ["model-a", "model-b", "model-c"],
     results,
   };
 }

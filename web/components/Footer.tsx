@@ -8,11 +8,10 @@ export function Footer() {
           <p className="font-serif text-lg">
             💳 Pay<span className="text-accent">Bench</span>
           </p>
-          {/* Once results are live: "Results are published live from the evaluation harness". */}
           <p className="mt-1 max-w-md text-sm text-muted">
-            An open benchmark proposal for delegated-payment safety. Results
-            will publish live from the evaluation harness once Phase-1 runs
-            complete; the harness is runnable today by cloning the repo.
+            An open benchmark for delegated-payment safety. Results are
+            published live from the evaluation harness; the harness is
+            runnable today by cloning the repo.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-5 font-mono text-sm">
