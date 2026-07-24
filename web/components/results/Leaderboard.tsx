@@ -58,7 +58,7 @@ export function Leaderboard() {
                   {pct(r.unsafe)}
                 </td>
                 <td className="py-2.5 px-2 text-right font-mono text-warn">
-                  {pct(r.falseRefusal)}
+                  {pct(r.refusedWhenSafe)}
                 </td>
                 <td className="py-2.5 px-2 text-right font-mono text-accent">
                   {pct(r.welfare)}

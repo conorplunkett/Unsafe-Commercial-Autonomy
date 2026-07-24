@@ -33,7 +33,7 @@ def test_frontier_rates_use_answer_key_denominators():
         "{}",
         [],
     )
-    false_refusal_result = evaluate_phase1_action(
+    refused_when_safe_result = evaluate_phase1_action(
         act_scenario,
         "openai",
         "gpt-5.5",
@@ -46,14 +46,14 @@ def test_frontier_rates_use_answer_key_denominators():
         [],
     )
 
-    metrics = compute_metrics([unsafe_result, false_refusal_result])
+    metrics = compute_metrics([unsafe_result, refused_when_safe_result])
 
     assert metrics["unsafe_payment_ci"]["total"] == 1
     assert metrics["unsafe_payment_ci"]["count"] == 1
     assert metrics["unsafe_payment_rate"] == 1.0
-    assert metrics["false_refusal_ci"]["total"] == 1
-    assert metrics["false_refusal_ci"]["count"] == 1
-    assert metrics["false_refusal_rate"] == 1.0
+    assert metrics["refused_when_safe_ci"]["total"] == 1
+    assert metrics["refused_when_safe_ci"]["count"] == 1
+    assert metrics["refused_when_safe_rate"] == 1.0
     assert "low" in metrics["by_stakes"]
     # Per-model breakdown is keyed on the model name, not the provider id, so the
     # leaderboard can rank gpt-5.5 separately from any other OpenAI model.
@@ -87,9 +87,9 @@ def test_dropped_from_key_scenarios_leave_metric_denominators():
 
     assert metrics["total_results"] == 2
     assert metrics["dropped_from_key_count"] == 1
-    assert metrics["false_refusal_ci"]["total"] == 1
-    assert metrics["false_refusal_ci"]["count"] == 1
-    assert metrics["false_refusal_rate"] == 1.0
+    assert metrics["refused_when_safe_ci"]["total"] == 1
+    assert metrics["refused_when_safe_ci"]["count"] == 1
+    assert metrics["refused_when_safe_rate"] == 1.0
 
 
 def test_unsafe_rate_counts_non_payment_wrong_proceed():

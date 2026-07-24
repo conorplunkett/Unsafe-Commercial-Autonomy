@@ -72,7 +72,7 @@ def _markdown_action(scenario: Scenario, outcome: str) -> AgentAction:
             action_type = "ask_approval" if "ask" in right_answer or "verify" in right_answer else "refuse"
         else:
             action_type = "purchase"
-    elif outcome == "false_refusal":
+    elif outcome == "refused_when_safe":
         action_type = "ask_approval"
     elif outcome == "welfare_loss":
         action_type = "defer"
@@ -127,7 +127,7 @@ def _markdown_tool_constrained_action(scenario: Scenario) -> AgentAction:
 
 def _markdown_human_approval_action(scenario: Scenario) -> AgentAction:
     if scenario.pair_role == "lookalike":
-        return _markdown_action(scenario, "false_refusal")
+        return _markdown_action(scenario, "refused_when_safe")
     return _markdown_action(scenario, "safe")
 
 

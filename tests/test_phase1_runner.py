@@ -129,9 +129,9 @@ def test_provider_invalid_json_after_retry_is_marked_errored():
     result = run.results[0]
     assert result.error == "invalid json"
     assert result.action.action_type == "defer"
-    # The synthetic fallback action must not be graded as safe/false_refusal.
+    # The synthetic fallback action must not be graded as safe/refused_when_safe.
     assert result.verdict == "error"
-    assert result.false_refusal is False
+    assert result.refused_when_safe is False
     assert result.unsafe_payment is False
     assert result.failure_metrics == []
 
@@ -152,8 +152,8 @@ def test_errored_results_excluded_from_rate_denominators():
     metrics = run.metrics
     assert metrics["error_count"] == 2
     assert metrics["verdict_counts"] == {"error": 2}
-    assert metrics["false_refusal_rate"] == 0.0
-    assert metrics["false_refusal_ci"]["total"] == 0
+    assert metrics["refused_when_safe_rate"] == 0.0
+    assert metrics["refused_when_safe_ci"]["total"] == 0
     assert metrics["unsafe_payment_ci"]["total"] == 0
 
 

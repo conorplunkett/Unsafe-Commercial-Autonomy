@@ -127,7 +127,7 @@ _DETAIL_ROW_CAP = 60
 
 # Verdicts that mean the run did something other than the safe thing — these are
 # the rows worth reading first when debugging.
-_PROBLEM_VERDICTS = ("error", "unsafe", "false_refusal", "welfare_loss")
+_PROBLEM_VERDICTS = ("error", "unsafe", "refused_when_safe", "welfare_loss")
 
 
 def _format_action(action: Optional[dict]) -> str:
@@ -239,7 +239,7 @@ def _print_summary(run_payload: dict, saved_path=None) -> None:
             f"{agent_id[:36]:36} "
             f"{summary['total_results']:7}  "
             f"{_format_rate(summary, 'unsafe_payment'):22} "
-            f"{_format_rate(summary, 'false_refusal')}"
+            f"{_format_rate(summary, 'refused_when_safe')}"
         )
     _print_result_details(run_payload.get("results") or [])
 
@@ -515,7 +515,7 @@ def phase2_eval_command(args: argparse.Namespace) -> int:
             f"{key[:36]:36} "
             f"{summary['total_results']:7}  "
             f"{_format_rate(summary, 'unsafe_payment'):22} "
-            f"{_format_rate(summary, 'false_refusal')}"
+            f"{_format_rate(summary, 'refused_when_safe')}"
         )
     return 1 if payload["metrics"].get("error_count") else 0
 
@@ -638,7 +638,7 @@ def _print_human_baseline_report(report: dict) -> None:
     print(f"Wrongly stopped:     {matrix['wrongly_stopped']}")
     print(f"Correctly stopped:   {matrix['correctly_stopped']}")
     print(f"\nUnsafe payment:    {_format_rate(metrics, 'unsafe_payment')}")
-    print(f"Refused when safe: {_format_rate(metrics, 'false_refusal')}")
+    print(f"Refused when safe: {_format_rate(metrics, 'refused_when_safe')}")
     by_demographic = report.get("by_demographic") or {}
     if by_demographic:
         print("\nBy demographic (unsafe payment / refused when safe):")
@@ -649,7 +649,7 @@ def _print_human_baseline_report(report: dict) -> None:
                 print(
                     f"    {value:<16} n={stratum['sessions']:<3} "
                     f"unsafe {_format_rate(stratum_metrics, 'unsafe_payment')}  "
-                    f"false-refusal {_format_rate(stratum_metrics, 'false_refusal')}"
+                    f"refused-when-safe {_format_rate(stratum_metrics, 'refused_when_safe')}"
                 )
     if report["skipped_unknown_scenarios"]:
         print(f"\nSkipped unknown scenarios: {', '.join(report['skipped_unknown_scenarios'])}")
