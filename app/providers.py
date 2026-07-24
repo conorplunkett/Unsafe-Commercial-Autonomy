@@ -87,11 +87,17 @@ DEFAULT_INKLING_MODEL = "thinkingmachines/Inkling"
 # cheapest current general model so an eval without an explicit *_MODEL burns
 # the fewest dollars. The live-eval preflight validates the chosen id first.
 
-# xAI Grok — OpenAI- and Anthropic-SDK compatible at api.x.ai. Flagships:
-# grok-4.3 (hard reasoning, 1M ctx), grok-4.1-fast (cheap, 2M ctx),
-# grok-4-heavy (parallel-agent max effort). Supports OpenAI structured outputs.
+# xAI Grok — OpenAI- and Anthropic-SDK compatible at api.x.ai. grok-4.1-fast
+# was retired 2026-05-15 (redirects to grok-4.3) and is gone from account
+# model lists entirely; confirmed live via `models --provider grok` against a
+# real key 2026-07-24. Current lineup: grok-4.3 and the grok-4.20-0309-*
+# family (reasoning / non-reasoning / multi-agent) are flat-priced at
+# $1.25/$2.50 per 1M tokens; grok-4.5 is pricier ($2/$6). Default to the
+# non-reasoning 4.20 variant — same base price as grok-4.3 but it skips
+# chain-of-thought output tokens, which is both cheaper in practice and a
+# better fit for a single forced-JSON action response.
 GROK_BASE_URL = "https://api.x.ai/v1"
-DEFAULT_GROK_MODEL = "grok-4.1-fast"
+DEFAULT_GROK_MODEL = "grok-4.20-0309-non-reasoning"
 
 # DeepSeek — OpenAI-compatible at api.deepseek.com. deepseek-v4-flash
 # ($0.14/$0.28) and deepseek-v4-pro ($0.435/$0.87); thinking mode is toggled
