@@ -126,7 +126,7 @@ def test_attributed_instructions():
         assert not q["text"].lstrip().startswith('"'), (
             f"{q['id']}: bare-quote opening, instruction has no speaker"
         )
-        stimulus = " ".join([q["text"], *q.get("bullets", [])])
+        stimulus = " ".join([q["text"], *q.get("bullets", []), q.get("outro", "")])
         assert "AI agent" in stimulus, f"{q['id']}: stimulus never names the AI agent"
 
 
@@ -134,7 +134,7 @@ def test_no_completed_mistake_narration():
     # r1 items narrated already-made mistakes ("Agent misses one"), which the
     # prospective stem cannot ask about. r2 texts must stay decision points.
     for q in _scenario_items(_questions()):
-        for line in [q["text"], *q.get("bullets", [])]:
+        for line in [q["text"], *q.get("bullets", []), *([q["outro"]] if q.get("outro") else [])]:
             assert not re.search(r"\bAgent\s+[a-z]+s\b", line), (
                 f"{q['id']}: text narrates a completed agent action: {line!r}"
             )
@@ -151,7 +151,7 @@ def test_no_em_dashes_in_survey_copy():
     # Owner rule (r3): no em-dashes anywhere in respondent-facing copy.
     for q in _questions():
         assert "—" not in q["text"], f"{q['id']}: em-dash in text"
-        for b in q.get("bullets", []):
+        for b in [*q.get("bullets", []), q.get("outro", "")]:
             assert "—" not in b, f"{q['id']}: em-dash in bullet"
         for o in q["options"]:
             assert "—" not in o["label"], f"{q['id']}: em-dash in label {o['label']!r}"
