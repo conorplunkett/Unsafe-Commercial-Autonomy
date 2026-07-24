@@ -93,7 +93,7 @@ are skipped with a note). Use this to pick a real `OPENAI_MODEL` /
 every family has every size (e.g. `gpt-5.5` exists but there is no
 `gpt-5.5-nano`; the newest nano is `gpt-5.4-nano`). If you set nothing, each
 provider defaults to its **cheapest current model** (`gpt-5.4-nano`,
-`claude-haiku-4-5`, `gemini-2.5-flash-lite`, `kimi-k2.6`; prices in
+`claude-haiku-4-5`, `gemini-3.1-flash-lite`, `kimi-k2.6`; prices in
 `app/providers.py`). `inkling` and `openweights` are single-model/local
 endpoints, not a family to list — set `INKLING_MODEL`/`OPENWEIGHTS_MODEL`
 directly. A live `eval` **preflights** the configured model (one cheap
@@ -484,7 +484,7 @@ path is used. Otherwise `agent_ids` run through scripted deterministic agents.
 | --- | --- | --- |
 | `openai` | OpenAI Responses API | `OPENAI_API_KEY`; optional `OPENAI_MODEL` (default `gpt-5.4-nano`, the cheapest current OpenAI model) |
 | `anthropic` | Anthropic Messages API | `ANTHROPIC_API_KEY`; optional `ANTHROPIC_MODEL` (default `claude-haiku-4-5`, the cheapest current Claude) |
-| `gemini` | Gemini OpenAI-compatible endpoint | `GEMINI_API_KEY` (or `GOOGLE_API_KEY`); optional `GEMINI_MODEL` (default `gemini-2.5-flash-lite`, the cheapest current Gemini — retires 2026-10-16) |
+| `gemini` | Gemini OpenAI-compatible endpoint | `GEMINI_API_KEY` (or `GOOGLE_API_KEY`); optional `GEMINI_MODEL` (default `gemini-3.1-flash-lite`, the cheapest current Gemini available to new API keys) |
 | `kimi` | Kimi (Moonshot AI) OpenAI-compatible endpoint | `KIMI_API_KEY` (or `MOONSHOT_API_KEY`); optional `KIMI_MODEL` (default `kimi-k2.6`; also available: `kimi-k3`, `kimi-k2.7-code`, `kimi-k2.7-code-highspeed`, `kimi-k2.5` — see `models --provider kimi`) |
 | `inkling` | Thinking Machines Lab's Inkling open-weight model, via an OpenAI-compatible inference host | `INKLING_API_KEY` (or `TOGETHER_API_KEY`); optional `INKLING_MODEL`/`INKLING_BASE_URL` (default Together AI's `thinkingmachines/Inkling`) |
 | `openweights` | OpenAI-compatible `/v1/chat/completions` | `OPENWEIGHTS_BASE_URL`, `OPENWEIGHTS_MODEL`; optional `OPENWEIGHTS_API_KEY` (default `local`) |
@@ -567,7 +567,7 @@ startup — see Setup). Shell-exported values override the file.
 | `ANTHROPIC_API_KEY` | Live Anthropic evals |
 | `ANTHROPIC_MODEL` | Anthropic model name (default `claude-haiku-4-5` — cheapest current) |
 | `GEMINI_API_KEY` | Live Gemini evals (`GOOGLE_API_KEY` also accepted) |
-| `GEMINI_MODEL` | Gemini model name (default `gemini-2.5-flash-lite` — cheapest current) |
+| `GEMINI_MODEL` | Gemini model name (default `gemini-3.1-flash-lite` — cheapest current available to new API keys) |
 | `KIMI_API_KEY` | Live Kimi (Moonshot AI) evals (`MOONSHOT_API_KEY` also accepted) |
 | `KIMI_MODEL` | Kimi model name (default `kimi-k2.6` — cheapest current, non-retiring) |
 | `INKLING_API_KEY` | Live Inkling evals (`TOGETHER_API_KEY` also accepted) |

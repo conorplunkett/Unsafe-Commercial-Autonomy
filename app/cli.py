@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 import sys
 from pathlib import Path
@@ -43,6 +44,17 @@ class _ProgressBar:
         self._width = width
         self._active = bool(getattr(self._stream, "isatty", lambda: False)())
 
+    def _columns(self) -> int:
+        # shutil.get_terminal_size() prefers the COLUMNS env var over the tty's
+        # actual size, which goes stale the moment a shell splits/resizes a
+        # pane without re-exporting it. Query the stream's own fd first so a
+        # narrow split pane always gets its real, current width; only fall
+        # back to shutil's env-or-default behavior if that's unavailable.
+        try:
+            return os.get_terminal_size(self._stream.fileno()).columns
+        except (AttributeError, OSError, ValueError):
+            return shutil.get_terminal_size((80, 20)).columns
+
     def update(self, completed: int, total: int, label: str) -> None:
         if not self._active:
             return
@@ -51,7 +63,7 @@ class _ProgressBar:
         bar = "█" * filled + "░" * (self._width - filled)
         verb = "done" if completed >= total else "running"
         line = f"[{bar}] {int(frac * 100):3d}% ({completed}/{total}) {verb} {label}"
-        cols = shutil.get_terminal_size((80, 20)).columns
+        cols = self._columns()
         # Pad to the terminal width so a shorter label can't leave stale text
         # behind from the previous, longer line.
         self._stream.write("\r" + line[: cols - 1].ljust(cols - 1))
@@ -60,7 +72,7 @@ class _ProgressBar:
     def finish(self) -> None:
         if not self._active:
             return
-        cols = shutil.get_terminal_size((80, 20)).columns
+        cols = self._columns()
         self._stream.write("\r" + " " * (cols - 1) + "\r")
         self._stream.flush()
 
