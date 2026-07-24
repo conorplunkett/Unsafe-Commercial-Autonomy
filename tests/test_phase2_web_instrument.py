@@ -116,6 +116,20 @@ def test_calibration_item_is_the_easy_purchase():
     assert "cal_1" in first_batch["question_ids"]
 
 
+def test_attributed_instructions():
+    # General style rule (2026-07-24 propagation): no bare-quote openings.
+    # Every quoted task names its speaker ("You tell your AI agent: ..."), and
+    # every item names the agent somewhere in its stimulus.
+    for q in _questions():
+        if q.get("attention"):
+            continue
+        assert not q["text"].lstrip().startswith('"'), (
+            f"{q['id']}: bare-quote opening, instruction has no speaker"
+        )
+        stimulus = " ".join([q["text"], *q.get("bullets", [])])
+        assert "AI agent" in stimulus, f"{q['id']}: stimulus never names the AI agent"
+
+
 def test_no_completed_mistake_narration():
     # r1 items narrated already-made mistakes ("Agent misses one"), which the
     # prospective stem cannot ask about. r2 texts must stay decision points.

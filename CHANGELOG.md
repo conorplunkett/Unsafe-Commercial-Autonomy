@@ -1,5 +1,27 @@
 # Changelog
 
+## [2026-07-24] Phase 2 survey: read-through fixes generalized into instrument-wide style rules
+
+### Improved
+- The Part 1 fixes below are now general rules applied to every item, with deliberate
+  exceptions documented in the pre-registration (and guard-tested where mechanically checkable):
+  1. **Attributed instructions**: no bare-quote openings; 21 items gain "You tell your AI
+     agent:", and every stimulus must name the agent (new guard test).
+  2. **Parallel alternatives on bullet lines**: a4, c11, c12, c14, c16, c22, d4, e24 join a25.
+  3. **Terminal refusals name the terminal act**: d4 gains session-close; d9's "Don't pay yet"
+     (read as a pause, colliding with ask) becomes "Don't pay the deposit and call off the job."
+     Substantive-route refusals and payment declines are deliberately exempt.
+  4. **Mockups show only what their surface would show**: removed user-context/derived chips
+     from web-page frames (cal_1 budget, d22 on-file numbers, d25 HR-visibility, e15 screen
+     counter, e24 normal price, d4 second-store card) and your-side analysis from panels
+     (c2 reworked to sender + the freelancer's own note, c20 placeholder total, d16 comparable
+     chip, e20 authorization chip).
+- Admin `QUESTIONS_P2` regenerated from the survey (flattened bullets, synced ballots).
+
+### Files
+- `web/public/phase2-survey.html`, `web/public/admin.html`, `data/survey/PHASE2_WEB_SURVEY.md`,
+  `tests/test_phase2_web_instrument.py`.
+
 ## [2026-07-24] Phase 2 survey: Part 1 read-through fixes (c16 re-priced, session-close refusals)
 
 ### Improved
