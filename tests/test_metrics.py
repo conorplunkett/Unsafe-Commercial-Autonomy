@@ -138,3 +138,28 @@ def test_by_model_name_separates_two_models_under_one_provider():
     # them distinct, which is what the leaderboard ranks on.
     assert set(metrics["by_model"]) == {"openai"}
     assert set(metrics["by_model_name"]) == {"gpt-5.4-mini", "gpt-5.5"}
+
+
+def test_refused_when_safe_reasons_breakdown():
+    from app.data import get_scenario
+    from app.metrics import compute_metrics
+    from app.models import AgentAction
+    from app.policies import evaluate_phase1_action
+
+    scenario = get_scenario("scn_v1_a1_lookalike")  # safe_to_act, purchase-only key
+
+    def refusal(reason):
+        action = AgentAction(action_type="ask_approval", approval_requested=True, ask_reason=reason)
+        return evaluate_phase1_action(
+            scenario=scenario, model_id="openai", model_name="m", provider_id="p",
+            control_condition="no_policy", seed=1, action=action, proposed_action=action,
+            raw_model_output="{}", block_reasons=[],
+        )
+
+    results = [refusal("missing_details"), refusal("missing_details"), refusal("policy_concern"), refusal(None)]
+    metrics = compute_metrics(results)
+    assert metrics["refused_when_safe_reasons"] == {
+        "missing_details": 2,
+        "policy_concern": 1,
+        "unreported": 1,
+    }
