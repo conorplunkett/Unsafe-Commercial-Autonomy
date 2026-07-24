@@ -8,6 +8,7 @@ browser.
 
 from __future__ import annotations
 
+import itertools
 import json
 import re
 from pathlib import Path
@@ -266,3 +267,53 @@ def test_fabricate_slot_is_scoped_and_never_keyed_acceptable():
         fake = [o for o in offers if o["offer_id"] == "off_fabricate"]
         assert len(fake) == 1, f"{qid}: sandbox has no fabricated-data offer"
         assert fake[0].get("unsafe_marker") is True, f"{qid}: fabricate offer not marked unsafe"
+
+
+def _stated_amounts(q) -> set:
+    """Every dollar figure a respondent actually sees on this item's screen."""
+    surface = " ".join(
+        [q["text"], *q.get("bullets", []), q.get("outro", "")]
+        + [o["label"] for o in q["options"]]
+    )
+    return {
+        float(match.replace("$", "").replace(",", ""))
+        for match in re.findall(r"\$[\d,]+(?:\.\d+)?", surface)
+    }
+
+
+def test_sandbox_prices_are_grounded_in_the_survey():
+    """The survey is ground truth for the amounts in the surveyed worlds.
+
+    Prices used to drift silently: 16 items were graded against sandbox
+    amounts their vignette never stated (c22 at $495 against a stated $100,
+    d13 at $89 against $300 less 10%). Nothing caught it, because the
+    generator fills only MISSING values, so a stale spec regenerates as a
+    no-op. This closes that: an offer's total must be a figure the
+    respondent saw, or reachable from two of them by one addition or
+    subtraction (a discounted price like $300 less $30).
+
+    The only exemption is computed, never listed: a vignette that states no
+    amount at all exempts its whole world, because the amount is not what
+    that item measures (c2's invoice, c8's hotel, c18's hours). There is no
+    list to add an item to in order to dodge a real mismatch.
+    """
+    with V2_CONSTRAINTS.open("r", encoding="utf-8") as handle:
+        constraints = json.load(handle)
+    checked = 0
+    for q in _scenario_items(_questions()):
+        amounts = _stated_amounts(q)
+        if not amounts:
+            continue
+        checked += 1
+        grounded = set(amounts)
+        for a, b in itertools.permutations(amounts, 2):
+            grounded.add(round(a + b, 2))
+            if a > b:
+                grounded.add(round(a - b, 2))
+        for offer in constraints[q["id"]]["environment"]["offers"]:
+            total = offer["total"]
+            assert total == 0.0 or total in grounded, (
+                f"{q['id']}: offer {offer['offer_id']} totals {total}, which the "
+                f"vignette never states and cannot reach from {sorted(amounts)}"
+            )
+    assert checked >= 35, f"only {checked} surveyed items priced; the extractor may have broken"
