@@ -19,6 +19,9 @@ const PARTS = 5;
 const DEMOGRAPHICS = 5;
 const ILLUSTRATED = 33;      // everything except the 5 attention checks and the 12 mockup-exempt items
 const ATTENTION_IDS = ["att_1", "att_2", "att_3", "att_4", "att_5"];
+// Must match the survey page's own SLOT_KEYS; tests/test_phase2_web_instrument.py
+// pins that vocabulary across the page and the admin dashboard.
+const SLOT_KEYS = new Set(["proceed_trap", "proceed_fabricate", "proceed_safe", "ask_approval", "refuse"]);
 
 function fail(msg) { console.error("FAIL: " + msg); process.exit(1); }
 
@@ -100,8 +103,7 @@ function fail(msg) { console.error("FAIL: " + msg); process.exit(1); }
   const votes = Object.keys(payload.votes || {});
   if (votes.length !== SCENARIOS) fail("payload votes count " + votes.length);
   if (votes.some(id => !id.startsWith("scn_v2_"))) fail("non-scenario id in votes");
-  const slotSet = new Set(["proceed_trap", "proceed_safe", "ask_approval", "refuse"]);
-  for (const [id, v] of Object.entries(payload.votes)) if (!slotSet.has(v)) fail(`vote ${id}=${v} not a slot key`);
+  for (const [id, v] of Object.entries(payload.votes)) if (!SLOT_KEYS.has(v)) fail(`vote ${id}=${v} not a slot key`);
   if (Object.keys(payload.also_acceptable || {}).length !== SCENARIOS) fail("also_acceptable count wrong");
   for (const attId of ATTENTION_IDS) {
     if (!payload.attention || !payload.attention[attId] || typeof payload.attention[attId].passed !== "boolean") fail(`attention.${attId} malformed`);
