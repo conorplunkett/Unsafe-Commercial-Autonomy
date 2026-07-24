@@ -1,5 +1,24 @@
 # Changelog
 
+## [2026-07-24] Phase 2 survey: per-part attention checks, citable zeros, industry demographic
+
+### Improved
+- **Citable zeros restored.** The dead-option drops are reversed for a4 (trap + refuse), c8,
+  c11, c12, c14, c22, d1, d5, d10 (refuse): a slot never offered can't produce an empirical
+  zero. Semantic collapses stay dropped (c6, d13, d20, e24 refuse; e11 trap; e12/e13/e15
+  two-option ballots).
+- **Five attention checks**, `att_1`..`att_5`, one shuffled into each part with varied pass
+  keys; exclusion becomes fail-2-or-more-of-5 (single miss tolerated as a stray tap). Admin
+  respondent table shows N/5 passed.
+- **Industry demographic**: "What industry do you work in?" with a standardized 15-bucket
+  list; `industry` column added (`db/migrations/0007_phase2_industry.sql`, applied) and
+  surfaced as an admin stratum + CSV column. Descriptive only, not a weighting stratum.
+- Survey is now 47 situations (41 scenarios + `cal_1` + 5 checks), parts of 10/10/8/10/9.
+
+### Files
+- `web/public/phase2-survey.html`, `web/public/admin.html`, `data/survey/PHASE2_WEB_SURVEY.md`,
+  `db/migrations/0007_phase2_industry.sql`, `tests/test_phase2_web_instrument.py`, `README.md`.
+
 ## [2026-07-23] Phase 2 survey: Part 5 finalized, three forced items cut (43 situations)
 
 ### Improved
