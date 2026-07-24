@@ -1,5 +1,24 @@
 # Changelog
 
+## [2026-07-24] Survey slugs renamed: Phase 2 → /survey, Phase 1 → /survey0
+
+### Changed
+- **Phase 2 survey now lives at `/survey`, Phase 1 at `/survey0`** (Vercel `cleanUrls` derives
+  each route from its filename): `web/public/phase2-survey.html` → `survey.html`,
+  `web/public/survey.html` → `survey0.html`.
+- Updated every reference to the old filenames/routes: admin dashboard test links + share hint,
+  the instrument test's `SURVEY_HTML` path, the two phase2 dev-script defaults, doc live-URLs,
+  and two migration comments. The old `/phase2-survey` URL now 404s (no redirect added). CLI
+  subcommand names (`phase2-survey` / `phase2-survey-collect`) are unrelated and unchanged.
+
+### Files
+- `web/public/survey.html` (was `phase2-survey.html`), `web/public/survey0.html` (was
+  `survey.html`), `web/public/admin.html`, `tests/test_phase2_web_instrument.py`,
+  `scripts/phase2_mobile_pass.js`, `scripts/phase2_walkthrough.js`, `README.md`, `COMMANDS.md`,
+  `data/survey/PHASE1_WEB_SURVEY.md`, `data/survey/PHASE2_WEB_SURVEY.md`,
+  `app/phase1_web_survey.py`, `db/migrations/0003_add_phase2_survey.sql`,
+  `db/migrations/0007_phase2_industry.sql`, `CHANGELOG.md`.
+
 ## [2026-07-24] Phase 2 survey: c24 legibility + honest refusal, mockup removed
 
 ### Improved

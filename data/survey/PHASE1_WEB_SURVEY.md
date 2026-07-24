@@ -132,7 +132,7 @@ analysis reproduces the locked N=31 key.
 
 ## Instrument
 
-- Live at `https://unsafe-commercial-autonomy.vercel.app/survey`
+- Live at `https://unsafe-commercial-autonomy.vercel.app/survey0`
   (`web/public/survey0.html`, instrument version `v1_web_r2` recorded in each
   response's `meta.survey_version`).
 - 14 one-choice situations: the 12 preference-dependent v1 scenarios (pairs
