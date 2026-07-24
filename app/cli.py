@@ -30,6 +30,41 @@ def _csv_conditions(value: Optional[str]) -> Optional[List[ControlCondition]]:
     return items if items is not None else None  # type: ignore[return-value]
 
 
+def _confirm_run_all(model_ids: Optional[List[str]], *, live: bool, assume_yes: bool, label: str) -> bool:
+    """Guard the expensive ``--models all`` case behind an explicit confirmation.
+
+    ``all`` fans out across every configured provider — on a live run that is
+    real, billed API calls against ~a dozen paid vendors at once, which is easy
+    to trigger by accident. Returns True to proceed, False to abort. Dry runs
+    are offline and free, so they pass through untouched; ``--yes`` (or a
+    non-``all`` model list) also skips the prompt so scripts/CI aren't broken.
+    """
+    requested = [item.strip() for item in (model_ids or [])]
+    if "all" not in requested or not live or assume_yes:
+        return True
+    if not sys.stdin.isatty():
+        # No interactive terminal to answer the prompt; refuse rather than
+        # silently launching a full paid sweep from a pipe/CI job.
+        print(
+            f"Refusing to run '--models all' live without confirmation. "
+            f"Re-run with --yes to proceed non-interactively, or pass an explicit --models list."
+        )
+        return False
+    prompt = (
+        f"'--models all' runs a LIVE {label} against EVERY provider — real API "
+        f"calls billed by each vendor. Type 'yes' to continue: "
+    )
+    try:
+        answer = input(prompt).strip().lower()
+    except (EOFError, KeyboardInterrupt):
+        print("\nAborted.")
+        return False
+    if answer in ("yes", "y"):
+        return True
+    print("Aborted.")
+    return False
+
+
 class _ProgressBar:
     """Render a determinate, single-line progress bar for a CLI eval run.
 
@@ -211,6 +246,10 @@ def _print_summary(run_payload: dict, saved_path=None) -> None:
 
 def eval_command(args: argparse.Namespace) -> int:
     model_ids = _csv(args.models) or ["openai"]
+    if not _confirm_run_all(
+        model_ids, live=not args.dry_run, assume_yes=args.yes, label="Phase 1 eval"
+    ):
+        return 2
     control_conditions = _csv_conditions(args.conditions) or DEFAULT_CONTROL_CONDITIONS
     scenario_ids = _csv(args.scenario_ids)
     seeds = _csv_int(args.seeds) or DEFAULT_SEEDS
@@ -429,6 +468,10 @@ def phase2_eval_command(args: argparse.Namespace) -> int:
     """Phase 2 six-condition sandbox ablation with framing variation."""
     from .phase2 import run_phase2_evaluation
 
+    if not _confirm_run_all(
+        _csv(args.models), live=not args.dry_run, assume_yes=args.yes, label="Phase 2 eval"
+    ):
+        return 2
     if not args.dry_run:
         from .phase2.providers import resolve_phase2_model_ids
 
@@ -725,6 +768,12 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Use offline dry-run providers instead of live model APIs.",
     )
+    eval_parser.add_argument(
+        "--yes",
+        "-y",
+        action="store_true",
+        help="Skip the confirmation prompt for a live '--models all' run (for scripts/CI).",
+    )
     eval_parser.set_defaults(func=eval_command)
 
     models_parser = subparsers.add_parser(
@@ -847,6 +896,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--dry-run",
         action="store_true",
         help="Use offline scripted agents instead of live model APIs.",
+    )
+    phase2_eval_parser.add_argument(
+        "--yes",
+        "-y",
+        action="store_true",
+        help="Skip the confirmation prompt for a live '--models all' run (for scripts/CI).",
     )
     phase2_eval_parser.set_defaults(func=phase2_eval_command)
 

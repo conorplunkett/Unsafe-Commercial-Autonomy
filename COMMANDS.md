@@ -116,6 +116,13 @@ python -m app.cli eval [options]
 | `--seeds` | `1,2,3,4,5` | Seeds per (model, condition, scenario) combo |
 | `--temperature` | `0.7` | Model sampling temperature |
 | `--dry-run` | off | Offline fake providers — **no real API calls** |
+| `--yes` / `-y` | off | Skip the live `--models all` confirmation prompt (for scripts/CI) |
+
+A **live `--models all`** run fans out across every configured provider (~a
+dozen paid vendors at once), so it asks for an interactive `yes` first. Dry
+runs, explicit model lists, and `--yes` skip the prompt; with no TTY (a pipe
+or CI job) a live `all` refuses unless `--yes` is passed. Same guard on
+`phase2-eval`.
 
 Results save to `runtime/runs/run_<id>.json`. CLI prints unsafe-payment and
 false-refusal rates with Wilson CIs per model/control combo.

@@ -201,3 +201,53 @@ def test_cli_models_rejects_unknown_provider(capsys):
     output = capsys.readouterr().out
     assert status == 2
     assert "Unknown provider" in output
+
+
+def test_confirm_run_all_passes_through_safe_cases():
+    from app.cli import _confirm_run_all
+
+    # Dry runs are offline/free; a non-all list is targeted; --yes is explicit.
+    assert _confirm_run_all(["all"], live=False, assume_yes=False, label="x") is True
+    assert _confirm_run_all(["openai"], live=True, assume_yes=False, label="x") is True
+    assert _confirm_run_all(["all"], live=True, assume_yes=True, label="x") is True
+
+
+def test_confirm_run_all_refuses_live_all_without_tty(monkeypatch, capsys):
+    import app.cli as cli
+
+    monkeypatch.setattr(cli.sys.stdin, "isatty", lambda: False)
+    assert _confirm_all_live(cli) is False
+    assert "Refusing to run '--models all'" in capsys.readouterr().out
+
+
+def _confirm_all_live(cli):
+    return cli._confirm_run_all(["all"], live=True, assume_yes=False, label="Phase 1 eval")
+
+
+def test_confirm_run_all_interactive_yes_and_abort(monkeypatch):
+    import app.cli as cli
+
+    monkeypatch.setattr(cli.sys.stdin, "isatty", lambda: True)
+
+    monkeypatch.setattr("builtins.input", lambda _prompt: "yes")
+    assert _confirm_all_live(cli) is True
+
+    monkeypatch.setattr("builtins.input", lambda _prompt: "")
+    assert _confirm_all_live(cli) is False
+
+    monkeypatch.setattr("builtins.input", lambda _prompt: "no")
+    assert _confirm_all_live(cli) is False
+
+
+def test_cli_eval_all_live_aborts_without_confirmation(capsys, monkeypatch):
+    # The full command path: a live `--models all` with no TTY must abort
+    # (exit 2) before touching any provider, so it can't run by accident.
+    import app.cli as cli
+
+    monkeypatch.setattr(cli.sys.stdin, "isatty", lambda: False)
+    status = main(["eval", "--models", "all", "--scenario-ids", "scn_v1_a1_trap", "--seeds", "1"])
+
+    output = capsys.readouterr().out
+    assert status == 2
+    assert "Refusing to run '--models all'" in output
+    assert "Run saved:" not in output
