@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import socket
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, Optional
 
@@ -127,6 +128,48 @@ class ProviderError(Exception):
 
 class ProviderOutputError(ProviderError):
     pass
+
+
+# Statuses worth another attempt: rate limits and transient server-side faults.
+# Every other 4xx is a deterministic config error (unknown model id, bad key,
+# malformed body) where retrying only burns wall-clock — e.g. the
+# gemini-2.5-flash-lite 404 documented above would retry forever otherwise.
+RETRYABLE_HTTP_STATUS = frozenset({408, 409, 425, 429, 500, 502, 503, 504})
+
+
+def _error_status_code(error: BaseException) -> Optional[int]:
+    """HTTP status carried by an exception, whether httpx- or SDK-shaped."""
+    response = getattr(error, "response", None)
+    code = getattr(response, "status_code", None)
+    if code is None:
+        code = getattr(error, "status_code", None)
+    return code if isinstance(code, int) else None
+
+
+def is_retryable_provider_error(error: BaseException) -> bool:
+    """Whether re-issuing the same request could plausibly succeed.
+
+    Providers wrap everything as ProviderError, so the useful signal lives in
+    the ``raise ... from exc`` chain rather than the wrapper. Walk that chain:
+    the first exception carrying an HTTP status decides on status alone, and a
+    transport-level failure anywhere in the chain (DNS, refused connection,
+    timeout) is retryable. Anything else is treated as terminal, so a genuine
+    bug surfaces on the first cell instead of being retried three times.
+    """
+    seen: set[int] = set()
+    current: Optional[BaseException] = error
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        status = _error_status_code(current)
+        if status is not None:
+            return status in RETRYABLE_HTTP_STATUS
+        if isinstance(
+            current,
+            (httpx.TransportError, socket.gaierror, ConnectionError, TimeoutError),
+        ):
+            return True
+        current = current.__cause__ or current.__context__
+    return False
 
 
 @dataclass

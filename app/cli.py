@@ -10,7 +10,13 @@ from typing import Iterable, List, Optional, TextIO
 from .env import load_env_file
 from .models import ControlCondition
 from .providers import ProviderError
-from .runner import DEFAULT_CONTROL_CONDITIONS, DEFAULT_SEEDS, DEFAULT_TEMPERATURE, run_phase1_evaluation
+from .runner import (
+    DEFAULT_CONTROL_CONDITIONS,
+    DEFAULT_SEEDS,
+    DEFAULT_TEMPERATURE,
+    RunAbortedError,
+    run_phase1_evaluation,
+)
 from .storage import RunStorage
 
 
@@ -325,6 +331,12 @@ def eval_command(args: argparse.Namespace) -> int:
             live=not args.dry_run,
             progress_cb=progress.update,
         )
+    except RunAbortedError as exc:
+        # The grid started but the provider stopped answering. Nothing is saved:
+        # a partial run scores as if the missing cells never existed.
+        print(f"Eval aborted: {exc}")
+        print("No run was saved. Check connectivity and provider status, then re-run.")
+        return 2
     except ProviderError as exc:
         # Pre-run validation failed (e.g. bad model id) — abort before saving a
         # junk run, with the actionable message instead of a traceback.

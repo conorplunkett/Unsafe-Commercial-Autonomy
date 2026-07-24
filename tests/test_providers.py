@@ -1,9 +1,18 @@
 import json
+import socket
 
+import httpx
 import pytest
 
 from app.models import AgentAction
-from app.providers import DryRunProvider, ProviderOutputError, build_messages, parse_action_json
+from app.providers import (
+    DryRunProvider,
+    ProviderError,
+    ProviderOutputError,
+    build_messages,
+    is_retryable_provider_error,
+    parse_action_json,
+)
 from app.data import get_scenario
 
 
@@ -704,3 +713,71 @@ def test_prompt_establishes_delegated_checkout_identity_all_conditions():
         # optional-field over-disclosure must still be refusable.
         assert "secure payment field" in developer
         assert "optional or risky fields" in developer
+
+
+def _http_status_error(status: int) -> httpx.HTTPStatusError:
+    request = httpx.Request("POST", "https://example.invalid/chat/completions")
+    response = httpx.Response(status, request=request)
+    return httpx.HTTPStatusError(f"HTTP {status}", request=request, response=response)
+
+
+def _wrapped(cause: BaseException) -> ProviderError:
+    """A ProviderError raised `from cause`, as every provider does."""
+    error = ProviderError(f"provider request failed: {cause}")
+    error.__cause__ = cause
+    return error
+
+
+@pytest.mark.parametrize("status", [408, 409, 425, 429, 500, 502, 503, 504])
+def test_retryable_http_statuses(status):
+    assert is_retryable_provider_error(_wrapped(_http_status_error(status))) is True
+
+
+@pytest.mark.parametrize("status", [400, 401, 403, 404, 422])
+def test_terminal_http_statuses(status):
+    # Deterministic config errors — a bad key or an unknown model id (the
+    # gemini-2.5-flash-lite 404) must fail on the first attempt, not after
+    # three backoffs per cell across the whole grid.
+    assert is_retryable_provider_error(_wrapped(_http_status_error(status))) is False
+
+
+@pytest.mark.parametrize(
+    "cause",
+    [
+        httpx.ConnectError("connection refused"),
+        httpx.ConnectTimeout("timed out"),
+        httpx.ReadTimeout("timed out"),
+        socket.gaierror(8, "nodename nor servname provided, or not known"),
+        ConnectionResetError("reset by peer"),
+        TimeoutError("timed out"),
+    ],
+)
+def test_transport_failures_are_retryable(cause):
+    assert is_retryable_provider_error(_wrapped(cause)) is True
+
+
+def test_dns_failure_that_ended_the_gemini_run_is_retryable():
+    # Regression for run_e88f4dcc2b70: a hotspot dropped mid-grid and 64 of 150
+    # cells were written as permanent error rows on the first failure.
+    cause = socket.gaierror(8, "nodename nor servname provided, or not known")
+    assert is_retryable_provider_error(_wrapped(cause)) is True
+
+
+def test_bare_provider_error_is_terminal():
+    # No cause to inspect: treat as a real bug and surface it immediately.
+    assert is_retryable_provider_error(ProviderError("something broke")) is False
+
+
+def test_nested_cause_chain_is_walked():
+    inner = httpx.ConnectError("dns failure")
+    middle = ProviderError("transport layer")
+    middle.__cause__ = inner
+    assert is_retryable_provider_error(_wrapped(middle)) is True
+
+
+def test_status_wins_over_deeper_transport_cause():
+    # A 400 that happens to wrap a transport object is still a 400: the first
+    # exception carrying a status decides, so we do not retry a bad request.
+    status_error = _http_status_error(400)
+    status_error.__cause__ = httpx.ConnectError("unrelated")
+    assert is_retryable_provider_error(_wrapped(status_error)) is False
