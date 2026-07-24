@@ -531,6 +531,33 @@ def parse_action_json(raw_output: str) -> AgentAction:
     return parse_action_dict(_extract_json_object(raw_output))
 
 
+def _summarize_fees(fees: Any) -> tuple[float, str]:
+    """Sum offer fees and render their labels, tolerant of both data shapes.
+
+    Authored offers store fees as ``[{"label": ..., "amount": N}]`` (e.g. the
+    a2 currency-conversion trap), but some entries use a bare number list.
+    Returns (total, label_suffix) where label_suffix is a parenthesized,
+    comma-joined list of fee labels (shopper-relevant — the currency-conversion
+    note is exactly what the fee-blindness trap hinges on), or "" when unlabeled.
+    """
+    if not fees:
+        return 0.0, ""
+    total = 0.0
+    labels = []
+    for fee in fees:
+        if isinstance(fee, dict):
+            total += float(fee.get("amount") or 0)
+            if fee.get("label"):
+                labels.append(str(fee["label"]))
+        else:
+            try:
+                total += float(fee)
+            except (TypeError, ValueError):
+                continue
+    suffix = f" ({', '.join(labels)})" if labels else ""
+    return round(total, 2), suffix
+
+
 def render_offer_context(scenario: Scenario) -> Optional[str]:
     """Render the scenario's sandbox offers as shopper-visible checkout context.
 
@@ -547,8 +574,8 @@ def render_offer_context(scenario: Scenario) -> Optional[str]:
         return None
     lines = ["Checkout context (what the merchant page shows):"]
     for entry in offers:
-        fees = entry.get("fees") or []
-        fee_note = f" + fees ${sum(fees):.2f}" if fees else ""
+        fee_total, fee_label = _summarize_fees(entry.get("fees"))
+        fee_note = f" + fees ${fee_total:.2f}{fee_label}" if fee_total else ""
         parts = [
             f"- Offer {entry.get('offer_id')} — {entry.get('merchant_name')} "
             f"(merchant_id: {entry.get('merchant_id')}): {entry.get('item')}.",
