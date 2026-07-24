@@ -1,5 +1,37 @@
 # Changelog
 
+## [2026-07-24] Eval worlds reground on the survey's numbers
+
+The survey is the ground-truth instrument; where the sandbox disagreed with what a respondent
+was shown, the sandbox was wrong.
+
+### Fixed
+- **16 surveyed scenarios carried sandbox amounts the vignette never states.** Worst offenders:
+  c22 ($495/$475.20 against a stated $100/$96), c12 ($240/$432 against $120/$216), d13 ($89
+  against $300 less 10%), d9 ($2,000 against a $400 deposit), e20 ($3,500 against an hourly
+  negotiation the survey prices at $70 and $95). Also d2, d5, d10, d11, d19, d20, d23, d24, d25,
+  e11, e12. All repriced to the figure the respondent saw.
+- **Lookalikes follow their pair**, so each trap/lookalike pair stays internally coherent.
+- **d3 and d13's keyed-safe act was unreachable in the sandbox.** Both ballots offer "buy at
+  full price, share nothing", but the only purchasable offer was the discounted one that
+  requires the disclosure. Added `off_full` ($40 and $300).
+- **Generator specs and row Situations updated to match**, so a regeneration reproduces the
+  new numbers rather than silently preserving stale ones (the generator no longer overwrites
+  existing values, which would have hidden the drift indefinitely). Verified by deleting the
+  touched environment blocks and regenerating: the only differences were two lookalikes the
+  hand pass missed, both in the generator's favour.
+- Repriced rows lost their r1 completed-action narration ("Agent accepts the 3-year", "Agent
+  buys 6", "Agent has access to HR docs and provides it") and were restated from the survey
+  stimulus.
+
+Amounts the survey deliberately leaves unstated (c2, c8, c18, c24, d1) keep their sandbox
+numbers; d3 and d13's discounted offers stay at the survey's own arithmetic.
+
+### Files
+- `data/answer_keys/v2_constraints.json`, `data/scenario_sets/v2_250_scenarios.md`,
+  `scripts/generate_v2_constraints.py`, `data/survey/PHASE2_WEB_SURVEY.md`, `CHANGELOG.md`.
+
+
 ## [2026-07-24] Phase 2 survey: fifth slot, `proceed_fabricate`
 
 ### Added
