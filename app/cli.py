@@ -296,6 +296,16 @@ def _print_summary(run_payload: dict, saved_path=None) -> None:
             f"Awaiting survey: {metrics['awaiting_survey_count']} results on scenarios "
             "the Phase 2 survey has not keyed yet (run, not scored)"
         )
+    by_semantic_only = metrics.get("by_semantic_only") or {}
+    semantic_only_summary = by_semantic_only.get("semantic_only")
+    objective_summary = by_semantic_only.get("objective")
+    if semantic_only_summary and semantic_only_summary.get("total_results"):
+        print(
+            f"Semantic-only (survey-derived preference) unsafe rate: "
+            f"{_format_rate(semantic_only_summary, 'unsafe_payment')} "
+            f"vs objective: "
+            f"{_format_rate(objective_summary, 'unsafe_payment') if objective_summary else 'n/a'}"
+        )
     quality = metrics.get("quality") or {}
     if quality.get("status") in ("degraded", "incomplete"):
         # Print this before the numbers, not after: the rates below are computed
@@ -570,17 +580,21 @@ def _phase2_grid_size(args: argparse.Namespace) -> tuple[int, str]:
         scenario_count = len(_csv(args.scenario_ids) or []) or 250
         conditions = len(_csv(args.conditions) or []) or 6
         framings = len(_csv(args.framings) or []) or 2
+        # Unlike framings, omitting --urgencies runs a single level ("none"),
+        # not both — see run_phase2_evaluation. Only an explicit flag doubles this.
+        urgencies = len(_csv(args.urgencies) or []) or 1
         seeds = len(_csv_int(args.seeds) or []) or 5
         # Scripted agents run offline; only live providers incur episode API calls.
         models = len([m for m in resolve_phase2_model_ids(_csv(args.models)) if m in LIVE_MODEL_IDS])
     except Exception:
         return 0, ""
-    episodes = scenario_count * conditions * framings * seeds * models
+    episodes = scenario_count * conditions * framings * urgencies * seeds * models
     if episodes == 0:
         return 0, ""
     breakdown = (
         f"{models} model(s) x {conditions} condition(s) x {framings} framing(s) x "
-        f"{scenario_count} scenario(s) x {seeds} seed(s) = {episodes} multi-turn episodes"
+        f"{urgencies} urgency level(s) x {scenario_count} scenario(s) x {seeds} seed(s) "
+        f"= {episodes} multi-turn episodes"
     )
     return episodes, breakdown
 
@@ -601,6 +615,7 @@ def phase2_eval_command(args: argparse.Namespace) -> int:
             model_ids=_csv(args.models),
             control_conditions=_csv(args.conditions),
             framings=_csv(args.framings),
+            urgencies=_csv(args.urgencies),
             scenario_ids=_csv(args.scenario_ids),
             scenario_set_path=Path(args.scenario_set) if args.scenario_set else None,
             seeds=_csv_int(args.seeds),
@@ -626,6 +641,16 @@ def phase2_eval_command(args: argparse.Namespace) -> int:
             f"{_format_rate(summary, 'unsafe_payment'):22} "
             f"{_format_rate(summary, 'refused_when_safe')}"
         )
+    if len(payload["metrics"]["phase2"].get("by_urgency", {})) > 1:
+        print("\nCondition x urgency (unsafe payment CI / refused-when-safe CI):")
+        print("-" * 88)
+        for key, summary in sorted(payload["metrics"]["phase2"]["by_condition_and_urgency"].items()):
+            print(
+                f"{key[:36]:36} "
+                f"{summary['total_results']:7}  "
+                f"{_format_rate(summary, 'unsafe_payment'):22} "
+                f"{_format_rate(summary, 'refused_when_safe')}"
+            )
     return 1 if payload["metrics"].get("error_count") else 0
 
 
@@ -986,6 +1011,15 @@ def build_parser() -> argparse.ArgumentParser:
         "--framings",
         default=None,
         help="Comma-separated framings: evaluation, deployment. Default: both.",
+    )
+    phase2_eval_parser.add_argument(
+        "--urgencies",
+        default=None,
+        help=(
+            "Comma-separated urgency levels: none, time_pressure, or all. Default: "
+            "none only (opt in to add the time-pressure ablation; unlike --framings, "
+            "omitting this does not run both levels)."
+        ),
     )
     phase2_eval_parser.add_argument("--scenario-ids", default=None, help="Comma-separated scenario ids.")
     phase2_eval_parser.add_argument(

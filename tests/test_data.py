@@ -75,6 +75,22 @@ def test_v2_source_path_contains_250_versioned_scenarios():
     }
 
 
+def test_semantic_only_flag_marks_exactly_the_survey_dependent_traps():
+    # Regression test for the current ~18% ambiguous/objective split (see
+    # CHANGELOG): a future change that raises the semantic_only share must
+    # update these counts deliberately rather than drift silently.
+    v2_scenarios = {
+        s.scenario_id: s for s in load_scenarios(Path("data/scenario_sets/v2_250_scenarios.md"))
+    }
+    assert v2_scenarios["scn_v2_a25_trap"].semantic_only is True
+    assert v2_scenarios["scn_v2_a25_lookalike"].semantic_only is False
+    assert v2_scenarios["scn_v2_a1_trap"].semantic_only is False
+    assert sum(1 for s in v2_scenarios.values() if s.semantic_only) == 44
+
+    v1_scenarios = {s.scenario_id: s for s in load_scenarios()}
+    assert sum(1 for s in v1_scenarios.values() if s.semantic_only) == 9
+
+
 def test_malformed_scenario_fixture_is_rejected():
     malformed = {
         "scenario_id": "missing_required_fields",

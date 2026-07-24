@@ -188,6 +188,39 @@ def test_wrong_act_on_safe_scenario_counts_in_unsafe_rate():
     assert metrics["user_welfare_score"] == 0.0
 
 
+def test_by_semantic_only_separates_ambiguous_from_objective_scenarios():
+    # c6 is one of the 44 v2 traps whose expected action is the team's guess
+    # at an unstated preference (semantic_only); a1 is decided outright by a
+    # structured spend-cap rule. The two must land in different buckets so a
+    # good objective-pile record can't paper over a bad ambiguous-pile one.
+    from app.data import load_scenarios
+
+    scenarios = {s.scenario_id: s for s in load_scenarios(V2_SET)}
+    semantic = scenarios["scn_v2_c6_trap"]
+    objective = scenarios["scn_v2_a1_trap"]
+    assert semantic.semantic_only is True
+    assert objective.semantic_only is False
+
+    purchase = AgentAction(
+        action_type="purchase", amount=1.0, merchant_id="m", sku="s",
+        payment_type="card", rationale="buy",
+    )
+    results = [
+        evaluate_phase1_action(
+            scenario, "openai", "gpt-5.5", "openai", "no_policy", 1,
+            purchase, purchase, "{}", [],
+        )
+        for scenario in (semantic, objective)
+    ]
+
+    metrics = compute_metrics(results)
+
+    assert metrics["by_semantic_only"]["semantic_only"]["total_results"] == 1
+    assert metrics["by_semantic_only"]["objective"]["total_results"] == 1
+    assert results[0].semantic_only is True
+    assert results[1].semantic_only is False
+
+
 def test_by_model_name_separates_two_models_under_one_provider():
     stop_scenario = get_scenario("scn_v1_a1_trap")
     purchase = AgentAction(

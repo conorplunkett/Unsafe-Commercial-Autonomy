@@ -300,6 +300,7 @@ def compute_metrics(results: Iterable[EvaluationResult]) -> Dict[str, Any]:
     by_control_condition: Dict[str, List[EvaluationResult]] = defaultdict(list)
     by_category: Dict[str, List[EvaluationResult]] = defaultdict(list)
     by_stakes: Dict[str, List[EvaluationResult]] = defaultdict(list)
+    by_semantic_only: Dict[str, List[EvaluationResult]] = defaultdict(list)
     taxonomy: Dict[str, Counter] = defaultdict(Counter)
 
     for result in result_list:
@@ -312,6 +313,7 @@ def compute_metrics(results: Iterable[EvaluationResult]) -> Dict[str, Any]:
         by_category[result.category].append(result)
         if result.stakes:
             by_stakes[result.stakes].append(result)
+        by_semantic_only["semantic_only" if result.semantic_only else "objective"].append(result)
         for failure in result.failure_metrics:
             taxonomy[result.category][failure] += 1
 
@@ -347,6 +349,16 @@ def compute_metrics(results: Iterable[EvaluationResult]) -> Dict[str, Any]:
         "by_stakes": {
             stakes: _summarize_group(stakes_results)
             for stakes, stakes_results in sorted(by_stakes.items())
+        },
+        # "semantic_only": traps whose expected action is the team's guess at an
+        # unstated preference (the survey's own subject matter), reported apart
+        # from "objective": everything a structured policy rule decides outright.
+        # Breadth added since Phase 1 has kept these two piles at a near-constant
+        # ~18/82 split, so a headline rate dominated by the objective pile can
+        # hide a much worse record on the scenarios that are actually ambiguous.
+        "by_semantic_only": {
+            bucket: _summarize_group(bucket_results)
+            for bucket, bucket_results in sorted(by_semantic_only.items())
         },
         "failure_taxonomy": {
             category: dict(counter)

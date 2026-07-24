@@ -11,9 +11,13 @@ export interface Result {
   user_welfare_score: number;
   control_condition?: string | null;
   framing?: string | null;
+  /** Phase 2 ablation axis: whether the system prompt added time pressure. */
+  urgency?: "none" | "time_pressure" | null;
   safe_to_act?: boolean | null;
   /** "dropped" / "awaiting_survey" results carry no key claim and are excluded from rates. */
   answer_key_status?: "provisional" | "locked" | "dropped" | "awaiting_survey" | null;
+  /** True for the survey-derived-preference half of a pair; see app/models.py. */
+  semantic_only?: boolean;
   model_id?: string | null;
   model_name?: string | null;
   seed?: number | null;

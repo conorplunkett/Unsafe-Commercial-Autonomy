@@ -1,5 +1,92 @@
 # Changelog
 
+## [2026-07-24] Phase 2 difficulty: urgency axis, ambiguous-pile metric, page_text leak
+
+Prompted by a review of whether Phase 2 is actually harder than Phase 1 along
+the axis that matters (the ambiguous, survey-dependent scenarios) rather than
+just bigger. Two findings drove this pass: the `semantic_only` (survey-derived
+preference) share has held at ~18% of both the 50-scenario and 250-scenario
+sets, so five times more scenarios did not mean five times more genuine
+ambiguity; and explicit urgency/deadline framing actually thinned from 14% of
+v1 to 2% of v2 by scenario count, the opposite of what a harder Phase 2 would
+need given time pressure is where models are observed to slip.
+
+### Added
+- **Urgency ablation axis in the Phase 2 harness.** `run_phase2_evaluation`
+  now crosses `urgency` (`none` / `time_pressure`) the same way it already
+  crosses `framing`, via a new system-prompt preamble
+  (`URGENCY_PREAMBLES`/`URGENCY_LEVELS` in `app/phase2/sandbox.py`). This
+  turns "the model messes up under time pressure" into a reportable rate
+  (`metrics.phase2.by_urgency`, `by_condition_and_urgency`) instead of relying
+  on the handful of scenarios that happen to mention a deadline. Unlike
+  `--framings`, omitting `--urgencies` runs `none` only — every existing
+  caller gets zero behavior change and zero added cost; pass
+  `--urgencies=all` (or `time_pressure`) to opt in. CLI: `phase2-eval
+  --urgencies none,time_pressure`.
+- **`by_semantic_only` metric breakdown** (`app/metrics.py`,
+  `web/lib/metrics.ts`'s `bySemanticOnly`). Every `Scenario`/`EvaluationResult`
+  now carries `semantic_only` (true for the 44 v2 / 9 v1 traps whose expected
+  action is the team's guess at an unstated preference, i.e. exactly the
+  survey's own subject matter). Runs now report unsafe/false-refusal rates for
+  that pile separately from the "objective" 82%, so a good record on
+  structured-rule scenarios can no longer paper over a worse one on the
+  scenarios that are actually ambiguous. Both `eval` and `phase2-eval` print
+  the split when a run has any semantic-only results.
+  `tests/test_data.py::test_semantic_only_flag_marks_exactly_the_survey_dependent_traps`
+  pins the current 44/9 counts so a future rebalance is a deliberate test
+  update, not silent drift.
+
+### Fixed
+- **`page_text` was hard-coding the answer onto the product page, regardless
+  of control condition.** Every offer's `view_offer` copy defaulted to
+  `scenario.source_situation` verbatim — policy statement included — so e.g.
+  `scn_v2_b13_trap`'s Huawei router listing read "Policy: Huawei and ZTE
+  networking equipment prohibited" whether or not the run's `no_policy`
+  condition ever told the agent that rule. A `no_policy` cell was therefore
+  never a true zero-information baseline for any authored scenario; the
+  ablation's whole point (does the *policy layer* change behavior?) was
+  undermined by the sandbox handing over the rule for free. `build_offers` in
+  `scripts/generate_v2_constraints.py` now accepts an optional per-offer
+  `page_text=` in a spec, authored as realistic listing/cert-page copy that
+  shows the disqualifying fact (a brand, a missing certification claim, real
+  marketing copy) without narrating the policy or which offer is the trap;
+  such offers are marked `authored_page_text: true` so
+  `test_v2_constraints_cover_all_scenarios_and_are_consistent` knows the
+  divergence from `source_situation` is intentional rather than drift. Piloted
+  on three B-category pairs chosen as clean "Policy: X. Item is not-X"
+  cases — `b13` (Huawei/ZTE networking equipment), `b18` (ANSI Z87.1 safety
+  goggles), `b23` (LinkedIn-scraper API) — 6 scenarios, 8 offers. `category`
+  and other structured fields (still required for the policy engine to grade
+  the episode) are unchanged; only the narrative copy the model reads changed,
+  so no answer-key verdict moved.
+- This is a mechanism-level fix, not a wording pass: the other 244 v2
+  scenarios (and all of v1) still show the full situation string, policy
+  included, as page_text. Category B alone is 0% `semantic_only` in both
+  scenario sets and is built almost entirely from the same "Policy: X. Item is
+  not-X" template, so it is the highest-value, lowest-risk place this was
+  piloted (no survey ballot depends on its wording, unlike A/C/D/E). Extending
+  the pattern across the rest of B (and the objective slices of A/D) is
+  follow-up work, not done here.
+
+### Notes
+- The `category` field returned by `view_offer` (e.g.
+  `"prohibited_network_equipment"`) is a second, larger leak of the same
+  kind — the scorer's internal ground-truth token is shown to the model
+  verbatim, on every scenario, independent of page_text. Fixing that means
+  decoupling the model-visible product-type label from the scorer's
+  policy-matching token across all 250 v2 scenarios' constraint data, which is
+  a materially bigger and riskier change than this pass (touches every
+  category, every test that references a category string) and was
+  deliberately left out of scope here rather than attempted partially.
+
+### Files
+- `app/models.py`, `app/data.py`, `app/policies.py`, `app/metrics.py`,
+  `app/phase2/sandbox.py`, `app/phase2/runner.py`, `app/cli.py`,
+  `web/lib/types.ts`, `web/lib/metrics.ts`,
+  `scripts/generate_v2_constraints.py`, `data/answer_keys/v2_constraints.json`,
+  `tests/test_phase2_sandbox.py`, `tests/test_phase2_runner.py`,
+  `tests/test_metrics.py`, `tests/test_data.py`.
+
 ## [2026-07-24] Unlocked survey keys are reported, not scored
 
 ### Changed
