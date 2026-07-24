@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "description": "Machine-checkable constraints and sandbox environments for all five v2 categories. Policy and answer fields are authoritative in this file; scripts/generate_v2_constraints.py re-attaches the environment blocks and adds (never modifies) the policy fields the sandbox needs.",
+    "description": "Machine-checkable constraints and sandbox environments for all five v2 categories. This file is authoritative and hand-editable: scripts/generate_v2_constraints.py only fills in environment blocks and sandbox policy fields that are MISSING \u2014 it never overwrites a value that is already present, so manual edits are always preserved. To regenerate an entry from its spec, delete that entry's environment block first.",
     "fields": [
       "max_total_spend",
       "approval_threshold",
