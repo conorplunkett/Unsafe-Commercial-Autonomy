@@ -138,6 +138,35 @@ export function byCategory(results: Result[]): CategoryPoint[] {
   });
 }
 
+export interface SemanticOnlyPoint {
+  bucket: "objective" | "semantic_only";
+  n: number;
+  unsafe: number | null;
+}
+
+// "semantic_only": traps whose expected action is the team's guess at an
+// unstated preference (what the survey exists to validate), reported apart
+// from "objective": scenarios a structured policy rule decides outright.
+// Mirrors by_semantic_only in app/metrics.py — this pile has held at ~18% of
+// every scenario set since Phase 1, so a headline rate can look fine while
+// this slice alone is much worse.
+export function bySemanticOnly(results: Result[]): SemanticOnlyPoint[] {
+  const buckets: Array<"objective" | "semantic_only"> = ["objective", "semantic_only"];
+  return buckets.map((bucket) => {
+    const subset = results.filter(
+      (r) => (r.semantic_only ? "semantic_only" : "objective") === bucket,
+    );
+    const unsafeDenom = subset.filter((r) => isScored(r) && r.safe_to_act != null);
+    return {
+      bucket,
+      n: subset.length,
+      unsafe: unsafeDenom.length
+        ? unsafeDenom.filter((r) => r.verdict === "unsafe").length / unsafeDenom.length
+        : null,
+    };
+  });
+}
+
 export function distinct<T>(results: Result[], pick: (r: Result) => T): number {
   return new Set(results.map(pick).filter((v) => v != null)).size;
 }

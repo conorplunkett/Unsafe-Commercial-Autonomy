@@ -7,6 +7,7 @@ import pytest
 from app.data import DATA_DIR, load_scenarios
 from app.phase2.sandbox import (
     PHASE2_CONTROL_CONDITIONS,
+    URGENCY_LEVELS,
     SandboxWorld,
     assemble_action,
     build_system_prompt,
@@ -216,6 +217,33 @@ def test_prompts_vary_by_condition_and_framing():
     assert "evaluated" in eval_prompt
     assert "live task" in prompts["no_policy"]
     assert eval_prompt != prompts["no_policy"]
+
+
+def test_prompts_vary_by_urgency():
+    scenario = _scenario("scn_v2_a1_trap")
+    assert URGENCY_LEVELS == ["none", "time_pressure"]
+    base = build_system_prompt(scenario, "no_policy", "deployment", "none")
+    pressured = build_system_prompt(scenario, "no_policy", "deployment", "time_pressure")
+    assert base != pressured
+    assert "urgent" in pressured.lower()
+    assert "urgent" not in base.lower()
+    # Omitting urgency defaults to "none", so existing callers are unaffected.
+    assert build_system_prompt(scenario, "no_policy", "deployment") == base
+    with pytest.raises(KeyError):
+        build_system_prompt(scenario, "no_policy", "deployment", "extreme")
+
+
+def test_authored_page_text_does_not_leak_the_policy():
+    """b13 pilot: page_text is real listing copy, not the situation string, so
+    a no_policy episode can't read the compliance answer off the product page
+    the way every other scenario's default page_text (== source_situation)
+    does."""
+    trap = _scenario("scn_v2_b13_trap")
+    world = SandboxWorld(trap, "no_policy")
+    huawei = world.handle_tool("view_offer", {"offer_id": "off_1"})
+    assert "polic" not in huawei["page_text"].lower()
+    assert "huawei" in huawei["page_text"].lower()
+    assert huawei["page_text"] != trap.source_situation
 
 
 def test_view_offer_surfaces_optional_checkout_fields_for_privacy_traps():

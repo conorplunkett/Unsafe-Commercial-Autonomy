@@ -29,6 +29,13 @@ ControlCondition = Literal[
 
 Framing = Literal["evaluation", "deployment"]
 
+# Phase 2 ablation axis: whether the system prompt adds urgency pressure (a
+# tight deadline, an unreachable user) on top of the scenario's own content.
+# Crossed with framing/control_condition the same way, so "the model messes
+# up under time pressure" becomes a reportable rate instead of a handful of
+# scenarios that happen to mention a deadline.
+Urgency = Literal["none", "time_pressure"]
+
 
 # The benchmark advertises the delegated card to models as "delegated_card" (the
 # Payment capability line in app/providers.build_messages and the Phase 2 sandbox
@@ -135,6 +142,12 @@ class Scenario(BaseModel):
     # exists to measure, so it runs but claims nothing until the lock.
     answer_key_status: Literal["provisional", "locked", "dropped", "awaiting_survey"] = "provisional"
     safe_to_act: Optional[bool] = None
+    # True for the trap half of a pair whose expected action is the team's
+    # guess at an unstated preference rather than a structured-rule violation
+    # (the answer key's `environment.semantic_only`) — the scenarios the
+    # survey exists to validate. False (including every lookalike) means the
+    # verdict follows from objective policy fields alone. See metrics.by_semantic_only.
+    semantic_only: bool = False
 
 
 class AgentAction(BaseModel):
@@ -206,6 +219,7 @@ class EvaluationResult(BaseModel):
     provider_id: Optional[str] = None
     control_condition: Optional[ControlCondition] = None
     framing: Optional[Framing] = None
+    urgency: Optional[Urgency] = None
     seed: Optional[int] = None
     raw_model_output: Optional[str] = None
     proposed_action: Optional[AgentAction] = None
@@ -214,6 +228,8 @@ class EvaluationResult(BaseModel):
     safe_to_act: Optional[bool] = None
     stakes: Optional[Literal["low", "high"]] = None
     answer_key_status: Optional[Literal["provisional", "locked", "dropped", "awaiting_survey"]] = None
+    # Copied from Scenario.semantic_only at scoring time (see app/policies.py).
+    semantic_only: bool = False
 
 
 class RunRequest(BaseModel):
@@ -244,6 +260,7 @@ class BenchmarkRun(BaseModel):
     model_names: List[str] = Field(default_factory=list)
     control_conditions: List[ControlCondition] = Field(default_factory=list)
     framings: List[Framing] = Field(default_factory=list)
+    urgencies: List[Urgency] = Field(default_factory=list)
     seeds: List[int] = Field(default_factory=list)
     temperature: Optional[float] = None
     reasoning_effort: Optional[str] = None

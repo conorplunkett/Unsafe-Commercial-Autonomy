@@ -17,7 +17,7 @@ from app.phase2.providers import (
     resolve_phase2_model_ids,
 )
 from app.phase2.runner import PHASE2_CONTROL_CONDITIONS, run_phase2_evaluation
-from app.phase2.sandbox import evaluate_payment_policy
+from app.phase2.sandbox import URGENCY_LEVELS, evaluate_payment_policy
 from app.storage import RunStorage
 
 V2_SET = DATA_DIR / "scenario_sets" / "v2_250_scenarios.md"
@@ -37,6 +37,39 @@ def test_runner_cardinality_and_framing():
     assert {result.framing for result in run.results} == {"evaluation", "deployment"}
     assert set(run.metrics["phase2"]["by_framing"]) == {"evaluation", "deployment"}
     assert "no_policy/evaluation" in run.metrics["phase2"]["by_condition_and_framing"]
+
+
+def test_runner_cardinality_and_urgency():
+    run = run_phase2_evaluation(
+        model_ids=["scripted_diligent"],
+        control_conditions=["no_policy"],
+        framings=["deployment"],
+        urgencies=["none", "time_pressure"],
+        scenario_ids=PAIR_IDS,
+        seeds=[1],
+    )
+    assert len(run.results) == 1 * 1 * 1 * 2 * 2 * 1
+    assert {result.urgency for result in run.results} == {"none", "time_pressure"}
+    assert set(run.metrics["phase2"]["by_urgency"]) == {"none", "time_pressure"}
+    assert "no_policy/none" in run.metrics["phase2"]["by_condition_and_urgency"]
+    assert run.urgencies == ["none", "time_pressure"]
+
+
+def test_urgency_defaults_to_none_only_unlike_framing():
+    # Omitting --urgencies must NOT expand to every level the way omitting
+    # --framings does: every pre-existing caller (this whole test file among
+    # them) calls run_phase2_evaluation without it, so defaulting to "all"
+    # would silently double their episode counts and live-API cost.
+    run = run_phase2_evaluation(
+        model_ids=["scripted_diligent"],
+        control_conditions=["no_policy"],
+        framings=["deployment"],
+        scenario_ids=PAIR_IDS,
+        seeds=[1],
+    )
+    assert len(run.results) == 1 * 1 * 1 * 2 * 1
+    assert {result.urgency for result in run.results} == {"none"}
+    assert run.urgencies == ["none"]
 
 
 def test_live_run_aborts_up_front_when_provider_is_misconfigured(monkeypatch):
@@ -154,6 +187,8 @@ def test_unknown_inputs_rejected():
         run_phase2_evaluation(control_conditions=["super_policy"], scenario_ids=PAIR_IDS)
     with pytest.raises(KeyError):
         run_phase2_evaluation(framings=["covert"], scenario_ids=PAIR_IDS)
+    with pytest.raises(KeyError):
+        run_phase2_evaluation(urgencies=["extreme"], scenario_ids=PAIR_IDS)
     assert resolve_phase2_model_ids(["all"]) == [
         "openai",
         "anthropic",
@@ -177,6 +212,7 @@ def test_select_expands_all():
 
     assert _select(["all"], PHASE2_CONTROL_CONDITIONS, "conditions") == PHASE2_CONTROL_CONDITIONS
     assert _select(["all"], ["evaluation", "deployment"], "framings") == ["evaluation", "deployment"]
+    assert _select(["all"], URGENCY_LEVELS, "urgency levels") == URGENCY_LEVELS
 
 
 def test_tool_loop_provider_drives_world_via_stub_transport():
@@ -310,7 +346,14 @@ def test_v2_constraints_cover_all_scenarios_and_are_consistent():
                 + sum(fee["amount"] for fee in offer["fees"]), 2,
             )
             assert abs(offer["total"] - computed) < 0.005, (scenario_id, offer["offer_id"])
-            assert offer["page_text"] == scenario.source_situation, (scenario_id, offer["offer_id"])
+            if offer.get("authored_page_text"):
+                # Authored listing/cert-page copy (see b13/b18/b23): shows the
+                # disqualifying fact without restating the policy or the
+                # situation's own narration, so it deliberately does not echo
+                # source_situation. Still must be real, non-empty page content.
+                assert offer["page_text"], (scenario_id, offer["offer_id"])
+            else:
+                assert offer["page_text"] == scenario.source_situation, (scenario_id, offer["offer_id"])
 
         # Required checkout fields never leak past a configured allowlist:
         # the default pay path must not be a privacy trap by construction.
