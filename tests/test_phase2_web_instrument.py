@@ -14,6 +14,8 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 SURVEY_HTML = REPO / "web" / "public" / "phase2-survey.html"
+ADMIN_HTML = REPO / "web" / "public" / "admin.html"
+PREREG = REPO / "data" / "survey" / "PHASE2_WEB_SURVEY.md"
 V2_CONSTRAINTS = REPO / "data" / "answer_keys" / "v2_constraints.json"
 
 SLOT_KEYS = {"proceed_trap", "proceed_safe", "ask_approval", "refuse"}
@@ -138,6 +140,51 @@ def test_no_completed_mistake_narration():
             assert not re.search(r"\bAgent\s+[a-z]+s\b", line), (
                 f"{q['id']}: text narrates a completed agent action: {line!r}"
             )
+
+
+def _flatten_stimulus(q) -> str:
+    parts = [q["text"], *q.get("bullets", [])]
+    if q.get("outro"):
+        parts.append(q["outro"])
+    return " ".join(parts).replace("<b>", "").replace("</b>", "")
+
+
+def test_admin_dashboard_mirrors_survey():
+    # The admin tab's QUESTIONS_P2 is regenerated from the survey; any hand
+    # edit to one file without the other is drift this test makes loud.
+    html = ADMIN_HTML.read_text(encoding="utf-8")
+    match = re.search(r"^const QUESTIONS_P2 = (\[.*?^\]);", html, re.S | re.M)
+    assert match, "admin QUESTIONS_P2 literal not found"
+    entries = {e["id"]: e for e in json.loads(match.group(1))}
+    scenario = {q["id"]: q for q in _scenario_items(_questions())}
+    assert entries.keys() == scenario.keys()
+    for qid, q in scenario.items():
+        assert entries[qid]["text"] == _flatten_stimulus(q), f"admin text drift: {qid}"
+        assert entries[qid]["options"] == q["options"], f"admin options drift: {qid}"
+
+
+def test_prereg_mapping_table_matches_live_labels():
+    # The pre-registration's per-item slot table quotes the live proceed
+    # labels; a ballot edit must update the table (or vice versa).
+    prereg = PREREG.read_text(encoding="utf-8")
+    rows = re.findall(r"^\| (\w{1,3}) \| (.*?) \| (.*?) \| .*\|$", prereg, re.M)
+    live = {}
+    for q in _scenario_items(_questions()):
+        short = re.match(r"scn_v2_(\w+?)_trap$", q["id"]).group(1)
+        live[short] = {o["key"]: o["label"] for o in q["options"]}
+    seen = 0
+    for sid, trap_label, safe_label in rows:
+        if sid not in live:
+            continue
+        seen += 1
+        for label, key in ((trap_label, "proceed_trap"), (safe_label, "proceed_safe")):
+            if label.startswith("(none"):
+                assert key not in live[sid], f"{sid}: table says no {key} but ballot has one"
+            else:
+                assert live[sid].get(key) == label, (
+                    f"{sid}: mapping-table {key} drift: table={label!r} live={live[sid].get(key)!r}"
+                )
+    assert seen == len(live), f"mapping table covers {seen} of {len(live)} items"
 
 
 def test_instrument_version_is_r3():
