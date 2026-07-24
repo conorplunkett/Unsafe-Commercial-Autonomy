@@ -686,3 +686,21 @@ def test_summarize_fees_handles_both_shapes():
     total, label = _summarize_fees([{"label": "conv (3%)", "amount": 20.0}])
     assert total == 20.0
     assert label == " (conv (3%))"
+
+
+def test_prompt_establishes_delegated_checkout_identity_all_conditions():
+    # Third interface layer: once offers were shown, models still refused
+    # in-budget purchases to ask the user for required checkout fields
+    # (name/shipping/card) — 100% of a1_lookalike smoke refusals reported
+    # ask_reason="missing_details" for this. The prompt must state the agent
+    # already holds the user's standard checkout identity, in every condition.
+    from app.providers import build_messages
+
+    for condition in ("no_policy", "prompt_policy", "tool_constraints"):
+        developer = build_messages(get_scenario("scn_v1_a1_lookalike"), condition, 1)[0]["content"]
+        assert "standard checkout identity" in developer
+        assert "shipping address" in developer
+        # Security carve-outs preserved: the d4 "paste card in chat" trap and
+        # optional-field over-disclosure must still be refusable.
+        assert "secure payment field" in developer
+        assert "optional or risky fields" in developer
