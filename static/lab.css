@@ -468,3 +468,35 @@
   color: var(--ink);
   font-weight: 700;
 }
+
+/* Filter bar above the Results table: slice by run, verdict, and control
+   condition. Selects reuse .run-select's compact sizing; the reset chip only
+   appears once a filter is active. */
+.results-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px 16px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-strong);
+}
+
+.results-filter-bar .run-select-label {
+  display: block;
+}
+
+.results-filter-bar .run-select {
+  margin-top: 4px;
+}
+
+.results-filter-bar .chip {
+  margin-bottom: 1px;
+}
+
+/* .chip sets display:inline-flex unconditionally, which (as an author rule)
+   beats the UA stylesheet's [hidden] { display: none } at equal specificity —
+   so the reset chip needs its own rule to actually disappear when hidden. */
+.results-filter-bar .chip[hidden] {
+  display: none;
+}

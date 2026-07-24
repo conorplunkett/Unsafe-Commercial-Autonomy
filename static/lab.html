@@ -173,6 +173,21 @@
               <h2>Results</h2>
               <span id="modelResultsStamp" class="run-stamp"></span>
             </div>
+            <div class="results-filter-bar" id="resultsFilterBar">
+              <div>
+                <label class="run-select-label" for="resultRunFilter">Run</label>
+                <select id="resultRunFilter" class="run-select"></select>
+              </div>
+              <div>
+                <label class="run-select-label" for="resultVerdictFilter">Verdict</label>
+                <select id="resultVerdictFilter" class="run-select"></select>
+              </div>
+              <div>
+                <label class="run-select-label" for="resultConditionFilter">Control</label>
+                <select id="resultConditionFilter" class="run-select"></select>
+              </div>
+              <button id="resultsFilterReset" type="button" class="chip" hidden>Reset filters</button>
+            </div>
             <div class="table-wrap model-results-wrap">
               <table>
                 <thead>
