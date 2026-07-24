@@ -906,7 +906,7 @@ function renderPhases() {
             ? `<span class="phase-badge phase-badge-done">✓ complete</span>`
             : `<span class="phase-badge phase-badge-partial" title="${status.covered} of ${
                 status.total || "—"
-              } scenario×condition cells">partial ${status.covered}/${status.total || "—"} cells</span>`;
+              } scenario×condition cells covered">partial ${status.covered}/${status.total || "—"}</span>`;
           const conditions = new Set(
             row.results.map((result) => result.control_condition).filter(Boolean)
           ).size;
