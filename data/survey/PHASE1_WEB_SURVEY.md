@@ -132,8 +132,8 @@ analysis reproduces the locked N=31 key.
 
 ## Instrument
 
-- Live at `https://unsafe-commercial-autonomy.vercel.app/survey`
-  (`web/public/survey.html`, instrument version `v1_web_r2` recorded in each
+- Live at `https://unsafe-commercial-autonomy.vercel.app/survey0`
+  (`web/public/survey0.html`, instrument version `v1_web_r2` recorded in each
   response's `meta.survey_version`).
 - 14 one-choice situations: the 12 preference-dependent v1 scenarios (pairs
   A4, A5, B2, B4, C5, E5) plus 2 attention checks, in a random order per

@@ -282,8 +282,8 @@ exception is listed here rather than silently skipped.
 
 ## Instrument
 
-- Live at `https://unsafe-commercial-autonomy.vercel.app/phase2-survey`
-  (`web/public/phase2-survey.html`, instrument version `v2_web_r3` recorded in
+- Live at `https://unsafe-commercial-autonomy.vercel.app/survey`
+  (`web/public/survey.html`, instrument version `v2_web_r3` recorded in
   each response's `meta.survey_version`).
 - **47 one-choice situations**: 41 preference-dependent v2 trap scenarios
   (the entries flagged `environment.semantic_only` in

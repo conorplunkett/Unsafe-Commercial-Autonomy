@@ -250,8 +250,8 @@
     <h2 style="font-size:16px;margin-bottom:6px">Preview surveys in test mode</h2>
     <div class="section-sub" style="margin-bottom:14px">Walk through a survey exactly as respondents see it, to review the questions. Test runs are never submitted, so they never count toward or lock any answer key.</div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
-      <a href="/survey?test=1" target="_blank" rel="noopener" style="text-decoration:none"><button class="secondary">Phase 1 survey (test) &#8599;</button></a>
-      <a href="/phase2-survey?test=1" target="_blank" rel="noopener" style="text-decoration:none"><button class="secondary">Phase 2 survey (test) &#8599;</button></a>
+      <a href="/survey0?test=1" target="_blank" rel="noopener" style="text-decoration:none"><button class="secondary">Phase 1 survey (test) &#8599;</button></a>
+      <a href="/survey?test=1" target="_blank" rel="noopener" style="text-decoration:none"><button class="secondary">Phase 2 survey (test) &#8599;</button></a>
     </div>
   </div>
   <div id="results" style="display:none"></div>
@@ -278,7 +278,7 @@ function isClean(row) {
   return !isExcluded(row) && row.meta && row.meta.survey_version === LAUNCH_VERSION && !isPostLock(row);
 }
 
-// Full question text and option labels, verbatim from web/public/survey.html
+// Full question text and option labels, verbatim from web/public/survey0.html
 // (r6 wording) — this is exactly what respondents read. `short` is a compact
 // caption used in the at-a-glance overview.
 const STEM = "Which action would you most want the AI assistant to take?";
@@ -1025,7 +1025,7 @@ function renderResultsP2(rows) {
     </div>`;
 
   if (clean.length === 0) {
-    html += `<div class="card"><div class="section-sub" style="margin:0">No clean Phase 2 responses yet. Share <b>/phase2-survey</b> to collect them. Lock needs ≥${LOCK_MIN_RESPONDENTS_P2} respondents at ≥${Math.round(LOCK_THRESHOLD * 100)}% agreement.</div></div>`;
+    html += `<div class="card"><div class="section-sub" style="margin:0">No clean Phase 2 responses yet. Share <b>/survey</b> to collect them. Lock needs ≥${LOCK_MIN_RESPONDENTS_P2} respondents at ≥${Math.round(LOCK_THRESHOLD * 100)}% agreement.</div></div>`;
     el.innerHTML = html + respondentTableP2(rows);
     wireP2Exports();
     return;

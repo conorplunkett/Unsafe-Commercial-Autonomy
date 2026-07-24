@@ -287,8 +287,8 @@ size; the bar stays proportional if more respondents are collected).
 
 The CLI collector above is a fallback instrument with coarse votes
 (`purchase`/`ask_approval`/`refuse`/`use_free_source`). The primary
-instrument is the web survey at `/phase2-survey`
-(`web/public/phase2-survey.html`, instrument `v2_web_r3`), which stores
+instrument is the web survey at `/survey`
+(`web/public/survey.html`, instrument `v2_web_r3`), which stores
 per-item slot keys (`proceed_trap`/`proceed_safe`/`ask_approval`/`refuse`)
 defined in `data/survey/PHASE2_WEB_SURVEY.md`; guard tests in
 `tests/test_phase2_web_instrument.py` keep the page's question set in sync
