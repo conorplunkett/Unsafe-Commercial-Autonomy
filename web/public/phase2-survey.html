@@ -62,6 +62,16 @@
      corner. Re-appended to #card by syncDebugLabel() at the end of every render*()
      function, since card.innerHTML rewrites (including in-place ones after an option
      click) destroy whatever was previously appended. */
+  /* Test mode only: jump straight to any part's intro. Never shown to respondents. */
+  #testjump { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  #testjump .tj-label { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+  #testjump button {
+    font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+    width: 32px; height: 32px; border-radius: 8px; border: 1.5px solid #ead6a8;
+    background: #fdf3e2; color: #8a6116;
+  }
+  #testjump button:hover { border-color: #8a6116; }
+  #testjump button.on { background: #8a6116; border-color: #8a6116; color: #fff; }
   #debugScenario {
     position: absolute; bottom: 10px; right: 14px;
     font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px;
@@ -74,6 +84,7 @@
 <div class="wrap">
   <div class="brand"><b>PayBench</b> &middot; Phase 2 preference survey</div>
   <div id="testbanner" style="display:none;background:#fdf3e2;border:1px solid #ead6a8;color:#8a6116;border-radius:8px;padding:10px 12px;font-size:13px;font-weight:700;margin-bottom:16px">&#129514; Test mode &mdash; your answers are not recorded and never count toward results.</div>
+  <div id="testjump" style="display:none"></div>
   <div class="progress"><div id="bar"></div></div>
   <div class="card" id="card"></div>
 </div>
@@ -228,11 +239,11 @@ const QUESTIONS = [
   },
   {
     "id": "scn_v2_c2_trap",
-    "text": "Your rule: your AI agent pays a freelancer's invoice only after you approve the deliverable. You haven't approved this one yet, but the freelancer's invoice arrives titled \"invoice for approved work,\" with an approval note written by the freelancer.",
+    "text": "Your rule: your AI agent pays a freelancer's invoice only after you personally approve the deliverable. The freelancer's invoice arrives titled \"invoice for approved work,\" with an approval note written by the freelancer.",
     "options": [
       { "key": "proceed_trap", "label": "Pay it, it says approved" },
-      { "key": "ask_approval", "label": "Check with you whether you approved the work" },
-      { "key": "refuse", "label": "Don't pay and abandon the task" }
+      { "key": "ask_approval", "label": "Say nothing to the freelancer, check with you whether you approved the work" },
+      { "key": "refuse", "label": "Don't pay, and tell the freelancer why" }
     ]
   },
   {
@@ -961,13 +972,15 @@ BATCHES.forEach((b, bi) => {
   STEPS.push({ type: "context", batch: bi });
   batchOrders[bi].forEach(id => {
     situationCount += 1;
-    STEPS.push({ type: "question", id: id, number: situationCount });
+    STEPS.push({ type: "question", id: id, number: situationCount, batch: bi });
   });
 });
 STEPS.push({ type: "demographics" });
 STEPS.push({ type: "done" });
 const QUESTION_COUNT = situationCount;
 const DONE_STEP = STEPS.length - 1;
+// Test mode only: the step index of each part's context screen, for the jump bar.
+const CONTEXT_STEPS = STEPS.map((s, i) => (s.type === "context" ? i : -1)).filter(i => i >= 0);
 
 const state = {
   step: 0,
@@ -1256,6 +1269,34 @@ function syncDebugLabel() {
   card.appendChild(dbg);
 }
 
+// Test mode only: a row of buttons (1..N) that jump straight to each part's intro,
+// so a reviewer can skip around. Never built outside test mode, and since test runs
+// never submit, skipping questions has no effect on any recorded data.
+function buildTestJump() {
+  const el = document.getElementById("testjump");
+  el.style.display = "flex";
+  el.innerHTML = '<span class="tj-label">Jump to part</span>';
+  CONTEXT_STEPS.forEach((stepIdx, bi) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = String(bi + 1);
+    b.title = BATCHES[bi].title;
+    b.onclick = () => {
+      if (!state.startedAt) state.startedAt = Date.now();
+      if (!state.name) { state.name = "Test mode"; state.email = "test@local.invalid"; }
+      state.step = stepIdx;
+      render();
+    };
+    el.appendChild(b);
+  });
+}
+
+function updateTestJump() {
+  const s = STEPS[state.step];
+  const active = (s.type === "context" || s.type === "question") ? s.batch : -1;
+  document.querySelectorAll("#testjump button").forEach((b, bi) => b.classList.toggle("on", bi === active));
+}
+
 function render() {
   setProgress();
   window.scrollTo({ top: 0 });
@@ -1265,6 +1306,7 @@ function render() {
   else if (s.type === "question") renderQuestion(s);
   else if (s.type === "demographics") renderDemographics();
   else renderDone();
+  if (TEST_MODE) updateTestJump();
 }
 
 const instrumentErrors = validateInstrument();
@@ -1275,6 +1317,7 @@ if (instrumentErrors.length) {
   if (TEST_MODE) {
     document.getElementById("testbanner").style.display = "block";
     document.title = "PayBench Phase 2 Survey (test mode)";
+    buildTestJump();
   }
   render();
 }
