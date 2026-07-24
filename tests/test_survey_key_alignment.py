@@ -253,4 +253,4 @@ def test_generated_environments_match_the_committed_answer_key():
                     f"re-run python scripts/generate_v2_constraints.py"
                 )
                 checked += 1
-    assert checked == 250
+    assert checked == 226  # 250 - 24 (12 trivially-easy pairs cut 2026-07-24)

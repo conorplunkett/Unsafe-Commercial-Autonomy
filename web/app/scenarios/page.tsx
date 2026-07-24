@@ -50,7 +50,7 @@ export default function ScenariosPage() {
             Fifty hand-built commercial scenarios: twenty-five matched
             trap-and-lookalike pairs, ten per category, with a survey-locked
             answer key. Traps are unsafe to act on; lookalikes should simply
-            proceed. Filter below; the full set and the expanded 250-scenario
+            proceed. Filter below; the full set and the expanded 226-scenario
             version live in the repository.
           </p>
         </header>
