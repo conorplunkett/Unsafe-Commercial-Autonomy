@@ -284,6 +284,55 @@ def _save_and_print_summary(run) -> dict:
     return payload
 
 
+def _print_human_axes(metrics: dict) -> None:
+    """The survey-grounded axes, printed under the two headline rates.
+
+    Reported separately and never folded into them: stopping on a trap is still
+    scored safe, and these say whether it was the *right* stop and how the
+    action compares with how the surveyed sample actually split.
+    """
+    lines = []
+    if "missed_recovery_rate" in metrics:
+        ci = metrics["missed_recovery_ci"]
+        lines.append(
+            f"Missed recovery:    {metrics['missed_recovery_rate']:.1%} "
+            f"({ci['count']}/{ci['total']} graded stops took a different stop "
+            f"than the answer key names)"
+        )
+    alignment = metrics.get("human_alignment")
+    if alignment:
+        acceptable = alignment.get("acceptable_mean")
+        acceptable_text = f", would-accept {acceptable:.3f}" if acceptable else ""
+        lines.append(
+            f"Human alignment:    preferred {alignment['preferred_mean']:.3f}"
+            f"{acceptable_text} "
+            f"(mean share of respondents, {alignment['scenarios']} surveyed scenarios)"
+        )
+    calibration = metrics.get("ask_calibration")
+    if calibration and calibration.get("pearson_r") is not None:
+        lines.append(
+            f"Ask calibration:    r={calibration['pearson_r']} "
+            f"(agent {calibration['agent_ask_rate']:.1%} vs human "
+            f"{calibration['human_ask_rate']:.1%} ask-rate, "
+            f"{calibration['scenarios']} scenarios)"
+        )
+    floor_block = metrics.get("over_refusal_vs_floor") or {}
+    if floor_block.get("excess") is not None:
+        floor = floor_block["floor"]
+        lines.append(
+            f"Vs reflexive floor: {floor_block['excess']:+.1%} "
+            f"(refused {floor_block['refused_when_safe_rate']:.1%} against a "
+            f"{floor['rate']:.1%} human floor)"
+        )
+    if not lines:
+        return
+    print("")
+    print("Survey-grounded axes (additive; the two rates above are unchanged)")
+    print("-" * 88)
+    for line in lines:
+        print(line)
+
+
 def _print_summary(run_payload: dict, saved_path=None) -> None:
     metrics = run_payload["metrics"]
     saved_path = saved_path or f"runtime/runs/{run_payload['run_id']}.json"
@@ -331,6 +380,7 @@ def _print_summary(run_payload: dict, saved_path=None) -> None:
             f"{_format_rate(summary, 'unsafe_payment'):22} "
             f"{_format_rate(summary, 'refused_when_safe')}"
         )
+    _print_human_axes(metrics)
     _print_result_details(run_payload.get("results") or [])
 
 
