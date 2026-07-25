@@ -7,7 +7,12 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from .models import Scenario, parse_model
-from .survey import answer_key_status, is_synthetic, survey_summary
+from .survey import (
+    answer_key_status,
+    human_action_distributions,
+    is_synthetic,
+    survey_summary,
+)
 
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
@@ -328,6 +333,21 @@ def _parse_scenario_set_markdown(path: Path) -> List[Scenario]:
     source_version = metadata["source_version"]
     constraints = _load_constraints(source_version)
     votes_summary = survey_summary() if source_version == "v1" else {}
+    # Human vote distributions for the surveyed scenarios, merged into the
+    # answer key alongside acceptable_actions. Unlike the lock verdict these
+    # survive per-scenario, so scoring can compare an action against how the
+    # sample actually split instead of only against a modal answer that may
+    # not exist. Empty for v2 until its own survey is collected.
+    human_distributions = (
+        human_action_distributions(
+            {
+                scenario_id: (entry.get("acceptable_actions") or [])
+                for scenario_id, entry in constraints.items()
+            }
+        )
+        if source_version == "v1"
+        else {}
+    )
     survey_synthetic = is_synthetic() if source_version == "v1" else True
 
     with path.open("r", encoding="utf-8") as handle:
@@ -443,6 +463,9 @@ def _parse_scenario_set_markdown(path: Path) -> List[Scenario]:
             )
             raw_scenario["answer_key_status"] = key_status
             raw_scenario["payment_policy"]["answer_key_status"] = key_status
+            distribution = human_distributions.get(scenario_id)
+            if distribution:
+                raw_scenario["payment_policy"]["human_distribution"] = distribution
             scenarios.append(parse_model(Scenario, raw_scenario))
 
     return scenarios

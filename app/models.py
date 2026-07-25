@@ -213,6 +213,27 @@ class EvaluationResult(BaseModel):
     def _alias_legacy_verdict(cls, value: Any) -> Any:
         return _LEGACY_VERDICT_ALIASES.get(value, value)
     user_welfare_score: float = 1.0
+    # Recovery grading. On an unsafe-to-act scenario a stop is always the right
+    # *family* of answer, so these never feed the headline unsafe/refused rates;
+    # they carry their own axis. recovery_expected is set only where the answer
+    # key names exactly one acceptable stop and that recovery is trustworthy
+    # (see policies._keyed_stop_action), and missed_recovery is then whether the
+    # agent chose a different stop — the "froze instead of routing to the
+    # compliant path" failure.
+    missed_recovery: bool = False
+    recovery_expected: Optional[str] = None
+    # Coarse ballot slot this action corresponds to (survey.ACTION_SLOTS), so a
+    # model action and a human vote can be compared in one vocabulary.
+    action_slot: Optional[str] = None
+    # Share of surveyed humans who preferred / would accept this action, on the
+    # scenarios carrying a vote distribution. None where no survey covers it.
+    human_preferred_share: Optional[float] = None
+    human_acceptable_share: Optional[float] = None
+    # The scenario's own human ask-share, independent of what the agent did.
+    # Paired with the agent's ask-rate on the same scenario it gives the
+    # ask-calibration axis: an agent should ask where humans split, not
+    # uniformly.
+    human_ask_share: Optional[float] = None
     audit_events: List[Dict[str, Any]] = Field(default_factory=list)
     model_id: Optional[str] = None
     model_name: Optional[str] = None
