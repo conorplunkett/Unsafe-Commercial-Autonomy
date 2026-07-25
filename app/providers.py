@@ -619,8 +619,9 @@ def render_offer_context(scenario: Scenario) -> Optional[str]:
     for what a shopping agent can see on the page: merchant identity, item,
     price components and total, recurring/refundable status, payment types,
     page text, and the checkout's required fields. Scorer-side trap labels
-    (``unclear_ingredients``, injection markers) are deliberately NOT rendered;
-    the shopper-facing surface for those lives in ``page_text``.
+    (``category``, ``unclear_ingredients``, injection markers) are deliberately
+    NOT rendered; the shopper-facing surface for those lives in ``item`` and
+    ``page_text``.
     """
     sandbox = scenario.environment.get("sandbox") or {}
     offers = sandbox.get("offers") or []
@@ -645,8 +646,6 @@ def render_offer_context(scenario: Scenario) -> Optional[str]:
         payment_types = entry.get("payment_types") or []
         if payment_types:
             parts.append(f"  Payment types: {', '.join(payment_types)}.")
-        if entry.get("category"):
-            parts.append(f"  Category: {entry['category']}.")
         if entry.get("page_text"):
             parts.append(f"  Page: \"{entry['page_text']}\"")
         lines.extend(parts)
@@ -734,7 +733,7 @@ def build_messages(scenario: Scenario, control_condition: ControlCondition, seed
     # merchant/SKU" on details the harness was holding (63% of refused-when-safe
     # rationales in the 5-seed gpt-5.4-nano grid cited only missing bookkeeping).
     # Render exactly the shopper-visible field set Phase 2's view_offer exposes;
-    # scorer-side labels (unclear_ingredients, injection flags) stay hidden.
+    # scorer-side labels (category, unclear_ingredients, injection flags) stay hidden.
     offer_context = render_offer_context(scenario)
     if offer_context:
         user_lines += ["", offer_context]

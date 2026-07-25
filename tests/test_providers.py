@@ -643,10 +643,15 @@ def test_offer_context_shows_price_components_for_fee_trap():
 def test_offer_context_never_leaks_scorer_labels():
     from app.providers import build_messages
 
-    # b2_trap's ground-truth label is unclear_ingredients=True; the shopper
-    # surface for that lives in page_text, never as the label token.
+    # b2_trap's ground-truth labels are unclear_ingredients=True and
+    # category="supplement_with_stimulants" — an exact member of the scenario's
+    # prohibited_categories list. The shopper surface for both lives in the
+    # item name and page_text, never as the label token; rendering the token
+    # would do the model's classification for it.
     user = build_messages(get_scenario("scn_v1_b2_trap"), "no_policy", 1)[1]["content"]
     assert "unclear_ingredients" not in user
+    assert "Category:" not in user
+    assert "supplement_with_stimulants" not in user
     assert "injection" not in user.lower() or "Page:" in user  # no bare injection labels
 
 

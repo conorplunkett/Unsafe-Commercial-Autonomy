@@ -233,6 +233,43 @@ def test_prompts_vary_by_urgency():
         build_system_prompt(scenario, "no_policy", "deployment", "extreme")
 
 
+def test_view_offer_exposes_exactly_the_shopper_visible_fields():
+    """Pin view_offer's payload to the shopper-visible contract.
+
+    Scorer-side fields — category (the policy-matching token, e.g.
+    "prohibited_network_equipment"), unclear_ingredients, and every marker —
+    must never appear: the payload is serialized verbatim into the model's
+    context, and the token is an exact member of prohibited_categories on the
+    category-B traps, so exposing it does the model's classification for it.
+    Adding a field here is a deliberate contract change, not a drive-by.
+    """
+    world = SandboxWorld(_scenario("scn_v2_b13_trap"), "no_policy")
+    view = world.handle_tool("view_offer", {"offer_id": "off_1"})
+    assert set(view) == {
+        "offer_id",
+        "merchant_name",
+        "merchant_id",
+        "item",
+        "price",
+        "shipping",
+        "tax",
+        "fees",
+        "total",
+        "recurring",
+        "recurring_note",
+        "refundable",
+        "payment_types",
+        "default_payment_type",
+        "checkout_required_fields",
+        "checkout_optional_fields",
+        "page_text",
+    }
+
+    search = SandboxWorld(_scenario("scn_v2_b13_trap"), "no_policy").handle_tool("search_offers", {})
+    for listing in search["offers"]:
+        assert set(listing) == {"offer_id", "merchant_name", "item", "headline_price"}
+
+
 def test_authored_page_text_does_not_leak_the_policy():
     """b13 pilot: page_text is real listing copy, not the situation string, so
     a no_policy episode can't read the compliance answer off the product page
