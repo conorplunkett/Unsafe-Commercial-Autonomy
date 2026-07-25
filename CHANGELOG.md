@@ -1,5 +1,69 @@
 # Changelog
 
+## [2026-07-24] The scorer's category token is no longer shown to the model
+
+The follow-up the difficulty pass deferred as "materially bigger": `view_offer`
+returned each offer's `category` field verbatim, and Phase 1's
+`render_offer_context` printed it as `Category: <token>.` — but `category` is
+the policy engine's matching token, not a merchant-page label. On the
+category-B traps the token is an exact string member of that scenario's own
+`prohibited_categories` (`scn_v2_b13_trap`'s offer said
+`prohibited_network_equipment` while its policy prohibited exactly
+`prohibited_network_equipment`), and the paired safe offer carried the obvious
+contrast label (`approved_network_equipment`, `ansi_z871_rated`,
+`first_party_electronics`). Under any condition that shows the policy, those
+traps reduced to a string comparison the harness performed for the model — and
+`b13`/`b18`, whose `page_text` was deliberately scrubbed of the policy in the
+authored-copy pilot, leaked the answer through this side door anyway.
+
+It turned out not to be big: the audit found the grader never reads the token
+from a tool payload. `assemble_action` copies it from the internal offer dict,
+`evaluate_payment_policy` is handed raw offers, both scripted agents ignore
+the visible field, and no test or UI renders it. Both offer renderers already
+hid `unclear_ingredients` and every marker field under exactly this principle
+— stated in `render_offer_context`'s docstring — so `category` was the one
+field that had escaped the rule, on both surfaces.
+
+### Changed
+- `app/phase2/sandbox.py` `_view_offer` and `app/providers.py`
+  `render_offer_context` no longer emit `category`. Scoring, tool-constraint
+  blocking, `check_policy` verdicts, and dry-run baselines are unchanged (all
+  read internal state). What an item *is* now reaches the model only through
+  its name, merchant, and page text — the surfaces a human shopper gets.
+- **Item names on the category-B v2 worlds scrubbed of author stage
+  directions** (`b13`, `b17`, `b18`, `b20`; 10 offer strings): "Huawei router
+  (cheapest)" → "AX90 dual-band router by Huawei", "tool (vendor SOC2
+  'pending')" → "marketing analytics suite" (the status stays on the security
+  page), "generic goggles, no safety rating" → "clear wraparound safety
+  goggles" (a real listing doesn't announce the rating it lacks), "rental
+  with all insurance declined" → "3-day rental, no coverage add-ons". Left
+  alone: realistic listing vocabulary ("Manufacturer Refurbished",
+  "ANSI Z87.1 compliant"), v1 items (published-run comparability), category C
+  (items are the action menu) and category E (the visible tell is the
+  stimulus).
+- Guard tests: `test_offer_context_never_leaks_scorer_labels` now asserts the
+  `Category:` line and the b2 token are absent from the Phase 1 prompt, and a
+  new `test_view_offer_exposes_exactly_the_shopper_visible_fields` pins both
+  tool payloads to their exact key sets, so adding a model-visible field is a
+  deliberate contract change rather than a drive-by.
+
+### Notes
+- Comparability: this changes the stimulus on every scenario whose offers
+  carried a non-null `category` (41 offers across v1+v2, concentrated in the
+  category-B prohibited-category traps, 13 of them exact policy-token
+  matches). Runs recorded before this change are not comparable on those
+  scenarios and must not be pooled with new ones.
+- The audit confirmed no scenario loses solvability: no offer pair anywhere
+  in v1/v2 is distinguishable only by `category` (`scn_v2_b10`'s two listings,
+  the closest call, separate on merchant name).
+- The remaining known leak is unchanged and still documented in the README:
+  220 of 226 v2 scenarios' `page_text` is the situation string, policy
+  included.
+
+### Files
+- `app/phase2/sandbox.py`, `app/providers.py`,
+  `scripts/generate_v2_constraints.py`, `data/answer_keys/v2_constraints.json`,
+  `tests/test_providers.py`, `tests/test_phase2_sandbox.py`, `README.md`.
 ## [2026-07-24] Four survey-grounded axes: the benchmark stops being unfailable
 
 ### Why
