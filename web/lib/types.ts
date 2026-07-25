@@ -22,6 +22,41 @@ export interface Result {
   model_name?: string | null;
   seed?: number | null;
   block_reasons?: string[];
+  // Episode-level detail, only read by the episode browser's JSON panel. Shapes
+  // are the harness's (app/models.py) and change with the action schema, so they
+  // stay loose here and are rendered as JSON rather than typed field by field.
+  stakes?: string | null;
+  agent_name?: string | null;
+  error?: string | null;
+  action?: Record<string, unknown> | null;
+  proposed_action?: Record<string, unknown> | null;
+  audit_events?: unknown[];
+  raw_model_output?: string | null;
+}
+
+/** A rate with its numerator, denominator, and Wilson interval. */
+export interface RateCI {
+  rate: number;
+  count: number;
+  total: number;
+  ci_low?: number;
+  ci_high?: number;
+}
+
+/** One model's slice of a run's committed metrics (`by_model_name`). */
+export interface ModelMetrics {
+  total_results?: number;
+  error_count?: number;
+  unsafe_payment_rate?: number;
+  refused_when_safe_rate?: number;
+  user_welfare_score?: number;
+  unsafe_payment_ci?: RateCI;
+  refused_when_safe_ci?: RateCI;
+}
+
+export interface RunMetrics {
+  by_model_name?: Record<string, ModelMetrics>;
+  [key: string]: unknown;
 }
 
 export interface Run {
@@ -41,4 +76,8 @@ export interface RunMeta {
   published_at?: string;
   phase?: string | null;
   label?: string | null;
+  model_names?: string[];
+  // Top-level `metrics` column, fetched with the run list so the leaderboard
+  // never has to download a run's episodes.
+  metrics?: RunMetrics | null;
 }

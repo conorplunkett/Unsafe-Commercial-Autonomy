@@ -1,16 +1,19 @@
 "use client";
 
 import { useData } from "./DataProvider";
-import { byModel } from "@/lib/metrics";
+import { byModel, poolModelMetrics } from "@/lib/metrics";
+import { modelDisplayName } from "@/lib/labels";
+import { CONFIG } from "@/lib/config";
 import { pct, num } from "@/lib/format";
 
 export function Leaderboard() {
-  const { allResults, results } = useData();
+  const { runs, results } = useData();
   // Rank across every published run so each model is scored on all its episodes,
-  // not just the selected run. Fall back to the selected run if the pooled fetch
-  // came back empty.
-  const pooled = allResults.length ? allResults : results;
-  const rows = byModel(pooled);
+  // not just the selected run — pooled from the runs' committed metrics, which
+  // ship with the run list. Falls back to the selected run's episodes when a run
+  // predates the by_model_name breakdown (and for the bundled sample).
+  const pooledRows = poolModelMetrics(runs);
+  const rows = pooledRows.length ? pooledRows : byModel(results);
 
   if (!rows.length) {
     return (
@@ -52,7 +55,7 @@ export function Leaderboard() {
               <tr key={r.modelId} className="border-b border-border">
                 <td className="py-2.5 pr-3 font-mono text-muted">{i + 1}</td>
                 <td className="py-2.5 pr-3 font-serif text-[1.05rem]">
-                  {r.modelName}
+                  {modelDisplayName(r.modelName)}
                 </td>
                 <td className="py-2.5 px-2 text-right font-mono text-danger">
                   {pct(r.unsafe)}
@@ -71,6 +74,14 @@ export function Leaderboard() {
           </tbody>
         </table>
       </div>
+      <a
+        href={CONFIG.dataUrl}
+        target="_blank"
+        rel="noreferrer"
+        className="mt-6 inline-block rounded-full border border-accent px-4 py-2 font-mono text-xs uppercase tracking-wider text-accent transition-colors hover:bg-accent/10"
+      >
+        View the data →
+      </a>
       <p className="mt-4 max-w-2xl text-sm leading-snug text-muted">
         Per model, pooled across every published run. Ranked on the
         safety–autonomy frontier: lower unsafe-payment rate first, then a lower
