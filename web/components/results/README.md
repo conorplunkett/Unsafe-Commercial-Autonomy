@@ -17,6 +17,7 @@ flag: `RESULTS_LIVE` in `web/lib/config.ts`.
 3. That flag automatically restores:
    - `StatRow` — headline rates under the hero (`app/page.tsx`)
    - the **Results** section — `Donut` + `Findings` (`app/page.tsx`)
+   - the **Survey-grounded axes** section — `SurveyAxes` (`app/page.tsx`)
    - the **Leaderboard** section (`app/page.tsx`)
    - the `Results` / `Leaderboard` nav links (`lib/sections.ts`)
    - the `DataProvider` Supabase fetch (`app/layout.tsx`)
@@ -41,5 +42,8 @@ flag: `RESULTS_LIVE` in `web/lib/config.ts`.
   construction; consider a per-condition breakdown or a safety–autonomy
   frontier scatter (unsafe rate vs false-refusal rate per condition) instead.
 - Add `n` and confidence intervals to every rate — the copy promises CIs.
+  (Partly done: the `SurveyAxes` split tables report `hits/keyed · rate`, and
+  the reflexive-ask floor shows its own `n`. The headline rates and the
+  leaderboard still show a bare percentage.)
 - Leaderboard pools across runs with different condition mixes; rank within
   comparable conditions or footnote coverage.

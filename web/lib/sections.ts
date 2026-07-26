@@ -26,6 +26,7 @@ export const TOC: SectionLink[] = [
   ...(RESULTS_LIVE
     ? [
         { id: "results", label: "Findings", short: "Results" },
+        { id: "axes", label: "Survey-grounded axes" },
         { id: "leaderboard", label: "Leaderboard", short: "Leaderboard" },
       ]
     : []),

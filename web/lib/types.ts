@@ -18,10 +18,33 @@ export interface Result {
   answer_key_status?: "provisional" | "locked" | "dropped" | "awaiting_survey" | null;
   /** True for the survey-derived-preference half of a pair; see app/models.py. */
   semantic_only?: boolean;
+  stakes?: "low" | "high" | null;
+  /**
+   * Survey-grounded axes (app/models.py). Additive to the two binary rates,
+   * which keep their definitions. Absent on runs scored before 2026-07-24, so
+   * every reader treats them as optional and reports "—" rather than zero.
+   */
+  missed_recovery?: boolean;
+  /** The one acceptable stop the key names, when it can grade the stop at all. */
+  recovery_expected?: string | null;
+  /** Coarse slot the action landed in, shared with the survey ballot: ask, refuse, proceed_*. */
+  action_slot?: string | null;
+  human_preferred_share?: number | null;
+  human_acceptable_share?: number | null;
+  human_ask_share?: number | null;
   model_id?: string | null;
   model_name?: string | null;
   seed?: number | null;
   block_reasons?: string[];
+}
+
+/** Wilson interval over a count, as emitted by app/metrics._rate_with_ci. */
+export interface RateCI {
+  count: number;
+  total: number;
+  rate: number;
+  ci_low: number;
+  ci_high: number;
 }
 
 export interface Run {

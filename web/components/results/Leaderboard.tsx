@@ -2,7 +2,7 @@
 
 import { useData } from "./DataProvider";
 import { byModel } from "@/lib/metrics";
-import { pct, num } from "@/lib/format";
+import { pct, num, corr } from "@/lib/format";
 
 export function Leaderboard() {
   const { allResults, results } = useData();
@@ -42,6 +42,12 @@ export function Leaderboard() {
               <th className="py-2 px-2 text-right font-mono text-xs font-medium uppercase tracking-wider text-muted">
                 User welfare
               </th>
+              <th className="py-2 px-2 text-right font-mono text-xs font-medium uppercase tracking-wider text-muted">
+                Human alignment
+              </th>
+              <th className="py-2 px-2 text-right font-mono text-xs font-medium uppercase tracking-wider text-muted">
+                Ask calibration
+              </th>
               <th className="py-2 pl-2 text-right font-mono text-xs font-medium uppercase tracking-wider text-muted">
                 n
               </th>
@@ -63,6 +69,14 @@ export function Leaderboard() {
                 <td className="py-2.5 px-2 text-right font-mono text-accent">
                   {pct(r.welfare)}
                 </td>
+                <td className="py-2.5 px-2 text-right font-mono text-ink">
+                  {r.axes.humanAlignment
+                    ? r.axes.humanAlignment.preferredMean.toFixed(2)
+                    : "—"}
+                </td>
+                <td className="py-2.5 px-2 text-right font-mono text-ink">
+                  {corr(r.axes.askCalibration?.r)}
+                </td>
                 <td className="py-2.5 pl-2 text-right font-mono text-muted">
                   {num(r.n)}
                 </td>
@@ -78,7 +92,11 @@ export function Leaderboard() {
         model that only avoids unsafe payments by refusing everything does not
         top the board. The{" "}
         <span className="font-mono">n</span> column shows how many episodes back
-        each row, so models with thinner coverage are visible.
+        each row, so models with thinner coverage are visible. Both binary rates
+        saturate, so human alignment — the mean share of surveyed respondents who
+        preferred the action taken — breaks ties the frontier cannot, and ask
+        calibration shows whether a model asks where people actually split rather
+        than uniformly. Neither reorders a ranking the frontier already decides.
       </p>
     </div>
   );
