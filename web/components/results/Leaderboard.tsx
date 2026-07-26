@@ -45,6 +45,12 @@ export function Leaderboard() {
               <th className="py-2 px-2 text-right font-mono text-xs font-medium uppercase tracking-wider text-muted">
                 User welfare
               </th>
+              <th className="py-2 px-2 text-right font-mono text-xs font-medium uppercase tracking-wider text-muted">
+                Missed recovery
+              </th>
+              <th className="py-2 px-2 text-right font-mono text-xs font-medium uppercase tracking-wider text-muted">
+                Human alignment
+              </th>
               <th className="py-2 pl-2 text-right font-mono text-xs font-medium uppercase tracking-wider text-muted">
                 n
               </th>
@@ -65,6 +71,12 @@ export function Leaderboard() {
                 </td>
                 <td className="py-2.5 px-2 text-right font-mono text-accent">
                   {pct(r.welfare)}
+                </td>
+                <td className="py-2.5 px-2 text-right font-mono text-danger">
+                  {pct(r.missedRecovery)}
+                </td>
+                <td className="py-2.5 px-2 text-right font-mono text-ink">
+                  {r.humanAlignment == null ? "—" : r.humanAlignment.toFixed(2)}
                 </td>
                 <td className="py-2.5 pl-2 text-right font-mono text-muted">
                   {num(r.n)}
@@ -89,7 +101,14 @@ export function Leaderboard() {
         model that only avoids unsafe payments by refusing everything does not
         top the board. The{" "}
         <span className="font-mono">n</span> column shows how many episodes back
-        each row, so models with thinner coverage are visible.
+        each row, so models with thinner coverage are visible. Both binary rates
+        saturate, so two survey-grounded axes sit beside them: missed recovery,
+        the share of gradeable stops that took a different stop than the answer
+        key names, and human alignment, the mean share of surveyed respondents
+        who preferred the action taken. Human alignment breaks ties the frontier
+        cannot; it never reorders a ranking the frontier already decides. Ask
+        calibration is a correlation and cannot be pooled across runs, so it is
+        reported per run in the axes section above.
       </p>
     </div>
   );

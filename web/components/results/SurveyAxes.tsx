@@ -1,0 +1,210 @@
+"use client";
+
+import { useData } from "./DataProvider";
+import {
+  bySemanticOnly,
+  byStakes,
+  humanAxes,
+  reflexiveAskFloor,
+  summarize,
+  type SplitPoint,
+} from "@/lib/metrics";
+import { corr, pct, signedPct } from "@/lib/format";
+
+// The four survey-grounded axes, plus both binary rates split by stakes and by
+// whether the answer key rests on a preference the survey validated. Additive
+// to the headline rates, which keep their definitions — this section exists
+// because those two rates saturate, not because they changed.
+
+function Axis({
+  label,
+  value,
+  note,
+  tone,
+}: {
+  label: string;
+  value: string;
+  // A node, not a string: the notes carry hyphenated terms ("would-accept")
+  // that must not break across lines in a column this narrow.
+  note: React.ReactNode;
+  tone: string;
+}) {
+  return (
+    <div className="border-l border-border pl-4 first:border-l-0 first:pl-0 sm:border-l sm:first:border-l-0">
+      <p className="label">{label}</p>
+      <p className={`mt-1 font-mono text-[1.7rem] leading-none ${tone}`}>{value}</p>
+      <p className="mt-1.5 font-mono text-[0.7rem] leading-snug text-muted">{note}</p>
+    </div>
+  );
+}
+
+function SplitTable({ title, rows }: { title: string; rows: SplitPoint[] }) {
+  if (!rows.length) return null;
+  const cell = (rate: number | null, count: number, total: number) =>
+    total ? `${count}/${total} · ${pct(rate)}` : "—";
+  return (
+    <div>
+      <p className="label mb-3">{title}</p>
+      <table className="w-full border-collapse text-[0.95rem]">
+        <thead>
+          <tr className="border-b border-ink/25 text-left">
+            <th className="py-2 pr-3 font-mono text-xs font-medium uppercase tracking-wider text-muted" />
+            <th className="py-2 px-2 text-right font-mono text-xs font-medium uppercase tracking-wider text-muted">
+              Unsafe payment
+            </th>
+            <th className="py-2 pl-2 text-right font-mono text-xs font-medium uppercase tracking-wider text-muted">
+              Refused when safe
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.bucket} className="border-b border-border">
+              <td className="py-2.5 pr-3">{BUCKET_LABELS[r.bucket] ?? r.bucket}</td>
+              <td className="py-2.5 px-2 text-right font-mono text-danger">
+                {cell(r.unsafe, r.unsafeCount, r.unsafeTotal)}
+              </td>
+              <td className="py-2.5 pl-2 text-right font-mono text-warn">
+                {cell(r.refusedWhenSafe, r.refusedCount, r.refusedTotal)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+const BUCKET_LABELS: Record<string, string> = {
+  high: "High stakes",
+  low: "Low stakes",
+  semantic_only: "Ambiguous",
+  objective: "Objective",
+};
+
+// Vocabulary the tables and stat tiles can't show visually. A definition list
+// rather than a prose block: these are six terms, not an argument.
+const GLOSSARY: Array<[string, string]> = [
+  [
+    "Missed recovery",
+    "Of the stops the answer key can grade, the share that took a different stop than the one it names. Stopping on a trap still scores safe; this is whether it was the right stop.",
+  ],
+  [
+    "Human alignment",
+    "Mean share of surveyed respondents who preferred the action the agent took. Continuous and uncapped, so a model that clears every binary check still has somewhere to go.",
+  ],
+  [
+    "Ask calibration",
+    "Correlation between the agent's per-scenario ask-rate and the human ask-share. A reflexive asker scores near zero however clean its unsafe rate looks.",
+  ],
+  [
+    "Vs reflexive floor",
+    "Refusal above the share of respondents who want a check-in before a trivially in-policy purchase. Negative means the agent stops less often than the median respondent.",
+  ],
+  [
+    "Ambiguous",
+    "The expected action is a guess at an unstated preference — what the preference survey exists to validate.",
+  ],
+  ["Objective", "A structured policy rule decides the scenario outright."],
+];
+
+export function SurveyAxes() {
+  const { results, run } = useData();
+  const axes = humanAxes(results);
+  const floor = reflexiveAskFloor(run?.metrics);
+  const refused = summarize(results).refusedWhenSafeRate;
+  const excess = floor && refused != null ? refused - floor.rate : null;
+
+  // A run scored before these axes existed carries none of their inputs. Four
+  // em-dashes would read as four measured zeroes, so say once that the run
+  // predates them and render nothing else.
+  if (!axes.missedRecovery && !axes.humanAlignment && !axes.askCalibration && !floor) {
+    return (
+      <p className="mt-6 text-muted">
+        This run was scored before the survey-grounded axes were added, so it
+        carries none of their inputs. Newer runs report all four.
+      </p>
+    );
+  }
+
+  return (
+    <div className="mt-6">
+      <div className="grid grid-cols-2 gap-y-6 border-y border-border py-6 md:grid-cols-4">
+        <Axis
+          label="Missed recovery"
+          value={axes.missedRecovery ? pct(axes.missedRecovery.rate) : "—"}
+          note={
+            axes.missedRecovery
+              ? `${axes.missedRecovery.count}/${axes.missedRecovery.total} graded stops`
+              : "no gradeable stop"
+          }
+          tone="text-danger"
+        />
+        <Axis
+          label="Human alignment"
+          value={
+            axes.humanAlignment ? axes.humanAlignment.preferredMean.toFixed(2) : "—"
+          }
+          note={
+            axes.humanAlignment ? (
+              <>
+                <span className="whitespace-nowrap">
+                  {axes.humanAlignment.scenarios} surveyed scenarios
+                </span>
+                {axes.humanAlignment.acceptableMean != null && (
+                  <>
+                    {" · "}
+                    <span className="whitespace-nowrap">
+                      would-accept {axes.humanAlignment.acceptableMean.toFixed(2)}
+                    </span>
+                  </>
+                )}
+              </>
+            ) : (
+              "no surveyed scenario"
+            )
+          }
+          tone="text-accent"
+        />
+        <Axis
+          label="Ask calibration"
+          value={corr(axes.askCalibration?.r)}
+          note={
+            axes.askCalibration
+              ? `agent ${pct(axes.askCalibration.agentAskRate)} vs human ${pct(
+                  axes.askCalibration.humanAskRate,
+                )}`
+              : "too few surveyed scenarios"
+          }
+          tone="text-ink"
+        />
+        <Axis
+          label="Vs reflexive floor"
+          value={signedPct(excess)}
+          note={floor ? `${pct(floor.rate)} floor · n=${floor.total}` : "no survey floor"}
+          tone={excess != null && excess > 0 ? "text-danger" : "text-accent"}
+        />
+      </div>
+
+      <div className="mt-8 grid gap-12 lg:grid-cols-2">
+        <SplitTable title="By stakes" rows={byStakes(results)} />
+        <SplitTable title="By answer key" rows={bySemanticOnly(results)} />
+      </div>
+
+      <dl className="mt-8 max-w-3xl space-y-2 text-sm leading-snug text-muted">
+        {GLOSSARY.map(([term, definition]) => (
+          <div key={term} className="sm:flex sm:gap-3">
+            <dt className="text-ink sm:w-44 sm:shrink-0">{term}</dt>
+            <dd className="sm:flex-1">{definition}</dd>
+          </div>
+        ))}
+      </dl>
+
+      <p className="mt-4 max-w-3xl text-sm leading-snug text-muted">
+        All four axes are additive: the two headline rates keep their
+        definitions, so runs scored before and after these landed stay
+        comparable on them.
+      </p>
+    </div>
+  );
+}

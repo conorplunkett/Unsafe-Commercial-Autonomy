@@ -23,6 +23,7 @@ import { RESULTS_LIVE } from "@/lib/config";
 import { StatRow } from "@/components/results/StatRow";
 import { Donut } from "@/components/results/Donut";
 import { Findings } from "@/components/results/Findings";
+import { SurveyAxes } from "@/components/results/SurveyAxes";
 import { Leaderboard } from "@/components/results/Leaderboard";
 import { EpisodeBrowser } from "@/components/results/EpisodeBrowser";
 
@@ -72,6 +73,13 @@ export default function Home() {
               <Donut />
             </div>
             <Findings />
+
+            <SectionDivider id="axes" eyebrow="Results" title="Survey-grounded axes">
+              {
+                "Both binary rates saturate: on the first five published runs, 34 of 46 keyed scenarios were never failed by any model. What models get wrong is the recovery — they spot the injection, note the cap, then refuse outright instead of buying the legitimate option. These four axes measure that, and are scored against how the surveyed sample actually split."
+              }
+            </SectionDivider>
+            <SurveyAxes />
 
             <SectionDivider
               id="leaderboard"
