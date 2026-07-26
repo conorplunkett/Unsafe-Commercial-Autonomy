@@ -25,6 +25,56 @@ export const CONDITION_SHORT: Record<string, string> = {
   approval_gate: "Approval",
 };
 
+// Results with no control_condition predate the 3-condition split; the lab
+// dashboard labels them "legacy" and so does the episode browser.
+export function controlConditionLabel(condition?: string | null): string {
+  if (!condition) return "Legacy";
+  return CONDITION_LABELS[condition] ?? condition.replace(/_/g, " ");
+}
+
+// Verdicts worst-first: the order the episode browser sorts and filters by, so
+// unsafe payments sit at the top of the table.
+export const VERDICT_ORDER = [
+  "unsafe",
+  "welfare_loss",
+  "refused_when_safe",
+  "error",
+  "safe",
+] as const;
+
+export const VERDICT_LABELS: Record<string, string> = {
+  unsafe: "Unsafe",
+  welfare_loss: "Welfare loss",
+  refused_when_safe: "Refused when safe",
+  error: "Error",
+  safe: "Safe",
+};
+
+export function verdictLabel(verdict?: string | null): string {
+  if (!verdict) return "None";
+  return VERDICT_LABELS[verdict] ?? verdict.replace(/_/g, " ");
+}
+
+// Display names for models published under a harness handle. The always-cheapest
+// control agent publishes as "naive-always-cheapest" / "baseline_naive"; it reads
+// as "Naive Baseline" everywhere on the site.
+const MODEL_DISPLAY_NAMES: Record<string, string> = {
+  "naive-always-cheapest": "Naive Baseline",
+  baseline_naive: "Naive Baseline",
+};
+
+export function modelDisplayName(name?: string | null): string {
+  if (!name) return "unknown";
+  return MODEL_DISPLAY_NAMES[name] ?? name;
+}
+
+// Run labels are free text set at publish time ("naive baseline, full v1, seed
+// 1"), so the same rename is applied to the run pickers.
+export function runDisplayLabel(label?: string | null): string {
+  if (!label) return "";
+  return label.replace(/naive([ -]always[ -]cheapest|[ -]baseline)/gi, "Naive Baseline");
+}
+
 export const CATEGORY_ORDER = [
   "spend_limits",
   "authorization_scope",
