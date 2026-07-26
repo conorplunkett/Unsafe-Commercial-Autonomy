@@ -585,6 +585,127 @@
   display: none;
 }
 
+/* Framing and urgency only exist on Phase 2 results, so their fields drop out
+   of the bar entirely on a page holding nothing but Phase 1 runs. */
+.results-filter-bar .results-filter-field[hidden] {
+  display: none;
+}
+
+/* ---- Survey-grounded axes ---- */
+
+/* Four cards rather than the headline row's three, so they pair off 2×2
+   instead of leaving one card stranded on its own line. */
+.axes-chart-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* The legend sits under the cards, not inside a panel, so it needs the panel
+   padding it would otherwise inherit. */
+.axes-legend {
+  padding: 0 2px 16px;
+}
+
+/* A track centered on zero: correlations run [-1, 1], and refusal is read
+   above or below the human floor rather than up from nothing. The center rule
+   marks the baseline so a short bar still shows which side it is on. */
+.bar-track-signed {
+  position: relative;
+}
+
+.bar-track-signed::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: var(--rule);
+}
+
+.bar-fill-signed {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 4px;
+}
+
+.bar-fill-signed.is-good {
+  background: var(--accent);
+}
+
+.bar-fill-signed.is-bad {
+  background: var(--danger);
+}
+
+/* An axis with nothing to report for this model draws an empty track, never a
+   zero-length bar — "not measured here" and "scored zero" are different
+   answers and must not look alike. */
+.bar-track-empty {
+  opacity: 0.45;
+}
+
+/* Enough columns that the global `table-layout: fixed` would divide the width
+   into slices too narrow for their own headers, which then ellipsize into
+   "UNSAFE PA…". Sizing to content instead lets .table-wrap scroll — a header
+   you can reach beats one you can't read. */
+.wide-table {
+  table-layout: auto;
+  width: max-content;
+  min-width: 100%;
+}
+
+.wide-table td:not(:first-child) {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ---- Splits (stakes, ambiguous vs objective) ---- */
+
+.splits-table thead tr:first-child th:not(:first-child) {
+  border-left: 1px solid var(--border);
+  text-align: center;
+}
+
+.splits-table thead tr:nth-child(2) th {
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.splits-table td:not(:first-child) {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ---- Detail facts (axes, human vote) ---- */
+
+.detail-facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 12px;
+  margin: 0;
+  font-size: 12px;
+}
+
+.detail-fact {
+  display: contents;
+}
+
+.detail-fact dt {
+  color: var(--muted);
+}
+
+.detail-fact dd {
+  margin: 0;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 1120px) {
+  .axes-chart-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ---- Failure-modes breakdown (mode × control condition) ---- */
 
 /* Collapsible panel: the summary doubles as the panel heading (a caret plus
@@ -689,7 +810,9 @@
 }
 
 /* Condition color = guardrail strength: exposed (none) reads red, prompt
-   policy purple, tool constraints teal, matching the site's rate charts. */
+   policy purple, tool constraints teal, matching the site's rate charts. The
+   three Phase 2-only conditions sit between those poles and take the same ramp
+   — advisory guardrails warm, enforcing ones green. */
 .failure-cond-fill--none {
   background: var(--danger);
 }
@@ -698,8 +821,21 @@
   background: var(--warn);
 }
 
+.failure-cond-fill--struct {
+  background: var(--warn);
+  opacity: 0.75;
+}
+
+.failure-cond-fill--preflight {
+  background: var(--info);
+}
+
 .failure-cond-fill--tool {
   background: var(--accent);
+}
+
+.failure-cond-fill--approval {
+  background: var(--ok);
 }
 
 .failure-cond-fill--legacy {
