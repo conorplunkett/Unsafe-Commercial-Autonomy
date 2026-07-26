@@ -25,6 +25,7 @@ import { Donut } from "@/components/results/Donut";
 import { Findings } from "@/components/results/Findings";
 import { SurveyAxes } from "@/components/results/SurveyAxes";
 import { Leaderboard } from "@/components/results/Leaderboard";
+import { EpisodeBrowser } from "@/components/results/EpisodeBrowser";
 
 export default function Home() {
   return (
@@ -90,6 +91,9 @@ export default function Home() {
               }
             </SectionDivider>
             <Leaderboard />
+
+            <SectionDivider id="episodes" eyebrow="Episodes" title="Every episode" />
+            <EpisodeBrowser />
           </>
         )}
 

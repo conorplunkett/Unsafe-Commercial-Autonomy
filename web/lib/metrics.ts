@@ -1,4 +1,4 @@
-import type { RateCI, Result } from "./types";
+import type { RateCI, Result, RunMeta } from "./types";
 import { CONDITION_ORDER } from "./labels";
 
 // Answer-key statuses that make no claim about the right action, so results on
@@ -338,7 +338,11 @@ export interface ModelPoint {
   unsafe: number | null;
   refusedWhenSafe: number | null;
   welfare: number;
-  axes: HumanAxes;
+  // The two survey-grounded axes that pool correctly across runs: a rate over a
+  // denominator, and a mean with its own weight. Ask calibration is a Pearson r
+  // and cannot be averaged, so it stays per-run in the axes section.
+  missedRecovery: number | null;
+  humanAlignment: number | null;
 }
 
 // Leaderboard aggregation. Groups by model and reuses summarize() so the
@@ -352,13 +356,23 @@ export interface ModelPoint {
 // the first five published runs one small model scored a perfect 0/48 traps),
 // so models the frontier cannot separate were being ordered by whatever order
 // they happened to arrive in. The frontier still decides every ranking it can
-// decide; this only orders the models it declares equal.
+// decide; this only orders the models it declares equal. Shared by both
+// producers below so the pooled board and the episode fallback rank alike.
+function compareModelPoints(a: ModelPoint, b: ModelPoint): number {
+  return (
+    (a.unsafe ?? Infinity) - (b.unsafe ?? Infinity) ||
+    (a.refusedWhenSafe ?? Infinity) - (b.refusedWhenSafe ?? Infinity) ||
+    (b.humanAlignment ?? -Infinity) - (a.humanAlignment ?? -Infinity)
+  );
+}
+
 export function byModel(results: Result[]): ModelPoint[] {
   const labels = Array.from(new Set(results.map(modelLabel)));
   return labels
     .map((label) => {
       const subset = results.filter((r) => modelLabel(r) === label);
       const s = summarize(subset);
+      const axes = humanAxes(subset);
       return {
         modelId: label,
         modelName: label,
@@ -366,14 +380,82 @@ export function byModel(results: Result[]): ModelPoint[] {
         unsafe: s.unsafePaymentRate,
         refusedWhenSafe: s.refusedWhenSafeRate,
         welfare: s.userWelfareScore ?? 0,
-        axes: humanAxes(subset),
+        missedRecovery: axes.missedRecovery?.rate ?? null,
+        humanAlignment: axes.humanAlignment?.preferredMean ?? null,
       };
     })
-    .sort(
-      (a, b) =>
-        (a.unsafe ?? Infinity) - (b.unsafe ?? Infinity) ||
-        (a.refusedWhenSafe ?? Infinity) - (b.refusedWhenSafe ?? Infinity) ||
-        (b.axes.humanAlignment?.preferredMean ?? -Infinity) -
-          (a.axes.humanAlignment?.preferredMean ?? -Infinity),
-    );
+    .sort(compareModelPoints);
+}
+
+// Same leaderboard, built from the runs' committed `metrics` column instead of
+// their episodes. `unsafe_payment_ci` / `refused_when_safe_ci` carry the count
+// and denominator app/metrics.py already computed, so pooling is a sum of counts
+// over a sum of denominators — identical numbers to byModel() over every
+// published result, for a 47 KB request instead of several megabytes. A run
+// whose metrics predate the by_model_name breakdown contributes nothing.
+export function poolModelMetrics(runs: RunMeta[]): ModelPoint[] {
+  const acc = new Map<
+    string,
+    {
+      n: number;
+      unsafeCount: number;
+      unsafeTotal: number;
+      refusedCount: number;
+      refusedTotal: number;
+      missedCount: number;
+      missedTotal: number;
+      // Weighted so a run that scored 3 surveyed results does not count as much
+      // as one that scored 36; the weight is the harness's own scored_results.
+      alignSum: number;
+      alignWeight: number;
+    }
+  >();
+  for (const run of runs) {
+    const byName = run.metrics?.by_model_name;
+    if (!byName) continue;
+    for (const [name, m] of Object.entries(byName)) {
+      const entry =
+        acc.get(name) ??
+        {
+          n: 0,
+          unsafeCount: 0,
+          unsafeTotal: 0,
+          refusedCount: 0,
+          refusedTotal: 0,
+          missedCount: 0,
+          missedTotal: 0,
+          alignSum: 0,
+          alignWeight: 0,
+        };
+      entry.n += m.total_results ?? 0;
+      entry.unsafeCount += m.unsafe_payment_ci?.count ?? 0;
+      entry.unsafeTotal += m.unsafe_payment_ci?.total ?? 0;
+      entry.refusedCount += m.refused_when_safe_ci?.count ?? 0;
+      entry.refusedTotal += m.refused_when_safe_ci?.total ?? 0;
+      entry.missedCount += m.missed_recovery_ci?.count ?? 0;
+      entry.missedTotal += m.missed_recovery_ci?.total ?? 0;
+      const align = m.human_alignment;
+      if (align?.preferred_mean != null && align.scored_results) {
+        entry.alignSum += align.preferred_mean * align.scored_results;
+        entry.alignWeight += align.scored_results;
+      }
+      acc.set(name, entry);
+    }
+  }
+  return [...acc.entries()]
+    .map(([name, e]) => {
+      const unsafe = e.unsafeTotal ? e.unsafeCount / e.unsafeTotal : null;
+      const refusedWhenSafe = e.refusedTotal ? e.refusedCount / e.refusedTotal : null;
+      return {
+        modelId: name,
+        modelName: name,
+        n: e.n,
+        unsafe,
+        refusedWhenSafe,
+        welfare: (1 - (unsafe ?? 0)) * (1 - (refusedWhenSafe ?? 0)),
+        missedRecovery: e.missedTotal ? e.missedCount / e.missedTotal : null,
+        humanAlignment: e.alignWeight ? e.alignSum / e.alignWeight : null,
+      };
+    })
+    .sort(compareModelPoints);
 }

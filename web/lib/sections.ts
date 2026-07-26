@@ -28,6 +28,8 @@ export const TOC: SectionLink[] = [
         { id: "results", label: "Findings", short: "Results" },
         { id: "axes", label: "Survey-grounded axes" },
         { id: "leaderboard", label: "Leaderboard", short: "Leaderboard" },
+        // ToC only: a seventh nav link overflows the nav row at tablet widths.
+        { id: "episodes", label: "Every episode" },
       ]
     : []),
   { id: "scenarios", label: "Example scenarios" },

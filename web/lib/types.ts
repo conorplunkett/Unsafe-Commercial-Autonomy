@@ -36,15 +36,57 @@ export interface Result {
   model_name?: string | null;
   seed?: number | null;
   block_reasons?: string[];
+  // Episode-level detail, only read by the episode browser's JSON panel. Shapes
+  // are the harness's (app/models.py) and change with the action schema, so they
+  // stay loose here and are rendered as JSON rather than typed field by field.
+  // (`stakes` is declared above, where the splits that group on it can rely on
+  // the harness's own low/high literal.)
+  agent_name?: string | null;
+  error?: string | null;
+  action?: Record<string, unknown> | null;
+  proposed_action?: Record<string, unknown> | null;
+  audit_events?: unknown[];
+  raw_model_output?: string | null;
 }
 
-/** Wilson interval over a count, as emitted by app/metrics._rate_with_ci. */
+/** A rate with its numerator, denominator, and Wilson interval. */
 export interface RateCI {
+  rate: number;
   count: number;
   total: number;
-  rate: number;
-  ci_low: number;
-  ci_high: number;
+  ci_low?: number;
+  ci_high?: number;
+}
+
+/** One model's slice of a run's committed metrics (`by_model_name`). */
+export interface ModelMetrics {
+  total_results?: number;
+  error_count?: number;
+  unsafe_payment_rate?: number;
+  refused_when_safe_rate?: number;
+  user_welfare_score?: number;
+  unsafe_payment_ci?: RateCI;
+  refused_when_safe_ci?: RateCI;
+  /**
+   * Survey-grounded axes for this model's slice (app/metrics._human_axes).
+   * Only the two that pool across runs are typed here: `missed_recovery_ci` is a
+   * count over a denominator, and `human_alignment` carries the
+   * `scored_results` weight its mean needs. `ask_calibration` is deliberately
+   * absent — a Pearson r cannot be averaged across runs, so it is reported
+   * per-run in the axes section rather than pooled on the leaderboard.
+   */
+  missed_recovery_ci?: RateCI;
+  human_alignment?: {
+    preferred_mean?: number;
+    acceptable_mean?: number | null;
+    scored_results?: number;
+    scenarios?: number;
+  };
+}
+
+export interface RunMetrics {
+  by_model_name?: Record<string, ModelMetrics>;
+  [key: string]: unknown;
 }
 
 export interface Run {
@@ -64,4 +106,8 @@ export interface RunMeta {
   published_at?: string;
   phase?: string | null;
   label?: string | null;
+  model_names?: string[];
+  // Top-level `metrics` column, fetched with the run list so the leaderboard
+  // never has to download a run's episodes.
+  metrics?: RunMetrics | null;
 }

@@ -1,16 +1,19 @@
 "use client";
 
 import { useData } from "./DataProvider";
-import { byModel } from "@/lib/metrics";
-import { pct, num, corr } from "@/lib/format";
+import { byModel, poolModelMetrics } from "@/lib/metrics";
+import { modelDisplayName } from "@/lib/labels";
+import { CONFIG } from "@/lib/config";
+import { pct, num } from "@/lib/format";
 
 export function Leaderboard() {
-  const { allResults, results } = useData();
+  const { runs, results } = useData();
   // Rank across every published run so each model is scored on all its episodes,
-  // not just the selected run. Fall back to the selected run if the pooled fetch
-  // came back empty.
-  const pooled = allResults.length ? allResults : results;
-  const rows = byModel(pooled);
+  // not just the selected run — pooled from the runs' committed metrics, which
+  // ship with the run list. Falls back to the selected run's episodes when a run
+  // predates the by_model_name breakdown (and for the bundled sample).
+  const pooledRows = poolModelMetrics(runs);
+  const rows = pooledRows.length ? pooledRows : byModel(results);
 
   if (!rows.length) {
     return (
@@ -43,10 +46,10 @@ export function Leaderboard() {
                 User welfare
               </th>
               <th className="py-2 px-2 text-right font-mono text-xs font-medium uppercase tracking-wider text-muted">
-                Human alignment
+                Missed recovery
               </th>
               <th className="py-2 px-2 text-right font-mono text-xs font-medium uppercase tracking-wider text-muted">
-                Ask calibration
+                Human alignment
               </th>
               <th className="py-2 pl-2 text-right font-mono text-xs font-medium uppercase tracking-wider text-muted">
                 n
@@ -58,7 +61,7 @@ export function Leaderboard() {
               <tr key={r.modelId} className="border-b border-border">
                 <td className="py-2.5 pr-3 font-mono text-muted">{i + 1}</td>
                 <td className="py-2.5 pr-3 font-serif text-[1.05rem]">
-                  {r.modelName}
+                  {modelDisplayName(r.modelName)}
                 </td>
                 <td className="py-2.5 px-2 text-right font-mono text-danger">
                   {pct(r.unsafe)}
@@ -69,13 +72,11 @@ export function Leaderboard() {
                 <td className="py-2.5 px-2 text-right font-mono text-accent">
                   {pct(r.welfare)}
                 </td>
-                <td className="py-2.5 px-2 text-right font-mono text-ink">
-                  {r.axes.humanAlignment
-                    ? r.axes.humanAlignment.preferredMean.toFixed(2)
-                    : "—"}
+                <td className="py-2.5 px-2 text-right font-mono text-danger">
+                  {pct(r.missedRecovery)}
                 </td>
                 <td className="py-2.5 px-2 text-right font-mono text-ink">
-                  {corr(r.axes.askCalibration?.r)}
+                  {r.humanAlignment == null ? "—" : r.humanAlignment.toFixed(2)}
                 </td>
                 <td className="py-2.5 pl-2 text-right font-mono text-muted">
                   {num(r.n)}
@@ -85,6 +86,14 @@ export function Leaderboard() {
           </tbody>
         </table>
       </div>
+      <a
+        href={CONFIG.dataUrl}
+        target="_blank"
+        rel="noreferrer"
+        className="mt-6 inline-block rounded-full border border-accent px-4 py-2 font-mono text-xs uppercase tracking-wider text-accent transition-colors hover:bg-accent/10"
+      >
+        View the data →
+      </a>
       <p className="mt-4 max-w-2xl text-sm leading-snug text-muted">
         Per model, pooled across every published run. Ranked on the
         safety–autonomy frontier: lower unsafe-payment rate first, then a lower
@@ -93,10 +102,13 @@ export function Leaderboard() {
         top the board. The{" "}
         <span className="font-mono">n</span> column shows how many episodes back
         each row, so models with thinner coverage are visible. Both binary rates
-        saturate, so human alignment — the mean share of surveyed respondents who
-        preferred the action taken — breaks ties the frontier cannot, and ask
-        calibration shows whether a model asks where people actually split rather
-        than uniformly. Neither reorders a ranking the frontier already decides.
+        saturate, so two survey-grounded axes sit beside them: missed recovery,
+        the share of gradeable stops that took a different stop than the answer
+        key names, and human alignment, the mean share of surveyed respondents
+        who preferred the action taken. Human alignment breaks ties the frontier
+        cannot; it never reorders a ranking the frontier already decides. Ask
+        calibration is a correlation and cannot be pooled across runs, so it is
+        reported per run in the axes section above.
       </p>
     </div>
   );

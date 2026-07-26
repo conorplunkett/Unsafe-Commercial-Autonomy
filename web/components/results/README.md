@@ -19,6 +19,7 @@ flag: `RESULTS_LIVE` in `web/lib/config.ts`.
    - the **Results** section — `Donut` + `Findings` (`app/page.tsx`)
    - the **Survey-grounded axes** section — `SurveyAxes` (`app/page.tsx`)
    - the **Leaderboard** section (`app/page.tsx`)
+   - the **Episodes** section — `EpisodeBrowser` (`app/page.tsx`)
    - the `Results` / `Leaderboard` nav links (`lib/sections.ts`)
    - the `DataProvider` Supabase fetch (`app/layout.tsx`)
 4. Sweep the proposal-tense copy back to results-tense (search the components
@@ -30,6 +31,28 @@ flag: `RESULTS_LIVE` in `web/lib/config.ts`.
    - `Roadmap.tsx` — Phase 1 status/body
    - `Limitations.tsx` — written for a proposal with no published results
    - `Footer.tsx` — "results will be published" → "results are published live"
+
+## What a page view costs
+
+A run row is over a megabyte, so requests are rationed:
+
+| Request | When |
+| --- | --- |
+| run list + each run's `metrics` column (~50 KB) | on load |
+| the newest run's `payload` | on load, for `StatRow` / `Donut` / `Findings` |
+| one run's `payload->results` | when `EpisodeBrowser` scrolls into view, and per run switch after that |
+
+`Leaderboard` therefore ranks models from the runs' committed `metrics`
+(`poolModelMetrics` in `lib/metrics.ts` sums the `unsafe_payment_ci` /
+`refused_when_safe_ci` counts) rather than downloading every run's episodes. A
+run published before the `by_model_name` breakdown existed contributes nothing to
+the pool, and the board falls back to the selected run's episodes if no run
+carries it.
+
+`EpisodeBrowser` renders 10 rows and appends 10 more per scroll to the end of its
+own scroll container. All of them come from the one already-fetched array, so
+paging costs no requests. It opens on the `gpt-5.4-nano` run with unsafe verdicts
+sorted to the top (`DEFAULT_RUN_MODEL` / `VERDICT_ORDER`).
 
 ## Known issues to fix before/when re-enabling (from the frontend review)
 
@@ -47,3 +70,5 @@ flag: `RESULTS_LIVE` in `web/lib/config.ts`.
   leaderboard still show a bare percentage.)
 - Leaderboard pools across runs with different condition mixes; rank within
   comparable conditions or footnote coverage.
+- `EpisodeBrowser` has no "all runs" option on purpose (one payload per run);
+  cross-run episode comparison needs a narrower endpoint first.

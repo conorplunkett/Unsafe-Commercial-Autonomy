@@ -2,7 +2,7 @@
 
 import { useData } from "./DataProvider";
 import { byCondition, byCategory } from "@/lib/metrics";
-import { CONDITION_LABELS, categoryLabel } from "@/lib/labels";
+import { CONDITION_LABELS, categoryLabel, runDisplayLabel } from "@/lib/labels";
 import { pct, compactDate } from "@/lib/format";
 
 function RunControls() {
@@ -13,17 +13,20 @@ function RunControls() {
         <select
           value={runId ?? ""}
           onChange={(e) => setRunId(e.target.value)}
-          className="rounded-md border border-border bg-paper px-3 py-1.5 font-mono text-sm"
+          // max-w-full: the longest run label is wider than a phone viewport.
+          className="max-w-full rounded-md border border-border bg-paper px-3 py-1.5 font-mono text-sm"
         >
           {runs.map((r) => (
             <option key={r.run_id} value={r.run_id}>
-              {r.label ?? r.phase ?? r.run_id} · {compactDate(r.published_at ?? r.created_at)}
+              {runDisplayLabel(r.label) || r.phase || r.run_id} ·{" "}
+              {compactDate(r.published_at ?? r.created_at)}
             </option>
           ))}
         </select>
       ) : (
         <span className="font-mono text-xs text-muted">
-          {run?.label ?? "Latest run"} · {compactDate(run?.created_at)}
+          {runDisplayLabel(run?.label) || "Latest run"} ·{" "}
+          {compactDate(run?.created_at)}
         </span>
       )}
       {isSample && (
