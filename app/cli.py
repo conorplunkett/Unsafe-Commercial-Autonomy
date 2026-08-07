@@ -620,8 +620,8 @@ def smoketest_openai_5_command(args: argparse.Namespace) -> int:
 
 
 def _phase2_grid_size(args: argparse.Namespace) -> tuple[int, str]:
-    """Estimate the (model x condition x framing x scenario x seed) episode
-    count for a Phase 2 eval, and a breakdown string for the confirmation
+    """Estimate the (model x condition x framing x urgency x user_availability x
+    scenario x seed) episode count for a Phase 2 eval, and a breakdown string for the confirmation
     prompt. Returns (0, "") if it can't be estimated (e.g. a bad model id or an
     unreadable scenario set) — the real run then raises the actual error instead
     of this estimate masking it.
@@ -640,20 +640,25 @@ def _phase2_grid_size(args: argparse.Namespace) -> tuple[int, str]:
         )
         conditions = len(_csv(args.conditions) or []) or 6
         framings = len(_csv(args.framings) or []) or 2
-        # Unlike framings, omitting --urgencies runs a single level ("none"),
-        # not both — see run_phase2_evaluation. Only an explicit flag doubles this.
+        # Unlike framings, omitting --urgencies/--user-availabilities runs a single
+        # level ("none"), not both — see run_phase2_evaluation. Only an explicit
+        # flag multiplies these; both together quadruple the grid.
         urgencies = len(_csv(args.urgencies) or []) or 1
+        user_availabilities = len(_csv(args.user_availabilities) or []) or 1
         seeds = len(_csv_int(args.seeds) or []) or 5
         # Scripted agents run offline; only live providers incur episode API calls.
         models = len([m for m in resolve_phase2_model_ids(_csv(args.models)) if m in LIVE_MODEL_IDS])
     except Exception:
         return 0, ""
-    episodes = scenario_count * conditions * framings * urgencies * seeds * models
+    episodes = (
+        scenario_count * conditions * framings * urgencies * user_availabilities * seeds * models
+    )
     if episodes == 0:
         return 0, ""
     breakdown = (
         f"{models} model(s) x {conditions} condition(s) x {framings} framing(s) x "
-        f"{urgencies} urgency level(s) x {scenario_count} scenario(s) x {seeds} seed(s) "
+        f"{urgencies} urgency level(s) x {user_availabilities} user-availability level(s) x "
+        f"{scenario_count} scenario(s) x {seeds} seed(s) "
         f"= {episodes} multi-turn episodes"
     )
     return episodes, breakdown
@@ -676,6 +681,7 @@ def phase2_eval_command(args: argparse.Namespace) -> int:
             control_conditions=_csv(args.conditions),
             framings=_csv(args.framings),
             urgencies=_csv(args.urgencies),
+            user_availabilities=_csv(args.user_availabilities),
             scenario_ids=_csv(args.scenario_ids),
             scenario_set_path=Path(args.scenario_set) if args.scenario_set else None,
             seeds=_csv_int(args.seeds),
@@ -692,25 +698,29 @@ def phase2_eval_command(args: argparse.Namespace) -> int:
     finally:
         progress.finish()
     payload = _save_and_print_summary(run)
-    print("\nCondition x framing (unsafe payment CI / refused-when-safe CI):")
-    print("-" * 88)
-    for key, summary in sorted(payload["metrics"]["phase2"]["by_condition_and_framing"].items()):
-        print(
-            f"{key[:36]:36} "
-            f"{summary['total_results']:7}  "
-            f"{_format_rate(summary, 'unsafe_payment'):22} "
-            f"{_format_rate(summary, 'refused_when_safe')}"
-        )
-    if len(payload["metrics"]["phase2"].get("by_urgency", {})) > 1:
-        print("\nCondition x urgency (unsafe payment CI / refused-when-safe CI):")
+    phase2_metrics = payload["metrics"]["phase2"]
+
+    def _print_split(title: str, group_key: str) -> None:
+        print(f"\n{title} (unsafe payment CI / refused-when-safe CI):")
         print("-" * 88)
-        for key, summary in sorted(payload["metrics"]["phase2"]["by_condition_and_urgency"].items()):
+        for key, summary in sorted(phase2_metrics[group_key].items()):
             print(
                 f"{key[:36]:36} "
                 f"{summary['total_results']:7}  "
                 f"{_format_rate(summary, 'unsafe_payment'):22} "
                 f"{_format_rate(summary, 'refused_when_safe')}"
             )
+
+    _print_split("Condition x framing", "by_condition_and_framing")
+    # Each split only earns its rows when that axis actually varied in this run.
+    varied_urgency = len(phase2_metrics.get("by_urgency", {})) > 1
+    varied_user_availability = len(phase2_metrics.get("by_user_availability", {})) > 1
+    if varied_urgency:
+        _print_split("Condition x urgency", "by_condition_and_urgency")
+    if varied_user_availability:
+        _print_split("Condition x user availability", "by_condition_and_user_availability")
+    if varied_urgency and varied_user_availability:
+        _print_split("Urgency x user availability", "by_urgency_and_user_availability")
     return 1 if payload["metrics"].get("error_count") else 0
 
 
@@ -1079,6 +1089,16 @@ def build_parser() -> argparse.ArgumentParser:
             "Comma-separated urgency levels: none, time_pressure, or all. Default: "
             "none only (opt in to add the time-pressure ablation; unlike --framings, "
             "omitting this does not run both levels)."
+        ),
+    )
+    phase2_eval_parser.add_argument(
+        "--user-availabilities",
+        default=None,
+        help=(
+            "Comma-separated user-availability levels: none, unreachable, or all. Default: "
+            "none only (opt in to add the absent-user ablation; unlike --framings, "
+            "omitting this does not run both levels). Crosses with --urgencies, so "
+            "setting both to all quadruples the grid."
         ),
     )
     phase2_eval_parser.add_argument("--scenario-ids", default=None, help="Comma-separated scenario ids.")

@@ -585,8 +585,9 @@
   display: none;
 }
 
-/* Framing and urgency only exist on Phase 2 results, so their fields drop out
-   of the bar entirely on a page holding nothing but Phase 1 runs. */
+/* Framing, urgency and user availability only exist on Phase 2 results, so their
+   fields drop out of the bar entirely on a page holding nothing but Phase 1
+   runs — and equally on a Phase 2 page where that axis ran at one level. */
 .results-filter-bar .results-filter-field[hidden] {
   display: none;
 }

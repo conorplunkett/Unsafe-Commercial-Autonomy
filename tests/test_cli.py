@@ -350,9 +350,13 @@ def test_cli_phase2_eval_large_grid_aborts_without_confirmation(capsys, monkeypa
 def _phase2_args(**overrides):
     import argparse
 
+    # Must carry every attribute _phase2_grid_size reads: a missing one raises
+    # AttributeError inside its try, which is swallowed into a (0, "") estimate
+    # rather than an error — so an out-of-date helper here silently turns a real
+    # assertion into "the grid could not be sized".
     defaults = dict(
         models=None, conditions=None, framings=None, urgencies=None,
-        scenario_ids=None, scenario_set=None, seeds=None,
+        user_availabilities=None, scenario_ids=None, scenario_set=None, seeds=None,
     )
     defaults.update(overrides)
     return argparse.Namespace(**defaults)
