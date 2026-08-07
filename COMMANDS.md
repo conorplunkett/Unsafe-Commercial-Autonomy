@@ -206,7 +206,7 @@ Coverage caveats:
   responses load from a Google Form CSV via `phase2-human-import`, then publish
   with `publish-human-baseline`.
 
-### `phase2-eval` — six-condition sandbox ablation + framing/urgency tests
+### `phase2-eval` — six-condition sandbox ablation + framing/urgency/availability tests
 
 ```bash
 # Offline scripted agents (no API keys)
@@ -226,7 +226,8 @@ python -m app.cli phase2-eval --models openai \
 | `--models` | `openai` | `openai`, `anthropic`, `kimi`, `inkling`, `grok`, `deepseek`, `mistral`, `qwen`, `openrouter`, `openweights`, `scripted_diligent`, `scripted_naive`, `all` |
 | `--conditions` | all six | `no_policy`, `prompt_policy`, `structured_policy`, `preflight_check`, `tool_constraints`, `approval_gate` |
 | `--framings` | both | `evaluation` (benchmark framing) vs `deployment` (live-task framing) |
-| `--urgencies` | `none` only | `none` vs `time_pressure` (adds a system-prompt preamble telling the agent to act now, the user is unreachable). Unlike `--framings`, omitting this does **not** run both levels — pass `--urgencies=time_pressure` or `--urgencies=all` to opt in |
+| `--urgencies` | `none` only | `none` vs `time_pressure` (adds a system-prompt deadline, and nothing else). Unlike `--framings`, omitting this does **not** run both levels — pass `--urgencies=time_pressure` or `--urgencies=all` to opt in |
+| `--availabilities` | `none` only | `none` vs `unreachable` (states the delegating user is away for the day; never instructs the agent to skip asking). Crosses with `--urgencies` for the pressure 2×2. Also opt-in — omitting it runs `none` only |
 | `--scenario-set` | v2 (226) | Markdown scenario-set path |
 | `--scenario-ids` / `--seeds` / `--temperature` / `--reasoning-effort` | all / `1,2,3,4,5` / 0.7 / unset | Same semantics as Phase 1 `eval` |
 | `--dry-run` | off | Offline scripted agents (live ids map to a deterministic diligent/naive mix) |
@@ -271,10 +272,12 @@ all-error run.
 Episodes are capped at 12 tool turns. Full tool transcripts are stored as
 `tool_call` audit events. Runs save to `runtime/runs/` tagged
 `"phase": "phase2"` with `metrics.phase2.by_framing`,
-`.by_condition_and_framing`, and (when `--urgencies` selects more than one
-level) `.by_urgency` / `.by_condition_and_urgency`. **Full live grid = 226 ×
-6 × 2 × 5 = 13,560 multi-turn episodes per model** at the default single
-urgency level — adding `--urgencies=all` doubles that.
+`.by_condition_and_framing`, and — when the axis selects more than one level —
+`.by_urgency` / `.by_condition_and_urgency`, `.by_availability` /
+`.by_condition_and_availability`, plus `.by_urgency_and_availability` when both
+axes vary. **Full live grid = 226 × 6 × 2 × 5 = 13,560 multi-turn episodes per
+model** at the default single urgency and availability level — `--urgencies=all`
+doubles that, and adding `--availabilities=all` quadruples it.
 
 Every run's summary (both `eval` and `phase2-eval`) also prints the unsafe
 rate split by `metrics.by_semantic_only`: `semantic_only` traps (the 44 in v2 /
@@ -697,7 +700,7 @@ Agent actions must be one of: `purchase`, `pay_tool`, `send_stablecoin`,
 | `app/storage.py` | Run JSON persistence |
 | `app/phase2/sandbox.py` | Phase 2 tools, SandboxWorld, policy engine, prompts |
 | `app/phase2/providers.py` | Tool-loop adapters (OpenAI/Anthropic/Kimi/Inkling/Grok/DeepSeek/Mistral/Qwen/OpenRouter/openweights) + scripted agents |
-| `app/phase2/runner.py` | Phase 2 eval loop (model × condition × framing × urgency × scenario × seed) |
+| `app/phase2/runner.py` | Phase 2 eval loop (model × condition × framing × urgency × availability × scenario × seed) |
 | `app/phase2/survey.py` | 50-respondent survey aggregation, lock, collection |
 | `app/phase2/humans.py` | Human-baseline sessions: report + interactive collection |
 | `app/phase2/transfer.py` | Phase 1 → sandbox transfer correlation |

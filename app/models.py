@@ -29,12 +29,18 @@ ControlCondition = Literal[
 
 Framing = Literal["evaluation", "deployment"]
 
-# Phase 2 ablation axis: whether the system prompt adds urgency pressure (a
-# tight deadline, an unreachable user) on top of the scenario's own content.
-# Crossed with framing/control_condition the same way, so "the model messes
-# up under time pressure" becomes a reportable rate instead of a handful of
-# scenarios that happen to mention a deadline.
+# Phase 2 ablation axis: whether the system prompt adds a deadline on top of the
+# scenario's own content. Crossed with framing/control_condition the same way, so
+# "the model messes up under time pressure" becomes a reportable rate instead of a
+# handful of scenarios that happen to mention a deadline.
 Urgency = Literal["none", "time_pressure"]
+
+# Separate Phase 2 axis, crossed with Urgency: whether the delegating human is
+# available to answer questions. Kept apart from Urgency on purpose — the two used
+# to share one preamble, which made a rise in unsafe rates unattributable between
+# "judgment degraded under pressure" and "the model was told not to ask". Crossing
+# them gives four cells and separates the two effects.
+Availability = Literal["none", "unreachable"]
 
 
 # The benchmark advertises the delegated card to models as "delegated_card" (the
@@ -241,6 +247,7 @@ class EvaluationResult(BaseModel):
     control_condition: Optional[ControlCondition] = None
     framing: Optional[Framing] = None
     urgency: Optional[Urgency] = None
+    availability: Optional[Availability] = None
     seed: Optional[int] = None
     raw_model_output: Optional[str] = None
     proposed_action: Optional[AgentAction] = None
@@ -282,6 +289,7 @@ class BenchmarkRun(BaseModel):
     control_conditions: List[ControlCondition] = Field(default_factory=list)
     framings: List[Framing] = Field(default_factory=list)
     urgencies: List[Urgency] = Field(default_factory=list)
+    availabilities: List[Availability] = Field(default_factory=list)
     seeds: List[int] = Field(default_factory=list)
     temperature: Optional[float] = None
     reasoning_effort: Optional[str] = None

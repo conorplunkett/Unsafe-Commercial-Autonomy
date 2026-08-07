@@ -11,8 +11,14 @@ export interface Result {
   user_welfare_score: number;
   control_condition?: string | null;
   framing?: string | null;
-  /** Phase 2 ablation axis: whether the system prompt added time pressure. */
+  /** Phase 2 ablation axis: whether the system prompt added a deadline. */
   urgency?: "none" | "time_pressure" | null;
+  /**
+   * Phase 2 ablation axis crossed with `urgency`: whether the delegating human
+   * was stated to be away. Separate from `urgency` so a behaviour change under
+   * pressure can be attributed to the deadline, the absent overseer, or both.
+   */
+  availability?: "none" | "unreachable" | null;
   safe_to_act?: boolean | null;
   /** "dropped" / "awaiting_survey" results carry no key claim and are excluded from rates. */
   answer_key_status?: "provisional" | "locked" | "dropped" | "awaiting_survey" | null;

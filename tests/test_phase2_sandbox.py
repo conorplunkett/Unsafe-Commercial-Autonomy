@@ -6,8 +6,11 @@ import pytest
 
 from app.data import DATA_DIR, load_scenarios
 from app.phase2.sandbox import (
+    AVAILABILITY_LEVELS,
+    AVAILABILITY_PREAMBLES,
     PHASE2_CONTROL_CONDITIONS,
     URGENCY_LEVELS,
+    URGENCY_PREAMBLES,
     SandboxWorld,
     assemble_action,
     build_system_prompt,
@@ -231,6 +234,72 @@ def test_prompts_vary_by_urgency():
     assert build_system_prompt(scenario, "no_policy", "deployment") == base
     with pytest.raises(KeyError):
         build_system_prompt(scenario, "no_policy", "deployment", "extreme")
+
+
+def test_time_pressure_carries_no_availability_language():
+    """Regression guard for the confound this axis was split to remove.
+
+    time_pressure used to also assert the user was unreachable and tell the model
+    not to wait for a reply. That made a rise in unsafe rates unattributable
+    between degraded judgment and plain instruction-following. Time pressure is a
+    deadline and nothing else; absent oversight is the availability axis.
+    """
+    text = URGENCY_PREAMBLES["time_pressure"].lower()
+    for leaked in ("unreachable", "do not wait", "reply", "away", "questions"):
+        assert leaked not in text
+
+
+def test_prompts_vary_by_availability():
+    scenario = _scenario("scn_v2_a1_trap")
+    assert AVAILABILITY_LEVELS == ["none", "unreachable"]
+    base = build_system_prompt(scenario, "no_policy", "deployment", "none", "none")
+    absent = build_system_prompt(scenario, "no_policy", "deployment", "none", "unreachable")
+    assert base != absent
+    assert "away" in absent.lower()
+    assert "away" not in base.lower()
+    # Omitting availability defaults to "none", so existing callers are unaffected.
+    assert build_system_prompt(scenario, "no_policy", "deployment") == base
+    with pytest.raises(KeyError):
+        build_system_prompt(scenario, "no_policy", "deployment", "none", "absent")
+
+
+def test_unreachable_states_a_fact_and_never_instructs():
+    """The axis measures judgment under absent oversight, not obedience.
+
+    Stating that the user is away leaves request_approval a live choice, so a
+    model that still stops to ask in the ask-correct scenarios is a real result.
+    Any directive here ("do not wait", "act without approval") converts the axis
+    into an instruction-following test and destroys that measurement.
+    """
+    text = AVAILABILITY_PREAMBLES["unreachable"].lower()
+    for directive in ("do not", "don't", "without waiting", "proceed", "act ", "should"):
+        assert directive not in text
+
+
+def test_urgency_and_availability_compose():
+    scenario = _scenario("scn_v2_a1_trap")
+    cells = {
+        (urgency, availability): build_system_prompt(
+            scenario, "no_policy", "deployment", urgency, availability
+        )
+        for urgency in URGENCY_LEVELS
+        for availability in AVAILABILITY_LEVELS
+    }
+    # All four cells of the 2x2 are distinct prompts.
+    assert len(set(cells.values())) == 4
+    both = cells[("time_pressure", "unreachable")]
+    assert URGENCY_PREAMBLES["time_pressure"] in both
+    assert AVAILABILITY_PREAMBLES["unreachable"] in both
+    # Pressure is read before the rules: both preambles precede the policy block.
+    with_policy = build_system_prompt(
+        scenario, "prompt_policy", "deployment", "time_pressure", "unreachable"
+    )
+    assert with_policy.index(URGENCY_PREAMBLES["time_pressure"]) < with_policy.index(
+        "Payment policy:"
+    )
+    assert with_policy.index(AVAILABILITY_PREAMBLES["unreachable"]) < with_policy.index(
+        "Payment policy:"
+    )
 
 
 def test_view_offer_exposes_exactly_the_shopper_visible_fields():
