@@ -231,6 +231,9 @@ python -m app.cli phase2-eval --models openai \
 | `--scenario-set` | v2 (226) | Markdown scenario-set path |
 | `--scenario-ids` / `--seeds` / `--temperature` / `--reasoning-effort` | all / `1,2,3,4,5` / 0.7 / unset | Same semantics as Phase 1 `eval` |
 | `--dry-run` | off | Offline scripted agents (live ids map to a deterministic diligent/naive mix) |
+| `--resume` | off | Resume run `RUN_ID` from its checkpoint; only the missing episodes run |
+| `--no-checkpoint` | off | Skip the per-episode checkpoint (a crash then loses the run) |
+| `--concurrency` | `1` | Episodes in flight at once; each worker gets its own provider connection |
 
 Condition matrix: `no_policy`/`prompt_policy`/`structured_policy` vary the
 prompt only (pay always succeeds); `preflight_check` makes `pay` reject until
@@ -269,6 +272,43 @@ provider (key/config presence, and a cheap model-id lookup for OpenAI) and
 aborts with one clear message instead of walking the episode grid and saving an
 all-error run.
 
+#### Surviving a long run: checkpoint, resume, retry, concurrency
+
+A full grid is 13,560 episodes per model, so the run has to be interruptible.
+
+**Checkpointing is on by default.** Every finished episode is appended to
+`runtime/checkpoints/<run_id>.jsonl` and flushed, so a crash or a `Ctrl-C`
+costs the one episode in flight rather than the whole run. `runtime/runs/` is
+unchanged — the checkpoint is the write-ahead log, the run JSON is still the
+artifact.
+
+```bash
+python -m app.cli phase2-checkpoints          # resumable runs, newest first
+python -m app.cli phase2-eval ... --resume run_3b0bfbb951c8
+```
+
+A resume replays the checkpointed episodes and runs only what is missing.
+Episodes that recorded an **error** are re-run, since a rate-limit cascade is
+the usual reason to resume. Resuming requires the same axes the run started
+with — a different grid is refused rather than silently mixed into one run
+file. The resumed run keeps the original `run_id`, and reproduces exactly the
+run an uninterrupted pass would have produced.
+
+**Transient failures retry.** Each turn of the tool loop retries a 429, a 5xx
+or a dropped connection up to 3 times with exponential backoff (0.5s, 1s, 2s,
+capped at 8s) — the same `is_retryable_provider_error` classification Phase 1
+uses, applied per turn so one blip eleven turns in doesn't discard the eleven
+turns already paid for. Deterministic errors (a 400, an unknown model id) still
+fail on the first attempt. After 10 consecutive episodes fail post-retry the
+run aborts rather than filling the grid with error rows, and prints the resume
+command.
+
+**`--concurrency N`** runs N episodes at once. It defaults to 1, and results
+are sorted back into grid order, so a parallel run serializes identically to a
+serial one. Live providers hold per-episode conversation state, so each worker
+gets its own provider instance — raise this against the provider's rate limit,
+not past it.
+
 Episodes are capped at 12 tool turns. Full tool transcripts are stored as
 `tool_call` audit events. Runs save to `runtime/runs/` tagged
 `"phase": "phase2"` with `metrics.phase2.by_framing`,
@@ -286,6 +326,15 @@ i.e. exactly the survey's own subject matter) versus `objective` (everything a
 structured policy rule decides outright). This pile has held at ~18% of both
 scenario sets, so it is reported apart from the headline rate rather than
 folded into it.
+
+### `phase2-checkpoints` — resumable Phase 2 runs
+
+```bash
+python -m app.cli phase2-checkpoints
+```
+
+Lists every run with a checkpoint in `runtime/checkpoints/`, newest first, with
+its episode and error counts — the run ids `phase2-eval --resume` accepts.
 
 ### `phase2-survey` / `phase2-survey-collect` — v2 answer-key survey
 

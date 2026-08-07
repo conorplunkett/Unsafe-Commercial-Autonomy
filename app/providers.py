@@ -141,6 +141,51 @@ class ProviderOutputError(ProviderError):
     pass
 
 
+class RunAbortedError(ProviderError):
+    """A run stopped mid-grid because the provider stopped responding.
+
+    Subclasses ProviderError so a caller without checkpointing aborts without
+    persisting a partially-filled run — a half-finished grid scores as though
+    the missing cells never existed, which reads as a clean result rather than
+    a dead one. A caller that *does* checkpoint (Phase 2) keeps everything
+    completed before the abort and can resume from it.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        completed_units: int = 0,
+        total_units: int = 0,
+        consecutive_errors: int = 0,
+        last_error: Optional[str] = None,
+    ):
+        super().__init__(message)
+        self.completed_units = completed_units
+        self.total_units = total_units
+        self.consecutive_errors = consecutive_errors
+        self.last_error = last_error
+
+
+# Retry policy shared by both phases. Phase 1 applies it per single-shot call
+# (app/runner.py::_generate_with_retry); Phase 2 applies it per turn inside a
+# multi-turn tool loop (app/phase2/providers.py::ToolLoopProvider). They live
+# here, next to is_retryable_provider_error, so neither phase has to import the
+# other's runner to share one backoff schedule.
+DEFAULT_TRANSIENT_RETRIES = 3
+BACKOFF_BASE_SECONDS = 0.5
+BACKOFF_MAX_SECONDS = 8.0
+# Transient failures are scattered; an outage is contiguous. Once this many
+# units in a row have failed *after* exhausting their retries, the link or the
+# provider is down and the rest of the grid would only record error rows.
+DEFAULT_CONSECUTIVE_ERROR_LIMIT = 10
+
+
+def backoff_delay(attempt: int) -> float:
+    """Exponential backoff, capped. ``attempt`` is 0-based."""
+    return min(BACKOFF_BASE_SECONDS * (2**attempt), BACKOFF_MAX_SECONDS)
+
+
 # Statuses worth another attempt: rate limits and transient server-side faults.
 # Every other 4xx is a deterministic config error (unknown model id, bad key,
 # malformed body) where retrying only burns wall-clock — e.g. the

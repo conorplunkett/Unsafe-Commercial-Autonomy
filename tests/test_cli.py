@@ -347,6 +347,75 @@ def test_cli_phase2_eval_large_grid_aborts_without_confirmation(capsys, monkeypa
     assert "Refusing to run this live Phase 2 eval without confirmation" in output
 
 
+def test_cli_phase2_eval_checkpoints_and_resumes(capsys, monkeypatch, tmp_path):
+    """The whole resume path through the CLI: run, lose the tail, pick it up."""
+    import app.cli as cli
+    from app.phase2.checkpoint import CheckpointStore
+
+    monkeypatch.setenv("RUN_CHECKPOINT_DIR", str(tmp_path))
+    monkeypatch.setattr(cli.sys.stdin, "isatty", lambda: False)
+    argv = [
+        "phase2-eval", "--models", "scripted_naive",
+        "--scenario-ids", "scn_v2_a1_trap,scn_v2_a1_lookalike",
+        "--conditions", "no_policy", "--framings", "deployment", "--seeds", "1,2",
+    ]
+    assert main(argv) == 0
+    capsys.readouterr()
+
+    run_id = next(path.stem for path in tmp_path.glob("*.jsonl"))
+    path = tmp_path / f"{run_id}.jsonl"
+    path.write_text("\n".join(path.read_text().splitlines()[:3]) + "\n")  # header + 2
+
+    assert main(argv + ["--resume", run_id]) == 0
+    output = capsys.readouterr().out
+    assert f"Resuming {run_id}: 2 episodes restored." in output
+    assert f"{run_id}.json" in output  # saved under the original id
+    _, restored = CheckpointStore(run_id, root=tmp_path).load()
+    assert len(restored) == 4
+
+
+def test_cli_phase2_eval_resume_without_a_checkpoint_is_refused(capsys, monkeypatch, tmp_path):
+    import app.cli as cli
+
+    monkeypatch.setenv("RUN_CHECKPOINT_DIR", str(tmp_path))
+    monkeypatch.setattr(cli.sys.stdin, "isatty", lambda: False)
+    status = main(
+        ["phase2-eval", "--models", "scripted_naive", "--scenario-ids", "scn_v2_a1_trap",
+         "--seeds", "1", "--resume", "run_nope"]
+    )
+    output = capsys.readouterr().out
+    assert status == 2
+    assert "Cannot resume: No checkpoint for run run_nope" in output
+    assert "'" not in output.splitlines()[0]  # a sentence, not a KeyError repr
+
+
+def test_cli_phase2_eval_resume_needs_checkpointing_enabled(capsys, monkeypatch, tmp_path):
+    monkeypatch.setenv("RUN_CHECKPOINT_DIR", str(tmp_path))
+    status = main(
+        ["phase2-eval", "--models", "scripted_naive", "--scenario-ids", "scn_v2_a1_trap",
+         "--seeds", "1", "--resume", "run_x", "--no-checkpoint"]
+    )
+    assert status == 2
+    assert "--resume needs the checkpoint it resumes from" in capsys.readouterr().out
+
+
+def test_cli_phase2_checkpoints_lists_resumable_runs(capsys, monkeypatch, tmp_path):
+    import app.cli as cli
+
+    monkeypatch.setenv("RUN_CHECKPOINT_DIR", str(tmp_path))
+    monkeypatch.setattr(cli.sys.stdin, "isatty", lambda: False)
+    assert main(["phase2-checkpoints"]) == 1
+    assert "No Phase 2 checkpoints found." in capsys.readouterr().out
+
+    main(["phase2-eval", "--models", "scripted_naive", "--scenario-ids", "scn_v2_a1_trap", "--seeds", "1"])
+    capsys.readouterr()
+    assert main(["phase2-checkpoints"]) == 0
+    output = capsys.readouterr().out
+    assert next(path.stem for path in tmp_path.glob("*.jsonl")) in output
+    assert "--resume" in output
+
+
+
 def _phase2_args(**overrides):
     import argparse
 

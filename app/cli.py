@@ -6,6 +6,7 @@ import shutil
 import sys
 from pathlib import Path
 from typing import Iterable, List, Optional, TextIO
+from uuid import uuid4
 
 from .env import load_env_file
 from .models import ControlCondition
@@ -664,17 +665,71 @@ def _phase2_grid_size(args: argparse.Namespace) -> tuple[int, str]:
     return episodes, breakdown
 
 
+def _resume_command_line(args: argparse.Namespace, run_id: str) -> str:
+    """The exact command that picks this run back up where it stopped."""
+    parts = ["python -m app.cli phase2-eval"]
+    for flag, value in (
+        ("--models", args.models),
+        ("--conditions", args.conditions),
+        ("--framings", args.framings),
+        ("--urgencies", args.urgencies),
+        ("--user-availabilities", args.user_availabilities),
+        ("--scenario-ids", args.scenario_ids),
+        ("--scenario-set", args.scenario_set),
+        ("--seeds", args.seeds),
+        ("--reasoning-effort", args.reasoning_effort),
+    ):
+        if value:
+            parts.append(f"{flag} {value}")
+    if args.temperature is not None:
+        parts.append(f"--temperature {args.temperature}")
+    if args.concurrency and args.concurrency != 1:
+        parts.append(f"--concurrency {args.concurrency}")
+    if args.dry_run:
+        parts.append("--dry-run")
+    parts.append(f"--resume {run_id}")
+    return " ".join(parts)
+
+
 def phase2_eval_command(args: argparse.Namespace) -> int:
     """Phase 2 six-condition sandbox ablation with framing variation."""
-    from .phase2 import run_phase2_evaluation
+    from .phase2 import CheckpointMismatch, CheckpointMissing, CheckpointStore, run_phase2_evaluation
 
     live = not args.dry_run
+    checkpoint = not args.no_checkpoint
+    # A resume reuses the interrupted run's id, so the same checkpoint file
+    # keeps filling and the finished run lands under that id in runtime/runs.
+    run_id = args.resume or f"run_{uuid4().hex[:12]}"
+    banked = 0
+    if args.resume:
+        if not checkpoint:
+            print("--resume needs the checkpoint it resumes from; drop --no-checkpoint.")
+            return 2
+        try:
+            _, restored = CheckpointStore(run_id).load()
+        except CheckpointMissing as exc:
+            print(f"Cannot resume: {exc}")
+            return 2
+        banked = sum(1 for result in restored.values() if not result.error)
+
+    def _announce_resume(restored_count: int, rerun_count: int) -> None:
+        print(
+            f"Resuming {run_id}: {restored_count} episodes restored"
+            + (f", {rerun_count} errored episodes will be re-run" if rerun_count else "")
+            + "."
+        )
+
     episodes, breakdown = _phase2_grid_size(args)
-    if live and breakdown and episodes <= CONFIRM_LIVE_CALL_THRESHOLD:
+    # Quote what this invocation will actually spend, not the whole grid.
+    remaining = max(episodes - banked, 0) if episodes else episodes
+    if remaining != episodes and breakdown:
+        breakdown = f"{breakdown}, {remaining} still to run"
+    if live and breakdown and remaining <= CONFIRM_LIVE_CALL_THRESHOLD:
         print(f"Live run: {breakdown}.\n")
-    if not _confirm_live_run(episodes, breakdown, live=live, assume_yes=args.yes, label="Phase 2 eval"):
+    if not _confirm_live_run(remaining, breakdown, live=live, assume_yes=args.yes, label="Phase 2 eval"):
         return 2
     progress = _ProgressBar()
+    interrupted = False
     try:
         run = run_phase2_evaluation(
             model_ids=_csv(args.models),
@@ -689,14 +744,39 @@ def phase2_eval_command(args: argparse.Namespace) -> int:
             reasoning_effort=args.reasoning_effort,
             live=not args.dry_run,
             progress_cb=progress.update,
+            run_id=run_id,
+            checkpoint=checkpoint,
+            resume=bool(args.resume),
+            concurrency=args.concurrency,
+            on_resume=_announce_resume,
         )
+    except CheckpointMismatch as exc:
+        print(f"Cannot resume: {exc}")
+        return 2
+    except RunAbortedError as exc:
+        interrupted = True
+        progress.finish()
+        print(f"Phase 2 eval aborted: {exc}")
+        if checkpoint:
+            print(f"\nResume with:\n  {_resume_command_line(args, run_id)}")
+        return 2
+    except KeyboardInterrupt:
+        interrupted = True
+        progress.finish()
+        print(f"\nInterrupted at {run_id}.")
+        if checkpoint:
+            print(f"Finished episodes are checkpointed. Resume with:\n  {_resume_command_line(args, run_id)}")
+        else:
+            print("No checkpoint was kept (--no-checkpoint); this run is lost.")
+        return 130
     except ProviderError as exc:
         # Pre-run preflight failed (missing key, bad model id) — abort before
         # walking the episode grid and saving an all-error run.
         print(f"Cannot start phase2-eval: {exc}")
         return 2
     finally:
-        progress.finish()
+        if not interrupted:
+            progress.finish()
     payload = _save_and_print_summary(run)
     phase2_metrics = payload["metrics"]["phase2"]
 
@@ -722,6 +802,25 @@ def phase2_eval_command(args: argparse.Namespace) -> int:
     if varied_urgency and varied_user_availability:
         _print_split("Urgency x user availability", "by_urgency_and_user_availability")
     return 1 if payload["metrics"].get("error_count") else 0
+
+
+def phase2_checkpoints_command(args: argparse.Namespace) -> int:
+    """Resumable Phase 2 runs, newest first."""
+    from .phase2 import list_checkpoints
+
+    entries = list_checkpoints()
+    if not entries:
+        print("No Phase 2 checkpoints found.")
+        return 1
+    print(f"{'Run':20} {'Started':26} {'Episodes':>9} {'Errored':>8}")
+    print("-" * 66)
+    for entry in entries:
+        print(
+            f"{entry['run_id']:20} {entry['created_at'][:26]:26} "
+            f"{entry['episodes']:9} {entry['errored']:8}"
+        )
+    print(f"\nResume one with: python -m app.cli phase2-eval ... --resume {entries[0]['run_id']}")
+    return 0
 
 
 def phase2_survey_command(args: argparse.Namespace) -> int:
@@ -1101,6 +1200,35 @@ def build_parser() -> argparse.ArgumentParser:
             "setting both to all quadruples the grid."
         ),
     )
+    phase2_eval_parser.add_argument(
+        "--resume",
+        default=None,
+        metavar="RUN_ID",
+        help=(
+            "Resume an interrupted run: replay its checkpointed episodes and only "
+            "run what is missing. Episodes that errored are re-run. List resumable "
+            "runs with `phase2-checkpoints`."
+        ),
+    )
+    phase2_eval_parser.add_argument(
+        "--no-checkpoint",
+        action="store_true",
+        help=(
+            "Do not write a per-episode checkpoint. A crash then loses the whole "
+            "run, so this is only for short throwaway sweeps."
+        ),
+    )
+    phase2_eval_parser.add_argument(
+        "--concurrency",
+        type=int,
+        default=1,
+        metavar="N",
+        help=(
+            "Run N episodes at once (default 1, fully serial). Each worker gets its "
+            "own provider connection; raise it to cut wall-clock, but watch the "
+            "provider's rate limit."
+        ),
+    )
     phase2_eval_parser.add_argument("--scenario-ids", default=None, help="Comma-separated scenario ids.")
     phase2_eval_parser.add_argument(
         "--scenario-set",
@@ -1127,6 +1255,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Skip the confirmation prompt for a live '--models all' run (for scripts/CI).",
     )
     phase2_eval_parser.set_defaults(func=phase2_eval_command)
+
+    phase2_checkpoints_parser = subparsers.add_parser(
+        "phase2-checkpoints",
+        help="List resumable Phase 2 runs (what --resume can be pointed at).",
+    )
+    phase2_checkpoints_parser.set_defaults(func=phase2_checkpoints_command)
 
     phase2_survey_parser = subparsers.add_parser(
         "phase2-survey",
