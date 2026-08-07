@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A force-push supersedes its own in-flight run rather than racing it.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Nothing here writes; the guards only read the diff.
+permissions:
+  contents: read
+
+jobs:
+  python:
+    name: Tests and repo guards
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The locked-proposal guard diffs against the PR base commit.
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      # First, and on purpose: the suite is ~6s, so it fails before anything
+      # slower runs. It needs no secrets and no network — tests/conftest.py sets
+      # PAYBENCH_SKIP_DOTENV and redirects RUN_STORAGE_DIR to a tmpdir, and
+      # test_live_openai.py self-skips without RUN_LIVE_OPENAI_EVAL=1 and a key.
+      # Two skips in the output are that opt-out working, not a problem.
+      # Answer-key drift is already covered here, not by a separate step:
+      # test_survey_key_alignment.py::test_generated_environments_match_the_
+      # committed_answer_key regenerates into a tmp_path copy and compares. It
+      # exists because the generator did once silently revert survey-synced
+      # worlds. Re-running the generator as its own CI step would add no signal
+      # and would mutate the real checkout instead of a copy.
+      - name: pytest
+        run: python -m pytest -q
+
+      # AGENTS.md: proposal_LOCKED.pdf is a frozen record and is never edited,
+      # regenerated, renamed, or deleted. PR-only — a three-dot diff against main
+      # on a push *to* main compares main with itself, so running it there would
+      # report green without having checked anything.
+      - name: proposal_LOCKED.pdf is immutable
+        if: github.event_name == 'pull_request'
+        run: |
+          if git diff --name-only \
+              "${{ github.event.pull_request.base.sha }}" HEAD \
+              -- proposal_LOCKED.pdf | grep -q .; then
+            echo "::error file=proposal_LOCKED.pdf::AGENTS.md marks this file immutable. Publish a new versioned document instead of editing it."
+            exit 1
+          fi
+
+  web:
+    name: Web lint and build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Next 16 / React 19 need Node 20.9+.
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - run: npm ci
+
+      - run: npm run lint
+
+      # `next build` runs TypeScript, so this is also the typecheck.
+      - run: npm run build
