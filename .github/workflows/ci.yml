@@ -36,20 +36,14 @@ jobs:
       # PAYBENCH_SKIP_DOTENV and redirects RUN_STORAGE_DIR to a tmpdir, and
       # test_live_openai.py self-skips without RUN_LIVE_OPENAI_EVAL=1 and a key.
       # Two skips in the output are that opt-out working, not a problem.
+      # Answer-key drift is already covered here, not by a separate step:
+      # test_survey_key_alignment.py::test_generated_environments_match_the_
+      # committed_answer_key regenerates into a tmp_path copy and compares. It
+      # exists because the generator did once silently revert survey-synced
+      # worlds. Re-running the generator as its own CI step would add no signal
+      # and would mutate the real checkout instead of a copy.
       - name: pytest
         run: python -m pytest -q
-
-      # The generator preserves existing values and only fills gaps, so a spec
-      # edit that never reaches the committed answer key is a silent no-op — the
-      # trap its own docstring warns about. Regenerating and finding a diff means
-      # the committed key does not match what the spec now says.
-      - name: Answer keys match their generator
-        run: |
-          python scripts/generate_v2_constraints.py
-          if ! git diff --exit-code; then
-            echo "::error::Regenerating produced a diff. Commit the regenerated answer key, or reconcile the spec with it."
-            exit 1
-          fi
 
       # AGENTS.md: proposal_LOCKED.pdf is a frozen record and is never edited,
       # regenerated, renamed, or deleted. PR-only — a three-dot diff against main
