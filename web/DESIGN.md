@@ -109,6 +109,34 @@ Chips, buttons, inputs, tooltips, and code blocks are *not* Cards — they use
 `rounded-md`/`rounded-lg` and are still inline. If they start drifting, they get
 their own component here rather than a `Card` variant.
 
+## Interactive targets
+
+Anything tappable is at least **44x44 CSS px**. Apple's HIG and WCAG 2.5.5 (AAA)
+both use that number; WCAG 2.2 AA only asks for 24x24, but these are thumb
+targets on a phone and 24 is a floor, not a goal.
+
+Two utilities in `globals.css` enforce it:
+
+- `.tap` — for elements that already centre their own content, which a
+  `<button>` does by default.
+- `.tap-link` — same minimum, plus `inline-flex` centring, for anchors and
+  anything else that would otherwise sit its text on the baseline.
+
+```tsx
+<button className="tap rounded-full border px-3 py-1 …">Spend limits</button>
+<a className="tap-link font-serif text-ui …">Dataset</a>
+```
+
+Two things are exempt, and adding `.tap` to either is wrong:
+
+- **Inline links inside a paragraph.** WCAG exempts them, and a 44px inline link
+  would wreck the line rhythm of body copy.
+- **A small control wholly inside a large label.** The radio inputs in the
+  runner are 16px, but each sits in a full-width label well over 44px, and the
+  label is the target.
+
+Badges (`RoleBadge`, `VerdictBadge`) are not interactive and stay small.
+
 ## Deliberately absent
 
 - **No dark mode.** The palette is a warm printed-paper look and the site is

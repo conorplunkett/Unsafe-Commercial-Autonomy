@@ -25,10 +25,10 @@ from ..data import ROOT_DIR
 from ..models import EvaluationResult, model_to_dict, parse_model
 
 
-# Same shape as the (model, condition, framing, urgency, scenario, seed) tuple
-# the run's event ids already concatenate, so a checkpoint line and an audit
-# event name the same episode.
-EpisodeKey = Tuple[str, str, str, str, str, int]
+# Same shape as the (model, condition, framing, urgency, user_availability,
+# scenario, seed) tuple the run's event ids already concatenate, so a
+# checkpoint line and an audit event name the same episode.
+EpisodeKey = Tuple[str, str, str, str, str, str, int]
 
 
 def _default_root() -> Path:
@@ -53,10 +53,11 @@ def episode_key(
     control_condition: str,
     framing: str,
     urgency: str,
+    user_availability: str,
     scenario_id: str,
     seed: int,
 ) -> EpisodeKey:
-    return (model_id, control_condition, framing, urgency, scenario_id, int(seed))
+    return (model_id, control_condition, framing, urgency, user_availability, scenario_id, int(seed))
 
 
 def grid_fingerprint(
@@ -64,6 +65,7 @@ def grid_fingerprint(
     control_conditions: Iterable[str],
     framings: Iterable[str],
     urgencies: Iterable[str],
+    user_availabilities: Iterable[str],
     scenario_ids: Iterable[str],
     seeds: Iterable[int],
 ) -> Dict[str, Any]:
@@ -78,6 +80,7 @@ def grid_fingerprint(
         "control_conditions": sorted(control_conditions),
         "framings": sorted(framings),
         "urgencies": sorted(urgencies),
+        "user_availabilities": sorted(user_availabilities),
         "scenario_ids": sorted(scenario_ids),
         "seeds": sorted(int(seed) for seed in seeds),
     }

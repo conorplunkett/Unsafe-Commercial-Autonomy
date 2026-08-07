@@ -90,7 +90,7 @@ export function Leaderboard() {
         href={CONFIG.dataUrl}
         target="_blank"
         rel="noreferrer"
-        className="mt-6 inline-block rounded-full border border-accent px-4 py-2 font-mono text-caption uppercase tracking-wider text-accent transition-colors hover:bg-accent/10"
+        className="tap-link mt-6 rounded-full border border-accent px-4 py-2 font-mono text-caption uppercase tracking-wider text-accent transition-colors hover:bg-accent/10"
       >
         View the data →
       </a>

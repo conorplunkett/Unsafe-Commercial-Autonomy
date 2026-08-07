@@ -1,4 +1,4 @@
-"""Phase 2 evaluation runner: model x condition x framing x scenario x seed."""
+"""Phase 2 runner: model x condition x framing x urgency x user_availability x scenario x seed."""
 
 from __future__ import annotations
 
@@ -16,12 +16,14 @@ from ..metrics import _summarize_group, compute_metrics, distinct_model_names
 from ..models import BenchmarkRun, EvaluationResult, Scenario
 from ..policies import evaluate_phase1_action
 from ..providers import DEFAULT_CONSECUTIVE_ERROR_LIMIT, RunAbortedError
+from ..runner import _run_answer_key_status
 from .checkpoint import CheckpointStore, EpisodeKey, episode_key, grid_fingerprint
 from .providers import BaseEpisodeProvider, create_phase2_provider, resolve_phase2_model_ids
 from .sandbox import (
     FRAMINGS,
     PHASE2_CONTROL_CONDITIONS,
     URGENCY_LEVELS,
+    USER_AVAILABILITY_LEVELS,
     SandboxWorld,
     assemble_action,
     build_system_prompt,
@@ -59,12 +61,13 @@ def _select_scenarios(scenario_ids, scenario_set_path) -> List[Scenario]:
 @dataclass(frozen=True)
 class GridCell:
     """One episode's coordinates in the (model x condition x framing x urgency
-    x scenario x seed) grid."""
+    x user_availability x scenario x seed) grid."""
 
     model_id: str
     control_condition: str
     framing: str
     urgency: str
+    user_availability: str
     scenario: Scenario
     seed: int
 
@@ -75,6 +78,7 @@ class GridCell:
             self.control_condition,
             self.framing,
             self.urgency,
+            self.user_availability,
             self.scenario.scenario_id,
             self.seed,
         )
@@ -83,7 +87,8 @@ class GridCell:
     def label(self) -> str:
         return (
             f"{self.model_id} / {self.control_condition} / {self.framing} / "
-            f"{self.urgency} / {self.scenario.scenario_id} / seed {self.seed}"
+            f"{self.urgency} / {self.user_availability} / "
+            f"{self.scenario.scenario_id} / seed {self.seed}"
         )
 
 
@@ -92,23 +97,28 @@ def _grid_cells(
     conditions: List[str],
     framings: List[str],
     urgencies: List[str],
+    user_availabilities: List[str],
     scenarios: List[Scenario],
     seeds: List[int],
 ) -> Iterator[GridCell]:
     """The grid, flattened in its canonical order.
 
-    Same nesting the six loops used to walk, kept as the one definition of
-    episode order: resume skips against it, the thread pool submits against it,
-    and results are sorted back into it before metrics — so a serial run, a
+    Same nesting the loops used to walk, kept as the one definition of episode
+    order: resume skips against it, the thread pool submits against it, and
+    results are sorted back into it before metrics — so a serial run, a
     resumed run and an N-worker run all produce the same BenchmarkRun.
     """
     for model_id in models:
         for condition in conditions:
             for framing in framings:
                 for urgency in urgencies:
-                    for scenario in scenarios:
-                        for seed in seeds:
-                            yield GridCell(model_id, condition, framing, urgency, scenario, seed)
+                    for user_availability in user_availabilities:
+                        for scenario in scenarios:
+                            for seed in seeds:
+                                yield GridCell(
+                                    model_id, condition, framing, urgency,
+                                    user_availability, scenario, seed,
+                                )
 
 
 def _episode_events(run_id: str, cell: GridCell, result: EvaluationResult) -> List[Dict[str, Any]]:
@@ -121,7 +131,8 @@ def _episode_events(run_id: str, cell: GridCell, result: EvaluationResult) -> Li
         {
             "event_id": (
                 f"{run_id}_{cell.model_id}_{cell.control_condition}_{cell.framing}_"
-                f"{cell.urgency}_{cell.scenario.scenario_id}_{cell.seed}_{index}"
+                f"{cell.urgency}_{cell.user_availability}_{cell.scenario.scenario_id}_"
+                f"{cell.seed}_{index}"
             ),
             "run_id": run_id,
             "scenario_id": cell.scenario.scenario_id,
@@ -129,6 +140,7 @@ def _episode_events(run_id: str, cell: GridCell, result: EvaluationResult) -> Li
             "control_condition": cell.control_condition,
             "framing": cell.framing,
             "urgency": cell.urgency,
+            "user_availability": cell.user_availability,
             "seed": cell.seed,
             **event,
         }
@@ -145,9 +157,12 @@ def run_phase2_episode(
     temperature: float,
     model_id: str,
     urgency: str = "none",
+    user_availability: str = "none",
 ) -> EvaluationResult:
     world = SandboxWorld(scenario, control_condition)
-    system_prompt = build_system_prompt(scenario, control_condition, framing, urgency)
+    system_prompt = build_system_prompt(
+        scenario, control_condition, framing, urgency, user_availability
+    )
     user_prompt = build_user_prompt(scenario, seed)
     episode = provider.run_episode(world, system_prompt, user_prompt, seed, temperature)
     effective, proposed, block_reasons = assemble_action(world, error=episode.error)
@@ -166,6 +181,7 @@ def run_phase2_episode(
     )
     result.framing = framing  # type: ignore[assignment]
     result.urgency = urgency  # type: ignore[assignment]
+    result.user_availability = user_availability  # type: ignore[assignment]
     # Full tool transcript goes into the audit trail (audit-failure metric).
     result.audit_events.extend(
         {
@@ -176,6 +192,7 @@ def run_phase2_episode(
                 "result": step["result"],
                 "framing": framing,
                 "urgency": urgency,
+                "user_availability": user_availability,
             },
         }
         for step in world.transcript
@@ -222,6 +239,7 @@ def run_phase2_evaluation(
     control_conditions: Optional[Iterable[str]] = None,
     framings: Optional[Iterable[str]] = None,
     urgencies: Optional[Iterable[str]] = None,
+    user_availabilities: Optional[Iterable[str]] = None,
     scenario_ids: Optional[Iterable[str]] = None,
     scenario_set_path: Optional[Path] = None,
     seeds: Optional[Iterable[int]] = None,
@@ -241,12 +259,19 @@ def run_phase2_evaluation(
     selected_models = resolve_phase2_model_ids(model_ids)
     selected_conditions = _select(control_conditions, PHASE2_CONTROL_CONDITIONS, "Phase 2 control conditions")
     selected_framings = _select(framings, FRAMINGS, "framings")
-    # Unlike framings/conditions, omitting this does NOT expand to every level:
-    # urgency is a new, opt-in axis, and every existing caller (including the
-    # scripted-agent test suite) calls this without it. Defaulting to "all"
-    # would silently double their episode counts and API cost. Pass
-    # urgencies=["all"] (or both levels explicitly) to run the ablation.
+    # Unlike framings/conditions, omitting these does NOT expand to every level.
+    # Both pressure axes are opt-in: each one doubles the grid and the two
+    # together quadruple it, and every existing caller (including the
+    # scripted-agent test suite) calls this without them. Defaulting to "all"
+    # would silently multiply their episode counts and API cost. Pass
+    # urgencies=["all"] / user_availabilities=["all"] (or the levels explicitly) to
+    # run the ablation. Keep this shape — it is the cost guard.
     selected_urgencies = _select(urgencies, URGENCY_LEVELS, "urgency levels") if urgencies else ["none"]
+    selected_user_availabilities = (
+        _select(user_availabilities, USER_AVAILABILITY_LEVELS, "user-availability levels")
+        if user_availabilities
+        else ["none"]
+    )
     selected_scenarios = _select_scenarios(scenario_ids, scenario_set_path)
     selected_seeds = list(seeds or DEFAULT_PHASE2_SEEDS)
     resolved_temperature = DEFAULT_PHASE2_TEMPERATURE if temperature is None else temperature
@@ -272,6 +297,7 @@ def run_phase2_evaluation(
             selected_conditions,
             selected_framings,
             selected_urgencies,
+            selected_user_availabilities,
             selected_scenarios,
             selected_seeds,
         )
@@ -282,6 +308,7 @@ def run_phase2_evaluation(
         selected_conditions,
         selected_framings,
         selected_urgencies,
+        selected_user_availabilities,
         [scenario.scenario_id for scenario in selected_scenarios],
         selected_seeds,
     )
@@ -357,6 +384,7 @@ def run_phase2_evaluation(
                 resolved_temperature,
                 cell.model_id,
                 cell.urgency,
+                cell.user_availability,
             )
         finally:
             pool.release(cell.model_id, provider)
@@ -435,6 +463,38 @@ def run_phase2_evaluation(
             for condition in selected_conditions
             for urgency in selected_urgencies
         },
+        "by_user_availability": {
+            user_availability: _summarize_group(
+                [result for result in results if result.user_availability == user_availability]
+            )
+            for user_availability in selected_user_availabilities
+        },
+        "by_condition_and_user_availability": {
+            f"{condition}/{user_availability}": _summarize_group(
+                [
+                    result
+                    for result in results
+                    if result.control_condition == condition
+                    and result.user_availability == user_availability
+                ]
+            )
+            for condition in selected_conditions
+            for user_availability in selected_user_availabilities
+        },
+        # The 2x2 the split exists for: separates "judgment degraded under a
+        # deadline" from "behaviour changed when nobody was watching", and shows
+        # whether the two interact rather than merely adding up.
+        "by_urgency_and_user_availability": {
+            f"{urgency}/{user_availability}": _summarize_group(
+                [
+                    result
+                    for result in results
+                    if result.urgency == urgency and result.user_availability == user_availability
+                ]
+            )
+            for urgency in selected_urgencies
+            for user_availability in selected_user_availabilities
+        },
     }
 
     return BenchmarkRun(
@@ -449,11 +509,15 @@ def run_phase2_evaluation(
         control_conditions=selected_conditions,  # type: ignore[arg-type]
         framings=selected_framings,  # type: ignore[arg-type]
         urgencies=selected_urgencies,  # type: ignore[arg-type]
+        user_availabilities=selected_user_availabilities,  # type: ignore[arg-type]
         seeds=selected_seeds,
         temperature=resolved_temperature,
         reasoning_effort=reasoning_effort,
         live=live,
-        answer_key_status="provisional",
+        # Derived from the scenarios actually run, not hardcoded: a Phase 2 run
+        # over a locked set must not be stamped provisional by construction.
+        # Reuses the Phase 1 rule (app/runner.py).
+        answer_key_status=_run_answer_key_status(selected_scenarios),  # type: ignore[arg-type]
         scenario_ids=[scenario.scenario_id for scenario in selected_scenarios],
         results=results,
         events=events,

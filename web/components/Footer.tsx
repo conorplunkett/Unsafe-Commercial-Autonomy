@@ -20,7 +20,7 @@ export function Footer() {
               href={CONFIG.paperUrl}
               target="_blank"
               rel="noreferrer"
-              className="hover:text-accent"
+              className="tap-link hover:text-accent"
             >
               Paper
             </a>
@@ -29,17 +29,17 @@ export function Footer() {
             href={CONFIG.repoUrl}
             target="_blank"
             rel="noreferrer"
-            className="hover:text-accent"
+            className="tap-link hover:text-accent"
           >
             GitHub
           </a>
-          <a href={`mailto:${CONFIG.contactEmail}`} className="hover:text-accent">
+          <a href={`mailto:${CONFIG.contactEmail}`} className="tap-link hover:text-accent">
             Contact
           </a>
-          <a href="#cite" className="hover:text-accent">
+          <a href="#cite" className="tap-link hover:text-accent">
             Cite
           </a>
-          <a href="#summary" className="hover:text-accent">
+          <a href="#summary" className="tap-link hover:text-accent">
             Top
           </a>
         </div>

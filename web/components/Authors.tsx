@@ -23,7 +23,7 @@ export function Authors() {
         <Card className="flex flex-col gap-3 self-start font-mono text-small">
           <a
             href={`mailto:${CONFIG.contactEmail}`}
-            className="hover:text-accent"
+            className="tap-link hover:text-accent"
           >
             {CONFIG.contactEmail}
           </a>
@@ -31,7 +31,7 @@ export function Authors() {
             href={CONFIG.repoUrl}
             target="_blank"
             rel="noreferrer"
-            className="hover:text-accent"
+            className="tap-link hover:text-accent"
           >
             github.com/conorplunkett
           </a>

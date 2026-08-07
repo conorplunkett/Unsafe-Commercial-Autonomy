@@ -356,12 +356,13 @@ def _is_openai_reasoning_model(model_name: str) -> bool:
     return name.startswith(("gpt-5", "o1", "o3", "o4"))
 
 
-# Claude models that accept `output_config.effort` (Opus 4.5+, Sonnet 4.6+,
-# Sonnet 5, Fable/Mythos 5). Effort shapes reasoning depth and token spend
+# Claude models that accept `output_config.effort` (Opus 4.5+, Opus 5,
+# Sonnet 4.6+, Sonnet 5, Fable/Mythos 5). Effort shapes reasoning depth and token spend
 # without setting the `thinking` parameter, so it composes with the forced
 # submit_action tool call — the old `thinking: {enabled, budget_tokens}` mode
 # does not (it rejects forced tool_choice).
 ANTHROPIC_EFFORT_PREFIXES = (
+    "claude-opus-5",
     "claude-opus-4-5",
     "claude-opus-4-6",
     "claude-opus-4-7",
@@ -374,6 +375,7 @@ ANTHROPIC_EFFORT_PREFIXES = (
 
 # Claude models that reject temperature/top_p/top_k outright (400).
 ANTHROPIC_NO_SAMPLING_PREFIXES = (
+    "claude-opus-5",
     "claude-opus-4-7",
     "claude-opus-4-8",
     "claude-sonnet-5",
@@ -383,7 +385,12 @@ ANTHROPIC_NO_SAMPLING_PREFIXES = (
 
 # Models with thinking on by default — give the response room for thinking
 # tokens, which count against max_tokens.
-ANTHROPIC_DEFAULT_THINKING_PREFIXES = ("claude-sonnet-5", "claude-fable", "claude-mythos")
+ANTHROPIC_DEFAULT_THINKING_PREFIXES = (
+    "claude-opus-5",
+    "claude-sonnet-5",
+    "claude-fable",
+    "claude-mythos",
+)
 
 
 def _anthropic_supports_effort(model_name: str) -> bool:

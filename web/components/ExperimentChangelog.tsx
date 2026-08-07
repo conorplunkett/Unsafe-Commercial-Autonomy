@@ -32,7 +32,7 @@ function formatDate(iso: string): string {
 
 function renderListItems(items: ListItem[]): ReactNode {
   return (
-    <ul className="list-disc space-y-1.5 pl-5 marker:text-accent">
+    <ul className="list-disc space-y-1.5 break-words pl-5 marker:text-accent">
       {items.map((item, idx) => (
         <li key={idx}>
           {renderInline(item.text)}
@@ -59,7 +59,7 @@ function renderBlock(block: Block, idx: number) {
       );
     case "p":
       return (
-        <p key={idx} className="mt-2 leading-relaxed text-ink/85">
+        <p key={idx} className="mt-2 break-words leading-relaxed text-ink/85">
           {renderInline(block.text)}
         </p>
       );

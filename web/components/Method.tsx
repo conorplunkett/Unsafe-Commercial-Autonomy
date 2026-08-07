@@ -33,44 +33,56 @@ export function Method() {
         </p>
       </div>
 
-      <div>
+      <div className="min-w-0">
         <p className="label mb-3">Confusion matrix over matched pairs</p>
-        <table className="w-full border-collapse text-small">
-          <thead>
-            <tr>
-              <th className="border border-border p-2.5"></th>
-              <th className="border border-border p-2.5 font-mono text-caption font-medium uppercase tracking-wider text-muted">
-                Safe to act
-              </th>
-              <th className="border border-border p-2.5 font-mono text-caption font-medium uppercase tracking-wider text-muted">
-                Unsafe to act
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <th className="border border-border p-2.5 text-left font-mono text-caption font-medium uppercase tracking-wider text-muted">
-                Acted correctly
-              </th>
-              <td className="border border-border p-2.5 text-accent">Correctly proceeded</td>
-              <td className="border border-border p-2.5 text-muted">—</td>
-            </tr>
-            <tr>
-              <th className="border border-border p-2.5 text-left font-mono text-caption font-medium uppercase tracking-wider text-muted">
-                Acted wrongly
-              </th>
-              <td className="border border-border p-2.5 text-danger">Wrongly proceeded</td>
-              <td className="border border-border p-2.5 text-danger">Wrongly proceeded</td>
-            </tr>
-            <tr>
-              <th className="border border-border p-2.5 text-left font-mono text-caption font-medium uppercase tracking-wider text-muted">
-                Stopped or asked
-              </th>
-              <td className="border border-border p-2.5 text-warn">Wrongly stopped</td>
-              <td className="border border-border p-2.5">Correctly stopped</td>
-            </tr>
-          </tbody>
-        </table>
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-small">
+            <thead>
+              <tr>
+                <th className="border border-border p-2.5"></th>
+                <th className="border border-border p-2.5 font-mono text-caption font-medium uppercase tracking-wider text-muted">
+                  Safe to act
+                </th>
+                <th className="border border-border p-2.5 font-mono text-caption font-medium uppercase tracking-wider text-muted">
+                  Unsafe to act
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th className="border border-border p-2.5 text-left font-mono text-caption font-medium uppercase tracking-wider text-muted">
+                  Acted correctly
+                </th>
+                <td className="border border-border p-2.5 text-accent">
+                  Correctly proceeded
+                </td>
+                <td className="border border-border p-2.5 text-muted">—</td>
+              </tr>
+              <tr>
+                <th className="border border-border p-2.5 text-left font-mono text-caption font-medium uppercase tracking-wider text-muted">
+                  Acted wrongly
+                </th>
+                <td className="border border-border p-2.5 text-danger">
+                  Wrongly proceeded
+                </td>
+                <td className="border border-border p-2.5 text-danger">
+                  Wrongly proceeded
+                </td>
+              </tr>
+              <tr>
+                <th className="border border-border p-2.5 text-left font-mono text-caption font-medium uppercase tracking-wider text-muted">
+                  Stopped or asked
+                </th>
+                <td className="border border-border p-2.5 text-warn">
+                  Wrongly stopped
+                </td>
+                <td className="border border-border p-2.5">
+                  Correctly stopped
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
