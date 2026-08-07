@@ -16,6 +16,7 @@ import { Roadmap } from "@/components/Roadmap";
 import { Limitations } from "@/components/Limitations";
 import { Citation } from "@/components/Citation";
 import { Authors } from "@/components/Authors";
+import { ExperimentChangelog } from "@/components/ExperimentChangelog";
 import { Footer } from "@/components/Footer";
 import { RESULTS_LIVE } from "@/lib/config";
 // Once results are live (RESULTS_LIVE in lib/config.ts — see
@@ -110,6 +111,7 @@ export default function Home() {
         <Limitations />
         <Citation />
         <Authors />
+        <ExperimentChangelog />
       </main>
       <Footer />
     </div>
