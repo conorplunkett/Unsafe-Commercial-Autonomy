@@ -343,7 +343,7 @@ export function Runner() {
           <div className="mt-4 grid gap-5 sm:grid-cols-2">
             <div>
               <span className={label}>Provider</span>
-              <div className="mt-1.5 flex gap-2">
+              <div className="mt-1.5 flex flex-wrap gap-2">
                 {PROVIDERS.map((p) => (
                   <button
                     key={p.id}

@@ -44,7 +44,7 @@ export function Nav() {
           <span className="text-accent">Bench</span>
         </Link>
 
-        <div className="hidden items-center gap-6 md:flex">
+        <div className="hidden items-center gap-6 lg:flex">
           {SECTIONS.map((s) => (
             <a
               key={s.id}
