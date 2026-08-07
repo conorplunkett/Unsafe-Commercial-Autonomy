@@ -79,12 +79,7 @@ export function ExperimentChangelog() {
   if (entries.length === 0) return null;
 
   return (
-    <ToggleSection
-      id="changelog"
-      eyebrow="Log"
-      title="Experiment changelog"
-      intro="Every dated change to the benchmark's design, scoring, and data, in the project's own words. Read straight from CHANGELOG.md."
-    >
+    <ToggleSection id="changelog" title="Changelog">
       <div className="mt-6 space-y-2">
         {entries.map((entry, i) => (
           <details
