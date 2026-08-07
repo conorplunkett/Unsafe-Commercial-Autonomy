@@ -1,12 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { SCENARIOS, type ScenarioCard } from "@/lib/scenarios";
 import { CATEGORY_ORDER, CATEGORY_LABELS, categoryLabel } from "@/lib/labels";
 import { Card } from "@/components/ui/Card";
 
 type RoleFilter = "all" | "trap" | "lookalike";
+
+const PAGE_SIZE = 25;
 
 function RoleBadge({ role }: { role: ScenarioCard["pair_role"] }) {
   const trap = role === "trap";
@@ -58,6 +60,8 @@ function ScenarioTile({ s }: { s: ScenarioCard }) {
 export function ScenarioBrowser({ teaser = false }: { teaser?: boolean }) {
   const [category, setCategory] = useState<string>("all");
   const [role, setRole] = useState<RoleFilter>("all");
+  const [page, setPage] = useState(1);
+  const listTop = useRef<HTMLParagraphElement>(null);
 
   const teaserCards = useMemo(
     () =>
@@ -76,6 +80,18 @@ export function ScenarioBrowser({ teaser = false }: { teaser?: boolean }) {
       ),
     [category, role],
   );
+
+  // Clamp rather than trust `page`: a filter that shrinks the result set can
+  // strand it past the end, which would render an empty grid.
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const current = Math.min(page, pageCount);
+  const start = (current - 1) * PAGE_SIZE;
+  const shown = filtered.slice(start, start + PAGE_SIZE);
+
+  function goTo(next: number) {
+    setPage(next);
+    listTop.current?.scrollIntoView({ block: "start" });
+  }
 
   if (teaser) {
     return (
@@ -106,7 +122,7 @@ export function ScenarioBrowser({ teaser = false }: { teaser?: boolean }) {
         <div className="flex flex-wrap items-center gap-2">
           <button
             className={`${chip} ${category === "all" ? on : off}`}
-            onClick={() => setCategory("all")}
+            onClick={() => { setCategory("all"); setPage(1); }}
           >
             All categories
           </button>
@@ -114,7 +130,7 @@ export function ScenarioBrowser({ teaser = false }: { teaser?: boolean }) {
             <button
               key={c}
               className={`${chip} ${category === c ? on : off}`}
-              onClick={() => setCategory(c)}
+              onClick={() => { setCategory(c); setPage(1); }}
             >
               {CATEGORY_LABELS[c]}
             </button>
@@ -125,7 +141,7 @@ export function ScenarioBrowser({ teaser = false }: { teaser?: boolean }) {
             <button
               key={r}
               className={`${chip} ${role === r ? on : off}`}
-              onClick={() => setRole(r)}
+              onClick={() => { setRole(r); setPage(1); }}
             >
               {r === "all" ? "Trap + lookalike" : r}
             </button>
@@ -133,15 +149,52 @@ export function ScenarioBrowser({ teaser = false }: { teaser?: boolean }) {
         </div>
       </div>
 
-      <p className="mt-5 font-mono text-caption text-muted">
-        {filtered.length} of {SCENARIOS.length} scenarios
+      <p
+        ref={listTop}
+        className="mt-5 scroll-mt-20 font-mono text-caption text-muted"
+      >
+        {pageCount > 1
+          ? `${start + 1}–${start + shown.length} of ${filtered.length} scenarios`
+          : `${filtered.length} of ${SCENARIOS.length} scenarios`}
       </p>
 
       <div className="mt-3 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {filtered.map((s) => (
+        {shown.map((s) => (
           <ScenarioTile key={s.scenario_id} s={s} />
         ))}
       </div>
+
+      {pageCount > 1 && (
+        <nav
+          aria-label="Scenario pages"
+          className="mt-8 flex flex-wrap items-center gap-2"
+        >
+          <button
+            className={`${chip} ${off} disabled:opacity-40 disabled:hover:text-muted`}
+            onClick={() => goTo(current - 1)}
+            disabled={current === 1}
+          >
+            ← Prev
+          </button>
+          {Array.from({ length: pageCount }, (_, i) => i + 1).map((n) => (
+            <button
+              key={n}
+              className={`${chip} ${n === current ? on : off} tabular-nums`}
+              aria-current={n === current ? "page" : undefined}
+              onClick={() => goTo(n)}
+            >
+              {n}
+            </button>
+          ))}
+          <button
+            className={`${chip} ${off} disabled:opacity-40 disabled:hover:text-muted`}
+            onClick={() => goTo(current + 1)}
+            disabled={current === pageCount}
+          >
+            Next →
+          </button>
+        </nav>
+      )}
     </div>
   );
 }
