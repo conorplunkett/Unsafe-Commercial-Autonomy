@@ -14,24 +14,88 @@ import { Card } from "@/components/ui/Card";
 
 // The three control conditions the hosted runner supports (the same ones the
 // scoring path enforces), weakest to strongest.
-const RUN_CONDITIONS = ["no_policy", "prompt_policy", "tool_constraints"] as const;
+const RUN_CONDITIONS = [
+  "no_policy",
+  "prompt_policy",
+  "tool_constraints",
+] as const;
 
 // keyLabel/keyPlaceholder describe the provider's own key so the field speaks
 // its language. inkling is Thinking Machines Lab's open-weight model served,
 // by default, through Together AI — so the key it wants is a Together key.
 const PROVIDERS = [
-  { id: "openai", label: "OpenAI", defaultModel: "gpt-4o-mini", keyLabel: "OpenAI", keyPlaceholder: "sk-..." },
-  { id: "anthropic", label: "Anthropic", defaultModel: "claude-haiku-4-5", keyLabel: "Anthropic", keyPlaceholder: "sk-ant-..." },
-  { id: "gemini", label: "Gemini", defaultModel: "gemini-3.1-flash-lite", keyLabel: "Google Gemini", keyPlaceholder: "AIza..." },
-  { id: "kimi", label: "Kimi", defaultModel: "kimi-k2.6", keyLabel: "Kimi (Moonshot AI)", keyPlaceholder: "sk-..." },
-  { id: "inkling", label: "Inkling", defaultModel: "thinkingmachines/Inkling", keyLabel: "Together AI", keyPlaceholder: "..." },
+  {
+    id: "openai",
+    label: "OpenAI",
+    defaultModel: "gpt-4o-mini",
+    keyLabel: "OpenAI",
+    keyPlaceholder: "sk-...",
+  },
+  {
+    id: "anthropic",
+    label: "Anthropic",
+    defaultModel: "claude-haiku-4-5",
+    keyLabel: "Anthropic",
+    keyPlaceholder: "sk-ant-...",
+  },
+  {
+    id: "gemini",
+    label: "Gemini",
+    defaultModel: "gemini-3.1-flash-lite",
+    keyLabel: "Google Gemini",
+    keyPlaceholder: "AIza...",
+  },
+  {
+    id: "kimi",
+    label: "Kimi",
+    defaultModel: "kimi-k2.6",
+    keyLabel: "Kimi (Moonshot AI)",
+    keyPlaceholder: "sk-...",
+  },
+  {
+    id: "inkling",
+    label: "Inkling",
+    defaultModel: "thinkingmachines/Inkling",
+    keyLabel: "Together AI",
+    keyPlaceholder: "...",
+  },
   // grok-4.1-fast was retired 2026-05-15 (redirects to grok-4.3) and no
   // longer appears in account model lists; the -0309 family is current.
-  { id: "grok", label: "Grok", defaultModel: "grok-4.20-0309-non-reasoning", keyLabel: "xAI (Grok)", keyPlaceholder: "xai-..." },
-  { id: "deepseek", label: "DeepSeek", defaultModel: "deepseek-v4-flash", keyLabel: "DeepSeek", keyPlaceholder: "sk-..." },
-  { id: "mistral", label: "Mistral", defaultModel: "mistral-small-latest", keyLabel: "Mistral", keyPlaceholder: "..." },
-  { id: "qwen", label: "Qwen", defaultModel: "qwen-flash", keyLabel: "Alibaba DashScope", keyPlaceholder: "sk-..." },
-  { id: "openrouter", label: "OpenRouter", defaultModel: "x-ai/grok-4.3", keyLabel: "OpenRouter", keyPlaceholder: "sk-or-..." },
+  {
+    id: "grok",
+    label: "Grok",
+    defaultModel: "grok-4.20-0309-non-reasoning",
+    keyLabel: "xAI (Grok)",
+    keyPlaceholder: "xai-...",
+  },
+  {
+    id: "deepseek",
+    label: "DeepSeek",
+    defaultModel: "deepseek-v4-flash",
+    keyLabel: "DeepSeek",
+    keyPlaceholder: "sk-...",
+  },
+  {
+    id: "mistral",
+    label: "Mistral",
+    defaultModel: "mistral-small-latest",
+    keyLabel: "Mistral",
+    keyPlaceholder: "...",
+  },
+  {
+    id: "qwen",
+    label: "Qwen",
+    defaultModel: "qwen-flash",
+    keyLabel: "Alibaba DashScope",
+    keyPlaceholder: "sk-...",
+  },
+  {
+    id: "openrouter",
+    label: "OpenRouter",
+    defaultModel: "x-ai/grok-4.3",
+    keyLabel: "OpenRouter",
+    keyPlaceholder: "sk-or-...",
+  },
 ] as const;
 
 const MODEL_SUGGESTIONS: Record<string, string[]> = {
@@ -43,11 +107,26 @@ const MODEL_SUGGESTIONS: Record<string, string[]> = {
     "claude-sonnet-5",
   ],
   gemini: ["gemini-3.1-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro"],
-  kimi: ["kimi-k2.6", "kimi-k3", "kimi-k2.7-code", "kimi-k2.7-code-highspeed", "kimi-k2.5"],
+  kimi: [
+    "kimi-k2.6",
+    "kimi-k3",
+    "kimi-k2.7-code",
+    "kimi-k2.7-code-highspeed",
+    "kimi-k2.5",
+  ],
   inkling: ["thinkingmachines/Inkling"],
-  grok: ["grok-4.20-0309-non-reasoning", "grok-4.20-0309-reasoning", "grok-4.3", "grok-4.5"],
+  grok: [
+    "grok-4.20-0309-non-reasoning",
+    "grok-4.20-0309-reasoning",
+    "grok-4.3",
+    "grok-4.5",
+  ],
   deepseek: ["deepseek-v4-flash", "deepseek-v4-pro"],
-  mistral: ["mistral-small-latest", "mistral-large-latest", "magistral-medium-latest"],
+  mistral: [
+    "mistral-small-latest",
+    "mistral-large-latest",
+    "magistral-medium-latest",
+  ],
   qwen: ["qwen-flash", "qwen-plus", "qwen3-max"],
   openrouter: [
     "x-ai/grok-4.3",
@@ -183,7 +262,15 @@ function VerdictBadge({ v }: { v: CellResult["verdict"] }) {
   );
 }
 
-function SectionHeading({ n, title, aside }: { n: string; title: string; aside?: string }) {
+function SectionHeading({
+  n,
+  title,
+  aside,
+}: {
+  n: string;
+  title: string;
+  aside?: string;
+}) {
   return (
     <div className="flex flex-wrap items-baseline justify-between gap-2">
       <h2 className="font-mono text-caption uppercase tracking-wider text-muted">
@@ -302,7 +389,9 @@ export function Runner() {
             temperature: Number(temperature),
             // Only send effort for models that take it; for others it would
             // either error or silently do nothing.
-            reasoningEffort: effortSupported ? reasoningEffort || undefined : undefined,
+            reasoningEffort: effortSupported
+              ? reasoningEffort || undefined
+              : undefined,
           }),
         });
         const data = await res.json().catch(() => ({}));
@@ -327,10 +416,12 @@ export function Runner() {
     }
   }
 
-  const label = "block font-mono text-caption uppercase tracking-wider text-muted";
+  const label =
+    "block font-mono text-caption uppercase tracking-wider text-muted";
   const field =
-    "tap mt-1.5 w-full rounded-md border border-border bg-paper px-3 py-2 font-mono text-small text-ink outline-none focus:border-accent disabled:cursor-not-allowed disabled:opacity-40";
-  const chip = "tap rounded-full border px-3 py-1 font-mono text-caption transition-colors";
+    "tap mt-1.5 w-full rounded-lg border border-border bg-paper px-3 py-2 font-mono text-small text-ink outline-none focus:border-accent disabled:cursor-not-allowed disabled:opacity-40";
+  const chip =
+    "tap rounded-full border px-3 py-1 font-mono text-caption transition-colors";
   const on = "border-accent bg-accent/10 text-accent";
   const off = "border-border text-muted hover:text-ink";
   const divider = "mt-7 border-t border-border pt-6";
@@ -338,7 +429,7 @@ export function Runner() {
   return (
     <div className="mt-8">
       {/* Controls */}
-      <div className="rounded-2xl border border-border bg-paper-2/40 p-5 sm:p-6">
+      <div className="rounded-2xl border border-border bg-paper-2 p-5 sm:p-6">
         {/* 1 · Model */}
         <section>
           <SectionHeading n="1" title="Model" aside="one model per run" />
@@ -371,7 +462,9 @@ export function Runner() {
                 spellCheck={false}
                 autoComplete="off"
                 onChange={(e) => setModel(e.target.value)}
-                placeholder={PROVIDERS.find((p) => p.id === provider)?.defaultModel}
+                placeholder={
+                  PROVIDERS.find((p) => p.id === provider)?.defaultModel
+                }
               />
               <datalist id="rn-model-suggestions">
                 {(MODEL_SUGGESTIONS[provider] ?? []).map((m) => (
@@ -504,7 +597,7 @@ export function Runner() {
               className={`tap sticky top-0 z-10 flex w-full items-center gap-2 border-b border-border px-4 py-2.5 text-left text-small transition-colors ${
                 scenarioId === "random"
                   ? "bg-accent/10 text-accent"
-                  : "bg-paper text-ink hover:bg-paper-2/60"
+                  : "bg-paper text-ink hover:bg-paper-2"
               }`}
             >
               <span aria-hidden>🎲</span>
@@ -515,7 +608,7 @@ export function Runner() {
             {scenarioGroups.map((group) => (
               <div key={group.category}>
                 {category === "all" && (
-                  <div className="border-b border-border bg-paper-2/60 px-4 py-1.5 font-mono text-caption uppercase tracking-wider text-muted">
+                  <div className="border-b border-border bg-paper-2 px-4 py-1.5 font-mono text-caption uppercase tracking-wider text-muted">
                     {categoryLabel(group.category)}
                   </div>
                 )}
@@ -529,9 +622,7 @@ export function Runner() {
                       aria-checked={active}
                       onClick={() => setScenarioId(s.scenario_id)}
                       className={`tap flex w-full items-baseline justify-between gap-3 border-b border-border/60 px-4 py-2 text-left transition-colors last:border-b-0 ${
-                        active
-                          ? "bg-accent/10"
-                          : "hover:bg-paper-2/60"
+                        active ? "bg-accent/10" : "hover:bg-paper-2"
                       }`}
                     >
                       <span
@@ -559,7 +650,7 @@ export function Runner() {
               {RUN_CONDITIONS.map((c) => (
                 <label
                   key={c}
-                  className="flex cursor-pointer items-baseline gap-3 rounded-md border border-border bg-paper px-3.5 py-2.5 transition-colors has-[:checked]:border-accent/60 has-[:checked]:bg-accent/5"
+                  className="flex cursor-pointer items-baseline gap-3 rounded-lg border border-border bg-paper px-3.5 py-2.5 transition-colors has-[:checked]:border-accent/60 has-[:checked]:bg-accent/5"
                 >
                   <input
                     type="checkbox"
@@ -589,7 +680,7 @@ export function Runner() {
             type="button"
             onClick={run}
             disabled={!canRun}
-            className="tap rounded-md bg-ink px-5 py-2 font-serif text-ui text-paper transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
+            className="tap rounded-lg bg-ink px-5 py-2 text-ui text-paper transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
           >
             {running ? "Running…" : "Run benchmark"}
           </button>
@@ -657,7 +748,9 @@ export function Runner() {
           </p>
           <p className="mt-3 border-t border-border pt-3 text-small">
             <span className="text-muted">Safe answer: </span>
-            <span className="text-accent">{ranScenario.right_answer ?? "—"}</span>
+            <span className="text-accent">
+              {ranScenario.right_answer ?? "—"}
+            </span>
             {ranScenario.failure_tested && (
               <span className="ml-3 font-mono text-caption text-muted">
                 tests: {ranScenario.failure_tested}
@@ -675,8 +768,9 @@ export function Runner() {
             return (
               <Card tone="raised" pad="sm" key={r.control_condition}>
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="font-serif text-prose">
-                    {CONDITION_LABELS[r.control_condition] ?? r.control_condition}
+                  <span className="text-prose">
+                    {CONDITION_LABELS[r.control_condition] ??
+                      r.control_condition}
                   </span>
                   <div className="flex items-center gap-2">
                     <VerdictBadge v={r.verdict} />
@@ -709,7 +803,11 @@ export function Runner() {
 
           {results.length > 1 && (
             <p className="pt-1 font-mono text-caption text-muted">
-              {results.filter((r) => r.verdict !== "unsafe" && !r.refused_when_safe).length}
+              {
+                results.filter(
+                  (r) => r.verdict !== "unsafe" && !r.refused_when_safe,
+                ).length
+              }
               /{results.length} conditions handled correctly
               {(() => {
                 // Joint success rate: (1 - unsafe) * (1 - refused-when-safe),
@@ -717,9 +815,11 @@ export function Runner() {
                 // the verdict (any wrongly-proceeded action, including a defer
                 // marked completed), not the narrower unsafe_payment flag.
                 const unsafeRate =
-                  results.filter((r) => r.verdict === "unsafe").length / results.length;
+                  results.filter((r) => r.verdict === "unsafe").length /
+                  results.length;
                 const refusedRate =
-                  results.filter((r) => r.refused_when_safe).length / results.length;
+                  results.filter((r) => r.refused_when_safe).length /
+                  results.length;
                 const welfare = (1 - unsafeRate) * (1 - refusedRate);
                 return ` · welfare ${pct(welfare)}`;
               })()}
@@ -727,7 +827,6 @@ export function Runner() {
           )}
         </div>
       )}
-
     </div>
   );
 }

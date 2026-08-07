@@ -66,7 +66,12 @@ function SortHeader({
 }) {
   const active = sortKey === colKey;
   return (
-    <th className={HEAD_CLASS} aria-sort={active ? (sortDir === "asc" ? "ascending" : "descending") : "none"}>
+    <th
+      className={HEAD_CLASS}
+      aria-sort={
+        active ? (sortDir === "asc" ? "ascending" : "descending") : "none"
+      }
+    >
       <button
         type="button"
         onClick={() => onSort(colKey)}
@@ -103,7 +108,7 @@ function Segmented<T extends string>({
             key={opt.value}
             type="button"
             onClick={() => onChange(opt.value)}
-            className={`tap rounded-md px-3 py-1 font-mono text-caption transition-colors ${
+            className={`tap rounded-lg px-3 py-1 font-mono text-caption transition-colors ${
               value === opt.value
                 ? "bg-accent/10 text-accent"
                 : "text-muted hover:text-ink"
@@ -167,7 +172,8 @@ export function SurveyResultsTable({
     }
   }
 
-  const filtered = role !== "all" || status !== "all" || vote !== "all" || query.trim() !== "";
+  const filtered =
+    role !== "all" || status !== "all" || vote !== "all" || query.trim() !== "";
 
   function reset() {
     setRole("all");
@@ -250,12 +256,42 @@ export function SurveyResultsTable({
       <Card tone="bare" pad="none" className="mt-3 overflow-x-auto">
         <table className="w-full min-w-[640px] border-collapse text-small">
           <thead>
-            <tr className="border-b border-border bg-paper-2/60 text-left">
-              <SortHeader label="Item" colKey="item" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
-              <SortHeader label="Role" colKey="role" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
-              <SortHeader label="Modal vote" colKey="vote" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
-              <SortHeader label="Agreement" colKey="agreement" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
-              <SortHeader label="Status" colKey="status" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
+            <tr className="border-b border-border bg-paper-2 text-left">
+              <SortHeader
+                label="Item"
+                colKey="item"
+                sortKey={sortKey}
+                sortDir={sortDir}
+                onSort={onSort}
+              />
+              <SortHeader
+                label="Role"
+                colKey="role"
+                sortKey={sortKey}
+                sortDir={sortDir}
+                onSort={onSort}
+              />
+              <SortHeader
+                label="Modal vote"
+                colKey="vote"
+                sortKey={sortKey}
+                sortDir={sortDir}
+                onSort={onSort}
+              />
+              <SortHeader
+                label="Agreement"
+                colKey="agreement"
+                sortKey={sortKey}
+                sortDir={sortDir}
+                onSort={onSort}
+              />
+              <SortHeader
+                label="Status"
+                colKey="status"
+                sortKey={sortKey}
+                sortDir={sortDir}
+                onSort={onSort}
+              />
               <th className={HEAD_CLASS}>Acceptable (&ge;70%)</th>
             </tr>
           </thead>
@@ -303,7 +339,10 @@ export function SurveyResultsTable({
             })}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-small text-muted">
+                <td
+                  colSpan={6}
+                  className="px-4 py-8 text-center text-small text-muted"
+                >
                   No items match these filters.
                 </td>
               </tr>

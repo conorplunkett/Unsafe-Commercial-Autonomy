@@ -1,152 +1,188 @@
-# Design system
+# Design system — Forest Precision
 
 Everything visual on this site resolves to a token in `app/globals.css` or a
 component in `components/ui/`. Two rules keep it that way:
 
 1. **No raw values in components.** No hex colours, no `text-[0.85rem]`, no
-   hand-built panel shells. If you need something the tokens don't cover, add a
-   token here first.
-2. **A new step needs a reason.** The scale below replaced 23 ad-hoc font sizes.
-   Adding a 15th step because a heading looks 1px off puts us back there.
+   hand-built panel shells. If you need something the tokens don't cover, add
+   a token here first.
+2. **A new step needs a reason.** The scale below replaced 23 ad-hoc font
+   sizes once already. Adding an eleventh step because a heading looks a pixel
+   off puts us back there.
+
+## Brand
+
+Clarity, precision, trust — the register of a modern financial-infrastructure
+product. Structural rather than decorative: hierarchy comes from type weight
+and 1px rules, not shadows or ornament. The ground is **pure white**, on
+purpose; no cream, ivory, or tinted greys.
 
 ## Colour
 
-Ten tokens, defined in the `@theme` block. Tailwind generates every
-`bg-`/`text-`/`border-` utility from them, so changing a token changes the site.
+Ten tokens in the `@theme` block. Tailwind generates every `bg-`/`text-`/
+`border-` utility from them, so changing a token changes the site.
 
-| Token | Value | Role |
-| --- | --- | --- |
-| `paper` | `#fbf7ec` | page background |
-| `paper-2` | `#f2ead6` | panel fill (always used at low opacity) |
-| `border` | `#e5dcc7` | hairlines, panel edges |
-| `ink` | `#1b1713` | body text |
-| `muted` | `#7c7163` | secondary text, labels |
-| `block` | `#15110d` | near-black blocks |
-| `accent` | `#1a6b59` | links, active nav, the safe/lookalike side |
-| `accent-2` | `#2f8f74` | charts, second series |
-| `danger` | `#b4472b` | unsafe rates, traps, errors |
-| `warn` | `#bf8a2d` | refused-when-safe, cautions |
+| Token      | Value     | Role                                         |
+| ---------- | --------- | -------------------------------------------- |
+| `paper`    | `#ffffff` | the page                                     |
+| `paper-2`  | `#f1f5f9` | panel and chip fill                          |
+| `border`   | `#e2e8f0` | hairlines, panel edges                       |
+| `ink`      | `#0b1c30` | body text                                    |
+| `muted`    | `#556274` | secondary text, labels                       |
+| `block`    | `#213145` | inverted surface (taxonomy tiles)            |
+| `accent`   | `#1b5e55` | brand: links, primary actions, correct-state |
+| `accent-2` | `#93d3c7` | second chart series                          |
+| `danger`   | `#ba1a1a` | unsafe payment                               |
+| `warn`     | `#7c4634` | refused when safe                            |
 
-One exception exists on purpose: `app/opengraph-image.tsx` hardcodes five hexes
-because Satori renders it at build time and can't read CSS variables. **Change a
-colour there too, or the social card drifts from the site.**
+Every text pair clears WCAG AA on both `paper` and `paper-2`; `ink`, `accent`
+and `warn` clear AAA. Re-check with the contrast script in the PR if you
+change one.
 
-## Type scale
+Two colour-semantic maps exist outside the tokens and must stay in step:
+`components/results/Donut.tsx` (confusion-matrix segments) and
+`components/survey/QuestionCard.tsx` (`PROCEED_CLASSES`).
+
+One exception on purpose: `app/opengraph-image.tsx` hardcodes five hexes
+because Satori renders it at build time and can't read CSS variables.
+**Change a colour there too, or the social card drifts from the site.** Same
+for `app/icon.svg` and `app/favicon.ico` (regenerate the `.ico` with `sharp`
+from the SVG — see the PR that introduced it).
+
+## Typography
+
+Three faces, each with a job:
+
+| Face               | Carries                                                        |
+| ------------------ | -------------------------------------------------------------- |
+| **Inter**          | everything by default — headings, nav, labels, buttons, tables |
+| **Newsreader**     | long-form prose only                                           |
+| **JetBrains Mono** | data: scenario IDs, rates, matrices, code                      |
+
+### The one rule that matters
+
+`body` is **Inter**. Long-form copy therefore has to say `font-serif`
+explicitly — it will not inherit it.
+
+The marker is `text-prose` + `leading-relaxed`; every element with both must
+also carry `font-serif`. There's a check for exactly this in the PR that
+introduced the identity, and it's worth re-running after any copy change.
+
+Note that `text-prose` alone is just the 18px step — it's also used for
+18px _titles_, which correctly stay Inter. Size and family are separate
+decisions here.
+
+### Scale
 
 Tailwind's default sizes are cleared (`--text-*: initial`), so `text-sm` and
-`text-3xl` no longer resolve to anything. Every size comes from a step below,
-and each step is named for its role rather than its pixels — `text-h2`, not
-`text-3xl`, so a later retune doesn't leave the class names lying about what
-they do.
+`text-3xl` no longer resolve. Every size comes from a step below, named for
+its role rather than its pixels. Weight and tracking ship with the step, so a
+heading never has to remember them.
 
-**Ten steps.** Shipped systems land between six and twelve — GOV.UK runs the
-whole of government on six, Apple's HIG has eleven, Material's fifteen roles
-collapse to five size families. Ten is what this site needs to carry long-form
-prose, dense data tables, and a display hero without any two steps sitting a
-pixel apart.
+| Step           | Size / leading | Weight | Role                           |
+| -------------- | -------------- | ------ | ------------------------------ |
+| `text-caption` | 12 / 16        | 600    | eyebrows, badges, table cells  |
+| `text-small`   | 14 / 20        | 400    | secondary UI, table body, nav  |
+| `text-ui`      | 16 / 24        | 400    | buttons, list items            |
+| `text-prose`   | 18 / 29.7      | 400    | long-form paragraphs _(serif)_ |
+| `text-h4`      | 20 / 28        | 600    | card titles, the nav wordmark  |
+| `text-h3`      | 20 → 24, fluid | 600    | sub-headings, pull quotes      |
+| `text-stat`    | 32 / 40        | 600    | the big number in a stat tile  |
+| `text-h2`      | 28 → 32, fluid | 600    | section headings               |
+| `text-h1`      | 36 → 48, fluid | 700    | page titles                    |
+| `text-display` | 48 → 72, fluid | 700    | the hero wordmark              |
 
-| Step | Size | Line height | Used for |
-| --- | --- | --- | --- |
-| `text-caption` | 0.75rem / 12px | 1.5 | all small mono: eyebrows, badges, table cells |
-| `text-small` | 0.875rem / 14px | 1.55 | secondary UI text, table body |
-| `text-ui` | 1.05rem / 16.8px | 1.5 | nav, links, buttons, list items |
-| `text-prose` | 1.125rem / 18px | 1.7 | long-form paragraphs |
-| `text-h4` | 1.25rem / 20px | 1.35 | card titles, the nav wordmark |
-| `text-h3` | 20 → 24px, fluid | 1.3 | sub-headings, pull quotes |
-| `text-stat` | 1.7rem / 27.2px | 1.05 | the big number in a stat tile |
-| `text-h2` | 30 → 36px, fluid | 1.15 | section headings |
-| `text-h1` | 36 → 48px, fluid | 1.1 | sub-page titles |
-| `text-display` | 60 → 80px, fluid | 0.98 | the hero wordmark |
-
-12px is the floor on purpose. The site previously had three mono steps between
-10.4px and 12px; one is enough, and it is the size most systems bottom out at.
-
-**The four heading steps are fluid.** They interpolate between a 640px and a
-1280px viewport via `clamp()`, so headings take no `sm:` variant — `text-h2`
-alone replaces `text-3xl sm:text-4xl`. Don't add a breakpoint to a heading;
+The four fluid steps interpolate between 640px and 1280px viewports, so a
+heading takes **no `sm:` variant**. Don't add a breakpoint to a heading;
 retune the clamp.
 
-`text-h4` is fixed rather than fluid because the nav wordmark uses it, and the
-nav breaks onto two lines if that grows.
-
-Line heights ship with the step. A `leading-*` utility on the same element
-overrides it, which is how the tighter pull quotes and the looser hero lede
-still work — but reach for that only when the default is genuinely wrong.
-
-### Retuning
-
-Editing a step in `globals.css` moves every use of it. Making body copy larger
-is `--text-prose`, one line. That is the whole point of the layer; resist fixing
-one page with a local override.
+`text-h4` is deliberately fixed rather than fluid — the nav wordmark uses it,
+and the nav breaks onto two lines if it grows.
 
 ## The Card
 
-`components/ui/Card.tsx` is the panel shell — rounded box, border, optional
-tint. It replaced fifteen hand-written variants whose fill opacity (`/40`,
-`/50`, `/60`) and padding (`p-4`, `p-5`, `px-5 py-4`) had drifted apart.
+`components/ui/Card.tsx` is the panel shell. It replaced fifteen hand-written
+variants whose fill opacity and padding had drifted apart.
 
 ```tsx
-<Card>…</Card>                              // tinted panel, p-5
-<Card tone="raised" pad="sm">…</Card>       // on top of a tinted parent
-<Card as="ol" tone="bare" pad="none">…</Card>  // wrapping a table or striped list
+<Card>…</Card>                                 // tinted panel, p-5
+<Card tone="raised" pad="sm">…</Card>          // on top of a tinted parent
+<Card as="ol" tone="bare" pad="none">…</Card>  // wrapping a table or list
 ```
 
-| `tone` | Fill | Use |
-| --- | --- | --- |
-| `tint` *(default)* | `paper-2/40` | the panel that carries most content |
-| `raised` | `paper` | sits on top of a tinted parent, or reads as front-most |
-| `bare` | none | outline only, for panels wrapping their own rows |
-| `accent` | `accent/5` | the safe / lookalike side of a pair |
-| `danger` | `danger/4` | the trap side of a pair |
-| `alert` | `danger/10` | an error the user has to act on |
+Tones: `tint` (default), `raised`, `bare`, `accent`, `danger`, `alert`.
+`pad` is `md` / `sm` / `none`. `as` swaps the element; everything else passes
+through, so `key`, `id` and extra `className` work as usual.
 
-`pad` is `md` (p-5, default), `sm` (p-4), or `none` when the child owns its
-padding. `as` swaps the element (`div`, `details`, `article`, `aside`, `ol`,
-`p`); everything else passes through, so `key`, `id`, and extra `className` work
-as usual.
+Fills are **solid**, not opacity blends — over pure white a 40% tint is
+invisible.
 
-Chips, buttons, inputs, tooltips, and code blocks are *not* Cards — they use
-`rounded-md`/`rounded-lg` and are still inline. If they start drifting, they get
-their own component here rather than a `Card` variant.
+Chips, buttons, inputs and tooltips are _not_ Cards.
+
+## Shape and elevation
+
+8px is the base radius. In stock Tailwind v4 that is `rounded-lg`; the ladder
+we use is `rounded` (4px, small elements) → `rounded-lg` (8px, buttons,
+inputs, chips) → `rounded-2xl` (16px, cards and large containers) →
+`rounded-full` (pills).
+
+Hierarchy comes from 1px borders, not shadows. Only two things in the site
+carry a shadow — the hero PDF frame and the term tooltip — and both use the
+diffuse, low-opacity `0 4px 12px rgba(0,0,0,0.05)`.
 
 ## Interactive targets
 
-Anything tappable is at least **44x44 CSS px**. Apple's HIG and WCAG 2.5.5 (AAA)
-both use that number; WCAG 2.2 AA only asks for 24x24, but these are thumb
-targets on a phone and 24 is a floor, not a goal.
+Anything tappable is at least **44×44 CSS px** (Apple HIG, WCAG 2.5.5 AAA).
+This supersedes Forest Precision's 40px standard button height — these are
+thumb targets on a phone.
 
-Two utilities in `globals.css` enforce it:
+`.tap` for elements that centre their own content (a `<button>` does),
+`.tap-link` for anchors that don't.
 
-- `.tap` — for elements that already centre their own content, which a
-  `<button>` does by default.
-- `.tap-link` — same minimum, plus `inline-flex` centring, for anchors and
-  anything else that would otherwise sit its text on the baseline.
+> Both live inside `@layer components`, and must stay there. `.tap-link` sets
+> `display`, and a utility like `hidden` or `sm:inline-flex` has to be able to
+> win over it. Left in the bare stylesheet it outranks them and `hidden`
+> silently stops working.
 
-```tsx
-<button className="tap rounded-full border px-3 py-1 …">Spend limits</button>
-<a className="tap-link font-serif text-ui …">Dataset</a>
-```
-
-Two things are exempt, and adding `.tap` to either is wrong:
-
-- **Inline links inside a paragraph.** WCAG exempts them, and a 44px inline link
-  would wreck the line rhythm of body copy.
-- **A small control wholly inside a large label.** The radio inputs in the
-  runner are 16px, but each sits in a full-width label well over 44px, and the
-  label is the target.
-
-Badges (`RoleBadge`, `VerdictBadge`) are not interactive and stay small.
-
-## Deliberately absent
-
-- **No dark mode.** The palette is a warm printed-paper look and the site is
-  single-theme by choice. Don't add `dark:` variants.
-- **No second scale.** The static pages in `public/` (`survey.html`,
-  `admin.html`) carry their own unrelated palette and are out of scope. Nothing
-  here applies to them, and nothing there should be copied back.
+Exempt, and adding `.tap` to either is wrong: **inline links inside a
+paragraph** (WCAG exempts them, and 44px would wreck the line rhythm), and
+**a small control wholly inside a large label** — the runner's 16px radios sit
+in full-width rows, and the label is the target.
 
 ## Layout
 
-Content sits in a `max-w-5xl` column. Sections are separated by
-`SectionDivider` (or `ToggleSection`, which collapses), both of which own the
-`mt-20 … border-t … pt-8` rhythm — change section spacing there, not per page.
+Content sits in a `max-w-5xl` (1024px) column with a 16px → 32px margin.
+Spacing follows an 8px rhythm — prefer the even Tailwind steps (`2`, `4`,
+`6`, `8`, `12`, `20`); 4px and 12px are allowed as half-steps.
+
+Section rhythm lives in `SectionDivider` and `ToggleSection` — change it
+there, not per page.
+
+Each page's `<main>` carries `overflow-x-clip` so an absolutely-positioned
+decoration can't widen the page. `clip` rather than `hidden`, so it doesn't
+create a scroll container and the sticky nav keeps working.
+
+## Deliberately absent
+
+- **No dark mode.** Single-theme by choice. Don't add `dark:` variants.
+- **No second scale.** The static pages in `public/` (`survey.html`,
+  `admin.html`) carry their own unrelated palette and are out of scope.
+
+## Deviations from the Forest Precision spec
+
+Recorded so they read as decisions, not drift.
+
+| Spec says                       | We do                          | Why                                                                 |
+| ------------------------------- | ------------------------------ | ------------------------------------------------------------------- |
+| Inter at every level            | Newsreader for long-form prose | The site's main job is reading a paper                              |
+| No monospace role               | JetBrains Mono for data        | Scenario IDs, rates and matrices need it                            |
+| `background: #f8f9ff` (tokens)  | `#ffffff`                      | The spec's own prose says "strictly pure white, avoid tinted greys" |
+| `primary #00463e` (tokens)      | `#1b5e55`                      | The spec's prose names this as the brand green                      |
+| Green-tinted `outline` (tokens) | Slate neutrals                 | The spec's prose specifies slate; consistent with pure white        |
+| Secondary text `#64748B`        | `#556274`                      | `#64748B` is only 4.34:1 on `paper-2` — below AA                    |
+| Strict 8px multiples            | 8px rhythm, 4/12 as half-steps | The spec's own scale ships `xs: 4px` and `sm: 12px`                 |
+| `headline-lg-mobile` role       | dropped                        | Byte-identical to `headline-md`; our fluid clamp already handles it |
+| No warn colour                  | `tertiary` rust as `warn`      | The taxonomy needs three outcome states, not two                    |
+| Buttons 40px                    | 44px minimum                   | Accessibility floor, see above                                      |
+| 1440px / 12-column grid         | 1024px reading column          | 1440px runs a paragraph far past a readable measure                 |
+| `body-lg` at 18/28              | 18/29.7                        | Newsreader needs more leading than Inter at the same size           |

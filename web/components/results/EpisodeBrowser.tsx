@@ -38,7 +38,8 @@ const VERDICT_TONE: Record<string, string> = {
 };
 
 function VerdictPill({ verdict }: { verdict?: string | null }) {
-  const tone = VERDICT_TONE[verdict ?? ""] ?? "border-border bg-paper-2 text-muted";
+  const tone =
+    VERDICT_TONE[verdict ?? ""] ?? "border-border bg-paper-2 text-muted";
   return (
     <span
       className={`inline-block whitespace-nowrap rounded-full border px-2.5 py-0.5 font-mono text-caption uppercase tracking-wider ${tone}`}
@@ -55,7 +56,7 @@ interface Row extends Result {
 }
 
 const selectClass =
-  "tap w-full rounded-md border border-border bg-paper px-3 py-1.5 font-mono text-small";
+  "tap w-full rounded-lg border border-border bg-paper px-3 py-1.5 font-mono text-small";
 
 function JsonBlock({ value }: { value: unknown }) {
   const text = JSON.stringify(value, null, 2);
@@ -73,11 +74,11 @@ function JsonBlock({ value }: { value: unknown }) {
             () => undefined,
           );
         }}
-        className="tap absolute right-2 top-2 rounded-md border border-border bg-paper px-2 py-0.5 font-mono text-caption uppercase tracking-wider text-muted hover:text-ink"
+        className="tap absolute right-2 top-2 rounded-lg border border-border bg-paper px-2 py-0.5 font-mono text-caption uppercase tracking-wider text-muted hover:text-ink"
       >
         {copied ? "Copied" : "Copy"}
       </button>
-      <pre className="max-h-[26rem] overflow-auto rounded-lg border border-border bg-paper-2/50 p-4 pr-14 font-mono text-caption leading-relaxed">
+      <pre className="max-h-[26rem] overflow-auto rounded-lg border border-border bg-paper-2 p-4 pr-14 font-mono text-caption leading-relaxed">
         {text}
       </pre>
     </div>
@@ -87,7 +88,7 @@ function JsonBlock({ value }: { value: unknown }) {
 function Detail({ row }: { row: Row | undefined }) {
   if (!row) {
     return (
-      <p className="rounded-lg border border-border bg-paper-2/40 p-4 text-muted">
+      <p className="rounded-lg border border-border bg-paper-2 p-4 text-muted">
         No episode selected.
       </p>
     );
@@ -131,7 +132,7 @@ function Detail({ row }: { row: Row | undefined }) {
             {row.failure_metrics.map((f) => (
               <span
                 key={f}
-                className="rounded-md border border-danger/30 bg-danger/5 px-2 py-0.5 font-mono text-caption text-danger"
+                className="rounded-lg border border-danger/30 bg-danger/5 px-2 py-0.5 font-mono text-caption text-danger"
               >
                 {f}
               </span>
@@ -149,7 +150,7 @@ function Detail({ row }: { row: Row | undefined }) {
             {row.block_reasons.map((b) => (
               <span
                 key={b}
-                className="rounded-md border border-border bg-paper-2 px-2 py-0.5 font-mono text-caption text-muted"
+                className="rounded-lg border border-border bg-paper-2 px-2 py-0.5 font-mono text-caption text-muted"
               >
                 {b.replace(/_/g, " ")}
               </span>
@@ -167,7 +168,8 @@ function Detail({ row }: { row: Row | undefined }) {
 }
 
 export function EpisodeBrowser() {
-  const { runs, episodes, loadEpisodes, loadingEpisodes, episodesError } = useData();
+  const { runs, episodes, loadEpisodes, loadingEpisodes, episodesError } =
+    useData();
   const [pickedRunId, setPickedRunId] = useState<string | null>(null);
   const [verdict, setVerdict] = useState("all");
   const [condition, setCondition] = useState("all");
@@ -209,7 +211,8 @@ export function EpisodeBrowser() {
   }, [inView, runId, loadEpisodes]);
 
   const all = runId ? episodes[runId] : undefined;
-  const loading = loadingEpisodes === runId || (inView && runId != null && !all);
+  const loading =
+    loadingEpisodes === runId || (inView && runId != null && !all);
 
   const rows = useMemo<Row[]>(() => {
     if (!all) return [];
@@ -220,7 +223,9 @@ export function EpisodeBrowser() {
       }))
       .filter((r) => verdict === "all" || (r.verdict ?? "none") === verdict)
       .filter(
-        (r) => condition === "all" || (r.control_condition ?? "legacy") === condition,
+        (r) =>
+          condition === "all" ||
+          (r.control_condition ?? "legacy") === condition,
       )
       .sort((a, b) => severity(a.verdict) - severity(b.verdict));
   }, [all, verdict, condition]);
@@ -241,7 +246,10 @@ export function EpisodeBrowser() {
     const io = new IntersectionObserver(
       (entries) => {
         if (entries.some((e) => e.isIntersecting)) {
-          setPage({ scope, visible: Math.min(visible + PAGE_SIZE, rows.length) });
+          setPage({
+            scope,
+            visible: Math.min(visible + PAGE_SIZE, rows.length),
+          });
         }
       },
       { root, rootMargin: "120px" },
@@ -376,7 +384,7 @@ export function EpisodeBrowser() {
                   key={r.key}
                   onClick={() => setSelectedKey(r.key)}
                   className={`cursor-pointer border-b border-border transition-colors ${
-                    selected?.key === r.key ? "bg-paper-2" : "hover:bg-paper-2/50"
+                    selected?.key === r.key ? "bg-paper-2" : "hover:bg-paper-2"
                   }`}
                 >
                   <td className="px-3 py-2.5 align-top">

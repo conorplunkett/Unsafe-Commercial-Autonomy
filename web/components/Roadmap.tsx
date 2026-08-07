@@ -24,7 +24,11 @@ const PHASES = [
 
 export function Roadmap() {
   return (
-    <ToggleSection id="roadmap" eyebrow="Roadmap" title="Three experiment phases">
+    <ToggleSection
+      id="roadmap"
+      eyebrow="Roadmap"
+      title="Three experiment phases"
+    >
       <div className="mt-8 grid gap-6 md:grid-cols-3">
         {PHASES.map((p) => (
           <Card tone="bare" key={p.tag}>
@@ -40,7 +44,7 @@ export function Roadmap() {
                 {p.status}
               </span>
             </div>
-            <p className="mt-2 font-serif text-prose leading-snug">{p.title}</p>
+            <p className="mt-2 text-prose leading-snug">{p.title}</p>
             <p className="mt-2 text-small leading-snug text-muted">{p.body}</p>
           </Card>
         ))}

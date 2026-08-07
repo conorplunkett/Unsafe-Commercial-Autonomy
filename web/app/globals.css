@@ -1,59 +1,80 @@
 @import "tailwindcss";
 
-/* ai-2027-style warm editorial palette, sharing the benchmark's green accent. */
+/* Forest Precision — clarity, precision, trust. A pure-white, slate-neutral
+   system with a forest-green brand mark. See DESIGN.md before changing
+   anything here; every colour and size on the site resolves to this block. */
 @theme {
-  --color-paper: #fbf7ec;
-  --color-paper-2: #f2ead6;
-  --color-ink: #1b1713;
-  --color-muted: #7c7163;
-  --color-border: #e5dcc7;
-  --color-accent: #1a6b59;
-  --color-accent-2: #2f8f74;
-  --color-danger: #b4472b;
-  --color-warn: #bf8a2d;
-  --color-block: #15110d;
+  /* Colour. Token names are unchanged from the previous identity on purpose —
+     they are semantic ("the page", "the panel"), not descriptive, so ~500 call
+     sites keep working. `paper` just stops meaning cream. */
+  --color-paper: #ffffff; /* the page — strictly pure white, no tint */
+  --color-paper-2: #f1f5f9; /* panel and chip fill */
+  --color-ink: #0b1c30; /* body text */
+  --color-muted: #556274; /* secondary text */
+  --color-border: #e2e8f0; /* hairlines, panel edges */
+  --color-accent: #1b5e55; /* brand green: links, primary actions, correct */
+  --color-accent-2: #93d3c7; /* second chart series */
+  --color-danger: #ba1a1a; /* unsafe payment */
+  --color-warn: #7c4634; /* refused when safe */
+  --color-block: #213145; /* inverted surface: taxonomy tiles */
 
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-newsreader), Georgia, "Times New Roman", serif;
-  --font-mono: var(--font-plex-mono), ui-monospace, "SFMono-Regular", monospace;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, "SFMono-Regular", monospace;
 
   /* Type scale. Tailwind's default sizes are cleared so `text-sm`/`text-3xl`
-     stop resolving — every size on the site comes from a step below, and the
-     step is named for its role, not its pixels. Ten steps: enough to carry a
-     long-form page with dense data tables, few enough that no two are a
-     pixel apart. The four heading steps are fluid — they interpolate between
-     640px and 1280px viewports, so headings need no `sm:` variant.
-     See DESIGN.md before adding a step. */
+     stop resolving — every size comes from a step below, named for its role
+     rather than its pixels. Ten steps mapping onto Forest Precision's roles;
+     `stat` and `display` are our extensions, marked as such. Weight and
+     tracking ship with the step, so a heading never has to remember them.
+     The four largest are fluid between 640px and 1280px viewports, which is
+     why no heading takes an `sm:` variant. */
   --text-*: initial;
 
-  --text-caption: 0.75rem; /* 12px — all small mono: eyebrows, badges, table cells */
-  --text-caption--line-height: 1.5;
+  --text-caption: 0.75rem; /* 12/16 — label-sm: eyebrows, badges, table cells */
+  --text-caption--line-height: 1.3333;
+  --text-caption--font-weight: 600;
+  --text-caption--letter-spacing: 0.01em;
 
-  --text-small: 0.875rem; /* 14px — secondary UI text, table body */
-  --text-small--line-height: 1.55;
+  --text-small: 0.875rem; /* 14/20 — body-sm: secondary UI text, table body */
+  --text-small--line-height: 1.4286;
 
-  --text-ui: 1.05rem; /* 16.8px — nav, links, buttons, list items */
+  --text-ui: 1rem; /* 16/24 — body-md: nav, links, buttons, list items */
   --text-ui--line-height: 1.5;
 
-  --text-prose: 1.125rem; /* 18px — long-form paragraphs */
-  --text-prose--line-height: 1.7;
+  /* body-lg. The one step that stays Newsreader, so it gets more leading than
+     the spec's 28px — a serif at 18px needs it, and long-form reading is the
+     reason we kept the serif at all. */
+  --text-prose: 1.125rem; /* 18px */
+  --text-prose--line-height: 1.65;
 
-  --text-stat: 1.7rem; /* 27.2px — the big number in a stat tile */
-  --text-stat--line-height: 1.05;
+  --text-h4: 1.25rem; /* 20/28 — card titles, the nav wordmark */
+  --text-h4--line-height: 1.4;
+  --text-h4--font-weight: 600;
 
-  --text-h4: 1.25rem; /* 20px — card titles, the nav wordmark */
-  --text-h4--line-height: 1.35;
+  --text-h3: clamp(1.25rem, 1rem + 0.625vw, 1.5rem); /* 20 → 24/32 headline-md */
+  --text-h3--line-height: 1.3333;
+  --text-h3--font-weight: 600;
 
-  --text-h3: clamp(1.25rem, 1rem + 0.625vw, 1.5rem); /* 20 → 24px — also pull quotes */
-  --text-h3--line-height: 1.3;
+  --text-stat: 2rem; /* 32/40 — big number in a stat tile (extension) */
+  --text-stat--line-height: 1.25;
+  --text-stat--font-weight: 600;
+  --text-stat--letter-spacing: -0.01em;
 
-  --text-h2: clamp(1.875rem, 1.5rem + 0.9375vw, 2.25rem); /* 30 → 36px */
-  --text-h2--line-height: 1.15;
+  --text-h2: clamp(1.75rem, 1.5rem + 0.625vw, 2rem); /* 28 → 32/40 headline-lg */
+  --text-h2--line-height: 1.25;
+  --text-h2--font-weight: 600;
+  --text-h2--letter-spacing: -0.01em;
 
-  --text-h1: clamp(2.25rem, 1.5rem + 1.875vw, 3rem); /* 36 → 48px */
-  --text-h1--line-height: 1.1;
+  --text-h1: clamp(2.25rem, 1.5rem + 1.875vw, 3rem); /* 36 → 48/56 headline-xl */
+  --text-h1--line-height: 1.1667;
+  --text-h1--font-weight: 700;
+  --text-h1--letter-spacing: -0.02em;
 
-  --text-display: clamp(3.75rem, 2.5rem + 3.125vw, 5rem); /* 60 → 80px */
-  --text-display--line-height: 0.98;
+  --text-display: clamp(3rem, 1.5rem + 3.75vw, 4.5rem); /* 48 → 72 (extension) */
+  --text-display--line-height: 1.05;
+  --text-display--font-weight: 700;
+  --text-display--letter-spacing: -0.02em;
 }
 
 html {
@@ -62,40 +83,50 @@ html {
 
 body {
   color: var(--color-ink);
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
 ::selection {
-  background: color-mix(in srgb, var(--color-accent) 22%, transparent);
+  background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+}
+
+/* Eyebrow/label treatment used throughout the page. Inter per the spec, but
+   uppercase at the spec's 0.01em is cramped, so it keeps enough tracking to
+   stay legible at 12px. */
+.label {
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  line-height: var(--text-caption--line-height);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-muted);
 }
 
 /* Minimum interactive target: 44x44, per Apple HIG and WCAG 2.5.5 (AAA).
-   WCAG 2.2 AA only asks for 24x24, but these controls are thumb targets on a
-   phone. `.tap` is for elements that already centre their own content (a
-   <button> does); `.tap-link` also centres, for anchors that don't.
-   Inline links inside a paragraph are exempt and must not use either. */
-.tap,
-.tap-link {
-  min-height: 2.75rem;
-  min-width: 2.75rem;
-}
+   This supersedes the spec's 40px standard button height — WCAG 2.2 AA only
+   asks for 24x24, but these are thumb targets on a phone. `.tap` is for
+   elements that already centre their own content (a <button> does);
+   `.tap-link` also centres, for anchors that don't. Inline links inside a
+   paragraph are exempt and must not use either. */
+@layer components {
+  .tap,
+  .tap-link {
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+  }
 
-.tap-link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Monospace eyebrow/label treatment used throughout the page. */
-.label {
-  font-family: var(--font-mono);
-  font-size: var(--text-caption);
-  line-height: var(--text-caption--line-height);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--color-muted);
+  /* In the components layer on purpose: this sets `display`, and a utility
+     like `hidden` or `sm:inline-flex` has to be able to win over it. Left in
+     the bare stylesheet it outranks them, and `hidden` silently stops
+     working. */
+  .tap-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
 }
 
 html {

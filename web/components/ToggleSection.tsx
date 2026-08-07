@@ -23,7 +23,7 @@ export function ToggleSection({
     >
       <summary className="cursor-pointer list-none marker:content-none [&::-webkit-details-marker]:hidden">
         {eyebrow && <p className="label">{eyebrow}</p>}
-        <h2 className="mt-2 flex items-baseline gap-3 font-serif text-h2 tracking-tight">
+        <h2 className="mt-2 flex items-baseline gap-3 text-h2 tracking-tight">
           <span
             aria-hidden
             className="inline-block text-h3 text-accent transition-transform duration-150 group-open:rotate-90"
@@ -35,7 +35,7 @@ export function ToggleSection({
       </summary>
       {/* Everything below the heading, intro included, is hidden until opened. */}
       {intro && (
-        <p className="mt-3 max-w-2xl pl-7 text-prose leading-relaxed text-ink/80">
+        <p className="mt-3 max-w-2xl pl-7 font-serif text-prose leading-relaxed text-ink/80">
           {intro}
         </p>
       )}

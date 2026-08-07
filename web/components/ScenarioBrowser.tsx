@@ -114,7 +114,7 @@ export function ScenarioBrowser({ teaser = false }: { teaser?: boolean }) {
         </div>
         <Link
           href="/scenarios"
-          className="tap-link mt-6 font-serif text-prose text-accent hover:underline"
+          className="tap-link mt-6 text-prose text-accent hover:underline"
         >
           Browse all {SCENARIOS.length} Phase-1 scenarios →
         </Link>
@@ -133,7 +133,10 @@ export function ScenarioBrowser({ teaser = false }: { teaser?: boolean }) {
         <div className="flex flex-wrap items-center gap-2">
           <button
             className={`${chip} ${category === "all" ? on : off}`}
-            onClick={() => { setCategory("all"); setPage(1); }}
+            onClick={() => {
+              setCategory("all");
+              setPage(1);
+            }}
           >
             All categories
           </button>
@@ -141,7 +144,10 @@ export function ScenarioBrowser({ teaser = false }: { teaser?: boolean }) {
             <button
               key={c}
               className={`${chip} ${category === c ? on : off}`}
-              onClick={() => { setCategory(c); setPage(1); }}
+              onClick={() => {
+                setCategory(c);
+                setPage(1);
+              }}
             >
               {CATEGORY_LABELS[c]}
             </button>
@@ -152,7 +158,10 @@ export function ScenarioBrowser({ teaser = false }: { teaser?: boolean }) {
             <button
               key={r}
               className={`${chip} ${role === r ? on : off}`}
-              onClick={() => { setRole(r); setPage(1); }}
+              onClick={() => {
+                setRole(r);
+                setPage(1);
+              }}
             >
               {r === "all" ? "Trap + lookalike" : r}
             </button>

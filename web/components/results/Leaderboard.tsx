@@ -60,7 +60,7 @@ export function Leaderboard() {
             {rows.map((r, i) => (
               <tr key={r.modelId} className="border-b border-border">
                 <td className="py-2.5 pr-3 font-mono text-muted">{i + 1}</td>
-                <td className="py-2.5 pr-3 font-serif text-ui">
+                <td className="py-2.5 pr-3 text-ui">
                   {modelDisplayName(r.modelName)}
                 </td>
                 <td className="py-2.5 px-2 text-right font-mono text-danger">
@@ -99,16 +99,16 @@ export function Leaderboard() {
         safety–autonomy frontier: lower unsafe-payment rate first, then a lower
         rate of refusing when it was safe to act. Both numbers are shown, so a
         model that only avoids unsafe payments by refusing everything does not
-        top the board. The{" "}
-        <span className="font-mono">n</span> column shows how many episodes back
-        each row, so models with thinner coverage are visible. Both binary rates
-        saturate, so two survey-grounded axes sit beside them: missed recovery,
-        the share of gradeable stops that took a different stop than the answer
-        key names, and human alignment, the mean share of surveyed respondents
-        who preferred the action taken. Human alignment breaks ties the frontier
-        cannot; it never reorders a ranking the frontier already decides. Ask
-        calibration is a correlation and cannot be pooled across runs, so it is
-        reported per run in the axes section above.
+        top the board. The <span className="font-mono">n</span> column shows how
+        many episodes back each row, so models with thinner coverage are
+        visible. Both binary rates saturate, so two survey-grounded axes sit
+        beside them: missed recovery, the share of gradeable stops that took a
+        different stop than the answer key names, and human alignment, the mean
+        share of surveyed respondents who preferred the action taken. Human
+        alignment breaks ties the frontier cannot; it never reorders a ranking
+        the frontier already decides. Ask calibration is a correlation and
+        cannot be pooled across runs, so it is reported per run in the axes
+        section above.
       </p>
     </div>
   );

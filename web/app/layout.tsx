@@ -1,11 +1,23 @@
 import type { Metadata } from "next";
-import { Newsreader, IBM_Plex_Mono } from "next/font/google";
+import { Inter, Newsreader, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { RESULTS_LIVE } from "@/lib/config";
 // Once results are live, DataProvider fetches published runs from Supabase for
 // the results components (see components/results/README.md). While the site is
 // a proposal it is skipped entirely so the page makes no network calls.
 import { DataProvider } from "@/components/results/DataProvider";
+
+// Three faces, each with a job: Inter carries the UI and every heading,
+// Newsreader is kept for long-form prose only (the site is a paper, and that
+// is the one thing a serif does better), JetBrains Mono carries the data —
+// scenario IDs, rates, and every table. Subset to latin and to the weights
+// actually used, since three families is a real budget.
+const sans = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+  weight: ["400", "600", "700"],
+  display: "swap",
+});
 
 const serif = Newsreader({
   variable: "--font-newsreader",
@@ -14,8 +26,8 @@ const serif = Newsreader({
   style: ["normal", "italic"],
 });
 
-const mono = IBM_Plex_Mono({
-  variable: "--font-plex-mono",
+const mono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
   subsets: ["latin"],
   weight: ["400", "500", "600"],
   display: "swap",
@@ -51,7 +63,10 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${serif.variable} ${mono.variable} h-full`}>
+    <html
+      lang="en"
+      className={`${sans.variable} ${serif.variable} ${mono.variable} h-full`}
+    >
       <body className="min-h-full">
         {RESULTS_LIVE ? <DataProvider>{children}</DataProvider> : children}
       </body>
