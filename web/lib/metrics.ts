@@ -4,7 +4,8 @@ import { CONDITION_ORDER } from "./labels";
 // Answer-key statuses that make no claim about the right action, so results on
 // them are reported but never scored: "dropped" (survey consensus failed with
 // no objective fallback) and "awaiting_survey" (the survey that sets this key
-// has not run). Mirrors UNKEYED_STATUSES in app/metrics.py.
+// has not run). "objective" is scoreable and deliberately absent. Mirrors
+// UNKEYED_STATUSES in app/metrics.py.
 const UNKEYED_STATUSES = new Set(["dropped", "awaiting_survey"]);
 
 export function isScored(r: Result): boolean {

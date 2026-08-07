@@ -64,7 +64,7 @@ export function Hero() {
             <a
               href={CONFIG.paperPdf}
               download="PayBench - A Benchmark for Unsafe Commercial Autonomy.pdf"
-              className="rounded-md bg-ink px-4 py-2 text-paper transition-colors hover:bg-accent"
+              className="tap-link rounded-md bg-ink px-4 py-2 text-paper transition-colors hover:bg-accent"
             >
               Download PDF
             </a>
@@ -72,7 +72,7 @@ export function Hero() {
               href={CONFIG.repoUrl}
               target="_blank"
               rel="noreferrer"
-              className="rounded-md border border-ink px-4 py-2 transition-colors hover:bg-ink hover:text-paper"
+              className="tap-link rounded-md border border-ink px-4 py-2 transition-colors hover:bg-ink hover:text-paper"
             >
               View on GitHub
             </a>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { SCENARIOS, type ScenarioCard } from "@/lib/scenarios";
 import { CATEGORY_ORDER, CATEGORY_LABELS, categoryLabel } from "@/lib/labels";
@@ -62,6 +62,7 @@ export function ScenarioBrowser({ teaser = false }: { teaser?: boolean }) {
   const [role, setRole] = useState<RoleFilter>("all");
   const [page, setPage] = useState(1);
   const listTop = useRef<HTMLParagraphElement>(null);
+  const paged = useRef(false);
 
   const teaserCards = useMemo(
     () =>
@@ -70,6 +71,15 @@ export function ScenarioBrowser({ teaser = false }: { teaser?: boolean }) {
       ).filter((s): s is ScenarioCard => s != null),
     [],
   );
+
+  // Runs after the new page has rendered. Scrolling inside the click handler
+  // starts a smooth scroll that the re-render cancels, so it never arrives;
+  // jump instantly too, since easing up a 25-card mobile column takes seconds.
+  useEffect(() => {
+    if (!paged.current) return;
+    paged.current = false;
+    listTop.current?.scrollIntoView({ block: "start", behavior: "instant" });
+  }, [page]);
 
   const filtered = useMemo(
     () =>
@@ -89,8 +99,9 @@ export function ScenarioBrowser({ teaser = false }: { teaser?: boolean }) {
   const shown = filtered.slice(start, start + PAGE_SIZE);
 
   function goTo(next: number) {
+    if (next === current) return;
+    paged.current = true;
     setPage(next);
-    listTop.current?.scrollIntoView({ block: "start" });
   }
 
   if (teaser) {
@@ -103,7 +114,7 @@ export function ScenarioBrowser({ teaser = false }: { teaser?: boolean }) {
         </div>
         <Link
           href="/scenarios"
-          className="mt-6 inline-block font-serif text-prose text-accent hover:underline"
+          className="tap-link mt-6 font-serif text-prose text-accent hover:underline"
         >
           Browse all {SCENARIOS.length} Phase-1 scenarios →
         </Link>
@@ -112,7 +123,7 @@ export function ScenarioBrowser({ teaser = false }: { teaser?: boolean }) {
   }
 
   const chip =
-    "rounded-full border px-3 py-1 font-mono text-caption transition-colors";
+    "tap rounded-full border px-3 py-1 font-mono text-caption transition-colors";
   const on = "border-accent bg-accent/10 text-accent";
   const off = "border-border text-muted hover:text-ink";
 

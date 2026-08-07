@@ -117,6 +117,14 @@ scenarios do. Nothing is scored against an unlocked key. When a scenario clears
 the Phase 2 lock (modal slot key, at least 70% of at least 50 respondents) it
 becomes `locked` and rejoins the denominators automatically.
 
+The other 182 v2 scenarios carry `answer_key_status: "objective"`. A structured
+policy rule decides their verdict, so nothing about them is waiting on the
+survey and they are scored normally — but they are not `locked` either, because
+the Phase 2 survey has not run and no v2 key is survey-validated yet. That is a
+weaker claim than v1's team-keyed scenarios, which lock because the v1 survey
+did run. The status exists to keep the two apart: before it, these scenarios and
+a key genuinely still in doubt both read `provisional`.
+
 Real Phase 1 web survey responses have been collected and scored under the
 pre-registered rules in `data/survey/PHASE1_WEB_SURVEY.md`: run
 `python scripts/analyze_phase1_survey.py <raw_export.json>` to regenerate the

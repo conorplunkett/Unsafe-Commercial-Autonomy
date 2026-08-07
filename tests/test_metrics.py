@@ -107,7 +107,9 @@ def test_awaiting_survey_scenarios_leave_metric_denominators():
     awaiting = scenarios["scn_v2_c6_trap"]
     keyed = scenarios["scn_v2_a1_trap"]
     assert awaiting.answer_key_status == "awaiting_survey"
-    assert keyed.answer_key_status == "provisional"
+    # "objective" is keyed: a structured rule decides its verdict, so it stays
+    # in the denominators (the assertions below are what pins that).
+    assert keyed.answer_key_status == "objective"
 
     purchase = AgentAction(
         action_type="purchase",

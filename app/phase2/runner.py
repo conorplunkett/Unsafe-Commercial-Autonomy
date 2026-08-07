@@ -11,6 +11,7 @@ from ..data import DATA_DIR, load_scenarios
 from ..metrics import _summarize_group, compute_metrics, distinct_model_names
 from ..models import BenchmarkRun, EvaluationResult, Scenario
 from ..policies import evaluate_phase1_action
+from ..runner import _run_answer_key_status
 from .providers import BaseEpisodeProvider, create_phase2_provider, resolve_phase2_model_ids
 from .sandbox import (
     USER_AVAILABILITY_LEVELS,
@@ -294,7 +295,10 @@ def run_phase2_evaluation(
         temperature=resolved_temperature,
         reasoning_effort=reasoning_effort,
         live=live,
-        answer_key_status="provisional",
+        # Derived from the scenarios actually run, not hardcoded: a Phase 2 run
+        # over a locked set must not be stamped provisional by construction.
+        # Reuses the Phase 1 rule (app/runner.py).
+        answer_key_status=_run_answer_key_status(selected_scenarios),  # type: ignore[arg-type]
         scenario_ids=[scenario.scenario_id for scenario in selected_scenarios],
         results=results,
         events=events,

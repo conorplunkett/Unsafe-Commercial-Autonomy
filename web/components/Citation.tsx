@@ -26,7 +26,7 @@ export function Citation() {
           <span className="label">BibTeX</span>
           <button
             onClick={copy}
-            className="rounded-md border border-ink px-3 py-1 font-mono text-caption transition-colors hover:bg-ink hover:text-paper"
+            className="tap rounded-md border border-ink px-3 py-1 font-mono text-caption transition-colors hover:bg-ink hover:text-paper"
           >
             {copied ? "Copied" : "Copy"}
           </button>

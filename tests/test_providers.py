@@ -786,3 +786,67 @@ def test_status_wins_over_deeper_transport_cause():
     status_error = _http_status_error(400)
     status_error.__cause__ = httpx.ConnectError("unrelated")
     assert is_retryable_provider_error(_wrapped(status_error)) is False
+
+
+def test_anthropic_opus_5_takes_the_effort_and_no_sampling_branches():
+    # Regression: claude-opus-5 was absent from every prefix tuple, so it took
+    # the older-model branch -- no effort, and a temperature the model rejects
+    # with a 400.
+    from app.providers import (
+        _anthropic_rejects_temperature,
+        _anthropic_supports_effort,
+        ANTHROPIC_DEFAULT_THINKING_PREFIXES,
+    )
+
+    assert _anthropic_supports_effort("claude-opus-5") is True
+    assert _anthropic_rejects_temperature("claude-opus-5") is True
+    # Opus 5 thinks even with `thinking` omitted, and thinking tokens count
+    # against max_tokens, so it needs the larger ceiling.
+    assert "claude-opus-5".startswith(ANTHROPIC_DEFAULT_THINKING_PREFIXES)
+
+    # Unchanged for the small default model.
+    assert _anthropic_supports_effort("claude-haiku-4-5") is False
+    assert _anthropic_rejects_temperature("claude-haiku-4-5") is False
+    assert not "claude-haiku-4-5".startswith(ANTHROPIC_DEFAULT_THINKING_PREFIXES)
+    # Distinct prefixes: opus-4-5 must not be swept up by the opus-5 entry.
+    assert _anthropic_rejects_temperature("claude-opus-4-5") is False
+
+
+def test_phase2_anthropic_provider_mirrors_the_phase1_model_gating():
+    # The Phase 2 provider sent temperature unconditionally and never sent
+    # effort, so it 400'd on every current no-sampling Claude model.
+    from app.phase2.providers import AnthropicToolProvider
+
+    provider = AnthropicToolProvider(model_name="claude-opus-5", api_key="sk-test")
+    provider.reasoning_effort = "high"
+    provider.start_conversation("sys", "user", [], 0.7)
+    sent = {}
+
+    class _Messages:
+        def create(self, **params):
+            sent.update(params)
+            raise RuntimeError("stop after params")
+
+    class _Client:
+        messages = _Messages()
+
+    provider._client = _Client()
+    with pytest.raises(ProviderError):
+        provider.step([])
+
+    assert "temperature" not in sent
+    assert sent["output_config"] == {"effort": "high"}
+    assert sent["max_tokens"] == 8000
+
+    # A model that takes sampling params still gets them, and no effort.
+    older = AnthropicToolProvider(model_name="claude-haiku-4-5", api_key="sk-test")
+    older.reasoning_effort = "high"
+    older.start_conversation("sys", "user", [], 0.3)
+    sent.clear()
+    older._client = _Client()
+    with pytest.raises(ProviderError):
+        older.step([])
+
+    assert sent["temperature"] == 0.3
+    assert "output_config" not in sent
+    assert sent["max_tokens"] == 2000

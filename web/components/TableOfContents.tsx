@@ -14,7 +14,7 @@ export function TableOfContents() {
           <li key={s.id}>
             <a
               href={`#${s.id}`}
-              className="group flex items-baseline gap-3 py-0.5"
+              className="tap group flex items-baseline gap-3 py-0.5"
             >
               <span className="font-mono text-caption text-muted">
                 {String(i + 1).padStart(2, "0")}

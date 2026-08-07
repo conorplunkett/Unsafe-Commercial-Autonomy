@@ -71,6 +71,23 @@ body {
   background: color-mix(in srgb, var(--color-accent) 22%, transparent);
 }
 
+/* Minimum interactive target: 44x44, per Apple HIG and WCAG 2.5.5 (AAA).
+   WCAG 2.2 AA only asks for 24x24, but these controls are thumb targets on a
+   phone. `.tap` is for elements that already centre their own content (a
+   <button> does); `.tap-link` also centres, for anchors that don't.
+   Inline links inside a paragraph are exempt and must not use either. */
+.tap,
+.tap-link {
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+}
+
+.tap-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* Monospace eyebrow/label treatment used throughout the page. */
 .label {
   font-family: var(--font-mono);

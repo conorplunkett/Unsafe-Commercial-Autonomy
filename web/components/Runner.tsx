@@ -92,6 +92,7 @@ type Provider = (typeof PROVIDERS)[number]["id"];
 // reasoning-effort setting, and which reject temperature.
 const OPENAI_REASONING_PREFIXES = ["gpt-5", "o1", "o3", "o4"];
 const ANTHROPIC_EFFORT_PREFIXES = [
+  "claude-opus-5",
   "claude-opus-4-5",
   "claude-opus-4-6",
   "claude-opus-4-7",
@@ -102,6 +103,7 @@ const ANTHROPIC_EFFORT_PREFIXES = [
   "claude-mythos",
 ];
 const ANTHROPIC_NO_TEMPERATURE_PREFIXES = [
+  "claude-opus-5",
   "claude-opus-4-7",
   "claude-opus-4-8",
   "claude-sonnet-5",
@@ -327,8 +329,8 @@ export function Runner() {
 
   const label = "block font-mono text-caption uppercase tracking-wider text-muted";
   const field =
-    "mt-1.5 w-full rounded-md border border-border bg-paper px-3 py-2 font-mono text-small text-ink outline-none focus:border-accent disabled:cursor-not-allowed disabled:opacity-40";
-  const chip = "rounded-full border px-3 py-1 font-mono text-caption transition-colors";
+    "tap mt-1.5 w-full rounded-md border border-border bg-paper px-3 py-2 font-mono text-small text-ink outline-none focus:border-accent disabled:cursor-not-allowed disabled:opacity-40";
+  const chip = "tap rounded-full border px-3 py-1 font-mono text-caption transition-colors";
   const on = "border-accent bg-accent/10 text-accent";
   const off = "border-border text-muted hover:text-ink";
   const divider = "mt-7 border-t border-border pt-6";
@@ -499,7 +501,7 @@ export function Runner() {
               role="radio"
               aria-checked={scenarioId === "random"}
               onClick={() => setScenarioId("random")}
-              className={`sticky top-0 z-10 flex w-full items-center gap-2 border-b border-border px-4 py-2.5 text-left text-small transition-colors ${
+              className={`tap sticky top-0 z-10 flex w-full items-center gap-2 border-b border-border px-4 py-2.5 text-left text-small transition-colors ${
                 scenarioId === "random"
                   ? "bg-accent/10 text-accent"
                   : "bg-paper text-ink hover:bg-paper-2/60"
@@ -526,7 +528,7 @@ export function Runner() {
                       role="radio"
                       aria-checked={active}
                       onClick={() => setScenarioId(s.scenario_id)}
-                      className={`flex w-full items-baseline justify-between gap-3 border-b border-border/60 px-4 py-2 text-left transition-colors last:border-b-0 ${
+                      className={`tap flex w-full items-baseline justify-between gap-3 border-b border-border/60 px-4 py-2 text-left transition-colors last:border-b-0 ${
                         active
                           ? "bg-accent/10"
                           : "hover:bg-paper-2/60"
@@ -587,7 +589,7 @@ export function Runner() {
             type="button"
             onClick={run}
             disabled={!canRun}
-            className="rounded-md bg-ink px-5 py-2 font-serif text-ui text-paper transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
+            className="tap rounded-md bg-ink px-5 py-2 font-serif text-ui text-paper transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
           >
             {running ? "Running…" : "Run benchmark"}
           </button>
