@@ -1,6 +1,11 @@
 # Changelog
 
-## [2026-07-24] The merchant page no longer prints the answer (full page_text de-leak)
+## [2026-08-07] The merchant page no longer prints the answer (full page_text de-leak)
+
+Work spanned three sessions with a two-week infrastructure gap in the middle:
+planning and Stage 0 (the instruction-line fix) on 2026-07-24, batches A-D on
+2026-07-26, batch E and the guard flip on 2026-08-07 — the date below is
+completion, not a single day's work.
 
 The largest remaining leak, closed. Every v2 offer's `page_text` — the merchant
 page the model reads via `view_offer`, and the Phase 1 prompt via
@@ -82,7 +87,7 @@ Two root causes, both fixed:
   `scripts/generate_v2_constraints.py`, `app/phase2/sandbox.py` (unchanged
   reader), `tests/test_phase2_runner.py`, `README.md`.
 
-## [2026-07-24] The scorer's category token is no longer shown to the model
+## [2026-07-25] The scorer's category token is no longer shown to the model
 
 The follow-up the difficulty pass deferred as "materially bigger": `view_offer`
 returned each offer's `category` field verbatim, and Phase 1's
