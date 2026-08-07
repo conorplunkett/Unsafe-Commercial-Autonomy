@@ -624,10 +624,16 @@ def _phase2_grid_size(args: argparse.Namespace) -> tuple[int, str]:
     count for a Phase 2 eval, and a breakdown string for the confirmation
     prompt. Returns (0, "") if it can't be estimated (e.g. a bad model id).
     """
+    from .data import load_scenarios
     from .phase2.providers import LIVE_MODEL_IDS, resolve_phase2_model_ids
+    from .phase2.runner import PHASE2_SCENARIO_SET
 
     try:
-        scenario_count = len(_csv(args.scenario_ids) or []) or 250
+        scenario_ids = _csv(args.scenario_ids)
+        scenario_set = Path(args.scenario_set) if args.scenario_set else PHASE2_SCENARIO_SET
+        scenario_count = (
+            len(set(scenario_ids)) if scenario_ids else len(load_scenarios(scenario_set))
+        )
         conditions = len(_csv(args.conditions) or []) or 6
         framings = len(_csv(args.framings) or []) or 2
         # Unlike framings, omitting --urgencies runs a single level ("none"),

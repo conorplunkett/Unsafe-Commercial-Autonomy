@@ -333,6 +333,14 @@ def _parse_scenario_set_markdown(path: Path) -> List[Scenario]:
     source_version = metadata["source_version"]
     constraints = _load_constraints(source_version)
     votes_summary = survey_summary() if source_version == "v1" else {}
+    if source_version == "v1":
+        phase2_votes_summary: Dict[str, Any] = {}
+    else:
+        # Loaded once for the whole set: answer_key_status would otherwise
+        # re-read the survey file for each of the 44 surveyed scenarios.
+        from .phase2.survey import real_survey_summary
+
+        phase2_votes_summary = real_survey_summary()
     # Human vote distributions for the surveyed scenarios, merged into the
     # answer key alongside acceptable_actions. Unlike the lock verdict these
     # survive per-scenario, so scoring can compare an action against how the
@@ -460,6 +468,8 @@ def _parse_scenario_set_markdown(path: Path) -> List[Scenario]:
                 votes_summary,
                 synthetic=survey_synthetic,
                 surveyed=surveyed,
+                acceptable_actions=raw_scenario["payment_policy"].get("acceptable_actions"),
+                phase2_summary=phase2_votes_summary,
             )
             raw_scenario["answer_key_status"] = key_status
             raw_scenario["payment_policy"]["answer_key_status"] = key_status
