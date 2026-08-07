@@ -1,5 +1,57 @@
 # Changelog
 
+## [2026-08-07] Phase 2 survey pipeline: web responses now reach the answer key, and a lock cannot contradict it
+
+The headline metric (`human_alignment.preferred_mean`) could not become
+non-null on v2: web survey responses land in Supabase, but nothing moved them
+into scoring — `answer_key_status` read a local votes file only the interactive
+CLI collector wrote, and `app/data.py` hardcoded human distributions to v1.
+Closed end-to-end, pre-collection:
+
+- **`scripts/analyze_phase2_survey.py`** (module `app/phase2/web_survey.py`):
+  raw Supabase export → pre-registered exclusions (≥2 of 5 attention misses,
+  <390 s, `meta.test`, non-`v2_web_r3`) → two committed artifacts: the
+  anonymized aggregate `data/survey/phase2_results_v2_web_r3.json` (slot-key
+  counts, lock state, cal_1 floor, demographics) and anonymized slot-key votes
+  in `data/survey/phase2_survey_responses.json`. The instrument is parsed out
+  of `web/public/survey.html` at run time, so the analyzer cannot drift from
+  the ballot; a PII guard (mirroring Phase 1's) blocks names/emails/free-text
+  keys from either output. Mirrors `app/phase1_web_survey.py` structurally.
+- **v2 human distributions**: `load_scenarios` now attaches
+  `human_distribution` for v2 scenarios from the committed aggregate (empty
+  until it exists), so `human_alignment` scores v2 runs through the same path
+  as v1. The coarse CLI vote `purchase` maps to the trap slot, closing a
+  latent `slot_for_vote` gap.
+- **Crowd-answer-vs-key gate** (pre-registered mechanism, amended into
+  `PHASE2_WEB_SURVEY.md` before any collection): a vote-lock only reports
+  `locked` when the most-voted answer is one the committed key accepts.
+  A lock that contradicts the key stays `awaiting_survey` — out of the
+  headline denominators, flagged `CONFLICT` by `phase2-survey` with the exact
+  key it disagrees with — until the key is re-keyed in a reviewed commit.
+  No result is ever scored against a key the survey overturned; no key is
+  ever silently rewritten by code. A locked `proceed_trap`/`proceed_fabricate`
+  can never re-key (reword-or-drop, per lock rule 3).
+- **Admin dashboard key drift**: `web/public/admin.html`'s per-item `key`
+  blocks had drifted from `data/answer_keys/v2_constraints.json` on three
+  scenarios (c6 and e15 predating their documented re-keys; a4 claiming
+  `ask_approval` acceptable instead of the compliant `proceed_safe`). Fixed,
+  and a new guard test compares every admin `key` block against the committed
+  key in slot space (restricted to ballot-representable slots — d13/d20
+  dropped their walk-away option on purpose).
+- **Two small fixes**: the `phase2-eval` cost estimate loads the real
+  scenario set (13,560-episode default grid, not the stale 250-scenario
+  15,000 guess) and honors `--scenario-set`; Phase 2 runs compute run-level
+  `answer_key_status` via `_run_answer_key_status` instead of hardcoding
+  `"provisional"`.
+- The example votes file now speaks the web ballot's slot keys and surveys
+  trap-only items, matching what real imports will hold; `_meta.example`
+  stays true until real responses land.
+
+Nothing model-facing changed: the scripted dry-run grid (2 agents × 6
+conditions × 2 framings × 226 scenarios, 5,424 cells) is verdict-identical
+before and after, and with the example survey file all 44 surveyed scenarios
+remain `awaiting_survey`.
+
 ## [2026-08-07] The merchant page no longer prints the answer (full page_text de-leak)
 
 Work spanned three sessions with a two-week infrastructure gap in the middle:

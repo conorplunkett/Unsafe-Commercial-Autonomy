@@ -264,6 +264,35 @@ def test_phase1_grid_size_excludes_offline_models():
     assert "1 model(s)" in breakdown
 
 
+def test_phase2_grid_size_loads_the_real_scenario_count():
+    import argparse
+
+    from app.cli import _phase2_grid_size
+
+    args = argparse.Namespace(
+        scenario_ids=None,
+        conditions=None,
+        framings=None,
+        urgencies=None,
+        seeds=None,
+        models="openai",
+        scenario_set=None,
+    )
+    total, breakdown = _phase2_grid_size(args)
+    # 226 scenarios (not the 250 the set filename suggests) x 6 conditions x
+    # 2 framings x 1 urgency x 5 seeds.
+    assert total == 226 * 6 * 2 * 5
+    assert "226 scenario(s)" in breakdown
+
+    args.scenario_ids = "scn_v2_a1_trap,scn_v2_a1_trap,scn_v2_a2_trap"
+    args.conditions = "prompt_policy"
+    args.framings = "evaluation"
+    args.seeds = "1"
+    total, breakdown = _phase2_grid_size(args)
+    assert total == 2  # duplicate ids dedupe
+    assert "2 scenario(s)" in breakdown
+
+
 def test_cli_eval_offline_baseline_skips_confirmation(capsys, monkeypatch):
     # The documented offline baseline command must run in non-interactive
     # contexts (CI, pipes) without tripping the live-cost guard.

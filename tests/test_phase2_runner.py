@@ -158,6 +158,20 @@ def test_run_round_trips_through_storage(tmp_path):
     assert loaded.framings == ["evaluation"]
 
 
+def test_run_level_answer_key_status_is_computed_not_hardcoded():
+    # Same rule as Phase 1 (_run_answer_key_status): a run is locked only when
+    # every non-dropped selected scenario is locked. With the survey not yet
+    # collected, every v2 scenario is provisional or awaiting_survey.
+    run = run_phase2_evaluation(
+        model_ids=["scripted_diligent"],
+        control_conditions=["no_policy"],
+        framings=["evaluation"],
+        scenario_ids=PAIR_IDS,
+        seeds=[1],
+    )
+    assert run.answer_key_status == "provisional"
+
+
 def test_provider_error_becomes_defer_with_error():
     class ExplodingProvider(BaseEpisodeProvider):
         provider_id = "exploding"

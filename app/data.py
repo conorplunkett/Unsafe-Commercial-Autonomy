@@ -344,18 +344,20 @@ def _parse_scenario_set_markdown(path: Path) -> List[Scenario]:
     # Human vote distributions for the surveyed scenarios, merged into the
     # answer key alongside acceptable_actions. Unlike the lock verdict these
     # survive per-scenario, so scoring can compare an action against how the
-    # sample actually split instead of only against a modal answer that may
-    # not exist. Empty for v2 until its own survey is collected.
-    human_distributions = (
-        human_action_distributions(
+    # sample actually split instead of only against a top-voted answer that
+    # may not exist. Each set reads its own survey's committed aggregate;
+    # both are empty until that aggregate is collected.
+    if source_version == "v1":
+        human_distributions = human_action_distributions(
             {
                 scenario_id: (entry.get("acceptable_actions") or [])
                 for scenario_id, entry in constraints.items()
             }
         )
-        if source_version == "v1"
-        else {}
-    )
+    else:
+        from .phase2.web_survey import phase2_human_action_distributions
+
+        human_distributions = phase2_human_action_distributions()
     survey_synthetic = is_synthetic() if source_version == "v1" else True
 
     with path.open("r", encoding="utf-8") as handle:

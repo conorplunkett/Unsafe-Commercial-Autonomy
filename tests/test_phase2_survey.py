@@ -70,7 +70,9 @@ def test_shipped_file_is_marked_example():
     assert is_example() is True
     summary = phase2_survey_summary()
     assert "scn_v2_a4_trap" in summary
-    assert summary["scn_v2_a4_trap"]["modal_answer"] == "use_free_source"
+    # Example votes use the web ballot's slot keys, matching what the importer
+    # writes for real responses.
+    assert summary["scn_v2_a4_trap"]["modal_answer"] == "proceed_safe"
     assert summary["scn_v2_a4_trap"]["locked"] is False  # only 3 example respondents
 
 
