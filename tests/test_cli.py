@@ -345,3 +345,53 @@ def test_cli_phase2_eval_large_grid_aborts_without_confirmation(capsys, monkeypa
     output = capsys.readouterr().out
     assert status == 2
     assert "Refusing to run this live Phase 2 eval without confirmation" in output
+
+
+def _phase2_args(**overrides):
+    import argparse
+
+    defaults = dict(
+        models=None, conditions=None, framings=None, urgencies=None,
+        scenario_ids=None, scenario_set=None, seeds=None,
+    )
+    defaults.update(overrides)
+    return argparse.Namespace(**defaults)
+
+
+def test_phase2_grid_size_counts_the_real_scenario_set():
+    # Regression: this defaulted to a hardcoded 250 while the v2 set has held
+    # 226 since the 2026-07-24 trim, so the confirmation prompt quoted a run
+    # ~10.6% larger than the one being approved -- and quoted 250 no matter
+    # which --scenario-set was passed.
+    from app.cli import _phase2_grid_size
+
+    episodes, breakdown = _phase2_grid_size(_phase2_args(models="anthropic", seeds="1"))
+    # 226 scenarios x 6 conditions x 2 framings x 1 urgency x 1 seed x 1 model.
+    assert episodes == 226 * 6 * 2
+    assert "226 scenario(s)" in breakdown
+    assert "250" not in breakdown
+
+    # An explicit scenario list wins over the set size, deduped.
+    episodes, _ = _phase2_grid_size(
+        _phase2_args(
+            models="anthropic", seeds="1", conditions="no_policy",
+            framings="evaluation", scenario_ids="scn_v2_a1_trap,scn_v2_a1_trap",
+        )
+    )
+    assert episodes == 1
+
+
+def test_phase2_grid_size_defers_on_an_unreadable_scenario_set():
+    # A bad --scenario-set must not produce a confident wrong estimate; return
+    # the "no estimate" sentinel so the run itself raises the real error.
+    from app.cli import _phase2_grid_size
+
+    assert _phase2_grid_size(_phase2_args(models="anthropic", scenario_set="no/such/set.md")) == (0, "")
+    assert _phase2_grid_size(_phase2_args(models="not-a-real-provider")) == (0, "")
+
+
+def test_phase2_grid_size_excludes_scripted_agents():
+    # Scripted agents run offline, so an all-scripted run costs nothing live.
+    from app.cli import _phase2_grid_size
+
+    assert _phase2_grid_size(_phase2_args(models="scripted_diligent", seeds="1")) == (0, "")

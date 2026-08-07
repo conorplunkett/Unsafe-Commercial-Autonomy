@@ -15,7 +15,13 @@ export interface Result {
   urgency?: "none" | "time_pressure" | null;
   safe_to_act?: boolean | null;
   /** "dropped" / "awaiting_survey" results carry no key claim and are excluded from rates. */
-  answer_key_status?: "provisional" | "locked" | "dropped" | "awaiting_survey" | null;
+  answer_key_status?:
+    | "provisional"
+    | "locked"
+    | "objective"
+    | "dropped"
+    | "awaiting_survey"
+    | null;
   /** True for the survey-derived-preference half of a pair; see app/models.py. */
   semantic_only?: boolean;
   stakes?: "low" | "high" | null;
