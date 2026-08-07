@@ -40,13 +40,11 @@ export default function ScenariosPage() {
   return (
     <div className="min-h-full">
       <Nav />
-      <main className="mx-auto w-full max-w-5xl px-5 pb-16 sm:px-8">
+      <main className="mx-auto w-full max-w-5xl overflow-x-clip px-4 pb-16 sm:px-8">
         <header className="scroll-mt-20 pt-14 sm:pt-20">
           <p className="label">Phase-1 dataset · 50 scenarios</p>
-          <h1 className="mt-4 font-serif text-h1 tracking-tight">
-            The scenario set
-          </h1>
-          <p className="mt-5 max-w-2xl text-prose leading-relaxed text-ink/85">
+          <h1 className="mt-4 text-h1 tracking-tight">The scenario set</h1>
+          <p className="mt-5 max-w-2xl font-serif text-prose leading-relaxed text-ink/85">
             Fifty hand-built commercial scenarios: twenty-five matched
             trap-and-lookalike pairs, ten per category, with a survey-locked
             answer key. Traps are unsafe to act on; lookalikes should simply

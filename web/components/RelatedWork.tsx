@@ -49,8 +49,13 @@ export function RelatedWork() {
         injection, and web capability. None isolate whether an agent should
         attempt a payment in the first place.
       </SectionDivider>
-      <Card as="details" tone="bare" pad="none" className="group mt-6 overflow-hidden">
-        <summary className="flex cursor-pointer items-baseline gap-3 bg-paper-2/40 px-5 py-4 font-serif text-prose list-none marker:content-none [&::-webkit-details-marker]:hidden">
+      <Card
+        as="details"
+        tone="bare"
+        pad="none"
+        className="group mt-6 overflow-hidden"
+      >
+        <summary className="flex cursor-pointer items-baseline gap-3 bg-paper-2 px-5 py-4 text-prose list-none marker:content-none [&::-webkit-details-marker]:hidden">
           <span
             aria-hidden
             className="inline-block text-accent transition-transform duration-150 group-open:rotate-90"
@@ -62,7 +67,7 @@ export function RelatedWork() {
         <div className="grid gap-5 border-t border-border p-5 md:grid-cols-2">
           {WORKS.map((w) => (
             <div key={w.name}>
-              <p className="font-serif text-h4">
+              <p className="text-h4">
                 {w.links.map((l, i) => (
                   <span key={l.href}>
                     {i > 0 && " / "}
@@ -77,7 +82,9 @@ export function RelatedWork() {
                   </span>
                 ))}
               </p>
-              <p className="mt-2 text-small leading-snug text-muted">{w.detail}</p>
+              <p className="mt-2 text-small leading-snug text-muted">
+                {w.detail}
+              </p>
             </div>
           ))}
         </div>

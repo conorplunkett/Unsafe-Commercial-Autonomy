@@ -14,7 +14,7 @@ function RunControls() {
           value={runId ?? ""}
           onChange={(e) => setRunId(e.target.value)}
           // max-w-full: the longest run label is wider than a phone viewport.
-          className="max-w-full rounded-md border border-border bg-paper px-3 py-1.5 font-mono text-small"
+          className="max-w-full rounded-lg border border-border bg-paper px-3 py-1.5 font-mono text-small"
         >
           {runs.map((r) => (
             <option key={r.run_id} value={r.run_id}>

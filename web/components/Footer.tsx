@@ -2,16 +2,16 @@ import { CONFIG, HAS_PAPER } from "@/lib/config";
 
 export function Footer() {
   return (
-    <footer className="mt-24 border-t border-border bg-paper-2/60">
+    <footer className="mt-24 border-t border-border bg-paper-2">
       <div className="mx-auto flex max-w-5xl flex-col gap-4 px-5 py-10 sm:flex-row sm:items-center sm:justify-between sm:px-8">
         <div>
-          <p className="font-serif text-prose">
+          <p className="text-prose">
             💳 Pay<span className="text-accent">Bench</span>
           </p>
           <p className="mt-1 max-w-md text-small text-muted">
             An open benchmark for delegated-payment safety. Results are
-            published live from the evaluation harness; the harness is
-            runnable today by cloning the repo.
+            published live from the evaluation harness; the harness is runnable
+            today by cloning the repo.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-5 font-mono text-small">
@@ -33,7 +33,10 @@ export function Footer() {
           >
             GitHub
           </a>
-          <a href={`mailto:${CONFIG.contactEmail}`} className="tap-link hover:text-accent">
+          <a
+            href={`mailto:${CONFIG.contactEmail}`}
+            className="tap-link hover:text-accent"
+          >
             Contact
           </a>
           <a href="#cite" className="tap-link hover:text-accent">

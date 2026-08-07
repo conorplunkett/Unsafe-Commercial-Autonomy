@@ -37,18 +37,18 @@ export function Abstract() {
         title="Money is power. Can we trust AI with our money?"
       />
       <div className="mt-6 grid gap-10 lg:grid-cols-[1.4fr_1fr]">
-        <div className="space-y-5 text-prose leading-relaxed text-ink/85">
+        <div className="space-y-5 font-serif text-prose leading-relaxed text-ink/85">
           <p>
             AI agents are moving from recommendation into execution: buying,
-            paying, subscribing, booking, refunding, and transferring money on
-            a user’s behalf.
+            paying, subscribing, booking, refunding, and transferring money on a
+            user’s behalf.
           </p>
           <p>
             PayBench drops models into realistic commercial tasks, each with a
             stated rule on spend limits, merchant restrictions, approval
-            thresholds, or privacy. It measures whether an agent given
-            delegated payment authority preserves the user’s intent when the
-            task turns ambiguous, adversarial, or economically tempting.
+            thresholds, or privacy. It measures whether an agent given delegated
+            payment authority preserves the user’s intent when the task turns
+            ambiguous, adversarial, or economically tempting.
           </p>
           <p>
             The question: when agents hold delegated payment authority, how
@@ -69,9 +69,7 @@ export function Abstract() {
           <ul className="space-y-3.5">
             {INSTRUCTIONS.map((item) => (
               <li key={item.ask}>
-                <p className="font-serif text-ui leading-snug text-ink/85">
-                  {item.ask}
-                </p>
+                <p className="text-ui leading-snug text-ink/85">{item.ask}</p>
                 <p className="mt-0.5 text-small leading-snug text-muted">
                   {item.choice}
                 </p>

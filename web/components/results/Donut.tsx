@@ -10,10 +10,26 @@ const R_OUTER = 100;
 const R_INNER = 64;
 
 const SEGMENTS = [
-  { key: "correctlyProceeded", label: "Correctly proceeded", color: "var(--color-accent)" },
-  { key: "correctlyStopped", label: "Correctly stopped", color: "var(--color-block)" },
-  { key: "wronglyProceeded", label: "Wrongly proceeded", color: "var(--color-danger)" },
-  { key: "wronglyStopped", label: "Wrongly stopped", color: "var(--color-warn)" },
+  {
+    key: "correctlyProceeded",
+    label: "Correctly proceeded",
+    color: "var(--color-accent)",
+  },
+  {
+    key: "correctlyStopped",
+    label: "Correctly stopped",
+    color: "var(--color-block)",
+  },
+  {
+    key: "wronglyProceeded",
+    label: "Wrongly proceeded",
+    color: "var(--color-danger)",
+  },
+  {
+    key: "wronglyStopped",
+    label: "Wrongly stopped",
+    color: "var(--color-warn)",
+  },
 ] as const;
 
 function polar(r: number, a: number): [number, number] {
@@ -33,7 +49,10 @@ export function Donut() {
   const { results } = useData();
   const c = confusion(results);
   const total =
-    c.correctlyProceeded + c.correctlyStopped + c.wronglyProceeded + c.wronglyStopped;
+    c.correctlyProceeded +
+    c.correctlyStopped +
+    c.wronglyProceeded +
+    c.wronglyStopped;
 
   type Arc = (typeof SEGMENTS)[number] & {
     value: number;
@@ -51,7 +70,12 @@ export function Donut() {
 
   return (
     <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center sm:gap-10">
-      <svg viewBox={`0 0 ${SIZE} ${SIZE}`} width={SIZE} height={SIZE} className="shrink-0">
+      <svg
+        viewBox={`0 0 ${SIZE} ${SIZE}`}
+        width={SIZE}
+        height={SIZE}
+        className="shrink-0"
+      >
         {total === 0 ? (
           <circle
             cx={C}
@@ -64,14 +88,33 @@ export function Donut() {
         ) : (
           arcs.map((a) =>
             a.frac > 0 ? (
-              <path key={a.key} d={arc(a.a0, a.a1)} fill={a.color} stroke="var(--color-paper)" strokeWidth={1.5} />
+              <path
+                key={a.key}
+                d={arc(a.a0, a.a1)}
+                fill={a.color}
+                stroke="var(--color-paper)"
+                strokeWidth={1.5}
+              />
             ) : null,
           )
         )}
-        <text x={C} y={C - 4} textAnchor="middle" className="fill-muted font-mono" fontSize={11} letterSpacing="1">
+        <text
+          x={C}
+          y={C - 4}
+          textAnchor="middle"
+          className="fill-muted font-mono"
+          fontSize={11}
+          letterSpacing="1"
+        >
           OUTCOMES
         </text>
-        <text x={C} y={C + 18} textAnchor="middle" className="fill-ink font-mono" fontSize={20}>
+        <text
+          x={C}
+          y={C + 18}
+          textAnchor="middle"
+          className="fill-ink font-mono"
+          fontSize={20}
+        >
           {num(total)}
         </text>
       </svg>
@@ -80,7 +123,10 @@ export function Donut() {
         {arcs.map((a) => (
           <li key={a.key} className="flex items-center justify-between gap-3">
             <span className="flex items-center gap-2.5">
-              <span className="inline-block h-3 w-3 rounded-[3px]" style={{ background: a.color }} />
+              <span
+                className="inline-block h-3 w-3 rounded"
+                style={{ background: a.color }}
+              />
               <span className="text-small">{a.label}</span>
             </span>
             <span className="font-mono text-small text-muted">

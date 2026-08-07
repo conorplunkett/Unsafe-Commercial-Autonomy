@@ -6,16 +6,18 @@ import type { ElementType, ReactNode } from "react";
 // through here so restyling stays a one-file change. See DESIGN.md.
 
 const TONES = {
-  // Default: the tinted panel that carries most content sections.
-  tint: "border-border bg-paper-2/40",
+  // Default: the tinted panel that carries most content sections. A solid
+  // step rather than an opacity blend — over pure white, paper-2 at 40% is
+  // invisible.
+  tint: "border-border bg-paper-2",
   // Sits on top of a tinted parent, or needs to read as the front-most layer.
   raised: "border-border bg-paper",
   // Outline only — for panels wrapping their own striped rows or a table.
   bare: "border-border",
-  accent: "border-accent/30 bg-accent/[0.05]",
+  accent: "border-accent/30 bg-accent/[0.06]",
   // Louder than `danger` — for an error the user has to act on, not a labelled panel.
   alert: "border-danger/40 bg-danger/10",
-  danger: "border-danger/30 bg-danger/[0.04]",
+  danger: "border-danger/30 bg-danger/[0.05]",
 } as const;
 
 const PADS = {
@@ -40,7 +42,7 @@ export function Card({
 } & Record<string, unknown>) {
   return (
     <Tag
-      className={`rounded-xl border ${TONES[tone]} ${PADS[pad]} ${className}`.trim()}
+      className={`rounded-2xl border ${TONES[tone]} ${PADS[pad]} ${className}`.trim()}
       {...rest}
     >
       {children}

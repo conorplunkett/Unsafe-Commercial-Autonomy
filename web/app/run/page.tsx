@@ -14,13 +14,11 @@ export default function RunPage() {
   return (
     <div className="min-h-full">
       <Nav />
-      <main className="mx-auto w-full max-w-5xl px-5 pb-10 sm:px-8">
+      <main className="mx-auto w-full max-w-5xl overflow-x-clip px-4 pb-10 sm:px-8">
         <header className="scroll-mt-20 pt-14 sm:pt-20">
           <p className="label">Run it yourself</p>
-          <h1 className="mt-4 font-serif text-h1 tracking-tight">
-            Run the benchmark
-          </h1>
-          <p className="mt-4 max-w-2xl text-prose leading-relaxed text-ink/85">
+          <h1 className="mt-4 text-h1 tracking-tight">Run the benchmark</h1>
+          <p className="mt-4 max-w-2xl font-serif text-prose leading-relaxed text-ink/85">
             Drop a model from any major provider — OpenAI, Anthropic, Gemini,
             Kimi, Inkling, Grok, DeepSeek, Mistral, Qwen, or OpenRouter — into a
             real PayBench scenario with your own API key.

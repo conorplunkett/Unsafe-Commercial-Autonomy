@@ -49,7 +49,7 @@ export function QuestionCard({
           {question.locked ? "Locked" : "Provisional"}
         </span>
       </div>
-      <h3 className="mt-2 font-serif text-prose leading-snug">{question.short}</h3>
+      <h3 className="mt-2 text-prose leading-snug">{question.short}</h3>
       <details className="mt-2 text-small text-ink/80">
         <summary className="cursor-pointer font-mono text-caption text-muted">
           Full wording as shown to respondents

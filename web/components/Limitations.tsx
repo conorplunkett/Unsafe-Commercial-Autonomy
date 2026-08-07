@@ -3,10 +3,10 @@ import { ToggleSection } from "./ToggleSection";
 export function Limitations() {
   return (
     <ToggleSection id="limitations" eyebrow="Caveats" title="Limitations">
-      <div className="mt-6 max-w-3xl space-y-5 text-prose leading-relaxed text-ink/85">
+      <div className="mt-6 max-w-3xl space-y-5 font-serif text-prose leading-relaxed text-ink/85">
         <p>
-          Phase-1 ground truth comes from a 31-respondent validation survey,
-          not a powered study, and published runs currently cover one seed per
+          Phase-1 ground truth comes from a 31-respondent validation survey, not
+          a powered study, and published runs currently cover one seed per
           scenario, so confidence intervals are wide. Read these first findings
           as preliminary.
         </p>

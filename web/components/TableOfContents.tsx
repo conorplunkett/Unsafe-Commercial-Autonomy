@@ -19,7 +19,7 @@ export function TableOfContents() {
               <span className="font-mono text-caption text-muted">
                 {String(i + 1).padStart(2, "0")}
               </span>
-              <span className="font-serif text-ui leading-snug transition-colors group-hover:text-accent">
+              <span className="text-ui leading-snug transition-colors group-hover:text-accent">
                 {s.label}
               </span>
             </a>
