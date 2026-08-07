@@ -70,7 +70,7 @@ function SortHeader({
       <button
         type="button"
         onClick={() => onSort(colKey)}
-        className={`flex w-full items-center gap-1 uppercase tracking-[0.14em] transition-colors hover:text-ink ${
+        className={`tap flex w-full items-center gap-1 uppercase tracking-[0.14em] transition-colors hover:text-ink ${
           align === "right" ? "justify-end" : ""
         } ${active ? "text-ink" : ""}`}
       >
@@ -103,7 +103,7 @@ function Segmented<T extends string>({
             key={opt.value}
             type="button"
             onClick={() => onChange(opt.value)}
-            className={`rounded-md px-3 py-1 font-mono text-caption transition-colors ${
+            className={`tap rounded-md px-3 py-1 font-mono text-caption transition-colors ${
               value === opt.value
                 ? "bg-accent/10 text-accent"
                 : "text-muted hover:text-ink"
@@ -207,7 +207,7 @@ export function SurveyResultsTable({
             id="vote-filter"
             value={vote}
             onChange={(e) => setVote(e.target.value)}
-            className="rounded-lg border border-border bg-paper px-3 py-1.5 font-mono text-caption text-ink"
+            className="tap rounded-lg border border-border bg-paper px-3 py-1.5 font-mono text-caption text-ink"
           >
             <option value="all">all votes</option>
             {voteOptions.map((v) => (
@@ -227,7 +227,7 @@ export function SurveyResultsTable({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="item or wording"
-            className="min-w-[10rem] rounded-lg border border-border bg-paper px-3 py-1.5 text-small text-ink placeholder:text-muted"
+            className="tap min-w-[10rem] rounded-lg border border-border bg-paper px-3 py-1.5 text-small text-ink placeholder:text-muted"
           />
         </div>
       </div>
