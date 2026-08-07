@@ -114,7 +114,7 @@ export function ScenarioBrowser({ teaser = false }: { teaser?: boolean }) {
         </div>
         <Link
           href="/scenarios"
-          className="mt-6 inline-block font-serif text-prose text-accent hover:underline"
+          className="tap-link mt-6 font-serif text-prose text-accent hover:underline"
         >
           Browse all {SCENARIOS.length} Phase-1 scenarios →
         </Link>
@@ -123,7 +123,7 @@ export function ScenarioBrowser({ teaser = false }: { teaser?: boolean }) {
   }
 
   const chip =
-    "rounded-full border px-3 py-1 font-mono text-caption transition-colors";
+    "tap rounded-full border px-3 py-1 font-mono text-caption transition-colors";
   const on = "border-accent bg-accent/10 text-accent";
   const off = "border-border text-muted hover:text-ink";
 

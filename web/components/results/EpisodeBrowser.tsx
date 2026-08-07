@@ -55,7 +55,7 @@ interface Row extends Result {
 }
 
 const selectClass =
-  "w-full rounded-md border border-border bg-paper px-3 py-1.5 font-mono text-small";
+  "tap w-full rounded-md border border-border bg-paper px-3 py-1.5 font-mono text-small";
 
 function JsonBlock({ value }: { value: unknown }) {
   const text = JSON.stringify(value, null, 2);
@@ -73,7 +73,7 @@ function JsonBlock({ value }: { value: unknown }) {
             () => undefined,
           );
         }}
-        className="absolute right-2 top-2 rounded-md border border-border bg-paper px-2 py-0.5 font-mono text-caption uppercase tracking-wider text-muted hover:text-ink"
+        className="tap absolute right-2 top-2 rounded-md border border-border bg-paper px-2 py-0.5 font-mono text-caption uppercase tracking-wider text-muted hover:text-ink"
       >
         {copied ? "Copied" : "Copy"}
       </button>
