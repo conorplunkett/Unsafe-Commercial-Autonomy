@@ -1,4 +1,5 @@
 import { SectionDivider } from "./SectionDivider";
+import { Card } from "@/components/ui/Card";
 
 // Each everyday instruction hides a policy choice; the sub-line spells out the
 // call the agent is silently making.
@@ -36,7 +37,7 @@ export function Abstract() {
         title="Money is power. Can we trust AI with our money?"
       />
       <div className="mt-6 grid gap-10 lg:grid-cols-[1.4fr_1fr]">
-        <div className="space-y-5 text-lg leading-relaxed text-ink/85">
+        <div className="space-y-5 text-prose leading-relaxed text-ink/85">
           <p>
             AI agents are moving from recommendation into execution: buying,
             paying, subscribing, booking, refunding, and transferring money on
@@ -63,21 +64,21 @@ export function Abstract() {
             reduce those violations <em>without making the agent inert?</em>
           </p>
         </div>
-        <aside className="rounded-xl border border-border bg-paper-2/50 p-5">
+        <Card as="aside">
           <p className="label mb-3">Instructions that hide a policy choice</p>
           <ul className="space-y-3.5">
             {INSTRUCTIONS.map((item) => (
               <li key={item.ask}>
-                <p className="font-serif text-[1.05rem] leading-snug text-ink/85">
+                <p className="font-serif text-ui leading-snug text-ink/85">
                   {item.ask}
                 </p>
-                <p className="mt-0.5 text-sm leading-snug text-muted">
+                <p className="mt-0.5 text-small leading-snug text-muted">
                   {item.choice}
                 </p>
               </li>
             ))}
           </ul>
-        </aside>
+        </Card>
       </div>
     </>
   );

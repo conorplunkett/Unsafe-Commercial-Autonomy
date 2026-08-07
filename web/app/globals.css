@@ -15,6 +15,57 @@
 
   --font-serif: var(--font-newsreader), Georgia, "Times New Roman", serif;
   --font-mono: var(--font-plex-mono), ui-monospace, "SFMono-Regular", monospace;
+
+  /* Type scale. Tailwind's default sizes are cleared so `text-sm`/`text-3xl`
+     stop resolving — every size on the site comes from a step below, and the
+     step is named for its role, not its pixels. Steps are close together
+     through the UI range (where a pixel is a real decision) and open up at the
+     display end. The four largest are fluid: they interpolate between 640px
+     and 1280px viewports, so headings need no `sm:` variant.
+     See DESIGN.md before adding a step. */
+  --text-*: initial;
+
+  --text-micro: 0.65rem; /* 10.4px — mono in dense table cells and badges */
+  --text-micro--line-height: 1.45;
+
+  --text-label: 0.7rem; /* 11.2px — the .label eyebrow, chart captions */
+  --text-label--line-height: 1.45;
+
+  --text-caption: 0.75rem; /* 12px — mono metadata, fine print */
+  --text-caption--line-height: 1.5;
+
+  --text-small: 0.875rem; /* 14px — secondary UI text, table body */
+  --text-small--line-height: 1.55;
+
+  --text-compact: 0.95rem; /* 15.2px — dense serif tables */
+  --text-compact--line-height: 1.55;
+
+  --text-ui: 1.05rem; /* 16.8px — nav, links, buttons, list items */
+  --text-ui--line-height: 1.5;
+
+  --text-prose: 1.125rem; /* 18px — long-form paragraphs */
+  --text-prose--line-height: 1.7;
+
+  --text-h4: 1.25rem; /* 20px */
+  --text-h4--line-height: 1.35;
+
+  --text-h3: 1.5rem; /* 24px */
+  --text-h3--line-height: 1.25;
+
+  --text-stat: 1.7rem; /* 27.2px — the big number in a stat tile */
+  --text-stat--line-height: 1.05;
+
+  --text-quote: clamp(1.25rem, 1rem + 0.625vw, 1.5rem); /* 20 → 24px */
+  --text-quote--line-height: 1.25;
+
+  --text-h2: clamp(1.875rem, 1.5rem + 0.9375vw, 2.25rem); /* 30 → 36px */
+  --text-h2--line-height: 1.15;
+
+  --text-h1: clamp(2.25rem, 1.5rem + 1.875vw, 3rem); /* 36 → 48px */
+  --text-h1--line-height: 1.1;
+
+  --text-display: clamp(3.75rem, 2.5rem + 3.125vw, 5rem); /* 60 → 80px */
+  --text-display--line-height: 0.98;
 }
 
 html {
@@ -35,7 +86,8 @@ body {
 /* Monospace eyebrow/label treatment used throughout the page. */
 .label {
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: var(--text-label);
+  line-height: var(--text-label--line-height);
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--color-muted);

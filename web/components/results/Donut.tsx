@@ -81,9 +81,9 @@ export function Donut() {
           <li key={a.key} className="flex items-center justify-between gap-3">
             <span className="flex items-center gap-2.5">
               <span className="inline-block h-3 w-3 rounded-[3px]" style={{ background: a.color }} />
-              <span className="text-[0.95rem]">{a.label}</span>
+              <span className="text-compact">{a.label}</span>
             </span>
-            <span className="font-mono text-sm text-muted">
+            <span className="font-mono text-small text-muted">
               {num(a.value)} · {total ? Math.round(a.frac * 100) : 0}%
             </span>
           </li>

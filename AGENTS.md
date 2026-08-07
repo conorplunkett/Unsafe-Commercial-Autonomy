@@ -27,6 +27,13 @@ Applies to every user-facing page in this repo (lander, survey, admin dashboard)
 - **Methodology detail** (n=, filters, definitions) goes in a tooltip or footnote, never in headline copy.
 - Headings are short nouns: "By scenario", not "At a glance — every scenario".
 
+## Design system for the website
+
+`web/DESIGN.md` is the source of truth for the site's colour tokens, type scale,
+and panel component. Read it before changing any markup or CSS under `web/`.
+Colours and font sizes come from tokens in `web/app/globals.css` — never a hex
+value or an arbitrary size in a component. The site is single-theme; no dark mode.
+
 ## LOCKED proposal — do not edit
 
 `proposal_LOCKED.pdf` at the repo root is the **final, locked proposal paper**.

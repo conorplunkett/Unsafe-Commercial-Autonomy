@@ -10,6 +10,7 @@ import {
   categoryLabel,
 } from "@/lib/labels";
 import { pct } from "@/lib/format";
+import { Card } from "@/components/ui/Card";
 
 // The three control conditions the hosted runner supports (the same ones the
 // scoring path enforces), weakest to strongest.
@@ -173,7 +174,7 @@ function VerdictBadge({ v }: { v: CellResult["verdict"] }) {
   const m = VERDICT_META[v];
   return (
     <span
-      className={`rounded-full border px-2.5 py-0.5 font-mono text-[0.65rem] uppercase tracking-wider ${m.cls}`}
+      className={`rounded-full border px-2.5 py-0.5 font-mono text-micro uppercase tracking-wider ${m.cls}`}
     >
       {m.label}
     </span>
@@ -183,13 +184,13 @@ function VerdictBadge({ v }: { v: CellResult["verdict"] }) {
 function SectionHeading({ n, title, aside }: { n: string; title: string; aside?: string }) {
   return (
     <div className="flex flex-wrap items-baseline justify-between gap-2">
-      <h2 className="font-mono text-[0.7rem] uppercase tracking-wider text-muted">
+      <h2 className="font-mono text-label uppercase tracking-wider text-muted">
         <span className="text-accent">{n}</span>
         <span className="mx-2 text-border">·</span>
         {title}
       </h2>
       {aside && (
-        <span className="font-mono text-[0.65rem] uppercase tracking-wider text-muted/80">
+        <span className="font-mono text-micro uppercase tracking-wider text-muted/80">
           {aside}
         </span>
       )}
@@ -324,10 +325,10 @@ export function Runner() {
     }
   }
 
-  const label = "block font-mono text-[0.7rem] uppercase tracking-wider text-muted";
+  const label = "block font-mono text-label uppercase tracking-wider text-muted";
   const field =
-    "mt-1.5 w-full rounded-md border border-border bg-paper px-3 py-2 font-mono text-sm text-ink outline-none focus:border-accent disabled:cursor-not-allowed disabled:opacity-40";
-  const chip = "rounded-full border px-3 py-1 font-mono text-xs transition-colors";
+    "mt-1.5 w-full rounded-md border border-border bg-paper px-3 py-2 font-mono text-small text-ink outline-none focus:border-accent disabled:cursor-not-allowed disabled:opacity-40";
+  const chip = "rounded-full border px-3 py-1 font-mono text-caption transition-colors";
   const on = "border-accent bg-accent/10 text-accent";
   const off = "border-border text-muted hover:text-ink";
   const divider = "mt-7 border-t border-border pt-6";
@@ -390,7 +391,7 @@ export function Runner() {
                 onChange={(e) => setApiKey(e.target.value)}
                 placeholder={activeProvider.keyPlaceholder}
               />
-              <p className="mt-1.5 text-xs text-muted">
+              <p className="mt-1.5 text-caption text-muted">
                 Sent once to score this run, then discarded, never stored or
                 logged. You pay your provider for the calls. Or run the whole
                 benchmark locally from the repo.
@@ -411,7 +412,7 @@ export function Runner() {
                 disabled={!temperatureApplies}
                 onChange={(e) => setTemperature(e.target.value)}
               />
-              <p className="mt-1.5 text-xs text-muted">
+              <p className="mt-1.5 text-caption text-muted">
                 {!temperatureApplies
                   ? `${model.trim() || "This model"} doesn't take a temperature — use reasoning effort instead.`
                   : "Sampling randomness: 0 repeats the same answer, 2 is near-random. The published runs used 0.7 (the harness default), so keep it for comparable numbers."}
@@ -435,7 +436,7 @@ export function Runner() {
                   </option>
                 ))}
               </select>
-              <p className="mt-1.5 text-xs text-muted">
+              <p className="mt-1.5 text-caption text-muted">
                 {effortSupported
                   ? "How deeply the model reasons before acting. Default lets the provider pick."
                   : provider === "anthropic"
@@ -498,21 +499,21 @@ export function Runner() {
               role="radio"
               aria-checked={scenarioId === "random"}
               onClick={() => setScenarioId("random")}
-              className={`sticky top-0 z-10 flex w-full items-center gap-2 border-b border-border px-4 py-2.5 text-left text-sm transition-colors ${
+              className={`sticky top-0 z-10 flex w-full items-center gap-2 border-b border-border px-4 py-2.5 text-left text-small transition-colors ${
                 scenarioId === "random"
                   ? "bg-accent/10 text-accent"
                   : "bg-paper text-ink hover:bg-paper-2/60"
               }`}
             >
               <span aria-hidden>🎲</span>
-              <span className="font-mono text-xs uppercase tracking-wider">
+              <span className="font-mono text-caption uppercase tracking-wider">
                 Random in selection
               </span>
             </button>
             {scenarioGroups.map((group) => (
               <div key={group.category}>
                 {category === "all" && (
-                  <div className="border-b border-border bg-paper-2/60 px-4 py-1.5 font-mono text-[0.65rem] uppercase tracking-wider text-muted">
+                  <div className="border-b border-border bg-paper-2/60 px-4 py-1.5 font-mono text-micro uppercase tracking-wider text-muted">
                     {categoryLabel(group.category)}
                   </div>
                 )}
@@ -532,11 +533,11 @@ export function Runner() {
                       }`}
                     >
                       <span
-                        className={`min-w-0 flex-1 truncate text-sm leading-snug ${active ? "text-accent" : "text-ink/90"}`}
+                        className={`min-w-0 flex-1 truncate text-small leading-snug ${active ? "text-accent" : "text-ink/90"}`}
                       >
                         {s.title}
                       </span>
-                      <span className="shrink-0 font-mono text-[0.6rem] uppercase tracking-wider text-muted">
+                      <span className="shrink-0 font-mono text-micro uppercase tracking-wider text-muted">
                         {s.pair_role} · {s.stakes}
                       </span>
                     </button>
@@ -565,17 +566,17 @@ export function Runner() {
                     className="relative top-0.5 size-4 shrink-0 accent-accent"
                   />
                   <span className="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-3">
-                    <span className="shrink-0 font-mono text-xs text-ink">
+                    <span className="shrink-0 font-mono text-caption text-ink">
                       {CONDITION_LABELS[c]}
                     </span>
-                    <span className="text-xs leading-snug text-muted">
+                    <span className="text-caption leading-snug text-muted">
                       {CONDITION_DESCRIPTIONS[c]}
                     </span>
                   </span>
                 </label>
               ))}
             </div>
-            <p className="mt-1.5 text-xs text-muted">
+            <p className="mt-1.5 text-caption text-muted">
               One model call per checked condition (1 seed).
             </p>
           </div>
@@ -586,12 +587,12 @@ export function Runner() {
             type="button"
             onClick={run}
             disabled={!canRun}
-            className="rounded-md bg-ink px-5 py-2 font-serif text-[1.05rem] text-paper transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-md bg-ink px-5 py-2 font-serif text-ui text-paper transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
           >
             {running ? "Running…" : "Run benchmark"}
           </button>
           {running && (
-            <span className="font-mono text-xs text-muted">
+            <span className="font-mono text-caption text-muted">
               {progress.done}/{progress.total} conditions
             </span>
           )}
@@ -600,7 +601,7 @@ export function Runner() {
         {/* Progress bar — fills as each condition completes */}
         {(running || (progress.total > 0 && progress.done > 0)) && (
           <div className="mt-4">
-            <div className="flex items-center justify-between font-mono text-[0.7rem] text-muted">
+            <div className="flex items-center justify-between font-mono text-label text-muted">
               <span>
                 {running
                   ? `Running ${selectedConditions[progress.done] ? CONDITION_LABELS[selectedConditions[progress.done]] : "…"}`
@@ -635,33 +636,33 @@ export function Runner() {
 
       {/* Error */}
       {error && (
-        <div className="mt-5 rounded-xl border border-danger/40 bg-danger/10 p-4 text-sm text-danger">
+        <Card tone="alert" pad="sm" className="mt-5 text-small text-danger">
           {error}
-        </div>
+        </Card>
       )}
 
       {/* Scenario context */}
       {ranScenario && (
-        <div className="mt-6 rounded-xl border border-border bg-paper-2/40 p-5">
+        <Card className="mt-6">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="font-mono text-[0.65rem] uppercase tracking-wider text-muted">
+            <span className="font-mono text-micro uppercase tracking-wider text-muted">
               {categoryLabel(ranScenario.category)} · {ranScenario.pair_role} ·{" "}
               {ranScenario.stakes} stakes
             </span>
           </div>
-          <p className="mt-3 text-[1.05rem] leading-snug text-ink/90">
+          <p className="mt-3 text-ui leading-snug text-ink/90">
             {ranScenario.situation}
           </p>
-          <p className="mt-3 border-t border-border pt-3 text-sm">
+          <p className="mt-3 border-t border-border pt-3 text-small">
             <span className="text-muted">Safe answer: </span>
             <span className="text-accent">{ranScenario.right_answer ?? "—"}</span>
             {ranScenario.failure_tested && (
-              <span className="ml-3 font-mono text-[0.7rem] text-muted">
+              <span className="ml-3 font-mono text-label text-muted">
                 tests: {ranScenario.failure_tested}
               </span>
             )}
           </p>
-        </div>
+        </Card>
       )}
 
       {/* Results */}
@@ -670,45 +671,42 @@ export function Runner() {
           {results.map((r) => {
             const correct = r.verdict !== "unsafe" && !r.refused_when_safe;
             return (
-              <div
-                key={r.control_condition}
-                className="rounded-xl border border-border bg-paper p-4"
-              >
+              <Card tone="raised" pad="sm" key={r.control_condition}>
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="font-serif text-lg">
+                  <span className="font-serif text-prose">
                     {CONDITION_LABELS[r.control_condition] ?? r.control_condition}
                   </span>
                   <div className="flex items-center gap-2">
                     <VerdictBadge v={r.verdict} />
                     <span
-                      className={`font-mono text-[0.7rem] ${correct ? "text-accent" : "text-danger"}`}
+                      className={`font-mono text-label ${correct ? "text-accent" : "text-danger"}`}
                     >
                       {correct ? "✓ matched" : "✗ failed"}
                     </span>
                   </div>
                 </div>
                 {r.action && (
-                  <p className="mt-2 font-mono text-xs text-muted">
+                  <p className="mt-2 font-mono text-caption text-muted">
                     action: {r.action.action_type ?? "—"}
                     {r.action.amount != null && ` · $${r.action.amount}`}
                   </p>
                 )}
                 {r.action?.rationale && (
-                  <p className="mt-2 text-sm leading-snug text-ink/80">
+                  <p className="mt-2 text-small leading-snug text-ink/80">
                     “{r.action.rationale}”
                   </p>
                 )}
                 {r.block_reasons && r.block_reasons.length > 0 && (
-                  <p className="mt-2 font-mono text-[0.7rem] text-warn">
+                  <p className="mt-2 font-mono text-label text-warn">
                     blocked by tools: {r.block_reasons.join(", ")}
                   </p>
                 )}
-              </div>
+              </Card>
             );
           })}
 
           {results.length > 1 && (
-            <p className="pt-1 font-mono text-xs text-muted">
+            <p className="pt-1 font-mono text-caption text-muted">
               {results.filter((r) => r.verdict !== "unsafe" && !r.refused_when_safe).length}
               /{results.length} conditions handled correctly
               {(() => {

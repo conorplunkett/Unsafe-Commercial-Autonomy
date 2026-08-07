@@ -43,10 +43,10 @@ export default function ScenariosPage() {
       <main className="mx-auto w-full max-w-5xl px-5 pb-16 sm:px-8">
         <header className="scroll-mt-20 pt-14 sm:pt-20">
           <p className="label">Phase-1 dataset · 50 scenarios</p>
-          <h1 className="mt-4 font-serif text-4xl tracking-tight sm:text-5xl">
+          <h1 className="mt-4 font-serif text-h1 tracking-tight">
             The scenario set
           </h1>
-          <p className="mt-5 max-w-2xl text-lg leading-relaxed text-ink/85">
+          <p className="mt-5 max-w-2xl text-prose leading-relaxed text-ink/85">
             Fifty hand-built commercial scenarios: twenty-five matched
             trap-and-lookalike pairs, ten per category, with a survey-locked
             answer key. Traps are unsafe to act on; lookalikes should simply

@@ -1,4 +1,5 @@
 import type { SurveyQuestion } from "@/lib/surveyResults";
+import { Card } from "@/components/ui/Card";
 
 // Consistent color semantics across every item, mirroring the admin dashboard:
 // "ask" is always amber, "refuse" is always red, and proceed/act options get
@@ -29,17 +30,17 @@ export function QuestionCard({
 }) {
   const modalCount = question.counts[question.modal] ?? 0;
   return (
-    <article className="flex h-full flex-col rounded-xl border border-border bg-paper p-5">
+    <Card as="article" tone="raised" className="flex h-full flex-col">
       <div className="flex flex-wrap items-center gap-2">
         <span
-          className={`font-mono text-[0.65rem] uppercase tracking-[0.14em] ${
+          className={`font-mono text-micro uppercase tracking-[0.14em] ${
             question.role === "trap" ? "text-danger" : "text-accent-2"
           }`}
         >
           {question.role}
         </span>
         <span
-          className={`ml-auto rounded-full px-2.5 py-0.5 font-mono text-[0.65rem] uppercase tracking-[0.14em] ${
+          className={`ml-auto rounded-full px-2.5 py-0.5 font-mono text-micro uppercase tracking-[0.14em] ${
             question.locked
               ? "bg-accent/10 text-accent"
               : "border border-border text-muted"
@@ -48,9 +49,9 @@ export function QuestionCard({
           {question.locked ? "Locked" : "Provisional"}
         </span>
       </div>
-      <h3 className="mt-2 font-serif text-lg leading-snug">{question.short}</h3>
-      <details className="mt-2 text-sm text-ink/80">
-        <summary className="cursor-pointer font-mono text-xs text-muted">
+      <h3 className="mt-2 font-serif text-prose leading-snug">{question.short}</h3>
+      <details className="mt-2 text-small text-ink/80">
+        <summary className="cursor-pointer font-mono text-caption text-muted">
           Full wording as shown to respondents
         </summary>
         <p className="mt-2 leading-relaxed">{question.text}</p>
@@ -65,8 +66,8 @@ export function QuestionCard({
           return (
             <li key={option.key}>
               <div className="flex items-baseline justify-between gap-3">
-                <span className="text-sm leading-snug">{option.label}</span>
-                <span className="shrink-0 font-mono text-[0.7rem] text-muted">
+                <span className="text-small leading-snug">{option.label}</span>
+                <span className="shrink-0 font-mono text-label text-muted">
                   {chose}/{question.n} · also ok {accept}/{question.denom}
                 </span>
               </div>
@@ -89,10 +90,10 @@ export function QuestionCard({
         })}
       </ul>
 
-      <p className="mt-auto pt-4 text-sm text-ink/85">
+      <p className="mt-auto pt-4 text-small text-ink/85">
         Modal: <strong>{question.modal_vote.replaceAll("_", " ")}</strong> —{" "}
         {pct(modalCount, question.n)} agreement ({modalCount}/{question.n}).
       </p>
-    </article>
+    </Card>
   );
 }

@@ -16,10 +16,10 @@ export function TableOfContents() {
               href={`#${s.id}`}
               className="group flex items-baseline gap-3 py-0.5"
             >
-              <span className="font-mono text-xs text-muted">
+              <span className="font-mono text-caption text-muted">
                 {String(i + 1).padStart(2, "0")}
               </span>
-              <span className="font-serif text-[1.05rem] leading-snug transition-colors group-hover:text-accent">
+              <span className="font-serif text-ui leading-snug transition-colors group-hover:text-accent">
                 {s.label}
               </span>
             </a>

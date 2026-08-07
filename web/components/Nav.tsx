@@ -38,7 +38,7 @@ export function Nav() {
         <Link
           href="/#summary"
           aria-label="PayBench, back to summary"
-          className="font-serif text-xl tracking-tight transition-opacity hover:opacity-70"
+          className="font-serif text-h4 tracking-tight transition-opacity hover:opacity-70"
         >
           <span aria-hidden className="mr-1.5">💳</span>Pay
           <span className="text-accent">Bench</span>
@@ -49,7 +49,7 @@ export function Nav() {
             <a
               key={s.id}
               href={`/#${s.id}`}
-              className={`font-serif text-[1.05rem] transition-colors hover:text-accent ${
+              className={`font-serif text-ui transition-colors hover:text-accent ${
                 active === s.id ? "text-accent" : ""
               }`}
             >
@@ -61,13 +61,13 @@ export function Nav() {
         <div className="flex items-center gap-3">
           <Link
             href="/run"
-            className="hidden font-serif text-[1.05rem] transition-colors hover:text-accent sm:inline"
+            className="hidden font-serif text-ui transition-colors hover:text-accent sm:inline"
           >
             Run it yourself
           </Link>
           <Link
             href="/scenarios"
-            className="hidden font-serif text-[1.05rem] transition-colors hover:text-accent sm:inline"
+            className="hidden font-serif text-ui transition-colors hover:text-accent sm:inline"
           >
             Dataset
           </Link>
@@ -75,7 +75,7 @@ export function Nav() {
             href={CONFIG.repoUrl}
             target="_blank"
             rel="noreferrer"
-            className="rounded-md border border-ink px-3.5 py-1.5 font-serif text-[1.05rem] transition-colors hover:bg-ink hover:text-paper"
+            className="rounded-md border border-ink px-3.5 py-1.5 font-serif text-ui transition-colors hover:bg-ink hover:text-paper"
           >
             GitHub
           </a>
