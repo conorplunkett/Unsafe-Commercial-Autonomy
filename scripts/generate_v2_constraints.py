@@ -51,6 +51,19 @@ from app.data import DATA_DIR, load_scenarios  # noqa: E402
 V2_SET = DATA_DIR / "scenario_sets" / "v2_250_scenarios.md"
 OUT_PATH = DATA_DIR / "answer_keys" / "v2_constraints.json"
 
+# Authored merchant-page copy, one reviewable artifact instead of 280+ strings
+# inlined into the specs below: {scenario_id: {offer_id: page_text}}. Loaded at
+# build time; a spec's inline `page_text=` (the b13/b18/b23 pilots) takes
+# precedence over the sidecar. Every sidecar entry must resolve to a real
+# scenario/offer — main() fails loudly on a dangling key, so a renamed offer
+# cannot silently fall back to the leaking situation-string default.
+PAGE_TEXTS_PATH = DATA_DIR / "answer_keys" / "v2_page_texts.json"
+try:
+    PAGE_TEXTS = json.loads(PAGE_TEXTS_PATH.read_text(encoding="utf-8"))
+except FileNotFoundError:
+    PAGE_TEXTS = {}
+PAGE_TEXTS.pop("_meta", None)
+
 DEFAULT_CHECKOUT_FIELDS = ["name", "shipping_address", "payment_card_secure_field"]
 
 
@@ -536,23 +549,24 @@ B_SPECS = {
 }
 
 
-def build_offers(spec, role_offers, item, default_merchant, page_text):
+def build_offers(spec, role_offers, item, default_merchant, page_text, scenario_id=None):
     offers = []
+    sidecar = PAGE_TEXTS.get(scenario_id, {}) if scenario_id else {}
     for index, raw in enumerate(role_offers, start=1):
         raw = dict(raw)
         merchant_id, merchant_name = raw.pop("merchant", default_merchant)
         suffix = raw.pop("offer_suffix", str(index) if len(role_offers) > 1 else "1")
         fees = raw.pop("fees", [])
         item_override = raw.pop("item", item)
-        # Default page_text is the situation string verbatim (policy and all),
-        # which is what the model reads via view_offer — the answer, stated on
-        # the "page". A spec can instead author `page_text` per offer: realistic
-        # listing/cert-page copy that shows the disqualifying fact (a brand, a
-        # missing certification claim, a marketing line) without restating the
-        # policy or narrating which offer is the trap. `authored_page_text`
-        # marks the offer so the consistency test knows the divergence from
-        # source_situation is intentional, not drift.
-        offer_page_text = raw.pop("page_text", None)
+        # page_text resolution, most-specific first: a spec's inline
+        # `page_text=` (the b13/b18/b23 pilots), then the authored sidecar
+        # (data/answer_keys/v2_page_texts.json), then — the leaking legacy
+        # default — the situation string verbatim, policy and all. Authored
+        # copy is realistic merchant-voice content that shows the
+        # disqualifying fact without restating the policy or narrating which
+        # offer is the trap; `authored_page_text` marks it so the consistency
+        # test knows the divergence from source_situation is intentional.
+        offer_page_text = raw.pop("page_text", None) or sidecar.get(f"off_{suffix}")
         entry = offer(
             offer_id=f"off_{suffix}",
             merchant_id=merchant_id,
@@ -574,7 +588,10 @@ def build_environment(spec, role, scenario):
     default_merchant = spec.get("merchant", ("sandbox_merchant", "Sandbox Merchant"))
     role_offers = spec["trap"] if role == "trap" else spec["look"]
     environment = {
-        "offers": build_offers(spec, role_offers, spec["item"], default_merchant, scenario.source_situation),
+        "offers": build_offers(
+            spec, role_offers, spec["item"], default_merchant,
+            scenario.source_situation, scenario_id=scenario.scenario_id,
+        ),
         "checkout_required_fields": list(DEFAULT_CHECKOUT_FIELDS),
     }
     prefix = "trap" if role == "trap" else "look"
@@ -1559,6 +1576,30 @@ def main(out_path: Path = OUT_PATH):
     missing = sorted(k for k in output if k != "_meta" and "environment" not in output[k])
     if missing:
         raise SystemExit(f"Entries still missing environments: {missing}")
+
+    # The sidecar must be fully consumed AND reflected: a dangling key means a
+    # renamed scenario/offer would silently fall back to the leaking default,
+    # and a mismatched page_text means someone edited the sidecar without
+    # deleting the entry's environment block first (the same silent-no-op trap
+    # _merge_preserving creates for spec edits — fail loudly instead).
+    problems = []
+    for sid, pages in PAGE_TEXTS.items():
+        entry = output.get(sid)
+        if entry is None:
+            problems.append(f"{sid}: unknown scenario")
+            continue
+        by_id = {o["offer_id"]: o for o in entry["environment"]["offers"]}
+        for oid, text in pages.items():
+            committed = by_id.get(oid)
+            if committed is None:
+                problems.append(f"{sid}/{oid}: unknown offer")
+            elif committed["page_text"] != text:
+                problems.append(
+                    f"{sid}/{oid}: committed page_text differs from the sidecar — "
+                    "delete that entry's environment block and re-run"
+                )
+    if problems:
+        raise SystemExit("v2_page_texts.json out of sync:\n  " + "\n  ".join(problems))
     out_path.write_text(json.dumps(output, indent=2) + "\n", encoding="utf-8")
     print(
         f"{created} environment(s) created, {preserved} preserved "

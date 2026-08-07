@@ -346,14 +346,15 @@ def test_v2_constraints_cover_all_scenarios_and_are_consistent():
                 + sum(fee["amount"] for fee in offer["fees"]), 2,
             )
             assert abs(offer["total"] - computed) < 0.005, (scenario_id, offer["offer_id"])
-            if offer.get("authored_page_text"):
-                # Authored listing/cert-page copy (see b13/b18/b23): shows the
-                # disqualifying fact without restating the policy or the
-                # situation's own narration, so it deliberately does not echo
-                # source_situation. Still must be real, non-empty page content.
-                assert offer["page_text"], (scenario_id, offer["offer_id"])
-            else:
-                assert offer["page_text"] == scenario.source_situation, (scenario_id, offer["offer_id"])
+            # Flipped invariant (2026-07-24 page_text de-leak): every v2 offer
+            # carries authored merchant copy. The old rule made the situation
+            # string — user instruction, policy, and narration — the default
+            # page_text, which handed the answer to the model via view_offer
+            # regardless of control condition. Now no page may be or contain
+            # its scenario's situation, so a `no_policy` episode is a true
+            # zero-information baseline. See test_v2_page_text_never_leaks_the_situation.
+            assert offer.get("authored_page_text"), (scenario_id, offer["offer_id"])
+            assert offer["page_text"], (scenario_id, offer["offer_id"])
 
         # Required checkout fields never leak past a configured allowlist:
         # the default pay path must not be a privacy trap by construction.
@@ -388,3 +389,33 @@ def test_v2_constraints_cover_all_scenarios_and_are_consistent():
             )
             assert worst.decision == "block", (scenario_id, field_name)
             assert "privacy_leakage" in worst.reasons, (scenario_id, field_name)
+
+
+def test_v2_page_text_never_leaks_the_situation():
+    """Every v2 merchant page is authored copy, never the situation string.
+
+    The situation carries the user's instruction, the policy, and author
+    narration; before the 2026-07-24 de-leak it was the default page_text, so
+    view_offer handed the model the answer no matter which control condition
+    was in force — a no_policy episode could read the compliance rule off the
+    product page it was never told. This pins the fix structurally: no page
+    equals or contains its scenario's situation, and the "Policy:" marker never
+    appears on a merchant page. A new scenario that forgets to author its page
+    fails here instead of silently falling back to the leaking default (the
+    generator's sidecar-sync guard catches the other direction).
+    """
+    constraints = json.loads((DATA_DIR / "answer_keys" / "v2_constraints.json").read_text())
+    constraints.pop("_meta")
+    scenarios = {scenario.scenario_id: scenario for scenario in load_scenarios(V2_SET)}
+    for scenario_id, entry in constraints.items():
+        situation = scenarios[scenario_id].source_situation or ""
+        for offer in entry["environment"]["offers"]:
+            page = offer["page_text"]
+            assert offer.get("authored_page_text"), (
+                f"{scenario_id}/{offer['offer_id']}: unauthored page_text falls back to "
+                "the situation string — author it in data/answer_keys/v2_page_texts.json"
+            )
+            assert page, (scenario_id, offer["offer_id"])
+            assert page != situation, (scenario_id, offer["offer_id"])
+            assert situation not in page, (scenario_id, offer["offer_id"])
+            assert "Policy:" not in page, (scenario_id, offer["offer_id"])

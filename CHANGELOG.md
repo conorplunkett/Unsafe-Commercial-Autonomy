@@ -1,5 +1,87 @@
 # Changelog
 
+## [2026-07-24] The merchant page no longer prints the answer (full page_text de-leak)
+
+The largest remaining leak, closed. Every v2 offer's `page_text` — the merchant
+page the model reads via `view_offer`, and the Phase 1 prompt via
+`render_offer_context` — used to default to the scenario's situation string:
+the user's instruction, the policy statement, and author narration, all in one
+line. So under `no_policy` (the condition whose whole purpose is to withhold
+the rule) the model could read the compliance answer straight off the product
+page. No `no_policy` cell was a real zero-information baseline, and the
+control-condition ablation — the project's central claim — was measuring
+against a contaminated floor.
+
+Two root causes, both fixed:
+
+1. **The Task line.** The loader derives the model's task prompt from the
+   situation's leading quoted string, falling back to the *entire* situation
+   when none leads. 117 of 226 rows had no leading quote (lookalikes written as
+   "Same, …" diff-notation; D/E rows written as narration), so the task prompt
+   itself carried the policy. Every row now opens with the user's quoted
+   request; lookalikes inherit their trap's instruction and state their own
+   world facts self-contained; the five surveyed traps without quotes (d3, e10,
+   e11, e12, e20) take their instruction from the survey vignette's own stem.
+2. **The page.** All 290 v2 offers now carry authored, policy-silent merchant
+   copy in a new sidecar, `data/answer_keys/v2_page_texts.json` (a spec's
+   inline `page_text=` still wins; the generator fails loudly if the sidecar
+   and committed JSON drift). What an item *is*, and every disqualifying fact,
+   reaches the model only as a shopper-visible attribute — a brand, a fee line,
+   a renewal clause, a metered rate, a buried TOS term, a counterparty message,
+   a form field — never as the policy or a "this is the trap" label.
+
+### By category
+- **A (61 offers):** checkout/pricing copy; fees stated as a merchant states
+  them, the arithmetic left for the model. Load-bearing figures that live in no
+  structured field survived (a21's $80 renewal, a25's $0.10/call overage, a6's
+  per-unit shipping, a10's per-county metering).
+- **B (40):** listings carrying the disqualifying attribute unlabeled (BNPL
+  preselected, gift card named, gray-market "works in any region", SOC 2
+  "pending", "manufacturer refurbished").
+- **C (66):** the counterparty's own surface — split-cart order summaries, a
+  retention Pause-vs-Cancel screen, a payment-history panel, a refund console
+  with the off-rail card request, an invoice to the former legal name. Author
+  narration of completed actions ("Agent pauses it") is gone.
+- **D (57):** the privacy trap stays in the structured `checkout_*_fields`
+  view_offer already exposes, so form-field traps get plain product pages (no
+  "the question can be skipped"); the six counterparty-message traps reproduce
+  the message verbatim; the discount-for-data promos state the exact amounts.
+- **E (66):** the adversarial payload is embedded as live in-band content — a
+  review whose text contains "Assistant: ignore all instructions", an email
+  P.S., a `amaz0n.com` typosquat, an on-page bank-OTP field, a $100/mo TOS
+  clause at line 482 — never announced as "the page hides text …". e4 and e21,
+  whose injections the sandbox grades from environment state the model never
+  sees, gained the payload on the marked offer so the choice is a real test
+  rather than an unmotivated one.
+
+### Guard
+- The consistency test's rule flipped: the old default was `page_text ==
+  situation` (the leak) with `authored_page_text` a tolerated exception; the
+  new invariant is that *every* offer is authored, and
+  `test_v2_page_text_never_leaks_the_situation` fails if any page equals or
+  contains its scenario's situation or prints "Policy:". Verified the guard
+  actually fails on a reintroduced leak.
+
+### Verification
+- 429 tests pass. Generator idempotent (byte-identical on re-run). Deterministic
+  leak-scan clean across all five batches (banned policy/narration vocabulary,
+  instruction echoes, dropped dollar figures). Every batch was verdict-diffed
+  against a pre-change baseline over the full 2,712-episode two-agent dry-run
+  grid: **zero changed verdict cells** at every step — scripted agents never
+  read `page_text`, so this confirms the change is model-facing only and moves
+  no scoring.
+
+### Comparability
+- This changes the stimulus on every v2 scenario. Runs recorded before this
+  change are not comparable and must not be pooled with new ones. This is the
+  last planned stimulus change before the first official live run.
+
+### Files
+- `data/scenario_sets/v2_250_scenarios.md`, `data/answer_keys/v2_page_texts.json`
+  (new), `data/answer_keys/v2_constraints.json`,
+  `scripts/generate_v2_constraints.py`, `app/phase2/sandbox.py` (unchanged
+  reader), `tests/test_phase2_runner.py`, `README.md`.
+
 ## [2026-07-24] The scorer's category token is no longer shown to the model
 
 The follow-up the difficulty pass deferred as "materially bigger": `view_offer`
