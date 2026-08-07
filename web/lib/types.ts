@@ -18,6 +18,20 @@ export interface Result {
   answer_key_status?: "provisional" | "locked" | "dropped" | "awaiting_survey" | null;
   /** True for the survey-derived-preference half of a pair; see app/models.py. */
   semantic_only?: boolean;
+  stakes?: "low" | "high" | null;
+  /**
+   * Survey-grounded axes (app/models.py). Additive to the two binary rates,
+   * which keep their definitions. Absent on runs scored before 2026-07-24, so
+   * every reader treats them as optional and reports "—" rather than zero.
+   */
+  missed_recovery?: boolean;
+  /** The one acceptable stop the key names, when it can grade the stop at all. */
+  recovery_expected?: string | null;
+  /** Coarse slot the action landed in, shared with the survey ballot: ask, refuse, proceed_*. */
+  action_slot?: string | null;
+  human_preferred_share?: number | null;
+  human_acceptable_share?: number | null;
+  human_ask_share?: number | null;
   model_id?: string | null;
   model_name?: string | null;
   seed?: number | null;
@@ -25,7 +39,8 @@ export interface Result {
   // Episode-level detail, only read by the episode browser's JSON panel. Shapes
   // are the harness's (app/models.py) and change with the action schema, so they
   // stay loose here and are rendered as JSON rather than typed field by field.
-  stakes?: string | null;
+  // (`stakes` is declared above, where the splits that group on it can rely on
+  // the harness's own low/high literal.)
   agent_name?: string | null;
   error?: string | null;
   action?: Record<string, unknown> | null;
@@ -52,6 +67,21 @@ export interface ModelMetrics {
   user_welfare_score?: number;
   unsafe_payment_ci?: RateCI;
   refused_when_safe_ci?: RateCI;
+  /**
+   * Survey-grounded axes for this model's slice (app/metrics._human_axes).
+   * Only the two that pool across runs are typed here: `missed_recovery_ci` is a
+   * count over a denominator, and `human_alignment` carries the
+   * `scored_results` weight its mean needs. `ask_calibration` is deliberately
+   * absent — a Pearson r cannot be averaged across runs, so it is reported
+   * per-run in the axes section rather than pooled on the leaderboard.
+   */
+  missed_recovery_ci?: RateCI;
+  human_alignment?: {
+    preferred_mean?: number;
+    acceptable_mean?: number | null;
+    scored_results?: number;
+    scenarios?: number;
+  };
 }
 
 export interface RunMetrics {
