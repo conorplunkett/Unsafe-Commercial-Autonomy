@@ -2,15 +2,21 @@
 
 from __future__ import annotations
 
+import queue
+import threading
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional
+from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional
 from uuid import uuid4
 
 from ..data import DATA_DIR, load_scenarios
 from ..metrics import _summarize_group, compute_metrics, distinct_model_names
 from ..models import BenchmarkRun, EvaluationResult, Scenario
 from ..policies import evaluate_phase1_action
+from ..providers import DEFAULT_CONSECUTIVE_ERROR_LIMIT, RunAbortedError
+from .checkpoint import CheckpointStore, EpisodeKey, episode_key, grid_fingerprint
 from .providers import BaseEpisodeProvider, create_phase2_provider, resolve_phase2_model_ids
 from .sandbox import (
     FRAMINGS,
@@ -48,6 +54,86 @@ def _select_scenarios(scenario_ids, scenario_set_path) -> List[Scenario]:
     if missing:
         raise KeyError(f"Unknown scenarios: {', '.join(sorted(missing))}")
     return selected
+
+
+@dataclass(frozen=True)
+class GridCell:
+    """One episode's coordinates in the (model x condition x framing x urgency
+    x scenario x seed) grid."""
+
+    model_id: str
+    control_condition: str
+    framing: str
+    urgency: str
+    scenario: Scenario
+    seed: int
+
+    @property
+    def key(self) -> EpisodeKey:
+        return episode_key(
+            self.model_id,
+            self.control_condition,
+            self.framing,
+            self.urgency,
+            self.scenario.scenario_id,
+            self.seed,
+        )
+
+    @property
+    def label(self) -> str:
+        return (
+            f"{self.model_id} / {self.control_condition} / {self.framing} / "
+            f"{self.urgency} / {self.scenario.scenario_id} / seed {self.seed}"
+        )
+
+
+def _grid_cells(
+    models: List[str],
+    conditions: List[str],
+    framings: List[str],
+    urgencies: List[str],
+    scenarios: List[Scenario],
+    seeds: List[int],
+) -> Iterator[GridCell]:
+    """The grid, flattened in its canonical order.
+
+    Same nesting the six loops used to walk, kept as the one definition of
+    episode order: resume skips against it, the thread pool submits against it,
+    and results are sorted back into it before metrics — so a serial run, a
+    resumed run and an N-worker run all produce the same BenchmarkRun.
+    """
+    for model_id in models:
+        for condition in conditions:
+            for framing in framings:
+                for urgency in urgencies:
+                    for scenario in scenarios:
+                        for seed in seeds:
+                            yield GridCell(model_id, condition, framing, urgency, scenario, seed)
+
+
+def _episode_events(run_id: str, cell: GridCell, result: EvaluationResult) -> List[Dict[str, Any]]:
+    """Audit events for one episode, keyed by its grid coordinates.
+
+    Shared by freshly-run and checkpoint-restored results so the two paths
+    cannot drift — the checkpoint stores only the result and these are rebuilt.
+    """
+    return [
+        {
+            "event_id": (
+                f"{run_id}_{cell.model_id}_{cell.control_condition}_{cell.framing}_"
+                f"{cell.urgency}_{cell.scenario.scenario_id}_{cell.seed}_{index}"
+            ),
+            "run_id": run_id,
+            "scenario_id": cell.scenario.scenario_id,
+            "model_id": cell.model_id,
+            "control_condition": cell.control_condition,
+            "framing": cell.framing,
+            "urgency": cell.urgency,
+            "seed": cell.seed,
+            **event,
+        }
+        for index, event in enumerate(result.audit_events)
+    ]
 
 
 def run_phase2_episode(
@@ -97,6 +183,40 @@ def run_phase2_episode(
     return result
 
 
+class _ProviderPool:
+    """One provider instance per worker, leased for the length of an episode.
+
+    Live providers carry per-episode conversation state on the instance
+    (``_messages``, ``_previous_response_id``, ``_last_assistant_content``), so
+    the single shared instance the serial loop reuses cannot be driven by two
+    threads at once. At concurrency 1 this is that same single instance.
+    """
+
+    def __init__(self, model_ids: List[str], factory: Callable[[str, bool], Any], live: bool, size: int):
+        self._instances: Dict[str, List[Any]] = {
+            model_id: [factory(model_id, live) for _ in range(size)] for model_id in model_ids
+        }
+        self._available: Dict[str, queue.Queue] = {}
+        for model_id, instances in self._instances.items():
+            available: queue.Queue = queue.Queue()
+            for instance in instances:
+                available.put(instance)
+            self._available[model_id] = available
+
+    def all_instances(self) -> Iterator[Any]:
+        for instances in self._instances.values():
+            yield from instances
+
+    def representative(self, model_id: str) -> Any:
+        return self._instances[model_id][0]
+
+    def lease(self, model_id: str) -> Any:
+        return self._available[model_id].get()
+
+    def release(self, model_id: str, instance: Any) -> None:
+        self._available[model_id].put(instance)
+
+
 def run_phase2_evaluation(
     model_ids: Optional[Iterable[str]] = None,
     control_conditions: Optional[Iterable[str]] = None,
@@ -110,6 +230,13 @@ def run_phase2_evaluation(
     live: bool = False,
     provider_factory: Optional[Callable[[str, bool], BaseEpisodeProvider]] = None,
     progress_cb: Optional[Callable[[int, int, str], None]] = None,
+    run_id: Optional[str] = None,
+    checkpoint: bool = True,
+    resume: bool = False,
+    concurrency: int = 1,
+    consecutive_error_limit: int = DEFAULT_CONSECUTIVE_ERROR_LIMIT,
+    checkpoint_root: Optional[Path] = None,
+    on_resume: Optional[Callable[[int, int], None]] = None,
 ) -> BenchmarkRun:
     selected_models = resolve_phase2_model_ids(model_ids)
     selected_conditions = _select(control_conditions, PHASE2_CONTROL_CONDITIONS, "Phase 2 control conditions")
@@ -123,75 +250,158 @@ def run_phase2_evaluation(
     selected_scenarios = _select_scenarios(scenario_ids, scenario_set_path)
     selected_seeds = list(seeds or DEFAULT_PHASE2_SEEDS)
     resolved_temperature = DEFAULT_PHASE2_TEMPERATURE if temperature is None else temperature
+    workers = max(1, int(concurrency))
 
     factory = provider_factory or (lambda model_id, is_live: create_phase2_provider(model_id, is_live))
-    providers = {model_id: factory(model_id, live) for model_id in selected_models}
+    pool = _ProviderPool(selected_models, factory, live, workers)
     if reasoning_effort:
-        for provider in providers.values():
+        for provider in pool.all_instances():
             if hasattr(provider, "reasoning_effort"):
                 provider.reasoning_effort = reasoning_effort
     # Validate every provider up front so a misconfigured one (missing key,
     # wrong model id) aborts before the episode grid runs, instead of being
     # swallowed per-episode by the tool loop and saved as an all-error run.
-    for provider in providers.values():
-        provider.preflight()
-
-    results: List[EvaluationResult] = []
-    events: List[Dict[str, Any]] = []
-    run_id = f"run_{uuid4().hex[:12]}"
-
-    # Total (model, condition, framing, urgency, scenario, seed) episodes, so
-    # callers can drive a determinate progress bar over the grid below.
-    total_units = (
-        len(selected_models)
-        * len(selected_conditions)
-        * len(selected_framings)
-        * len(selected_urgencies)
-        * len(selected_scenarios)
-        * len(selected_seeds)
-    )
-    completed_units = 0
-
+    # One instance per model is enough — the pool's instances are identical.
     for model_id in selected_models:
-        provider = providers[model_id]
-        for condition in selected_conditions:
-            for framing in selected_framings:
-                for urgency in selected_urgencies:
-                    for scenario in selected_scenarios:
-                        for seed in selected_seeds:
-                            if progress_cb is not None:
-                                progress_cb(
-                                    completed_units,
-                                    total_units,
-                                    f"{model_id} / {condition} / {framing} / {urgency} / "
-                                    f"{scenario.scenario_id} / seed {seed}",
-                                )
-                            result = run_phase2_episode(
-                                provider, scenario, condition, framing, seed, resolved_temperature,
-                                model_id, urgency,
-                            )
-                            results.append(result)
-                            for index, event in enumerate(result.audit_events):
-                                events.append(
-                                    {
-                                        "event_id": (
-                                            f"{run_id}_{model_id}_{condition}_{framing}_{urgency}_"
-                                            f"{scenario.scenario_id}_{seed}_{index}"
-                                        ),
-                                        "run_id": run_id,
-                                        "scenario_id": scenario.scenario_id,
-                                        "model_id": model_id,
-                                        "control_condition": condition,
-                                        "framing": framing,
-                                        "urgency": urgency,
-                                        "seed": seed,
-                                        **event,
-                                    }
-                                )
-                            completed_units += 1
+        pool.representative(model_id).preflight()
+
+    run_id = run_id or f"run_{uuid4().hex[:12]}"
+    cells = list(
+        _grid_cells(
+            selected_models,
+            selected_conditions,
+            selected_framings,
+            selected_urgencies,
+            selected_scenarios,
+            selected_seeds,
+        )
+    )
+    total_units = len(cells)
+    fingerprint = grid_fingerprint(
+        selected_models,
+        selected_conditions,
+        selected_framings,
+        selected_urgencies,
+        [scenario.scenario_id for scenario in selected_scenarios],
+        selected_seeds,
+    )
+
+    results_by_key: Dict[EpisodeKey, EvaluationResult] = {}
+    if resume:
+        loaded = CheckpointStore(run_id, root=checkpoint_root).verify(fingerprint)
+        # Errored episodes are re-run rather than restored: resuming after a
+        # rate-limit cascade is the main reason to resume at all, and those
+        # cells are exactly the ones the cascade poisoned.
+        results_by_key = {key: result for key, result in loaded["restored"].items() if not result.error}
+        if on_resume is not None:
+            # Only after verify() has accepted the checkpoint, so a mismatched
+            # grid reports the refusal instead of a restored-episode count it
+            # is about to throw away.
+            on_resume(len(results_by_key), len(loaded["restored"]) - len(results_by_key))
+
+    pending = [cell for cell in cells if cell.key not in results_by_key]
+    completed_units = len(results_by_key)
+
+    store: Optional[CheckpointStore] = None
+    if checkpoint:
+        store = CheckpointStore(run_id, root=checkpoint_root).open(
+            {
+                "run_id": run_id,
+                "live": live,
+                "temperature": resolved_temperature,
+                "reasoning_effort": reasoning_effort,
+                "grid": fingerprint,
+            }
+        )
+
+    lock = threading.Lock()
+    state = {"completed": completed_units, "consecutive_errors": 0, "aborted": None}
+
+    def _record(cell: GridCell, result: EvaluationResult) -> None:
+        """Bank one finished episode. Serialized — the only shared mutation."""
+        with lock:
+            results_by_key[cell.key] = result
+            if store is not None:
+                store.append(cell.key, result)
+            state["completed"] += 1
+            if result.error:
+                state["consecutive_errors"] += 1
+                if state["consecutive_errors"] >= consecutive_error_limit and state["aborted"] is None:
+                    banked = (
+                        f" Everything completed so far is checkpointed; resume with --resume {run_id}."
+                        if store is not None
+                        else ""
+                    )
+                    state["aborted"] = RunAbortedError(
+                        f"{state['consecutive_errors']} episodes in a row failed after retries "
+                        f"— stopping at {state['completed']}/{total_units} episodes instead of "
+                        f"filling the rest of the grid with errors. Last failure "
+                        f"({cell.label}): {result.error}.{banked}",
+                        completed_units=state["completed"],
+                        total_units=total_units,
+                        consecutive_errors=state["consecutive_errors"],
+                        last_error=result.error,
+                    )
+            else:
+                state["consecutive_errors"] = 0
+
+    def _execute(cell: GridCell) -> None:
+        provider = pool.lease(cell.model_id)
+        try:
+            result = run_phase2_episode(
+                provider,
+                cell.scenario,
+                cell.control_condition,
+                cell.framing,
+                cell.seed,
+                resolved_temperature,
+                cell.model_id,
+                cell.urgency,
+            )
+        finally:
+            pool.release(cell.model_id, provider)
+        _record(cell, result)
+
+    try:
+        if workers == 1:
+            for cell in pending:
+                if progress_cb is not None:
+                    progress_cb(state["completed"], total_units, cell.label)
+                _execute(cell)
+                if state["aborted"] is not None:
+                    raise state["aborted"]
+        else:
+            with ThreadPoolExecutor(max_workers=workers) as executor:
+                # Submit in bounded waves rather than queueing the whole grid,
+                # so an abort stops spending within a wave instead of after
+                # 13,560 futures have already been handed to the pool.
+                for start in range(0, len(pending), workers * 4):
+                    if state["aborted"] is not None:
+                        break
+                    wave = pending[start : start + workers * 4]
+                    futures = [executor.submit(_execute, cell) for cell in wave]
+                    for future in futures:
+                        future.result()
+                        if progress_cb is not None:
+                            with lock:
+                                completed_now = state["completed"]
+                            progress_cb(completed_now, total_units, f"{completed_now}/{total_units} episodes")
+            if state["aborted"] is not None:
+                raise state["aborted"]
+    finally:
+        if store is not None:
+            store.close()
 
     if progress_cb is not None:
-        progress_cb(completed_units, total_units, "complete")
+        progress_cb(state["completed"], total_units, "complete")
+
+    # Canonical grid order, not completion order, so parallel and resumed runs
+    # serialize identically to a plain serial one.
+    ordered = [cell for cell in cells if cell.key in results_by_key]
+    results: List[EvaluationResult] = [results_by_key[cell.key] for cell in ordered]
+    events: List[Dict[str, Any]] = []
+    for cell in ordered:
+        events.extend(_episode_events(run_id, cell, results_by_key[cell.key]))
 
     metrics = compute_metrics(results)
     metrics["phase2"] = {

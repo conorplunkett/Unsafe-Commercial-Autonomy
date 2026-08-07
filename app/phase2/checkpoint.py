@@ -1,0 +1,242 @@
+"""Per-episode checkpointing for Phase 2 runs, so a crash costs one episode.
+
+The default grid is 13,560 episodes per model, each a tool loop of up to
+MAX_TURNS provider calls. Without this the whole run lives in memory until the
+CLI saves it at the end, so a Ctrl-C or a rate-limit cascade at episode 13,000
+throws away every dollar already spent. Each finished episode is appended here
+as one JSON line and flushed, and `--resume` replays them instead of paying
+for them twice.
+
+Deliberately not the run JSON format: RunStorage writes one whole BenchmarkRun
+after metrics are computed, which is exactly the thing that cannot happen
+mid-run. These two are complementary — the checkpoint is the write-ahead log,
+runtime/runs/<run_id>.json is still the artifact.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Dict, Iterable, List, Optional, Tuple
+
+from ..data import ROOT_DIR
+from ..models import EvaluationResult, model_to_dict, parse_model
+
+
+# Same shape as the (model, condition, framing, urgency, scenario, seed) tuple
+# the run's event ids already concatenate, so a checkpoint line and an audit
+# event name the same episode.
+EpisodeKey = Tuple[str, str, str, str, str, int]
+
+
+def _default_root() -> Path:
+    """Where checkpoints live.
+
+    Honors RUN_CHECKPOINT_DIR, then falls back to a sibling of whatever run
+    storage is configured — so the test suite's RUN_STORAGE_DIR tmpdir
+    (tests/conftest.py) keeps checkpoints hermetic too, and a normal run writes
+    to the gitignored runtime/ tree.
+    """
+    override = os.environ.get("RUN_CHECKPOINT_DIR")
+    if override:
+        return Path(override)
+    run_storage = os.environ.get("RUN_STORAGE_DIR")
+    if run_storage:
+        return Path(run_storage) / "checkpoints"
+    return ROOT_DIR / "runtime" / "checkpoints"
+
+
+def episode_key(
+    model_id: str,
+    control_condition: str,
+    framing: str,
+    urgency: str,
+    scenario_id: str,
+    seed: int,
+) -> EpisodeKey:
+    return (model_id, control_condition, framing, urgency, scenario_id, int(seed))
+
+
+def grid_fingerprint(
+    model_ids: Iterable[str],
+    control_conditions: Iterable[str],
+    framings: Iterable[str],
+    urgencies: Iterable[str],
+    scenario_ids: Iterable[str],
+    seeds: Iterable[int],
+) -> Dict[str, Any]:
+    """The axes a resume must agree with.
+
+    Sorted, so the fingerprint is about grid *membership* rather than the order
+    the axes were typed on the command line. Resuming into a different grid
+    would silently mix two experiments in one run file.
+    """
+    return {
+        "model_ids": sorted(model_ids),
+        "control_conditions": sorted(control_conditions),
+        "framings": sorted(framings),
+        "urgencies": sorted(urgencies),
+        "scenario_ids": sorted(scenario_ids),
+        "seeds": sorted(int(seed) for seed in seeds),
+    }
+
+
+class CheckpointMismatch(Exception):
+    """A resume was asked for against a checkpoint of a different grid."""
+
+
+class CheckpointMissing(KeyError):
+    """No checkpoint exists for the run id a resume named.
+
+    Subclasses KeyError so existing `except KeyError` callers still catch it,
+    but stringifies as a plain sentence — KeyError's repr would wrap the
+    message in quotes on the way to the terminal.
+    """
+
+    def __str__(self) -> str:
+        return self.args[0] if self.args else ""
+
+
+class CheckpointStore:
+    """Append-only JSONL log of finished episodes for one run."""
+
+    def __init__(self, run_id: str, root: Optional[Path] = None):
+        self.run_id = run_id
+        self.root = root or _default_root()
+        self.root.mkdir(parents=True, exist_ok=True)
+        self._handle = None
+
+    @property
+    def path(self) -> Path:
+        return self.root / f"{self.run_id}.jsonl"
+
+    def exists(self) -> bool:
+        return self.path.exists()
+
+    # -- writing ----------------------------------------------------------
+
+    def open(self, header: Dict[str, Any]) -> "CheckpointStore":
+        """Open for append, writing the header if the file is new.
+
+        A run killed mid-flush can leave a final line with no newline. Appending
+        straight onto it would glue the next record to the fragment and lose
+        that episode too, so terminate the fragment first — load() already skips
+        it, and this keeps it to the one episode that was actually in flight.
+        """
+        is_new = not self.path.exists()
+        if not is_new and self._ends_mid_line():
+            with self.path.open("a", encoding="utf-8") as handle:
+                handle.write("\n")
+        self._handle = self.path.open("a", encoding="utf-8")
+        if is_new:
+            self._write({"record": "header", "created_at": _now(), **header})
+        return self
+
+    def _ends_mid_line(self) -> bool:
+        try:
+            if self.path.stat().st_size == 0:
+                return False
+            with self.path.open("rb") as handle:
+                handle.seek(-1, os.SEEK_END)
+                return handle.read(1) != b"\n"
+        except OSError:
+            return False
+
+    def append(self, key: EpisodeKey, result: EvaluationResult) -> None:
+        self._write({"record": "episode", "key": list(key), "result": model_to_dict(result)})
+
+    def _write(self, payload: Dict[str, Any]) -> None:
+        if self._handle is None:
+            raise RuntimeError("CheckpointStore.open() must be called before writing")
+        self._handle.write(json.dumps(payload) + "\n")
+        # Flush and fsync per episode: the whole point is surviving a kill -9,
+        # and an episode costs far more than the write does.
+        self._handle.flush()
+        os.fsync(self._handle.fileno())
+
+    def close(self) -> None:
+        if self._handle is not None:
+            self._handle.close()
+            self._handle = None
+
+    def __enter__(self) -> "CheckpointStore":
+        return self
+
+    def __exit__(self, *exc_info) -> None:
+        self.close()
+
+    # -- reading ----------------------------------------------------------
+
+    def load(self) -> Tuple[Dict[str, Any], Dict[EpisodeKey, EvaluationResult]]:
+        """Return (header, {key: result}) for an existing checkpoint.
+
+        Tolerates a truncated final line: a run killed mid-write leaves a
+        partial record, and refusing to resume because of it would defeat the
+        purpose. Later records for the same key win, so a re-run episode
+        replaces its earlier errored attempt.
+        """
+        if not self.path.exists():
+            raise CheckpointMissing(f"No checkpoint for run {self.run_id} at {self.path}")
+        header: Dict[str, Any] = {}
+        restored: Dict[EpisodeKey, EvaluationResult] = {}
+        with self.path.open("r", encoding="utf-8") as handle:
+            for line in handle:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    payload = json.loads(line)
+                except json.JSONDecodeError:
+                    continue  # truncated tail from an interrupted write
+                if payload.get("record") == "header":
+                    header = payload
+                elif payload.get("record") == "episode":
+                    key = payload["key"]
+                    restored[episode_key(*key)] = parse_model(EvaluationResult, payload["result"])
+        return header, restored
+
+    def verify(self, fingerprint: Dict[str, Any]) -> Dict[str, Any]:
+        """Load, and refuse to resume into a grid the checkpoint isn't from."""
+        header, restored = self.load()
+        stored = header.get("grid") or {}
+        if stored and stored != fingerprint:
+            differing = sorted(
+                axis for axis in set(stored) | set(fingerprint)
+                if stored.get(axis) != fingerprint.get(axis)
+            )
+            raise CheckpointMismatch(
+                f"Checkpoint {self.path} was written for a different grid "
+                f"(differs on: {', '.join(differing)}). Resume with the same "
+                f"axes it was started with, or start a fresh run."
+            )
+        return {"header": header, "restored": restored}
+
+
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def list_checkpoints(root: Optional[Path] = None) -> List[Dict[str, Any]]:
+    """Resumable runs, newest first — what `--resume` can be pointed at."""
+    root = root or _default_root()
+    if not root.exists():
+        return []
+    entries: List[Dict[str, Any]] = []
+    for path in root.glob("*.jsonl"):
+        store = CheckpointStore(path.stem, root=root)
+        try:
+            header, restored = store.load()
+        except (CheckpointMissing, OSError):
+            continue
+        entries.append(
+            {
+                "run_id": path.stem,
+                "created_at": header.get("created_at", ""),
+                "episodes": len(restored),
+                "errored": sum(1 for result in restored.values() if result.error),
+                "path": str(path),
+            }
+        )
+    return sorted(entries, key=lambda entry: entry["created_at"], reverse=True)

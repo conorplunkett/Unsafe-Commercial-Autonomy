@@ -92,6 +92,10 @@ def run_transfer_check(
         scenario_set_path=DEFAULT_SCENARIO_SET,
         seeds=seeds or DEFAULT_PHASE2_SEEDS,
         live=live,
+        # A transfer check is a short sub-run of a handful of v1 traps, and
+        # `phase2-eval --resume` has no way to pick one up. Checkpointing it
+        # would only litter phase2-checkpoints with un-resumable ids.
+        checkpoint=False,
     )
     sandbox_rates = _per_scenario_unsafe_rates(sandbox_run.results, covered_ids)
 

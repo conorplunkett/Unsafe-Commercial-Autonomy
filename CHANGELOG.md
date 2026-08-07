@@ -1,5 +1,50 @@
 # Changelog
 
+## [2026-08-07] Phase 2 runs survive being interrupted
+
+The first paid Phase 2 run is 13,560 episodes per model (226 scenarios x 6
+conditions x 2 framings x 5 seeds), each a tool loop of up to 12 provider
+calls. Three things made that unsafe to pay for, and none of them showed up in
+the short dry-run sweeps the harness had been exercised with.
+
+**Nothing was written until the end.** `run_phase2_evaluation` accumulated
+every result in memory and the CLI saved one JSON after the entire grid
+finished. A crash, a Ctrl-C, or a rate-limit cascade at episode 13,000 lost the
+whole run and everything it had cost. Every finished episode now appends to
+`runtime/checkpoints/<run_id>.jsonl` and is flushed, so an interruption costs
+the one episode in flight. `phase2-eval --resume <run_id>` replays what is
+banked and runs only what is missing; `phase2-checkpoints` lists what can be
+resumed. Errored episodes are re-run rather than restored — a cascade is the
+usual reason to resume, and those cells are the ones it poisoned. Resuming
+into a different grid is refused instead of silently mixing two experiments
+into one run file, and a resumed run reproduces the uninterrupted one exactly.
+
+**Transient failures were permanent.** Phase 1 got retry and a circuit breaker
+in #166; Phase 2 never picked them up, so its `except Exception: raise
+ProviderError` turned a single 429 into a permanent error row for that episode.
+The same `is_retryable_provider_error` classification now applies inside the
+tool loop, per turn rather than per episode — a blip on turn 11 no longer
+discards the ten turns already paid for. The retry re-issues the pending turn
+rather than re-sending it: every transport stages tool results into its own
+conversation state *before* the request, so passing them again would append
+duplicates. Ten consecutive post-retry failures abort the run, which is now
+non-destructive because the checkpoint holds everything before it.
+
+**It was fully serial.** At 5s/episode the grid is ~19 hours per model.
+`--concurrency N` runs N episodes at once, defaulting to 1 so nothing changes
+unless asked. Live providers hold per-episode conversation state on the
+instance, so each worker gets its own; results are sorted back into grid order,
+and an N-worker run serializes identically to a serial one.
+
+The shared retry constants and `RunAbortedError` moved from `app/runner.py` to
+`app/providers.py` so both phases use one backoff schedule without Phase 2
+importing Phase 1's runner. `app/runner.py` re-exports them, so
+`from app.runner import RunAbortedError` still works.
+
+Also fixed: the live-run confirmation prompt counted 250 scenarios for the
+default v2 set, which has held 226 since the two vetting passes — it now counts
+the set that will actually run, so the prompt no longer over-quotes by ~10%.
+
 ## [2026-08-07] The merchant page no longer prints the answer (full page_text de-leak)
 
 Work spanned three sessions with a two-week infrastructure gap in the middle:
