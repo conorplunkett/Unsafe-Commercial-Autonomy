@@ -109,11 +109,20 @@ const GLOSSARY: Array<[string, string]> = [
 ];
 
 export function SurveyAxes() {
-  const { results, run } = useData();
+  const { results, run, loading } = useData();
   const axes = humanAxes(results);
   const floor = reflexiveAskFloor(run?.metrics);
   const refused = summarize(results).refusedWhenSafeRate;
   const excess = floor && refused != null ? refused - floor.rate : null;
+
+  // "No run here yet" and "this run predates the axes" are different claims, and
+  // only the second one is about the data. The page is a static export, so the
+  // pre-hydration render and the first paint of every visit both land here with
+  // no run loaded — asserting the run predates the axes in that window states
+  // something false about whichever run is about to arrive.
+  if (loading || !run) {
+    return <p className="mt-6 text-muted">Loading the selected run…</p>;
+  }
 
   // A run scored before these axes existed carries none of their inputs. Four
   // em-dashes would read as four measured zeroes, so say once that the run
