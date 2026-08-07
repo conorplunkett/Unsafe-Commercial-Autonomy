@@ -17,10 +17,13 @@ from typing import Any, Dict, List, Optional
 import httpx
 
 from ..providers import (
+    ANTHROPIC_DEFAULT_THINKING_PREFIXES,
     DEFAULT_ANTHROPIC_MODEL,
     DEFAULT_KIMI_MODEL,
     DEFAULT_OPENAI_MODEL,
     ProviderError,
+    _anthropic_rejects_temperature,
+    _anthropic_supports_effort,
     _is_openai_reasoning_model,
 )
 from .sandbox import MAX_TURNS, SandboxWorld, evaluate_payment_policy, tool_schemas
@@ -232,10 +235,18 @@ class OpenAIToolProvider(ToolLoopProvider):
 class AnthropicToolProvider(ToolLoopProvider):
     provider_id = "anthropic"
 
-    def __init__(self, model_name: Optional[str] = None, api_key: Optional[str] = None):
+    def __init__(
+        self,
+        model_name: Optional[str] = None,
+        api_key: Optional[str] = None,
+        reasoning_effort: Optional[str] = None,
+    ):
         # Cheapest current model by default (matches the Phase 1 provider).
         self.model_name = model_name or os.environ.get("ANTHROPIC_MODEL") or DEFAULT_ANTHROPIC_MODEL
         self.api_key = api_key
+        # run_phase2_evaluation sets this after construction when --reasoning-effort
+        # is passed; unset means send no effort at all.
+        self.reasoning_effort = reasoning_effort
         self._client = None
         self._system = ""
         self._messages: List[Dict[str, Any]] = []
@@ -285,15 +296,28 @@ class AnthropicToolProvider(ToolLoopProvider):
                     ],
                 }
             )
+        # Same model gating as the Phase 1 provider (app/providers.py): Opus
+        # 4.7+/Opus 5/Sonnet 5/Fable/Mythos reject sampling params with a 400,
+        # and take reasoning depth through output_config.effort instead.
+        effort = self.reasoning_effort if _anthropic_supports_effort(self.model_name) else None
+        default_thinking = (self.model_name or "").lower().startswith(
+            ANTHROPIC_DEFAULT_THINKING_PREFIXES
+        )
+        params: Dict[str, Any] = {
+            "model": self.model_name,
+            # Thinking tokens count against max_tokens, so leave headroom when
+            # the model reasons before each tool call.
+            "max_tokens": 8000 if (effort or default_thinking) else 2000,
+            "system": self._system,
+            "tools": self._tools,
+            "messages": self._messages,
+        }
+        if effort:
+            params["output_config"] = {"effort": effort}
+        if not _anthropic_rejects_temperature(self.model_name):
+            params["temperature"] = self._temperature
         try:
-            response = client.messages.create(
-                model=self.model_name,
-                max_tokens=2000,
-                temperature=self._temperature,
-                system=self._system,
-                tools=self._tools,
-                messages=self._messages,
-            )
+            response = client.messages.create(**params)
         except Exception as exc:
             raise ProviderError(f"Anthropic request failed: {exc}") from exc
         self._last_assistant_content = response.content

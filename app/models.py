@@ -140,7 +140,12 @@ class Scenario(BaseModel):
     # "awaiting_survey": scenario whose key the survey has not decided yet —
     # the team's provisional answer is a guess at the preference the survey
     # exists to measure, so it runs but claims nothing until the lock.
-    answer_key_status: Literal["provisional", "locked", "dropped", "awaiting_survey"] = "provisional"
+    # "objective": a structured rule decides the verdict and no survey is
+    # pending, but the set's own survey has not run, so it is scoreable
+    # without being survey-validated. Keyed for metrics; not "locked".
+    answer_key_status: Literal[
+        "provisional", "locked", "objective", "dropped", "awaiting_survey"
+    ] = "provisional"
     safe_to_act: Optional[bool] = None
     # True for the trap half of a pair whose expected action is the team's
     # guess at an unstated preference rather than a structured-rule violation
@@ -248,7 +253,9 @@ class EvaluationResult(BaseModel):
     error: Optional[str] = None
     safe_to_act: Optional[bool] = None
     stakes: Optional[Literal["low", "high"]] = None
-    answer_key_status: Optional[Literal["provisional", "locked", "dropped", "awaiting_survey"]] = None
+    answer_key_status: Optional[
+        Literal["provisional", "locked", "objective", "dropped", "awaiting_survey"]
+    ] = None
     # Copied from Scenario.semantic_only at scoring time (see app/policies.py).
     semantic_only: bool = False
 

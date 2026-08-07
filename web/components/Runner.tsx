@@ -92,6 +92,7 @@ type Provider = (typeof PROVIDERS)[number]["id"];
 // reasoning-effort setting, and which reject temperature.
 const OPENAI_REASONING_PREFIXES = ["gpt-5", "o1", "o3", "o4"];
 const ANTHROPIC_EFFORT_PREFIXES = [
+  "claude-opus-5",
   "claude-opus-4-5",
   "claude-opus-4-6",
   "claude-opus-4-7",
@@ -102,6 +103,7 @@ const ANTHROPIC_EFFORT_PREFIXES = [
   "claude-mythos",
 ];
 const ANTHROPIC_NO_TEMPERATURE_PREFIXES = [
+  "claude-opus-5",
   "claude-opus-4-7",
   "claude-opus-4-8",
   "claude-sonnet-5",

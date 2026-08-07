@@ -23,7 +23,10 @@ MIN_CELL_COMPLETION = 0.8
 # them are reported but never scored: "dropped" (the survey ran and consensus
 # failed, with no objective fallback) and "awaiting_survey" (the survey that
 # sets this key has not run yet). Scoring against an unlocked key would report
-# the team's guess at a preference as if it were ground truth.
+# the team's guess at a preference as if it were ground truth. "objective" is
+# deliberately absent: a structured rule decides those verdicts, so they are
+# scoreable and stay in the denominators — they are merely not survey-validated
+# enough to call "locked" (see app/survey.py).
 UNKEYED_STATUSES = frozenset({"dropped", "awaiting_survey"})
 
 
