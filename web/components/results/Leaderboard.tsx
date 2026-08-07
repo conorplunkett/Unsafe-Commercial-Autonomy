@@ -27,31 +27,31 @@ export function Leaderboard() {
   return (
     <div className="mt-6">
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-[0.95rem]">
+        <table className="w-full border-collapse text-small">
           <thead>
             <tr className="border-b border-ink/25 text-left">
-              <th className="py-2 pr-3 font-mono text-xs font-medium uppercase tracking-wider text-muted">
+              <th className="py-2 pr-3 font-mono text-caption font-medium uppercase tracking-wider text-muted">
                 #
               </th>
-              <th className="py-2 pr-3 font-mono text-xs font-medium uppercase tracking-wider text-muted">
+              <th className="py-2 pr-3 font-mono text-caption font-medium uppercase tracking-wider text-muted">
                 Model
               </th>
-              <th className="py-2 px-2 text-right font-mono text-xs font-medium uppercase tracking-wider text-muted">
+              <th className="py-2 px-2 text-right font-mono text-caption font-medium uppercase tracking-wider text-muted">
                 Unsafe payment
               </th>
-              <th className="py-2 px-2 text-right font-mono text-xs font-medium uppercase tracking-wider text-muted">
+              <th className="py-2 px-2 text-right font-mono text-caption font-medium uppercase tracking-wider text-muted">
                 Refused when safe
               </th>
-              <th className="py-2 px-2 text-right font-mono text-xs font-medium uppercase tracking-wider text-muted">
+              <th className="py-2 px-2 text-right font-mono text-caption font-medium uppercase tracking-wider text-muted">
                 User welfare
               </th>
-              <th className="py-2 px-2 text-right font-mono text-xs font-medium uppercase tracking-wider text-muted">
+              <th className="py-2 px-2 text-right font-mono text-caption font-medium uppercase tracking-wider text-muted">
                 Missed recovery
               </th>
-              <th className="py-2 px-2 text-right font-mono text-xs font-medium uppercase tracking-wider text-muted">
+              <th className="py-2 px-2 text-right font-mono text-caption font-medium uppercase tracking-wider text-muted">
                 Human alignment
               </th>
-              <th className="py-2 pl-2 text-right font-mono text-xs font-medium uppercase tracking-wider text-muted">
+              <th className="py-2 pl-2 text-right font-mono text-caption font-medium uppercase tracking-wider text-muted">
                 n
               </th>
             </tr>
@@ -60,7 +60,7 @@ export function Leaderboard() {
             {rows.map((r, i) => (
               <tr key={r.modelId} className="border-b border-border">
                 <td className="py-2.5 pr-3 font-mono text-muted">{i + 1}</td>
-                <td className="py-2.5 pr-3 font-serif text-[1.05rem]">
+                <td className="py-2.5 pr-3 font-serif text-ui">
                   {modelDisplayName(r.modelName)}
                 </td>
                 <td className="py-2.5 px-2 text-right font-mono text-danger">
@@ -90,11 +90,11 @@ export function Leaderboard() {
         href={CONFIG.dataUrl}
         target="_blank"
         rel="noreferrer"
-        className="mt-6 inline-block rounded-full border border-accent px-4 py-2 font-mono text-xs uppercase tracking-wider text-accent transition-colors hover:bg-accent/10"
+        className="mt-6 inline-block rounded-full border border-accent px-4 py-2 font-mono text-caption uppercase tracking-wider text-accent transition-colors hover:bg-accent/10"
       >
         View the data →
       </a>
-      <p className="mt-4 max-w-2xl text-sm leading-snug text-muted">
+      <p className="mt-4 max-w-2xl text-small leading-snug text-muted">
         Per model, pooled across every published run. Ranked on the
         safety–autonomy frontier: lower unsafe-payment rate first, then a lower
         rate of refusing when it was safe to act. Both numbers are shown, so a

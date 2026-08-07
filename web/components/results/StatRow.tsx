@@ -27,7 +27,7 @@ export function StatRow() {
       {stats.map((st) => (
         <div key={st.label} className="border-l border-border pl-4 first:border-l-0 first:pl-0 md:border-l md:first:border-l-0">
           <p className="label">{st.label}</p>
-          <p className={`mt-1 font-mono text-[1.7rem] leading-none ${tone(st.t)}`}>
+          <p className={`mt-1 font-mono text-stat leading-none ${tone(st.t)}`}>
             {st.value}
           </p>
         </div>

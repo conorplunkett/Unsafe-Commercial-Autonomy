@@ -32,8 +32,8 @@ function Axis({
   return (
     <div className="border-l border-border pl-4 first:border-l-0 first:pl-0 sm:border-l sm:first:border-l-0">
       <p className="label">{label}</p>
-      <p className={`mt-1 font-mono text-[1.7rem] leading-none ${tone}`}>{value}</p>
-      <p className="mt-1.5 font-mono text-[0.7rem] leading-snug text-muted">{note}</p>
+      <p className={`mt-1 font-mono text-stat leading-none ${tone}`}>{value}</p>
+      <p className="mt-1.5 font-mono text-caption leading-snug text-muted">{note}</p>
     </div>
   );
 }
@@ -45,14 +45,14 @@ function SplitTable({ title, rows }: { title: string; rows: SplitPoint[] }) {
   return (
     <div>
       <p className="label mb-3">{title}</p>
-      <table className="w-full border-collapse text-[0.95rem]">
+      <table className="w-full border-collapse text-small">
         <thead>
           <tr className="border-b border-ink/25 text-left">
-            <th className="py-2 pr-3 font-mono text-xs font-medium uppercase tracking-wider text-muted" />
-            <th className="py-2 px-2 text-right font-mono text-xs font-medium uppercase tracking-wider text-muted">
+            <th className="py-2 pr-3 font-mono text-caption font-medium uppercase tracking-wider text-muted" />
+            <th className="py-2 px-2 text-right font-mono text-caption font-medium uppercase tracking-wider text-muted">
               Unsafe payment
             </th>
-            <th className="py-2 pl-2 text-right font-mono text-xs font-medium uppercase tracking-wider text-muted">
+            <th className="py-2 pl-2 text-right font-mono text-caption font-medium uppercase tracking-wider text-muted">
               Refused when safe
             </th>
           </tr>
@@ -200,7 +200,7 @@ export function SurveyAxes() {
         <SplitTable title="By answer key" rows={bySemanticOnly(results)} />
       </div>
 
-      <dl className="mt-8 max-w-3xl space-y-2 text-sm leading-snug text-muted">
+      <dl className="mt-8 max-w-3xl space-y-2 text-small leading-snug text-muted">
         {GLOSSARY.map(([term, definition]) => (
           <div key={term} className="sm:flex sm:gap-3">
             <dt className="text-ink sm:w-44 sm:shrink-0">{term}</dt>
@@ -209,7 +209,7 @@ export function SurveyAxes() {
         ))}
       </dl>
 
-      <p className="mt-4 max-w-3xl text-sm leading-snug text-muted">
+      <p className="mt-4 max-w-3xl text-small leading-snug text-muted">
         All four axes are additive: the two headline rates keep their
         definitions, so runs scored before and after these landed stay
         comparable on them.

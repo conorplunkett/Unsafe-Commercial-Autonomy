@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { SCENARIOS, type ScenarioCard } from "@/lib/scenarios";
 import { CATEGORY_ORDER, CATEGORY_LABELS, categoryLabel } from "@/lib/labels";
+import { Card } from "@/components/ui/Card";
 
 type RoleFilter = "all" | "trap" | "lookalike";
 
@@ -11,7 +12,7 @@ function RoleBadge({ role }: { role: ScenarioCard["pair_role"] }) {
   const trap = role === "trap";
   return (
     <span
-      className={`rounded-full border px-2.5 py-0.5 font-mono text-[0.65rem] uppercase tracking-wider ${
+      className={`rounded-full border px-2.5 py-0.5 font-mono text-caption uppercase tracking-wider ${
         trap
           ? "border-danger/40 bg-danger/10 text-danger"
           : "border-accent/40 bg-accent/10 text-accent"
@@ -22,33 +23,35 @@ function RoleBadge({ role }: { role: ScenarioCard["pair_role"] }) {
   );
 }
 
-function Card({ s }: { s: ScenarioCard }) {
+function ScenarioTile({ s }: { s: ScenarioCard }) {
   return (
-    <div className="flex flex-col rounded-xl border border-border bg-paper-2/40 p-5">
-      <div className="flex flex-wrap items-center gap-2">
-        <RoleBadge role={s.pair_role} />
-        <span className="font-mono text-[0.65rem] uppercase tracking-wider text-muted">
+    <Card className="flex flex-col">
+      <div className="flex flex-col items-start gap-1.5">
+        <div className="flex items-center gap-2">
+          <RoleBadge role={s.pair_role} />
+          <span className="whitespace-nowrap font-mono text-caption uppercase tracking-wider text-muted">
+            · {s.stakes} stakes
+          </span>
+        </div>
+        <span className="font-mono text-caption uppercase tracking-wider text-muted">
           {categoryLabel(s.category)}
         </span>
-        <span className="font-mono text-[0.65rem] uppercase tracking-wider text-muted">
-          · {s.stakes} stakes
-        </span>
       </div>
-      <p className="mt-3 grow text-[1.02rem] leading-snug text-ink/90">
+      <p className="mt-3 grow text-ui leading-snug text-ink/90">
         {s.situation}
       </p>
       <div className="mt-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-t border-border pt-3">
-        <span className="text-sm">
+        <span className="text-small">
           <span className="text-muted">Right answer: </span>
           <span className="text-accent">{s.right_answer ?? "—"}</span>
         </span>
         {s.failure_tested && (
-          <span className="font-mono text-[0.7rem] text-muted">
+          <span className="font-mono text-caption text-muted">
             tests: {s.failure_tested}
           </span>
         )}
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -79,12 +82,12 @@ export function ScenarioBrowser({ teaser = false }: { teaser?: boolean }) {
       <div className="mt-6">
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {teaserCards.map((s) => (
-            <Card key={s.scenario_id} s={s} />
+            <ScenarioTile key={s.scenario_id} s={s} />
           ))}
         </div>
         <Link
           href="/scenarios"
-          className="mt-6 inline-block font-serif text-lg text-accent hover:underline"
+          className="mt-6 inline-block font-serif text-prose text-accent hover:underline"
         >
           Browse all {SCENARIOS.length} Phase-1 scenarios →
         </Link>
@@ -93,7 +96,7 @@ export function ScenarioBrowser({ teaser = false }: { teaser?: boolean }) {
   }
 
   const chip =
-    "rounded-full border px-3 py-1 font-mono text-xs transition-colors";
+    "rounded-full border px-3 py-1 font-mono text-caption transition-colors";
   const on = "border-accent bg-accent/10 text-accent";
   const off = "border-border text-muted hover:text-ink";
 
@@ -130,13 +133,13 @@ export function ScenarioBrowser({ teaser = false }: { teaser?: boolean }) {
         </div>
       </div>
 
-      <p className="mt-5 font-mono text-xs text-muted">
+      <p className="mt-5 font-mono text-caption text-muted">
         {filtered.length} of {SCENARIOS.length} scenarios
       </p>
 
       <div className="mt-3 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {filtered.map((s) => (
-          <Card key={s.scenario_id} s={s} />
+          <ScenarioTile key={s.scenario_id} s={s} />
         ))}
       </div>
     </div>

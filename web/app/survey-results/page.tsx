@@ -5,6 +5,7 @@ import { QuestionCard } from "@/components/survey/QuestionCard";
 import { SurveyResultsTable } from "@/components/survey/SurveyResultsTable";
 import { SURVEY_RESULTS } from "@/lib/surveyResults";
 import { CONFIG } from "@/lib/config";
+import { Card } from "@/components/ui/Card";
 
 const RESULTS_DESCRIPTION =
   "Phase 1 answer-key validation survey for PayBench: 31 human respondents keyed 6 matched trap/lookalike scenario pairs under pre-registered lock rules. 5 of 12 items locked; the reflexive-ask floor is 54.8%.";
@@ -56,10 +57,10 @@ function pct1(rate: number): string {
 
 function StatTile({ value, label }: { value: string; label: string }) {
   return (
-    <div className="rounded-xl border border-border bg-paper-2/60 px-5 py-4">
-      <div className="font-serif text-3xl tracking-tight">{value}</div>
+    <Card>
+      <div className="font-serif text-h2 tracking-tight">{value}</div>
       <div className="label mt-1">{label}</div>
-    </div>
+    </Card>
   );
 }
 
@@ -92,10 +93,10 @@ export default function SurveyResultsPage() {
           <p className="label">
             Phase 1 · answer-key validation survey · n = {R.respondents.clean}
           </p>
-          <h1 className="mt-4 font-serif text-4xl tracking-tight sm:text-5xl">
+          <h1 className="mt-4 font-serif text-h1 tracking-tight">
             What do people actually want the agent to do?
           </h1>
-          <p className="mt-5 max-w-2xl text-lg leading-relaxed text-ink/85">
+          <p className="mt-5 max-w-2xl text-prose leading-relaxed text-ink/85">
             Six of PayBench&rsquo;s twenty-five scenario pairs are
             preference-dependent: the safe action is whatever people would
             genuinely want an agent with their payment authority to do. We
@@ -121,7 +122,7 @@ export default function SurveyResultsPage() {
         </div>
 
         <section className="mt-14">
-          <h2 className="font-serif text-3xl tracking-tight">Methods</h2>
+          <h2 className="font-serif text-h2 tracking-tight">Methods</h2>
           <div className="mt-4 max-w-3xl space-y-4 leading-relaxed text-ink/85">
             <p>
               The instrument is 14 one-choice situations in random order per
@@ -132,7 +133,7 @@ export default function SurveyResultsPage() {
               have been acceptable. Recruitment was a
               convenience sample via the author&rsquo;s Instagram and LinkedIn.
               The instrument version analyzed is{" "}
-              <code className="font-mono text-sm">
+              <code className="font-mono text-small">
                 {R._meta.instrument_version}
               </code>
               ; the full wording of every item is reproduced below, verbatim.
@@ -177,7 +178,7 @@ export default function SurveyResultsPage() {
         </section>
 
         <section className="mt-14">
-          <h2 className="font-serif text-3xl tracking-tight">
+          <h2 className="font-serif text-h2 tracking-tight">
             The reflexive-ask floor
           </h2>
           <div className="mt-4 max-w-3xl space-y-4 leading-relaxed text-ink/85">
@@ -189,7 +190,7 @@ export default function SurveyResultsPage() {
               is not evidence of scenario-specific caution — it is what
               respondents do everywhere.
             </p>
-            <p className="rounded-xl border border-border bg-paper-2/60 p-4">
+            <Card as="p" pad="sm">
               <span className="label">Exploratory (not pre-registered)</span>
               <br />
               The baseline answer splits the sample. Respondents who chose
@@ -201,12 +202,12 @@ export default function SurveyResultsPage() {
               {others.lookalike_votes} ({pct1(others.lookalike_ask_rate)}).
               Much of the &ldquo;ask&rdquo; vote on benign items appears to be
               a stable respondent disposition, not a property of the scenarios.
-            </p>
+            </Card>
           </div>
         </section>
 
         <section className="mt-14">
-          <h2 className="font-serif text-3xl tracking-tight">
+          <h2 className="font-serif text-h2 tracking-tight">
             Results by pair
           </h2>
           <p className="mt-3 max-w-3xl leading-relaxed text-ink/85">
@@ -228,7 +229,7 @@ export default function SurveyResultsPage() {
               if (!trap || !lookalike) return null;
               return (
                 <div key={pair}>
-                  <h3 className="font-serif text-xl tracking-tight">
+                  <h3 className="font-serif text-h4 tracking-tight">
                     {PAIR_TITLES[pair] ?? pair}
                   </h3>
                   <div className="mt-3 grid gap-4 sm:grid-cols-2">
@@ -242,9 +243,9 @@ export default function SurveyResultsPage() {
         </section>
 
         <section className="mt-14">
-          <h2 className="font-serif text-3xl tracking-tight">Lock summary</h2>
+          <h2 className="font-serif text-h2 tracking-tight">Lock summary</h2>
           <SurveyResultsTable questions={R.questions} />
-          <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted">
+          <p className="mt-3 max-w-3xl text-small leading-relaxed text-muted">
             Per the pre-registration, the {R.lock_summary.unlocked_ids.length}{" "}
             items that failed to lock will be reworded or dropped, and that
             count reported with the benchmark results.
@@ -252,7 +253,7 @@ export default function SurveyResultsPage() {
         </section>
 
         <section className="mt-14">
-          <h2 className="font-serif text-3xl tracking-tight">Discussion</h2>
+          <h2 className="font-serif text-h2 tracking-tight">Discussion</h2>
           <div className="mt-4 max-w-3xl space-y-4 leading-relaxed text-ink/85">
             <p>
               <strong>The clearly unsafe options got almost no votes.</strong>{" "}
@@ -293,7 +294,7 @@ export default function SurveyResultsPage() {
 
         <section className="mt-14">
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <h2 className="font-serif text-3xl tracking-tight">
+            <h2 className="font-serif text-h2 tracking-tight">
               Does experience predict safety?
             </h2>
             <span className="label">Exploratory · not pre-registered</span>
@@ -323,26 +324,26 @@ export default function SurveyResultsPage() {
               reported for completeness, not interpreted.
             </p>
           </div>
-          <div className="mt-5 overflow-x-auto rounded-xl border border-border">
-            <table className="w-full min-w-[680px] border-collapse text-sm">
+          <Card tone="bare" pad="none" className="mt-5 overflow-x-auto">
+            <table className="w-full min-w-[680px] border-collapse text-small">
               <thead>
                 <tr className="border-b border-border bg-paper-2/60 text-left align-bottom">
-                  <th className="px-4 py-2.5 font-mono text-[0.7rem] uppercase tracking-[0.14em] text-muted">
+                  <th className="px-4 py-2.5 font-mono text-caption uppercase tracking-[0.14em] text-muted">
                     Safety metric
                   </th>
-                  <th className="px-4 py-2.5 font-mono text-[0.7rem] uppercase tracking-[0.12em] text-muted">
+                  <th className="px-4 py-2.5 font-mono text-caption uppercase tracking-[0.12em] text-muted">
                     Daily AI use<br />
                     <span className="text-ink/70">n = {evDaily.n}</span>
                   </th>
-                  <th className="px-4 py-2.5 font-mono text-[0.7rem] uppercase tracking-[0.12em] text-muted">
+                  <th className="px-4 py-2.5 font-mono text-caption uppercase tracking-[0.12em] text-muted">
                     Less-than-daily<br />
                     <span className="text-ink/70">n = {evLess.n}</span>
                   </th>
-                  <th className="px-4 py-2.5 font-mono text-[0.7rem] uppercase tracking-[0.12em] text-muted">
+                  <th className="px-4 py-2.5 font-mono text-caption uppercase tracking-[0.12em] text-muted">
                     Used an agent to buy<br />
                     <span className="text-ink/70">n = {evYes.n}</span>
                   </th>
-                  <th className="px-4 py-2.5 font-mono text-[0.7rem] uppercase tracking-[0.12em] text-muted">
+                  <th className="px-4 py-2.5 font-mono text-caption uppercase tracking-[0.12em] text-muted">
                     Hasn&rsquo;t<br />
                     <span className="text-ink/70">n = {evNo.n}</span>
                   </th>
@@ -352,24 +353,24 @@ export default function SurveyResultsPage() {
                 {expMetrics.map((m) => (
                   <tr key={m.label} className="border-b border-border/60">
                     <td className="px-4 py-2.5">{m.label}</td>
-                    <td className="px-4 py-2.5 font-mono text-xs tabular-nums">
+                    <td className="px-4 py-2.5 font-mono text-caption tabular-nums">
                       {m.fmt(evDaily)}
                     </td>
-                    <td className="px-4 py-2.5 font-mono text-xs tabular-nums">
+                    <td className="px-4 py-2.5 font-mono text-caption tabular-nums">
                       {m.fmt(evLess)}
                     </td>
-                    <td className="px-4 py-2.5 font-mono text-xs tabular-nums text-muted">
+                    <td className="px-4 py-2.5 font-mono text-caption tabular-nums text-muted">
                       {m.fmt(evYes)}
                     </td>
-                    <td className="px-4 py-2.5 font-mono text-xs tabular-nums">
+                    <td className="px-4 py-2.5 font-mono text-caption tabular-nums">
                       {m.fmt(evNo)}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
-          <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted">
+          </Card>
+          <p className="mt-3 max-w-3xl text-small leading-relaxed text-muted">
             Unsafe pick = choosing the flagged, rule-breaking proceed option on a
             trap. The &ldquo;used an agent to buy&rdquo; column (n = {evYes.n}) is
             shown for completeness; it is too small to compare.
@@ -377,7 +378,7 @@ export default function SurveyResultsPage() {
         </section>
 
         <section className="mt-14">
-          <h2 className="font-serif text-3xl tracking-tight">Limitations</h2>
+          <h2 className="font-serif text-h2 tracking-tight">Limitations</h2>
           <ul className="mt-4 max-w-3xl list-disc space-y-3 pl-5 leading-relaxed text-ink/85">
             <li>
               n = {R.respondents.clean} meets the pre-registered lock minimum
@@ -404,7 +405,7 @@ export default function SurveyResultsPage() {
               respondents).
             </li>
           </ul>
-          <p className="mt-6 max-w-3xl text-sm leading-relaxed text-muted">
+          <p className="mt-6 max-w-3xl text-small leading-relaxed text-muted">
             Aggregates only: the raw export (names, emails) is never published.
             Generated {R._meta.generated_at} by{" "}
             <code className="font-mono">{R._meta.script}</code> from instrument{" "}
