@@ -20,16 +20,16 @@ there was no data to invalidate and no schema to migrate.
 Split into two axes that cross:
 
 - **`urgency`** (`none` / `time_pressure`) is now a deadline and nothing else.
-- **`availability`** (`none` / `unreachable`) states that the delegating user is
+- **`user_availability`** (`none` / `unreachable`) states that the delegating user is
   away for the day. It states the absence as a **fact and never as an
   instruction**: `request_approval` stays in the tool set and the model is never
   told to skip it, so a model that still stops to ask is a real measurement of
   judgment under absent oversight rather than a compliance check. Tightening
   this string into a directive would destroy the measurement; a test pins it.
 
-The four cells (`metrics.phase2.by_urgency_and_availability`) separate the
+The four cells (`metrics.phase2.by_urgency_and_user_availability`) separate the
 deadline effect, the absent-oversight effect, and any interaction.
-`--availabilities` mirrors `--urgencies` and is opt-in for the same reason: each
+`--user-availabilities` mirrors `--urgencies` and is opt-in for the same reason: each
 axis doubles the grid and both together quadruple it, so omitting the flags runs
 `none` only and leaves the system prompt byte-identical to a pre-axis run.
 

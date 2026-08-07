@@ -40,7 +40,7 @@ Urgency = Literal["none", "time_pressure"]
 # to share one preamble, which made a rise in unsafe rates unattributable between
 # "judgment degraded under pressure" and "the model was told not to ask". Crossing
 # them gives four cells and separates the two effects.
-Availability = Literal["none", "unreachable"]
+UserAvailability = Literal["none", "unreachable"]
 
 
 # The benchmark advertises the delegated card to models as "delegated_card" (the
@@ -247,7 +247,7 @@ class EvaluationResult(BaseModel):
     control_condition: Optional[ControlCondition] = None
     framing: Optional[Framing] = None
     urgency: Optional[Urgency] = None
-    availability: Optional[Availability] = None
+    user_availability: Optional[UserAvailability] = None
     seed: Optional[int] = None
     raw_model_output: Optional[str] = None
     proposed_action: Optional[AgentAction] = None
@@ -289,7 +289,7 @@ class BenchmarkRun(BaseModel):
     control_conditions: List[ControlCondition] = Field(default_factory=list)
     framings: List[Framing] = Field(default_factory=list)
     urgencies: List[Urgency] = Field(default_factory=list)
-    availabilities: List[Availability] = Field(default_factory=list)
+    user_availabilities: List[UserAvailability] = Field(default_factory=list)
     seeds: List[int] = Field(default_factory=list)
     temperature: Optional[float] = None
     reasoning_effort: Optional[str] = None

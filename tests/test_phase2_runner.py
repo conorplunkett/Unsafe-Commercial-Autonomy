@@ -17,7 +17,7 @@ from app.phase2.providers import (
     resolve_phase2_model_ids,
 )
 from app.phase2.runner import PHASE2_CONTROL_CONDITIONS, run_phase2_evaluation
-from app.phase2.sandbox import AVAILABILITY_LEVELS, URGENCY_LEVELS, evaluate_payment_policy
+from app.phase2.sandbox import USER_AVAILABILITY_LEVELS, URGENCY_LEVELS, evaluate_payment_policy
 from app.storage import RunStorage
 
 V2_SET = DATA_DIR / "scenario_sets" / "v2_250_scenarios.md"
@@ -55,42 +55,42 @@ def test_runner_cardinality_and_urgency():
     assert run.urgencies == ["none", "time_pressure"]
 
 
-def test_runner_cardinality_and_availability():
+def test_runner_cardinality_and_user_availability():
     run = run_phase2_evaluation(
         model_ids=["scripted_diligent"],
         control_conditions=["no_policy"],
         framings=["deployment"],
-        availabilities=["none", "unreachable"],
+        user_availabilities=["none", "unreachable"],
         scenario_ids=PAIR_IDS,
         seeds=[1],
     )
     assert len(run.results) == 1 * 1 * 1 * 2 * 2 * 1
-    assert {result.availability for result in run.results} == {"none", "unreachable"}
-    assert set(run.metrics["phase2"]["by_availability"]) == {"none", "unreachable"}
-    assert "no_policy/none" in run.metrics["phase2"]["by_condition_and_availability"]
-    assert run.availabilities == ["none", "unreachable"]
+    assert {result.user_availability for result in run.results} == {"none", "unreachable"}
+    assert set(run.metrics["phase2"]["by_user_availability"]) == {"none", "unreachable"}
+    assert "no_policy/none" in run.metrics["phase2"]["by_condition_and_user_availability"]
+    assert run.user_availabilities == ["none", "unreachable"]
 
 
-def test_urgency_crosses_availability_into_a_2x2():
+def test_urgency_crosses_user_availability_into_a_2x2():
     run = run_phase2_evaluation(
         model_ids=["scripted_diligent"],
         control_conditions=["no_policy"],
         framings=["deployment"],
         urgencies=["all"],
-        availabilities=["all"],
+        user_availabilities=["all"],
         scenario_ids=PAIR_IDS,
         seeds=[1],
     )
-    # Both axes multiply the grid: 2 urgency x 2 availability x 2 scenarios.
+    # Both axes multiply the grid: 2 urgency x 2 user-availability x 2 scenarios.
     assert len(run.results) == 1 * 1 * 1 * 2 * 2 * 2 * 1
-    assert set(run.metrics["phase2"]["by_urgency_and_availability"]) == {
+    assert set(run.metrics["phase2"]["by_urgency_and_user_availability"]) == {
         "none/none",
         "none/unreachable",
         "time_pressure/none",
         "time_pressure/unreachable",
     }
     # Every cell is populated and the axes are independent, not correlated.
-    assert {(r.urgency, r.availability) for r in run.results} == {
+    assert {(r.urgency, r.user_availability) for r in run.results} == {
         ("none", "none"),
         ("none", "unreachable"),
         ("time_pressure", "none"),
@@ -99,12 +99,12 @@ def test_urgency_crosses_availability_into_a_2x2():
     # Event ids stay unique once both axes are in play.
     event_ids = [event["event_id"] for event in run.events]
     assert len(event_ids) == len(set(event_ids))
-    assert all("availability" in event for event in run.events)
+    assert all("user_availability" in event for event in run.events)
 
 
-@pytest.mark.parametrize("axis", ["urgencies", "availabilities"])
+@pytest.mark.parametrize("axis", ["urgencies", "user_availabilities"])
 def test_pressure_axes_default_to_none_only_unlike_framing(axis):
-    # Omitting --urgencies/--availabilities must NOT expand to every level the
+    # Omitting --urgencies/--user-availabilities must NOT expand to every level the
     # way omitting --framings does: every pre-existing caller (this whole test
     # file among them) calls run_phase2_evaluation without them, so defaulting
     # to "all" would silently multiply their episode counts and live-API cost.
@@ -117,7 +117,7 @@ def test_pressure_axes_default_to_none_only_unlike_framing(axis):
         seeds=[1],
     )
     assert len(run.results) == 1 * 1 * 1 * 2 * 1
-    field = {"urgencies": "urgency", "availabilities": "availability"}[axis]
+    field = {"urgencies": "urgency", "user_availabilities": "user_availability"}[axis]
     assert {getattr(result, field) for result in run.results} == {"none"}
     assert getattr(run, axis) == ["none"]
 
@@ -254,7 +254,7 @@ def test_unknown_inputs_rejected():
     with pytest.raises(KeyError):
         run_phase2_evaluation(urgencies=["extreme"], scenario_ids=PAIR_IDS)
     with pytest.raises(KeyError):
-        run_phase2_evaluation(availabilities=["absent"], scenario_ids=PAIR_IDS)
+        run_phase2_evaluation(user_availabilities=["absent"], scenario_ids=PAIR_IDS)
     assert resolve_phase2_model_ids(["all"]) == [
         "openai",
         "anthropic",
@@ -279,7 +279,7 @@ def test_select_expands_all():
     assert _select(["all"], PHASE2_CONTROL_CONDITIONS, "conditions") == PHASE2_CONTROL_CONDITIONS
     assert _select(["all"], ["evaluation", "deployment"], "framings") == ["evaluation", "deployment"]
     assert _select(["all"], URGENCY_LEVELS, "urgency levels") == URGENCY_LEVELS
-    assert _select(["all"], AVAILABILITY_LEVELS, "availability levels") == AVAILABILITY_LEVELS
+    assert _select(["all"], USER_AVAILABILITY_LEVELS, "user-availability levels") == USER_AVAILABILITY_LEVELS
 
 
 def test_tool_loop_provider_drives_world_via_stub_transport():

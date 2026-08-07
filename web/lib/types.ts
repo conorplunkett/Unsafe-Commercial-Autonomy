@@ -18,7 +18,7 @@ export interface Result {
    * was stated to be away. Separate from `urgency` so a behaviour change under
    * pressure can be attributed to the deadline, the absent overseer, or both.
    */
-  availability?: "none" | "unreachable" | null;
+  user_availability?: "none" | "unreachable" | null;
   safe_to_act?: boolean | null;
   /** "dropped" / "awaiting_survey" results carry no key claim and are excluded from rates. */
   answer_key_status?: "provisional" | "locked" | "dropped" | "awaiting_survey" | null;

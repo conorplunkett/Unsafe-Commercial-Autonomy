@@ -630,24 +630,24 @@ def _phase2_grid_size(args: argparse.Namespace) -> tuple[int, str]:
         scenario_count = len(_csv(args.scenario_ids) or []) or 250
         conditions = len(_csv(args.conditions) or []) or 6
         framings = len(_csv(args.framings) or []) or 2
-        # Unlike framings, omitting --urgencies/--availabilities runs a single
+        # Unlike framings, omitting --urgencies/--user-availabilities runs a single
         # level ("none"), not both — see run_phase2_evaluation. Only an explicit
         # flag multiplies these; both together quadruple the grid.
         urgencies = len(_csv(args.urgencies) or []) or 1
-        availabilities = len(_csv(args.availabilities) or []) or 1
+        user_availabilities = len(_csv(args.user_availabilities) or []) or 1
         seeds = len(_csv_int(args.seeds) or []) or 5
         # Scripted agents run offline; only live providers incur episode API calls.
         models = len([m for m in resolve_phase2_model_ids(_csv(args.models)) if m in LIVE_MODEL_IDS])
     except Exception:
         return 0, ""
     episodes = (
-        scenario_count * conditions * framings * urgencies * availabilities * seeds * models
+        scenario_count * conditions * framings * urgencies * user_availabilities * seeds * models
     )
     if episodes == 0:
         return 0, ""
     breakdown = (
         f"{models} model(s) x {conditions} condition(s) x {framings} framing(s) x "
-        f"{urgencies} urgency level(s) x {availabilities} availability level(s) x "
+        f"{urgencies} urgency level(s) x {user_availabilities} user-availability level(s) x "
         f"{scenario_count} scenario(s) x {seeds} seed(s) "
         f"= {episodes} multi-turn episodes"
     )
@@ -671,7 +671,7 @@ def phase2_eval_command(args: argparse.Namespace) -> int:
             control_conditions=_csv(args.conditions),
             framings=_csv(args.framings),
             urgencies=_csv(args.urgencies),
-            availabilities=_csv(args.availabilities),
+            user_availabilities=_csv(args.user_availabilities),
             scenario_ids=_csv(args.scenario_ids),
             scenario_set_path=Path(args.scenario_set) if args.scenario_set else None,
             seeds=_csv_int(args.seeds),
@@ -704,13 +704,13 @@ def phase2_eval_command(args: argparse.Namespace) -> int:
     _print_split("Condition x framing", "by_condition_and_framing")
     # Each split only earns its rows when that axis actually varied in this run.
     varied_urgency = len(phase2_metrics.get("by_urgency", {})) > 1
-    varied_availability = len(phase2_metrics.get("by_availability", {})) > 1
+    varied_user_availability = len(phase2_metrics.get("by_user_availability", {})) > 1
     if varied_urgency:
         _print_split("Condition x urgency", "by_condition_and_urgency")
-    if varied_availability:
-        _print_split("Condition x availability", "by_condition_and_availability")
-    if varied_urgency and varied_availability:
-        _print_split("Urgency x availability", "by_urgency_and_availability")
+    if varied_user_availability:
+        _print_split("Condition x user availability", "by_condition_and_user_availability")
+    if varied_urgency and varied_user_availability:
+        _print_split("Urgency x user availability", "by_urgency_and_user_availability")
     return 1 if payload["metrics"].get("error_count") else 0
 
 
@@ -1082,10 +1082,10 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     phase2_eval_parser.add_argument(
-        "--availabilities",
+        "--user-availabilities",
         default=None,
         help=(
-            "Comma-separated availability levels: none, unreachable, or all. Default: "
+            "Comma-separated user-availability levels: none, unreachable, or all. Default: "
             "none only (opt in to add the absent-user ablation; unlike --framings, "
             "omitting this does not run both levels). Crosses with --urgencies, so "
             "setting both to all quadruples the grid."

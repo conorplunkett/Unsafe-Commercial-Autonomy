@@ -29,7 +29,7 @@ const state = {
   // Phase 2 ablation axes. Same null/"all" convention as the filters above.
   framingFilter: "all",
   urgencyFilter: "all",
-  availabilityFilter: "all",
+  userAvailabilityFilter: "all",
   selectedKey: null,
   // The human reflexive-ask floor (share of respondents who want the agent to
   // check in before a trivially in-policy purchase), lifted from any loaded
@@ -77,7 +77,7 @@ for (const id of [
   "splitsStamp",
   "resultFramingFilter",
   "resultUrgencyFilter",
-  "resultAvailabilityFilter",
+  "resultUserAvailabilityFilter",
   "ladderFullGrid",
   "ladderEveryScenario",
   "ladderEverySeeds",
@@ -208,10 +208,10 @@ function conditionsForPhase(phase) {
   return phase === "2" ? PHASE2_CONDITION_ORDER : CONDITION_ORDER;
 }
 
-// Phase 2 ablation axes (app/models.py Framing / Urgency / Availability; the
+// Phase 2 ablation axes (app/models.py Framing / Urgency / UserAvailability; the
 // preambles live in app/phase2/sandbox.py). Phase 1 results carry none of them,
 // so all three are treated as optional everywhere they appear. Urgency and
-// availability are separate axes that cross: one is a deadline, the other is
+// user availability are separate axes that cross: one is a deadline, the other is
 // whether the delegating human is around to answer.
 const FRAMING_ORDER = ["evaluation", "deployment"];
 const FRAMING_LABELS = {
@@ -223,8 +223,8 @@ const URGENCY_LABELS = {
   none: "No deadline",
   time_pressure: "Deadline",
 };
-const AVAILABILITY_ORDER = ["none", "unreachable"];
-const AVAILABILITY_LABELS = {
+const USER_AVAILABILITY_ORDER = ["none", "unreachable"];
+const USER_AVAILABILITY_LABELS = {
   none: "User reachable",
   unreachable: "User away",
 };
@@ -237,9 +237,9 @@ function urgencyLabel(urgency) {
   return urgency ? URGENCY_LABELS[urgency] || urgency.replaceAll("_", " ") : "—";
 }
 
-function availabilityLabel(availability) {
-  return availability
-    ? AVAILABILITY_LABELS[availability] || availability.replaceAll("_", " ")
+function userAvailabilityLabel(userAvailability) {
+  return userAvailability
+    ? USER_AVAILABILITY_LABELS[userAvailability] || userAvailability.replaceAll("_", " ")
     : "—";
 }
 
@@ -1247,7 +1247,7 @@ function renderCostLadder() {
   // --conditions no_policy,tool_constraints (2) x --seeds 1,2,3,4,5 (5).
   els.ladderEverySeeds.textContent = episodes(scenarios * 2 * 5);
   els.ladderFullGrid.textContent =
-    "Full grid (6 conditions × 2 framings × 2 urgency levels × 2 availability levels " +
+    "Full grid (6 conditions × 2 framings × 2 urgency levels × 2 user availability levels " +
     `× 5 seeds) = ${(scenarios * 6 * 2 * 2 * 2 * 5).toLocaleString()} episodes per model.`;
 }
 
@@ -1505,7 +1505,7 @@ function renderResultsFilterOptions() {
   }
   els.resultConditionFilter.value = state.conditionFilter;
 
-  // Framing, urgency and availability are Phase 2 ablation axes, so the selects hide
+  // Framing, urgency and user availability are Phase 2 ablation axes, so the selects hide
   // entirely on a page holding only Phase 1 results rather than offering a
   // dropdown with one option in it.
   state.framingFilter = renderAxisFilter(
@@ -1524,13 +1524,13 @@ function renderResultsFilterOptions() {
     "All urgency",
     urgencyLabel
   );
-  state.availabilityFilter = renderAxisFilter(
-    els.resultAvailabilityFilter,
-    AVAILABILITY_ORDER,
-    (result) => result.availability,
-    state.availabilityFilter,
+  state.userAvailabilityFilter = renderAxisFilter(
+    els.resultUserAvailabilityFilter,
+    USER_AVAILABILITY_ORDER,
+    (result) => result.user_availability,
+    state.userAvailabilityFilter,
     "All availability",
-    availabilityLabel
+    userAvailabilityLabel
   );
 
   const anyFilterActive =
@@ -1540,7 +1540,7 @@ function renderResultsFilterOptions() {
     state.conditionFilter !== "all" ||
     state.framingFilter !== "all" ||
     state.urgencyFilter !== "all" ||
-    state.availabilityFilter !== "all";
+    state.userAvailabilityFilter !== "all";
   els.resultsFilterReset.hidden = !anyFilterActive;
 }
 
@@ -1593,8 +1593,8 @@ function applyResultFilters(results) {
   if (state.urgencyFilter !== "all") {
     filtered = filtered.filter((result) => result.urgency === state.urgencyFilter);
   }
-  if (state.availabilityFilter !== "all") {
-    filtered = filtered.filter((result) => result.availability === state.availabilityFilter);
+  if (state.userAvailabilityFilter !== "all") {
+    filtered = filtered.filter((result) => result.user_availability === state.userAvailabilityFilter);
   }
   return filtered;
 }
@@ -1606,7 +1606,7 @@ function resetResultFilters() {
   state.conditionFilter = "all";
   state.framingFilter = "all";
   state.urgencyFilter = "all";
-  state.availabilityFilter = "all";
+  state.userAvailabilityFilter = "all";
   state.selectedKey = null;
   renderAll();
 }
@@ -1632,8 +1632,8 @@ function axesBlock(result) {
   ];
   if (result.framing) facts.push(factRow("Framing", framingLabel(result.framing)));
   if (result.urgency) facts.push(factRow("Urgency", urgencyLabel(result.urgency)));
-  if (result.availability)
-    facts.push(factRow("Availability", availabilityLabel(result.availability)));
+  if (result.user_availability)
+    facts.push(factRow("User availability", userAvailabilityLabel(result.user_availability)));
   return `<div class="detail-block"><h3>Axes</h3><dl class="detail-facts">${facts.join("")}</dl></div>`;
 }
 
@@ -2086,8 +2086,8 @@ function renderAll() {
   }
   if (state.framingFilter !== "all") stampParts.push(framingLabel(state.framingFilter));
   if (state.urgencyFilter !== "all") stampParts.push(urgencyLabel(state.urgencyFilter));
-  if (state.availabilityFilter !== "all")
-    stampParts.push(availabilityLabel(state.availabilityFilter));
+  if (state.userAvailabilityFilter !== "all")
+    stampParts.push(userAvailabilityLabel(state.userAvailabilityFilter));
   els.modelResultsStamp.textContent = `${stampParts.join(" · ")} · ${filtered.length} results`;
   renderFailureChart(filtered);
   renderResultsTable(filtered);
@@ -2191,8 +2191,8 @@ function bindEvents() {
     state.selectedKey = null;
     renderAll();
   });
-  els.resultAvailabilityFilter.addEventListener("change", () => {
-    state.availabilityFilter = els.resultAvailabilityFilter.value;
+  els.resultUserAvailabilityFilter.addEventListener("change", () => {
+    state.userAvailabilityFilter = els.resultUserAvailabilityFilter.value;
     state.selectedKey = null;
     renderAll();
   });
