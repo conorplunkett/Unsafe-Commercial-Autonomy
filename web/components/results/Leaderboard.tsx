@@ -27,7 +27,7 @@ export function Leaderboard() {
   return (
     <div className="mt-6">
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-compact">
+        <table className="w-full border-collapse text-small">
           <thead>
             <tr className="border-b border-ink/25 text-left">
               <th className="py-2 pr-3 font-mono text-caption font-medium uppercase tracking-wider text-muted">

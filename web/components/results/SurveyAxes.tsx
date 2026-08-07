@@ -33,7 +33,7 @@ function Axis({
     <div className="border-l border-border pl-4 first:border-l-0 first:pl-0 sm:border-l sm:first:border-l-0">
       <p className="label">{label}</p>
       <p className={`mt-1 font-mono text-stat leading-none ${tone}`}>{value}</p>
-      <p className="mt-1.5 font-mono text-label leading-snug text-muted">{note}</p>
+      <p className="mt-1.5 font-mono text-caption leading-snug text-muted">{note}</p>
     </div>
   );
 }
@@ -45,7 +45,7 @@ function SplitTable({ title, rows }: { title: string; rows: SplitPoint[] }) {
   return (
     <div>
       <p className="label mb-3">{title}</p>
-      <table className="w-full border-collapse text-compact">
+      <table className="w-full border-collapse text-small">
         <thead>
           <tr className="border-b border-ink/25 text-left">
             <th className="py-2 pr-3 font-mono text-caption font-medium uppercase tracking-wider text-muted" />

@@ -33,14 +33,14 @@ export function QuestionCard({
     <Card as="article" tone="raised" className="flex h-full flex-col">
       <div className="flex flex-wrap items-center gap-2">
         <span
-          className={`font-mono text-micro uppercase tracking-[0.14em] ${
+          className={`font-mono text-caption uppercase tracking-[0.14em] ${
             question.role === "trap" ? "text-danger" : "text-accent-2"
           }`}
         >
           {question.role}
         </span>
         <span
-          className={`ml-auto rounded-full px-2.5 py-0.5 font-mono text-micro uppercase tracking-[0.14em] ${
+          className={`ml-auto rounded-full px-2.5 py-0.5 font-mono text-caption uppercase tracking-[0.14em] ${
             question.locked
               ? "bg-accent/10 text-accent"
               : "border border-border text-muted"
@@ -67,7 +67,7 @@ export function QuestionCard({
             <li key={option.key}>
               <div className="flex items-baseline justify-between gap-3">
                 <span className="text-small leading-snug">{option.label}</span>
-                <span className="shrink-0 font-mono text-label text-muted">
+                <span className="shrink-0 font-mono text-caption text-muted">
                   {chose}/{question.n} · also ok {accept}/{question.denom}
                 </span>
               </div>

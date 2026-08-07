@@ -174,7 +174,7 @@ function VerdictBadge({ v }: { v: CellResult["verdict"] }) {
   const m = VERDICT_META[v];
   return (
     <span
-      className={`rounded-full border px-2.5 py-0.5 font-mono text-micro uppercase tracking-wider ${m.cls}`}
+      className={`rounded-full border px-2.5 py-0.5 font-mono text-caption uppercase tracking-wider ${m.cls}`}
     >
       {m.label}
     </span>
@@ -184,13 +184,13 @@ function VerdictBadge({ v }: { v: CellResult["verdict"] }) {
 function SectionHeading({ n, title, aside }: { n: string; title: string; aside?: string }) {
   return (
     <div className="flex flex-wrap items-baseline justify-between gap-2">
-      <h2 className="font-mono text-label uppercase tracking-wider text-muted">
+      <h2 className="font-mono text-caption uppercase tracking-wider text-muted">
         <span className="text-accent">{n}</span>
         <span className="mx-2 text-border">·</span>
         {title}
       </h2>
       {aside && (
-        <span className="font-mono text-micro uppercase tracking-wider text-muted/80">
+        <span className="font-mono text-caption uppercase tracking-wider text-muted/80">
           {aside}
         </span>
       )}
@@ -325,7 +325,7 @@ export function Runner() {
     }
   }
 
-  const label = "block font-mono text-label uppercase tracking-wider text-muted";
+  const label = "block font-mono text-caption uppercase tracking-wider text-muted";
   const field =
     "mt-1.5 w-full rounded-md border border-border bg-paper px-3 py-2 font-mono text-small text-ink outline-none focus:border-accent disabled:cursor-not-allowed disabled:opacity-40";
   const chip = "rounded-full border px-3 py-1 font-mono text-caption transition-colors";
@@ -513,7 +513,7 @@ export function Runner() {
             {scenarioGroups.map((group) => (
               <div key={group.category}>
                 {category === "all" && (
-                  <div className="border-b border-border bg-paper-2/60 px-4 py-1.5 font-mono text-micro uppercase tracking-wider text-muted">
+                  <div className="border-b border-border bg-paper-2/60 px-4 py-1.5 font-mono text-caption uppercase tracking-wider text-muted">
                     {categoryLabel(group.category)}
                   </div>
                 )}
@@ -537,7 +537,7 @@ export function Runner() {
                       >
                         {s.title}
                       </span>
-                      <span className="shrink-0 font-mono text-micro uppercase tracking-wider text-muted">
+                      <span className="shrink-0 font-mono text-caption uppercase tracking-wider text-muted">
                         {s.pair_role} · {s.stakes}
                       </span>
                     </button>
@@ -601,7 +601,7 @@ export function Runner() {
         {/* Progress bar — fills as each condition completes */}
         {(running || (progress.total > 0 && progress.done > 0)) && (
           <div className="mt-4">
-            <div className="flex items-center justify-between font-mono text-label text-muted">
+            <div className="flex items-center justify-between font-mono text-caption text-muted">
               <span>
                 {running
                   ? `Running ${selectedConditions[progress.done] ? CONDITION_LABELS[selectedConditions[progress.done]] : "…"}`
@@ -645,7 +645,7 @@ export function Runner() {
       {ranScenario && (
         <Card className="mt-6">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="font-mono text-micro uppercase tracking-wider text-muted">
+            <span className="font-mono text-caption uppercase tracking-wider text-muted">
               {categoryLabel(ranScenario.category)} · {ranScenario.pair_role} ·{" "}
               {ranScenario.stakes} stakes
             </span>
@@ -657,7 +657,7 @@ export function Runner() {
             <span className="text-muted">Safe answer: </span>
             <span className="text-accent">{ranScenario.right_answer ?? "—"}</span>
             {ranScenario.failure_tested && (
-              <span className="ml-3 font-mono text-label text-muted">
+              <span className="ml-3 font-mono text-caption text-muted">
                 tests: {ranScenario.failure_tested}
               </span>
             )}
@@ -679,7 +679,7 @@ export function Runner() {
                   <div className="flex items-center gap-2">
                     <VerdictBadge v={r.verdict} />
                     <span
-                      className={`font-mono text-label ${correct ? "text-accent" : "text-danger"}`}
+                      className={`font-mono text-caption ${correct ? "text-accent" : "text-danger"}`}
                     >
                       {correct ? "✓ matched" : "✗ failed"}
                     </span>
@@ -697,7 +697,7 @@ export function Runner() {
                   </p>
                 )}
                 {r.block_reasons && r.block_reasons.length > 0 && (
-                  <p className="mt-2 font-mono text-label text-warn">
+                  <p className="mt-2 font-mono text-caption text-warn">
                     blocked by tools: {r.block_reasons.join(", ")}
                   </p>
                 )}

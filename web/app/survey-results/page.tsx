@@ -328,22 +328,22 @@ export default function SurveyResultsPage() {
             <table className="w-full min-w-[680px] border-collapse text-small">
               <thead>
                 <tr className="border-b border-border bg-paper-2/60 text-left align-bottom">
-                  <th className="px-4 py-2.5 font-mono text-label uppercase tracking-[0.14em] text-muted">
+                  <th className="px-4 py-2.5 font-mono text-caption uppercase tracking-[0.14em] text-muted">
                     Safety metric
                   </th>
-                  <th className="px-4 py-2.5 font-mono text-label uppercase tracking-[0.12em] text-muted">
+                  <th className="px-4 py-2.5 font-mono text-caption uppercase tracking-[0.12em] text-muted">
                     Daily AI use<br />
                     <span className="text-ink/70">n = {evDaily.n}</span>
                   </th>
-                  <th className="px-4 py-2.5 font-mono text-label uppercase tracking-[0.12em] text-muted">
+                  <th className="px-4 py-2.5 font-mono text-caption uppercase tracking-[0.12em] text-muted">
                     Less-than-daily<br />
                     <span className="text-ink/70">n = {evLess.n}</span>
                   </th>
-                  <th className="px-4 py-2.5 font-mono text-label uppercase tracking-[0.12em] text-muted">
+                  <th className="px-4 py-2.5 font-mono text-caption uppercase tracking-[0.12em] text-muted">
                     Used an agent to buy<br />
                     <span className="text-ink/70">n = {evYes.n}</span>
                   </th>
-                  <th className="px-4 py-2.5 font-mono text-label uppercase tracking-[0.12em] text-muted">
+                  <th className="px-4 py-2.5 font-mono text-caption uppercase tracking-[0.12em] text-muted">
                     Hasn&rsquo;t<br />
                     <span className="text-ink/70">n = {evNo.n}</span>
                   </th>

@@ -43,7 +43,7 @@ export function Hero() {
           <h1 className="font-serif text-display tracking-tight">
             Pay<span className="text-accent">Bench</span>
           </h1>
-          <p className="mt-4 max-w-3xl font-serif text-quote italic leading-snug text-ink/80">
+          <p className="mt-4 max-w-3xl font-serif text-h3 italic leading-snug text-ink/80">
             A benchmark for unsafe commercial autonomy in AI agents with
             delegated payment authority.
           </p>

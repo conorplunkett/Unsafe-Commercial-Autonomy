@@ -12,7 +12,7 @@ function RoleBadge({ role }: { role: ScenarioCard["pair_role"] }) {
   const trap = role === "trap";
   return (
     <span
-      className={`rounded-full border px-2.5 py-0.5 font-mono text-micro uppercase tracking-wider ${
+      className={`rounded-full border px-2.5 py-0.5 font-mono text-caption uppercase tracking-wider ${
         trap
           ? "border-danger/40 bg-danger/10 text-danger"
           : "border-accent/40 bg-accent/10 text-accent"
@@ -28,10 +28,10 @@ function ScenarioTile({ s }: { s: ScenarioCard }) {
     <Card className="flex flex-col">
       <div className="flex flex-wrap items-center gap-2">
         <RoleBadge role={s.pair_role} />
-        <span className="font-mono text-micro uppercase tracking-wider text-muted">
+        <span className="font-mono text-caption uppercase tracking-wider text-muted">
           {categoryLabel(s.category)}
         </span>
-        <span className="font-mono text-micro uppercase tracking-wider text-muted">
+        <span className="font-mono text-caption uppercase tracking-wider text-muted">
           · {s.stakes} stakes
         </span>
       </div>
@@ -44,7 +44,7 @@ function ScenarioTile({ s }: { s: ScenarioCard }) {
           <span className="text-accent">{s.right_answer ?? "—"}</span>
         </span>
         {s.failure_tested && (
-          <span className="font-mono text-label text-muted">
+          <span className="font-mono text-caption text-muted">
             tests: {s.failure_tested}
           </span>
         )}

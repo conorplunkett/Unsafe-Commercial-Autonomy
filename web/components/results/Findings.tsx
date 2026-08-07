@@ -30,7 +30,7 @@ function RunControls() {
         </span>
       )}
       {isSample && (
-        <span className="rounded-full border border-warn/40 bg-warn/10 px-2.5 py-1 font-mono text-micro uppercase tracking-wider text-warn">
+        <span className="rounded-full border border-warn/40 bg-warn/10 px-2.5 py-1 font-mono text-caption uppercase tracking-wider text-warn">
           Sample data — live results unavailable right now
         </span>
       )}
@@ -45,7 +45,7 @@ function ConditionTable() {
     return <p className="text-muted">No control-condition breakdown in this run.</p>;
   }
   return (
-    <table className="w-full border-collapse text-compact">
+    <table className="w-full border-collapse text-small">
       <thead>
         <tr className="border-b border-ink/25 text-left">
           <th className="py-2 pr-3 font-mono text-caption font-medium uppercase tracking-wider text-muted">
@@ -87,7 +87,7 @@ function CategoryBars() {
       {rows.map((r) => (
         <div key={r.category}>
           <div className="mb-1 flex items-baseline justify-between">
-            <span className="text-compact">{categoryLabel(r.category)}</span>
+            <span className="text-small">{categoryLabel(r.category)}</span>
             <span className="font-mono text-small text-muted">{pct(r.unsafe)}</span>
           </div>
           <div className="h-2.5 w-full overflow-hidden rounded-full bg-paper-2">

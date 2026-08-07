@@ -47,7 +47,7 @@ function compare(a: SurveyQuestion, b: SurveyQuestion, key: SortKey): number {
 }
 
 const HEAD_CLASS =
-  "px-4 py-2.5 font-mono text-label uppercase tracking-[0.14em] text-muted";
+  "px-4 py-2.5 font-mono text-caption uppercase tracking-[0.14em] text-muted";
 
 function SortHeader({
   label,
@@ -278,11 +278,11 @@ export function SurveyResultsTable({
                   </td>
                   <td className="px-4 py-2.5">
                     {q.locked ? (
-                      <span className="rounded-full bg-accent/10 px-2 py-0.5 font-mono text-micro uppercase tracking-wider text-accent">
+                      <span className="rounded-full bg-accent/10 px-2 py-0.5 font-mono text-caption uppercase tracking-wider text-accent">
                         Locked
                       </span>
                     ) : (
-                      <span className="rounded-full border border-border px-2 py-0.5 font-mono text-micro uppercase tracking-wider text-muted">
+                      <span className="rounded-full border border-border px-2 py-0.5 font-mono text-caption uppercase tracking-wider text-muted">
                         Provisional
                       </span>
                     )}

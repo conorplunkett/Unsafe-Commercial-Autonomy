@@ -39,30 +39,35 @@ and each step is named for its role rather than its pixels — `text-h2`, not
 `text-3xl`, so a later retune doesn't leave the class names lying about what
 they do.
 
+**Ten steps.** Shipped systems land between six and twelve — GOV.UK runs the
+whole of government on six, Apple's HIG has eleven, Material's fifteen roles
+collapse to five size families. Ten is what this site needs to carry long-form
+prose, dense data tables, and a display hero without any two steps sitting a
+pixel apart.
+
 | Step | Size | Line height | Used for |
 | --- | --- | --- | --- |
-| `text-micro` | 0.65rem / 10.4px | 1.45 | mono in dense table cells and badges |
-| `text-label` | 0.7rem / 11.2px | 1.45 | the `.label` eyebrow, chart captions |
-| `text-caption` | 0.75rem / 12px | 1.5 | mono metadata, fine print |
+| `text-caption` | 0.75rem / 12px | 1.5 | all small mono: eyebrows, badges, table cells |
 | `text-small` | 0.875rem / 14px | 1.55 | secondary UI text, table body |
-| `text-compact` | 0.95rem / 15.2px | 1.55 | dense serif tables |
 | `text-ui` | 1.05rem / 16.8px | 1.5 | nav, links, buttons, list items |
 | `text-prose` | 1.125rem / 18px | 1.7 | long-form paragraphs |
-| `text-h4` | 1.25rem / 20px | 1.35 | card titles |
-| `text-h3` | 1.5rem / 24px | 1.25 | sub-headings |
+| `text-h4` | 1.25rem / 20px | 1.35 | card titles, the nav wordmark |
+| `text-h3` | 20 → 24px, fluid | 1.3 | sub-headings, pull quotes |
 | `text-stat` | 1.7rem / 27.2px | 1.05 | the big number in a stat tile |
-| `text-quote` | 20 → 24px, fluid | 1.25 | pull quotes, the hero lede |
 | `text-h2` | 30 → 36px, fluid | 1.15 | section headings |
 | `text-h1` | 36 → 48px, fluid | 1.1 | sub-page titles |
 | `text-display` | 60 → 80px, fluid | 0.98 | the hero wordmark |
 
-Steps sit close together through the UI range, where a pixel is a real decision,
-and open up at the display end.
+12px is the floor on purpose. The site previously had three mono steps between
+10.4px and 12px; one is enough, and it is the size most systems bottom out at.
 
-**The four largest steps are fluid.** They interpolate between a 640px and a
+**The four heading steps are fluid.** They interpolate between a 640px and a
 1280px viewport via `clamp()`, so headings take no `sm:` variant — `text-h2`
 alone replaces `text-3xl sm:text-4xl`. Don't add a breakpoint to a heading;
 retune the clamp.
+
+`text-h4` is fixed rather than fluid because the nav wordmark uses it, and the
+nav breaks onto two lines if that grows.
 
 Line heights ship with the step. A `leading-*` utility on the same element
 overrides it, which is how the tighter pull quotes and the looser hero lede

@@ -31,7 +31,7 @@ export function Roadmap() {
             <div className="flex items-center justify-between">
               <p className="label">{p.tag}</p>
               <span
-                className={`rounded-full px-2.5 py-0.5 font-mono text-micro uppercase tracking-wider ${
+                className={`rounded-full px-2.5 py-0.5 font-mono text-caption uppercase tracking-wider ${
                   p.status === "Results live" || p.status === "In progress"
                     ? "bg-accent/15 text-accent"
                     : "bg-paper-2 text-muted"

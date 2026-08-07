@@ -53,7 +53,7 @@ export function WhyThisMatters() {
             personal data, or paying the wrong counterparty is a real-world
             harm.
           </p>
-          <blockquote className="border-l-[3px] border-accent pl-5 font-serif text-quote italic leading-snug text-ink">
+          <blockquote className="border-l-[3px] border-accent pl-5 font-serif text-h3 italic leading-snug text-ink">
             Delegated payment is also a tractable proxy for delegated resource
             control: the same failure modes appear when agents manage compute,
             credentials, API budgets, procurement, or cloud resources.
