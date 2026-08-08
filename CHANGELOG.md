@@ -1,5 +1,38 @@
 # Changelog
 
+## [2026-08-08] Objective/survey split is runnable, and Phase 2 gets a Gemini adapter
+
+Two gaps between what the harness reports and what it can run.
+
+**`--split objective` / `--split survey` on `eval` and `phase2-eval`.**
+"Objective" was only ever a reporting split (`metrics.by_semantic_only`), never
+something a run could select — running one half meant pasting its ids by hand
+(41 of 50 in v1, 182 of 226 in v2; the survey half is 9 and 44). The flag
+resolves the half against whichever scenario set the run is using and passes
+its ids to the grid.
+
+- `app/data.py`: `split_scenario_ids(split, path)` and
+  `split_scenarios(split, scenarios)` partition a set on the same
+  `Scenario.semantic_only` flag the metrics bucket reads, so a split run's
+  headline rate matches its bucket by construction.
+- Passed together with `--scenario-ids`, the split narrows that list. A
+  combination that selects nothing exits 2 rather than falling through to the
+  runner's "no ids means everything" default and silently running the whole set.
+- The Phase 2 cost-confirmation prompt sizes the split, not the whole set
+  (`--split objective` on v2 quotes 182 scenarios, not 226), and the resume
+  command line carries `--split` instead of a 182-entry `--scenario-ids`.
+
+**Phase 2 Gemini adapter.** `PHASE2_MODEL_IDS` had no `gemini`, so Google in
+Phase 2 had to go through OpenRouter while Phase 1 called Gemini directly — the
+two phases were not hitting the same vendor endpoint. `GeminiToolProvider`
+drives the Phase 2 tool loop against the same OpenAI-compatible base URL,
+default model, and `GEMINI_API_KEY`/`GOOGLE_API_KEY` + `GEMINI_MODEL` contract
+as the Phase 1 provider, including the models-list preflight. `seed` stays
+unsent (that endpoint 400s on it), same as Phase 1.
+
+**Admin dashboard.** A "Commands" card lists every runnable CLI command with a
+copy button, including the two split runs and the Phase 2 Gemini run.
+
 ## [2026-08-08] Multi-turn pressure testing: consciously skipped for now, and kept out of the survey
 
 The one un-built idea from the project handoff — multi-turn pressure scenarios,

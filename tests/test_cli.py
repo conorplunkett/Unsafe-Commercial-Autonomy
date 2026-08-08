@@ -426,6 +426,7 @@ def _phase2_args(**overrides):
     defaults = dict(
         models=None, conditions=None, framings=None, urgencies=None,
         user_availabilities=None, scenario_ids=None, scenario_set=None, seeds=None,
+        split="all",
     )
     defaults.update(overrides)
     return argparse.Namespace(**defaults)
@@ -468,3 +469,131 @@ def test_phase2_grid_size_excludes_scripted_agents():
     from app.cli import _phase2_grid_size
 
     assert _phase2_grid_size(_phase2_args(models="scripted_diligent", seeds="1")) == (0, "")
+
+
+def test_cli_eval_split_objective_runs_only_the_objective_half(capsys):
+    # --split is the only thing that selects a half: "objective" is a reporting
+    # split (metrics.by_semantic_only), not a property of the grid, so without
+    # this flag running it means pasting 41 (v1) or 182 (v2) ids by hand.
+    status = main(
+        ["eval", "--conditions", "no_policy", "--seeds", "1", "--split", "objective", "--dry-run"]
+    )
+
+    output = capsys.readouterr().out
+    assert status == 0
+    assert "Split: objective — 41 scenario(s)." in output
+    assert "Results: 41" in output
+
+
+def test_cli_eval_split_survey_runs_only_the_surveyed_half(capsys):
+    status = main(
+        ["eval", "--conditions", "no_policy", "--seeds", "1", "--split", "survey", "--dry-run"]
+    )
+
+    output = capsys.readouterr().out
+    assert status == 0
+    assert "Split: survey — 9 scenario(s)." in output
+    assert "Results: 9" in output
+
+
+def test_cli_eval_split_follows_the_scenario_set(capsys):
+    status = main(
+        [
+            "eval",
+            "--conditions", "no_policy",
+            "--seeds", "1",
+            "--scenario-set", "data/scenario_sets/v2_250_scenarios.md",
+            "--split", "survey",
+            "--dry-run",
+        ]
+    )
+
+    output = capsys.readouterr().out
+    assert status == 0
+    assert "Split: survey — 44 scenario(s)." in output
+    assert "Results: 44" in output
+
+
+def test_cli_eval_split_narrows_explicit_scenario_ids(capsys):
+    status = main(
+        [
+            "eval",
+            "--conditions", "no_policy",
+            "--seeds", "1",
+            "--scenario-ids", "scn_v1_a4_trap,scn_v1_a2_lookalike",
+            "--split", "objective",
+            "--dry-run",
+        ]
+    )
+
+    output = capsys.readouterr().out
+    assert status == 0
+    # a4_trap is semantic_only (survey half); a2_lookalike is objective.
+    assert "Split: objective — 1 scenario(s)." in output
+    assert "Results: 1" in output
+
+
+def test_cli_eval_split_that_selects_nothing_refuses_to_run(capsys):
+    # Empty ids would otherwise fall through to the runner's "no ids means
+    # everything" default and silently run the whole set.
+    status = main(
+        [
+            "eval",
+            "--scenario-ids", "scn_v1_a2_lookalike",
+            "--split", "survey",
+            "--dry-run",
+        ]
+    )
+
+    output = capsys.readouterr().out
+    assert status == 2
+    assert "--split survey selected no scenarios" in output
+    assert "Run saved:" not in output
+
+
+def test_cli_phase2_eval_split_runs_one_half(capsys, monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    status = main(
+        [
+            "phase2-eval",
+            "--models", "scripted_diligent",
+            "--conditions", "no_policy",
+            "--framings", "evaluation",
+            "--seeds", "1",
+            "--split", "survey",
+            "--dry-run",
+        ]
+    )
+
+    output = capsys.readouterr().out
+    assert status == 0
+    assert "Split: survey — 44 scenario(s)." in output
+    assert "Results: 44" in output
+
+
+def test_phase2_grid_size_counts_the_split_not_the_whole_set():
+    # The confirmation prompt has to quote what --split will actually spend.
+    from app.cli import _phase2_grid_size, _resolve_split
+    from app.phase2.runner import PHASE2_SCENARIO_SET
+
+    args = _phase2_args(models="anthropic", seeds="1", split="objective")
+    scenario_ids = _resolve_split("objective", None, PHASE2_SCENARIO_SET)
+    episodes, breakdown = _phase2_grid_size(args, scenario_ids)
+    assert episodes == 182 * 6 * 2
+    assert "182 scenario(s)" in breakdown
+
+
+def test_phase2_resume_command_line_carries_the_split():
+    # A 182-id --scenario-ids list would be unusable; the resume line keeps the
+    # flag that produced it instead.
+    from app.cli import _resume_command_line
+
+    args = _phase2_args(
+        models="anthropic", seeds="1", split="objective",
+        temperature=None, reasoning_effort=None, concurrency=1, dry_run=False,
+    )
+    line = _resume_command_line(args, "run_abc123")
+    assert "--split objective" in line
+
+    args.split = "all"
+    assert "--split" not in _resume_command_line(args, "run_abc123")

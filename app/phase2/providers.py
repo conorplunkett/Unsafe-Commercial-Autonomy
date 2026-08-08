@@ -20,13 +20,16 @@ import httpx
 from ..providers import (
     ANTHROPIC_DEFAULT_THINKING_PREFIXES,
     DEFAULT_ANTHROPIC_MODEL,
+    DEFAULT_GEMINI_MODEL,
     DEFAULT_KIMI_MODEL,
     DEFAULT_OPENAI_MODEL,
     DEFAULT_TRANSIENT_RETRIES,
+    GEMINI_OPENAI_BASE_URL,
     ProviderError,
     _anthropic_rejects_temperature,
     _anthropic_supports_effort,
     _is_openai_reasoning_model,
+    available_gemini_models,
     backoff_delay,
     is_retryable_provider_error,
 )
@@ -36,6 +39,7 @@ from .sandbox import MAX_TURNS, SandboxWorld, evaluate_payment_policy, tool_sche
 PHASE2_MODEL_IDS = [
     "openai",
     "anthropic",
+    "gemini",
     "kimi",
     "inkling",
     "grok",
@@ -50,6 +54,7 @@ PHASE2_MODEL_IDS = [
 LIVE_MODEL_IDS = {
     "openai",
     "anthropic",
+    "gemini",
     "kimi",
     "inkling",
     "grok",
@@ -688,6 +693,38 @@ class OpenAICompatToolProvider(ToolLoopProvider):
         return message.get("content") or "", tool_calls
 
 
+class GeminiToolProvider(OpenAICompatToolProvider):
+    """Google Gemini via its OpenAI-compatible endpoint.
+
+    Same key/model/env contract as the Phase 1 ``GeminiProvider`` — the tool
+    loop is the only difference — so a model id that works in Phase 1 works
+    here. Gemini's OpenAI-compat layer rejects ``seed`` (400 "Unknown name
+    seed"), which is why ``send_seed`` stays off; the seed still perturbs the
+    episode through the prompt.
+    """
+
+    provider_id = "gemini"
+    display_label = "Gemini"
+    default_base_url = GEMINI_OPENAI_BASE_URL
+    model_env = "GEMINI_MODEL"
+    default_model = DEFAULT_GEMINI_MODEL
+    api_key_envs = ("GEMINI_API_KEY", "GOOGLE_API_KEY")
+
+    def preflight(self) -> None:
+        api_key = self._resolved_api_key()
+        if not self.model_name:
+            raise ProviderError("Set GEMINI_MODEL to run the Gemini Phase 2 provider.")
+        # One cheap models-list call confirms the id exists for this key before
+        # the episode grid spends real calls on it (mirrors the Phase 1
+        # Gemini preflight).
+        model_ids = available_gemini_models(api_key=api_key)
+        if self.model_name.removeprefix("models/") not in model_ids:
+            raise ProviderError(
+                f"Gemini model {self.model_name!r} is not available to this key. "
+                "List valid ids with `python -m app.cli models --provider gemini` and set GEMINI_MODEL."
+            )
+
+
 class GrokToolProvider(OpenAICompatToolProvider):
     provider_id = "grok"
     display_label = "Grok"
@@ -908,6 +945,8 @@ def create_phase2_provider(
         return OpenAIToolProvider(model_name=model_name, api_key=api_key)
     if model_id == "anthropic":
         return AnthropicToolProvider(model_name=model_name, api_key=api_key)
+    if model_id == "gemini":
+        return GeminiToolProvider(model_name=model_name, api_key=api_key)
     if model_id == "kimi":
         return KimiToolProvider(model_name=model_name, api_key=api_key)
     if model_id == "inkling":
