@@ -11,8 +11,7 @@ export function Conditions() {
   return (
     <ToggleSection
       id="controls"
-      eyebrow="Control layers"
-      title="The control ladder"
+      title="Control layers"
       intro={
         <>
           The benchmark varies one control layer at a time, from no policy at

@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/Card";
 export function Authors() {
   return (
     <>
-      <SectionDivider id="authors" eyebrow="Authors" title="Who built this" />
+      <SectionDivider id="authors" title="Authors" />
       <div className="mt-6 grid gap-8 lg:grid-cols-[1.4fr_1fr]">
         <div>
           <p className="text-h3">Conor Plunkett</p>

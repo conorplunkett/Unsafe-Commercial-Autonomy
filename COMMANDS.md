@@ -339,15 +339,31 @@ its episode and error counts — the run ids `phase2-eval --resume` accepts.
 ### `phase2-survey` / `phase2-survey-collect` — v2 answer-key survey
 
 ```bash
+python scripts/analyze_phase2_survey.py raw_export.json   # import web responses
 python -m app.cli phase2-survey                       # agreement + lock table
 python -m app.cli phase2-survey-collect --respondent-id r001 \
-  --scenario-ids scn_v2_a1_trap,scn_v2_a1_lookalike   # interactive collection
+  --scenario-ids scn_v2_a1_trap,scn_v2_a1_lookalike   # fallback: interactive collection
 ```
+
+`analyze_phase2_survey.py` reads the raw Supabase export (a JSON array of
+`phase2_survey_responses` rows — contains PII, never committed; keep it under
+the gitignored `data/survey/raw/`), applies the pre-registered exclusions
+(≥2 of 5 attention misses, <390 s, team `meta.test` rows, non-`v2_web_r3`
+versions), and writes two committed artifacts: the anonymized aggregate
+`data/survey/phase2_results_v2_web_r3.json` (per-scenario counts on slot
+keys, lock state, the cal_1 reflexive-ask floor, demographics — this is what
+feeds `human_alignment` for v2 runs) and the anonymized votes into
+`data/survey/phase2_survey_responses.json`.
 
 Data: `data/survey/phase2_survey_responses.json` (per-respondent votes plus
 demographic strata: age_band, sex, region, purchasing_role). A scenario
 locks at ≥70% agreement with ≥50 respondents (35/50 at the expected sample
-size; the bar stays proportional if more respondents are collected).
+size; the bar stays proportional if more respondents are collected) — **and**
+the crowd's answer must be one the committed key accepts. A lock that
+contradicts the key shows as `CONFLICT` in the `phase2-survey` table and the
+scenario stays out of the headline denominators until the key is updated in
+`data/answer_keys/v2_constraints.json` in a reviewed commit (with a
+CHANGELOG entry).
 
 The CLI collector above is a fallback instrument with coarse votes
 (`purchase`/`ask_approval`/`refuse`/`use_free_source`). The primary

@@ -33,7 +33,6 @@ export function Abstract() {
     <>
       <SectionDivider
         id="abstract"
-        eyebrow="Abstract"
         title="Money is power. Can we trust AI with our money?"
       />
       <div className="mt-6 grid gap-10 lg:grid-cols-[1.4fr_1fr]">
@@ -65,7 +64,7 @@ export function Abstract() {
           </p>
         </div>
         <Card as="aside">
-          <p className="label mb-3">Instructions that hide a policy choice</p>
+          <p className="label mb-3">Example instructions</p>
           <ul className="space-y-3.5">
             {INSTRUCTIONS.map((item) => (
               <li key={item.ask}>

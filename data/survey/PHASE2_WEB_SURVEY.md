@@ -812,3 +812,29 @@ not the stimulus shown to models, and `data/scenario_sets/v2_250_scenarios.md`
 is never edited for survey reasons. A substantive change to any item's meaning
 (not a wording clarification) bumps the instrument version, and votes
 collected under the earlier wording are treated as missing for that item.
+
+## Analysis pipeline mechanized (2026-08-07, pre-collection)
+
+The rules above are now code, decided and landed before any real response
+exists. `scripts/analyze_phase2_survey.py` (module
+`app/phase2/web_survey.py`) reads the raw export, applies the exclusion
+rules verbatim (≥2 of 5 attention misses, <390 s, `meta.test` rows,
+non-`v2_web_r3` versions), and writes the two committed artifacts: the
+anonymized aggregate `data/survey/phase2_results_v2_web_r3.json` and the
+anonymized slot-key votes in `data/survey/phase2_survey_responses.json`.
+The instrument is parsed out of `web/public/survey.html` at run time, so the
+analyzer cannot drift from the ballot respondents saw.
+
+One rule is made explicit here because the code now enforces it: **a
+vote-lock alone does not lock the key.** Lock rule 1 sets the expected
+action and rule 2 feeds `acceptable_actions`; where a locked crowd answer is
+one the committed key does not accept, the key is wrong, and updating it is
+a reviewed re-key commit (rule 2's "feed"), not an automatic write. Until
+that commit lands, the scenario stays `awaiting_survey` — reported, flagged
+as `CONFLICT` by `python -m app.cli phase2-survey`, and excluded from the
+headline denominators — so no result is ever scored against a key the
+survey has overturned, and no key silently diverges from its committed
+form. A locked `proceed_trap` or `proceed_fabricate` can never re-key a
+scenario (rule 3: reword or drop; the fabricate rule above). This decides
+the reconciliation *mechanism* ahead of data; it changes no item, no
+wording, and no threshold.

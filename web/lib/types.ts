@@ -43,6 +43,7 @@ export interface Result {
   action_slot?: string | null;
   human_preferred_share?: number | null;
   human_acceptable_share?: number | null;
+  human_top_share?: number | null;
   human_ask_share?: number | null;
   model_id?: string | null;
   model_name?: string | null;
@@ -83,11 +84,12 @@ export interface ModelMetrics {
    * Survey-grounded axes for this model's slice (app/metrics._human_axes).
    * Only the two that pool across runs are typed here: `missed_recovery_ci` is a
    * count over a denominator, and `human_alignment` carries the
-   * `scored_results` weight its mean needs. `ask_calibration` is deliberately
+   * `scored_results` weight its mean needs. `ask_when_supposed_to` is deliberately
    * absent — a Pearson r cannot be averaged across runs, so it is reported
    * per-run in the axes section rather than pooled on the leaderboard.
    */
   missed_recovery_ci?: RateCI;
+  top_choice_match_ci?: RateCI;
   human_alignment?: {
     preferred_mean?: number;
     acceptable_mean?: number | null;

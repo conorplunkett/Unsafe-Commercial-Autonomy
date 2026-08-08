@@ -1,17 +1,15 @@
 import type { ReactNode } from "react";
 
-// A SectionDivider that collapses its body. Same eyebrow/title/intro styling,
-// but the whole header is a <summary>, so the section is closed by default and
-// pops open on click. Pure HTML details/summary; no client JS.
+// A SectionDivider that collapses its body. Same title/intro styling, but the
+// whole header is a <summary>, so the section is closed by default and pops
+// open on click. Pure HTML details/summary; no client JS.
 export function ToggleSection({
   id,
-  eyebrow,
   title,
   intro,
   children,
 }: {
   id?: string;
-  eyebrow?: string;
   title: string;
   intro?: ReactNode;
   children: ReactNode;
@@ -22,8 +20,7 @@ export function ToggleSection({
       className="group mt-20 scroll-mt-20 border-t border-border pt-8"
     >
       <summary className="cursor-pointer list-none marker:content-none [&::-webkit-details-marker]:hidden">
-        {eyebrow && <p className="label">{eyebrow}</p>}
-        <h2 className="mt-2 flex items-baseline gap-3 text-h2 tracking-tight">
+        <h2 className="flex items-baseline gap-3 text-h2 tracking-tight">
           <span
             aria-hidden
             className="inline-block text-h3 text-accent transition-transform duration-150 group-open:rotate-90"
