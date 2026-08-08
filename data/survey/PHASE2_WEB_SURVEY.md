@@ -650,9 +650,10 @@ pre-registered lock rules still decide what replaces them.
 - After choosing a preferred action, the respondent marks which of the other
   options would **also** have been acceptable (multi-select, or "No, only my
   choice"). The attention checks and `cal_1` skip this sub-question.
-- Five demographic items: age band, region, purchasing role, and sex matching
-  the strata in `app/phase2/survey.py`, plus industry (descriptive only; see
-  the 2026-07-24 amendment).
+- Six closing items: age band, region, purchasing role, and sex matching the
+  strata in `app/phase2/survey.py`, plus industry and comfort with letting an
+  AI assistant buy on the respondent's card (both descriptive only; see the
+  2026-07-24 amendment for industry).
 - Responses are stored in the `phase2_survey_responses` table of the
   `uca-benchmark` Supabase project (insert-only for the public key; one
   response per email, enforced by a unique index; `also_acceptable` column

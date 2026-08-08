@@ -852,7 +852,7 @@ const VOTE_LABEL_P2 = Object.fromEntries(VOTE_META_P2.map(v => [v.key, v.label])
 const VOTE_COLOR_P2 = Object.fromEntries(VOTE_META_P2.map(v => [v.key, v.color]));
 const VOTE_CAT_P2 = Object.fromEntries(VOTE_META_P2.map(v => [v.key, v.cat]));
 const CATEGORY_LABELS_P2 = { a: "A · Spend limits", b: "B · Merchant rules", c: "C · Authorization & consent", d: "D · Privacy", e: "E · Adversarial" };
-const STRATA_P2 = [["age_band", "Age"], ["sex", "Sex"], ["region", "Region"], ["purchasing_role", "Buying role"], ["industry", "Industry"]];
+const STRATA_P2 = [["age_band", "Age"], ["sex", "Sex"], ["region", "Region"], ["purchasing_role", "Buying role"], ["industry", "Industry"], ["agent_purchase_comfort", "Comfort with agent purchases"]];
 
 function shortTextP2(t, n) { t = String(t); return t.length > n ? t.slice(0, n - 1) + "…" : t; }
 
@@ -1263,12 +1263,12 @@ function wireP2Exports() {
 }
 
 function exportVotesCSVP2() {
-  const headers = ["respondent_name", "email", "created_at", "duration_seconds", "survey_version", "attention_fails", "excluded", "exclusion_reason", "sex", "age_band", "region", "purchasing_role", "industry", ...QUESTIONS_P2.map(q => q.id)];
+  const headers = ["respondent_name", "email", "created_at", "duration_seconds", "survey_version", "attention_fails", "excluded", "exclusion_reason", "sex", "age_band", "region", "purchasing_role", "industry", "agent_purchase_comfort", ...QUESTIONS_P2.map(q => q.id)];
   const rows = latestRowsP2.map(r => {
     const excl = isExcludedP2(r);
     return [r.respondent_name || "", r.email || "", r.created_at || "", r.duration_seconds || "",
       (r.meta && r.meta.survey_version) || "", attFailsP2(r),
-      excl ? "yes" : "no", excl ? exclusionReasonP2(r) : "", r.sex || "", r.age_band || "", r.region || "", r.purchasing_role || "", r.industry || "",
+      excl ? "yes" : "no", excl ? exclusionReasonP2(r) : "", r.sex || "", r.age_band || "", r.region || "", r.purchasing_role || "", r.industry || "", r.agent_purchase_comfort || "",
       ...QUESTIONS_P2.map(q => (r.votes && r.votes[q.id]) || "")];
   });
   download(`paybench-phase2-votes-${stamp()}.csv`, toCSV(headers, rows), "text/csv;charset=utf-8");

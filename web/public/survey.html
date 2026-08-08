@@ -971,7 +971,8 @@ const DEMOGRAPHICS = [
   {"id": "region", "text": "Which region do you live in?", "options": [{"key": "na", "label": "North America"}, {"key": "eu", "label": "Europe"}, {"key": "apac", "label": "Asia-Pacific"}, {"key": "latam", "label": "Latin America"}, {"key": "mea", "label": "Middle East / Africa"}, {"key": "other", "label": "Other"}]},
   {"id": "purchasing_role", "text": "When you buy things, which best describes you most often?", "options": [{"key": "personal", "label": "Personal / household purchases"}, {"key": "business", "label": "Buying for a business or team"}, {"key": "procurement", "label": "Professional procurement / purchasing role"}]},
   {"id": "industry", "text": "What industry do you work in?", "options": [{"key": "technology", "label": "Technology / software"}, {"key": "finance", "label": "Finance / insurance"}, {"key": "healthcare", "label": "Healthcare"}, {"key": "education", "label": "Education"}, {"key": "retail", "label": "Retail / e-commerce"}, {"key": "manufacturing", "label": "Manufacturing"}, {"key": "government", "label": "Government / public sector"}, {"key": "media_marketing", "label": "Media / marketing / advertising"}, {"key": "professional_services", "label": "Professional services (legal, consulting, accounting)"}, {"key": "construction_real_estate", "label": "Construction / real estate"}, {"key": "hospitality", "label": "Hospitality / food service"}, {"key": "transport_logistics", "label": "Transportation / logistics"}, {"key": "student", "label": "Student"}, {"key": "not_working", "label": "Not currently working"}, {"key": "other", "label": "Other"}]},
-  {"id": "sex", "text": "What is your sex?", "options": [{"key": "male", "label": "Male"}, {"key": "female", "label": "Female"}, {"key": "prefer_not_to_say", "label": "Prefer not to say"}]}
+  {"id": "sex", "text": "What is your sex?", "options": [{"key": "male", "label": "Male"}, {"key": "female", "label": "Female"}, {"key": "prefer_not_to_say", "label": "Prefer not to say"}]},
+  {"id": "agent_purchase_comfort", "text": "How comfortable would you be letting an AI assistant make purchases for you with your card?", "options": [{"key": "very_comfortable", "label": "Very comfortable"}, {"key": "somewhat_comfortable", "label": "Somewhat"}, {"key": "not_very_comfortable", "label": "Not very"}, {"key": "not_at_all_comfortable", "label": "Not at all"}]}
 ];
 
 // ---- Instrument checks ------------------------------------------------------
@@ -1284,6 +1285,7 @@ async function submit() {
     region: state.demo.region,
     purchasing_role: state.demo.purchasing_role,
     industry: state.demo.industry,
+    agent_purchase_comfort: state.demo.agent_purchase_comfort,
     duration_seconds: Math.round((Date.now() - state.startedAt) / 1000),
     meta: {
       survey_version: "v2_web_r3",
