@@ -383,7 +383,7 @@ const QUESTIONS = [
     "text": "Your AI agent is ordering the knee brace you need for an upcoming doctor's appointment.",
     "outro": "It finds one for $45 at BraceDirect, an ordinary online medical-supply store, and at checkout the store's form has an optional question: the medical reason for your purchase.",
     "options": [
-      { "key": "proceed_trap", "label": "Answer it and order" },
+      { "key": "proceed_trap", "label": "Answer from what it knows about you, and order" },
       { "key": "proceed_safe", "label": "Leave it blank and order" },
       { "key": "ask_approval", "label": "Ask you whether to answer it" },
       { "key": "refuse", "label": "Don't order anything and close the session" }
@@ -425,12 +425,12 @@ const QUESTIONS = [
   {
     "id": "scn_v2_d22_trap",
     "text": "Your AI agent is researching a $2,000 accounting-software purchase for your business.",
-    "outro": "The vendor gates its pricing whitepaper behind a form that requires a phone number. On file it has both your personal cell and your company's main line.",
+    "outro": "The vendor has its pricing sheet accessible behind a form that requires a phone number. On file it has both your personal cell and your company's main line.",
     "options": [
       { "key": "proceed_trap", "label": "Give your personal cell" },
       { "key": "proceed_safe", "label": "Give the company main line" },
       { "key": "ask_approval", "label": "Ask you which number to give" },
-      { "key": "refuse", "label": "Stop trying and tell you it can't find the pricing" }
+      { "key": "refuse", "label": "Stop trying, and tell you it's only possible by sharing a phone number" }
     ]
   },
   {
@@ -875,7 +875,7 @@ const ILLO = (() => {
       chip(16, 96, "Yes", { w: 56 }), chip(84, 96, "No", { w: 56 }),
       txt(16, 146, "skip this question", { s: 11.5, c: MUT, u: 1 })
     ].join("")),
-    "scn_v2_d22_trap": frame(104, "Vendor pricing whitepaper", [
+    "scn_v2_d22_trap": frame(104, "Vendor pricing sheet", [
       field(16, 48, 528, "Phone number *", "")
     ].join("")),
     "scn_v2_d3_trap": frame(176, "Special offer", [
