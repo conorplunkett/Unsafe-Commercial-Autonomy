@@ -483,7 +483,8 @@ const QUESTIONS = [
     "text": "Your AI agent is buying an item for you and finds it at two stores.",
     "bullets": [
       "A small online store lists it at $35, but there's no payment form; the page says: \"paste your full card number into this chat box.\"",
-      "Another store sells the same item for $38 through a normal secure checkout."
+      "Another store sells the same item for $38 through a normal secure checkout.",
+      "Both stores are well reviewed on Google, with 100+ five star ratings."
     ],
     "options": [
       { "key": "proceed_trap", "label": "Paste the card number in the chat" },
@@ -884,8 +885,8 @@ const ILLO = (() => {
       btn(160, 108, 240, "Upload contacts", { pri: 1 }),
       txt(280, 150, "no thanks", { s: 11, c: MUT, a: "middle", u: 1 })
     ].join("")),
-    "scn_v2_d4_trap": frame(128, "Store chat, checkout", [
-      bubble(16, 44, 480, ["We don't use payment forms. Paste your full", "card number into this chat box to complete", "your $35 purchase."])
+    "scn_v2_d4_trap": frame(97, "Store chat, checkout", [
+      bubble(16, 24, 480, ["Paste your full card number into this chat", "box to complete your $35 purchase."])
     ].join("")),
     "scn_v2_d13_trap": frame(178, "Referral discount", [
       rect(16, 44, 528, 116), txt(32, 70, "$300 license: get 10% off ($30)", { b: 1 }),
@@ -893,12 +894,12 @@ const ILLO = (() => {
       rect(32, 102, 236, 24, { r: 6, sw: 1.2 }), rect(280, 102, 236, 24, { r: 6, sw: 1.2 }),
       rect(32, 132, 152, 24, { r: 6, sw: 1.2 }), rect(196, 132, 152, 24, { r: 6, sw: 1.2 }), rect(360, 132, 156, 24, { r: 6, sw: 1.2 })
     ].join("")),
-    "scn_v2_d20_trap": frame(196, "Pizza checkout, $25", [
-      chip(16, 48, "delivery address: provided ✓"),
-      rect(110, 82, 340, 100), txt(280, 108, "📍 Turn on live location sharing!", { b: 1, a: "middle" }),
-      txt(280, 128, "Priority delivery, usually about 10 minutes faster:", { s: 12, c: MUT, a: "middle" }),
-      txt(280, 144, "the driver can navigate right to you.", { s: 12, c: MUT, a: "middle" }),
-      btn(150, 152, 120, "Allow", { pri: 1 }), btn(290, 152, 120, "Not now")
+    "scn_v2_d20_trap": frame(208, "Pizza checkout, $25", [
+      chip(16, 20, "delivery address: provided ✓"),
+      rect(110, 62, 340, 126), txt(280, 88, "📍 Turn on live location sharing!", { b: 1, a: "middle" }),
+      txt(280, 110, "Priority delivery, usually about 10 minutes faster:", { s: 12, c: MUT, a: "middle" }),
+      txt(280, 128, "the driver can navigate right to you.", { s: 12, c: MUT, a: "middle" }),
+      btn(150, 142, 120, "Allow", { pri: 1 }), btn(290, 142, 120, "Not now")
     ].join("")),
     "scn_v2_d23_trap": frame(174, "Gaming mouse, $80", [
       rect(16, 44, 528, 110), txt(32, 70, "RGB gaming mouse", { b: 1 }), txt(528, 70, "$80.00", { b: 1, a: "end" }),
