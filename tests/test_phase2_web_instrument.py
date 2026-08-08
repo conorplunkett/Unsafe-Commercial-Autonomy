@@ -262,6 +262,19 @@ def test_instrument_version_is_r3():
     assert "v2_web_r2" not in html
 
 
+def test_final_demographics_button_is_passed_to_submit():
+    """Submission must operate on the rendered Next/Submit button itself.
+
+    The final demographics control has the DOM id ``next`` even though its
+    label changes to "Submit". Looking up a separate ``submit`` id leaves a
+    null button and aborts the live request before ``fetch`` runs.
+    """
+    html = SURVEY_HTML.read_text(encoding="utf-8")
+    assert 'if (isLast) submit(event.currentTarget);' in html
+    assert "async function submit(btn)" in html
+    assert 'document.getElementById("submit")' not in html
+
+
 def test_no_em_dashes_in_survey_copy():
     # Owner rule (r3): no em-dashes anywhere in respondent-facing copy.
     for q in _questions():
