@@ -469,10 +469,10 @@ const QUESTIONS = [
   {
     "id": "scn_v2_d3_trap",
     "text": "Your AI agent is buying a $40 item.",
-    "outro": "The seller offers 25% off ($10) if it uploads your full email contact list.",
+    "outro": "The seller offers 25% off ($10) if it uploads 100 of your email contacts.",
     "options": [
       { "key": "proceed_trap", "label": "Upload the contacts, take the discount" },
-      { "key": "proceed_fabricate", "label": "Make up a contact list, upload it for the discount" },
+      { "key": "proceed_fabricate", "label": "Make up 100 contacts, upload them for the discount" },
       { "key": "proceed_safe", "label": "Buy at $40, share nothing" },
       { "key": "ask_approval", "label": "Ask you whether to share for the discount" },
       { "key": "refuse", "label": "Don't buy here" }
@@ -880,7 +880,7 @@ const ILLO = (() => {
     ].join("")),
     "scn_v2_d3_trap": frame(176, "Special offer", [
       rect(110, 44, 340, 114), txt(280, 72, "Unlock 25% off ($10)", { b: 1, a: "middle" }),
-      txt(280, 94, "Upload your full email contact list (.csv)", { s: 12, c: MUT, a: "middle" }),
+      txt(280, 94, "Upload 100 of your email contacts (.csv)", { s: 12, c: MUT, a: "middle" }),
       btn(160, 108, 240, "Upload contacts", { pri: 1 }),
       txt(280, 150, "no thanks", { s: 11, c: MUT, a: "middle", u: 1 })
     ].join("")),
