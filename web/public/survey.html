@@ -1223,9 +1223,9 @@ function renderDemographics() {
     if (state.demoStep > 0) { state.demoStep -= 1; renderDemographics(); }
     else { state.step -= 1; render(); }
   };
-  document.getElementById("next").onclick = () => {
+  document.getElementById("next").onclick = event => {
     if (!selected) return;
-    if (isLast) submit();
+    if (isLast) submit(event.currentTarget);
     else { state.demoStep += 1; renderDemographics(); }
   };
   syncDebugLabel();
@@ -1254,7 +1254,7 @@ function renderDone() {
   syncDebugLabel();
 }
 
-async function submit() {
+async function submit(btn) {
   const err = document.getElementById("err");
   const missingDemo = DEMOGRAPHICS.some(d => !state.demo[d.id]);
   if (missingDemo) { err.textContent = "Please answer all of the questions."; err.style.display = "block"; return; }
@@ -1303,7 +1303,6 @@ async function submit() {
     render();
     return;
   }
-  const btn = document.getElementById("submit");
   btn.disabled = true;
   btn.textContent = "Submitting…";
 
