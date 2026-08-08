@@ -78,7 +78,9 @@ for (const id of [
   "scenarioFilter",
   "seedsInput",
   "temperatureInput",
+  "temperatureHint",
   "reasoningEffort",
+  "reasoningEffortHint",
   "cliCommand",
   "copyCliButton",
   "keysBand",
@@ -170,6 +172,74 @@ const PROVIDER_MODEL_ENV = {
 };
 
 const DEFAULT_SEEDS_LIST = [1, 2, 3, 4, 5];
+
+// Which model families actually read `temperature` vs. `reasoning_effort` on
+// the wire — mirrored from app/providers.py (_is_openai_reasoning_model,
+// ANTHROPIC_EFFORT_PREFIXES, ANTHROPIC_NO_SAMPLING_PREFIXES). OpenAI's
+// reasoning models (o-series, gpt-5.x) and Anthropic's newer effort-capable
+// models (Opus 4.5+/5, Sonnet 4.6+/5, Fable/Mythos) read reasoning_effort
+// instead of temperature; every other provider's request builder never sends
+// reasoning_effort at all, so those always take temperature and never effort.
+// Kept in sync by hand, like the other Python-mirrored lists in this file.
+const OPENAI_REASONING_PREFIXES = ["gpt-5", "o1", "o3", "o4"];
+const ANTHROPIC_EFFORT_PREFIXES = [
+  "claude-opus-5",
+  "claude-opus-4-5",
+  "claude-opus-4-6",
+  "claude-opus-4-7",
+  "claude-opus-4-8",
+  "claude-sonnet-4-6",
+  "claude-sonnet-5",
+  "claude-fable",
+  "claude-mythos",
+];
+const ANTHROPIC_NO_SAMPLING_PREFIXES = [
+  "claude-opus-5",
+  "claude-opus-4-7",
+  "claude-opus-4-8",
+  "claude-sonnet-5",
+  "claude-fable",
+  "claude-mythos",
+];
+
+function startsWithAny(name, prefixes) {
+  const lower = (name || "").toLowerCase();
+  return prefixes.some((prefix) => lower.startsWith(prefix));
+}
+
+function modelSupportsReasoningEffort(provider, modelName) {
+  if (provider === "openai") return startsWithAny(modelName, OPENAI_REASONING_PREFIXES);
+  if (provider === "anthropic") return startsWithAny(modelName, ANTHROPIC_EFFORT_PREFIXES);
+  return false;
+}
+
+function modelSupportsTemperature(provider, modelName) {
+  if (provider === "openai") return !startsWithAny(modelName, OPENAI_REASONING_PREFIXES);
+  if (provider === "anthropic") return !startsWithAny(modelName, ANTHROPIC_NO_SAMPLING_PREFIXES);
+  return true;
+}
+
+// Greys out Temperature/Reasoning effort when the current provider+model
+// wouldn't actually read them, and updates each field's tooltip to say why —
+// so the form itself teaches which knob applies before a command is even
+// copied, rather than silently building a flag the provider ignores.
+function updateModelCapabilityFields() {
+  const provider = state.provider;
+  const modelName = selectedModelName() || providerProfile().default_model || "";
+  const supportsTemp = provider !== "baseline_naive" && modelSupportsTemperature(provider, modelName);
+  const supportsEffort = provider !== "baseline_naive" && modelSupportsReasoningEffort(provider, modelName);
+
+  els.temperatureInput.disabled = !supportsTemp;
+  els.temperatureInput.title = supportsTemp
+    ? "Sampling temperature sent to the model. Higher values increase response variability."
+    : `${modelName || "This model"} ignores temperature — it reads Reasoning effort instead.`;
+
+  els.reasoningEffort.disabled = !supportsEffort;
+  if (!supportsEffort) els.reasoningEffort.value = "";
+  els.reasoningEffort.title = supportsEffort
+    ? "Reasoning effort passed to models that support it. Leave as Default to omit the parameter."
+    : `${modelName || "This model"} doesn't read reasoning effort — use Temperature instead.`;
+}
 
 // Primary key env var per provider (app/main.py PROVIDER_ENV_KEYS) — used only
 // to name what's missing in the copyable command's trailing comment, not to
@@ -938,6 +1008,7 @@ function axisCount(selected, defaultCount) {
 }
 
 function updateRunCount() {
+  updateModelCapabilityFields();
   const pool = scenarioPool();
   const scenarioCount =
     els.scenarioFilter.value === "all" ? pool.length : Math.min(1, pool.length);
@@ -1013,12 +1084,20 @@ function buildCommonCliParts() {
     flags.push(`--seeds ${seeds.join(",")}`);
   }
 
-  const temperature = Number.parseFloat(els.temperatureInput.value);
-  if (Number.isFinite(temperature) && temperature !== 0.7) {
-    flags.push(`--temperature ${temperature}`);
+  // Only emit the flag the selected model actually reads — a temperature on a
+  // reasoning model (or an effort level on a model with no effort support)
+  // would just be ignored by the provider, so the copied command should never
+  // carry it. updateModelCapabilityFields keeps the fields themselves in sync
+  // (greyed out, cleared) with the same rule.
+  const effectiveModelName = modelName || profile.default_model || "";
+  if (modelSupportsTemperature(provider, effectiveModelName)) {
+    const temperature = Number.parseFloat(els.temperatureInput.value);
+    if (Number.isFinite(temperature) && temperature !== 0.7) {
+      flags.push(`--temperature ${temperature}`);
+    }
   }
 
-  if (els.reasoningEffort.value) {
+  if (modelSupportsReasoningEffort(provider, effectiveModelName) && els.reasoningEffort.value) {
     flags.push(`--reasoning-effort ${els.reasoningEffort.value}`);
   }
 
@@ -1069,8 +1148,17 @@ function buildPhase1CliCommand() {
 function buildPhase2CliCommand() {
   const { flags, notes, envParts } = buildCommonCliParts();
 
+  // Unlike Phase 1's `eval` (whose CLI default is all three conditions),
+  // phase2-eval defaults an omitted --conditions to no_policy only (the other
+  // five are opt-in ablations — app/phase2/runner.py). So the flag can only be
+  // dropped when the selection is exactly that single-condition default;
+  // every other selection, including "all six", must be spelled out.
+  const PHASE2_CONDITIONS_DEFAULT = ["no_policy"];
   const conditions = PHASE2_CONDITION_ORDER.filter((condition) => state.conditions.has(condition));
-  if (conditions.length && conditions.length !== PHASE2_CONDITION_ORDER.length) {
+  const isDefaultConditions =
+    conditions.length === PHASE2_CONDITIONS_DEFAULT.length &&
+    conditions.every((condition, i) => condition === PHASE2_CONDITIONS_DEFAULT[i]);
+  if (conditions.length && !isDefaultConditions) {
     flags.push(`--conditions ${conditions.join(",")}`);
   }
   if (!conditions.length) notes.push("no conditions selected — pick at least one");

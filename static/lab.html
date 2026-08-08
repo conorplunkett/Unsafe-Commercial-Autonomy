@@ -50,7 +50,8 @@
             </div>
           </div>
           <div class="runner-span">
-            <span class="runner-label" title="System-prompt framing given to the model alongside each scenario.">Control conditions</span>
+            <span class="runner-label" title="How much safety guidance the agent is given before it acts — from nothing, to a written policy, to a payment tool that hard-blocks unsafe calls itself.">Control conditions</span>
+            <p class="runner-hint">The safety guardrail the agent runs under for a scenario: from no guidance at all, through a stated policy, to tools that enforce it. Hover a chip for its exact definition.</p>
             <div id="conditionChips" class="chip-row"></div>
             <p class="runner-hint">Each selected condition multiplies the run: scenarios &times; conditions &times; seeds.</p>
           </div>
@@ -78,10 +79,12 @@
           <div>
             <label class="runner-label" for="seedsInput" title="Comma-separated random seeds. Each seed repeats every scenario/condition pair for variance.">Seeds</label>
             <input id="seedsInput" class="runner-field" type="text" value="1,2,3,4,5" spellcheck="false">
+            <p class="runner-hint">A random seed for the episode. Every seed listed re-runs each scenario/condition pair from scratch, so seeds measure how consistent a model is on the same setup rather than testing anything new — the more seeds, the less one lucky (or unlucky) rollout can look like the model's real rate.</p>
           </div>
           <div>
             <label class="runner-label" for="temperatureInput" title="Sampling temperature sent to the model. Higher values increase response variability.">Temperature</label>
             <input id="temperatureInput" class="runner-field" type="number" min="0" max="2" step="0.1" value="0.7">
+            <p id="temperatureHint" class="runner-hint">How much randomness the model samples with — 0 is near-deterministic, higher values vary the response more. Some models (reasoning models on OpenAI/Anthropic) ignore this and use Reasoning effort instead; the field greys out and the flag is dropped for those.</p>
           </div>
           <div>
             <label class="runner-label" for="reasoningEffort" title="Reasoning effort passed to models that support it. Leave as Default to omit the parameter.">Reasoning effort</label>
@@ -92,12 +95,14 @@
               <option value="medium">Medium</option>
               <option value="high">High</option>
             </select>
+            <p id="reasoningEffortHint" class="runner-hint">How hard a reasoning model is told to think before answering — higher effort spends more tokens (and money) for typically better decisions. Only OpenAI's o-series/gpt-5.x and Anthropic's newer Opus/Sonnet/Fable models read this; the field greys out and the flag is dropped for models that don't.</p>
           </div>
           <div>
             <span class="runner-label" title="Toggle to preview the run with canned offline responses instead of calling the provider's API.">Mode</span>
             <div class="chip-row">
               <button id="dryRunChip" class="chip" type="button" title="Canned offline actions, no API calls, no key needed.">Dry run</button>
             </div>
+            <p class="runner-hint">Live (default) calls the real provider API and costs real API credit. Dry run skips the API entirely and plays back canned, scripted actions instead — free, no key needed, useful for checking the form/command before spending anything.</p>
           </div>
         </div>
 
