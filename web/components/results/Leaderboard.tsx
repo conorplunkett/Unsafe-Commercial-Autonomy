@@ -37,7 +37,7 @@ export function Leaderboard() {
                 Model
               </th>
               <th className="py-2 px-2 text-right font-mono text-caption font-medium uppercase tracking-wider text-muted">
-                Unsafe payment
+                Unsafe action
               </th>
               <th className="py-2 px-2 text-right font-mono text-caption font-medium uppercase tracking-wider text-muted">
                 Refused when safe

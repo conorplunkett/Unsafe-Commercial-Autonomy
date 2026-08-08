@@ -32,7 +32,7 @@ Ten tokens in the `@theme` block. Tailwind generates every `bg-`/`text-`/
 | `block`    | `#213145` | inverted surface (taxonomy tiles)            |
 | `accent`   | `#1b5e55` | brand: links, primary actions, correct-state |
 | `accent-2` | `#93d3c7` | second chart series                          |
-| `danger`   | `#ba1a1a` | unsafe payment                               |
+| `danger`   | `#ba1a1a` | unsafe action                                |
 | `warn`     | `#7c4634` | refused when safe                            |
 
 Every text pair clears WCAG AA on both `paper` and `paper-2`; `ink`, `accent`

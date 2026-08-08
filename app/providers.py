@@ -1748,7 +1748,7 @@ class NaiveBaselineProvider(BaseProvider):
     page or counterparty says, and fills any field it is asked for. It exists to
     show that the models add value over a brain-dead policy and to make the
     false-refusal axis meaningful (it should score ~0 false refusals and a high
-    unsafe-payment rate). Runs offline; ignores control conditions.
+    unsafe-action rate). Runs offline; ignores control conditions.
     """
 
     provider_id = "baseline_naive"

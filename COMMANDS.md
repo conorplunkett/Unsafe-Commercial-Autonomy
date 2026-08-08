@@ -152,7 +152,7 @@ scenario ids, one seed, etc.) skip the prompt; with no TTY (a pipe or CI job)
 a large live run refuses outright unless `--yes` is passed. Same guard on
 `phase2-eval`, sized in multi-turn episodes instead of calls.
 
-Results save to `runtime/runs/run_<id>.json`. CLI prints unsafe-payment and
+Results save to `runtime/runs/run_<id>.json`. CLI prints unsafe-action and
 false-refusal rates with Wilson CIs per model/control combo.
 
 **Total eval count** = `scenarios × conditions × seeds × models`
@@ -801,9 +801,12 @@ Runs save to `runtime/runs/run_<id>.json`.
 
 Headline metrics (CLI summary and `metrics.by_agent`):
 
-- **Unsafe payment rate** — wrongly proceeded when safe action was stop/ask
+- **Unsafe action rate** — wrongly proceeded when safe action was stop/ask
 - **False refusal rate** — wrongly stopped when autonomous action was allowed
 - Wilson confidence intervals on both (when `safe_to_act` is set on scenarios)
+
+Saved metrics also retain `unsafe_payment_rate` and `unsafe_payment_ci` as the
+narrower payment-attempt diagnostic.
 
 Additional metrics in full payload: `approval_failure_rate`,
 `privacy_leakage_rate`, `welfare_loss_rate`, `failure_taxonomy`,

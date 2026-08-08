@@ -414,9 +414,9 @@ def _print_summary(run_payload: dict, saved_path=None) -> None:
     if semantic_only_summary and semantic_only_summary.get("total_results"):
         print(
             f"Semantic-only (survey-derived preference) unsafe rate: "
-            f"{_format_rate(semantic_only_summary, 'unsafe_payment')} "
+            f"{_format_rate(semantic_only_summary, 'unsafe_action')} "
             f"vs objective: "
-            f"{_format_rate(objective_summary, 'unsafe_payment') if objective_summary else 'n/a'}"
+            f"{_format_rate(objective_summary, 'unsafe_action') if objective_summary else 'n/a'}"
         )
     quality = metrics.get("quality") or {}
     if quality.get("status") in ("degraded", "incomplete"):
@@ -434,13 +434,13 @@ def _print_summary(run_payload: dict, saved_path=None) -> None:
     print("")
     _print_verdicts_and_failures(metrics)
     print("")
-    print("Model/control                         Results  Unsafe payment CI      Refused when safe CI")
+    print("Model/control                         Results  Unsafe action CI      Refused when safe CI")
     print("-" * 88)
     for agent_id, summary in sorted(metrics.get("by_agent", {}).items()):
         print(
             f"{agent_id[:36]:36} "
             f"{summary['total_results']:7}  "
-            f"{_format_rate(summary, 'unsafe_payment'):22} "
+            f"{_format_rate(summary, 'unsafe_action'):22} "
             f"{_format_rate(summary, 'refused_when_safe')}"
         )
     _print_human_axes(metrics)
@@ -877,13 +877,13 @@ def phase2_eval_command(args: argparse.Namespace) -> int:
     phase2_metrics = payload["metrics"]["phase2"]
 
     def _print_split(title: str, group_key: str) -> None:
-        print(f"\n{title} (unsafe payment CI / refused-when-safe CI):")
+        print(f"\n{title} (unsafe action CI / refused-when-safe CI):")
         print("-" * 88)
         for key, summary in sorted(phase2_metrics[group_key].items()):
             print(
                 f"{key[:36]:36} "
                 f"{summary['total_results']:7}  "
-                f"{_format_rate(summary, 'unsafe_payment'):22} "
+                f"{_format_rate(summary, 'unsafe_action'):22} "
                 f"{_format_rate(summary, 'refused_when_safe')}"
             )
 
@@ -1117,18 +1117,18 @@ def _print_human_baseline_report(report: dict) -> None:
     print(f"Wrongly proceeded:   {matrix['wrongly_proceeded']}")
     print(f"Wrongly stopped:     {matrix['wrongly_stopped']}")
     print(f"Correctly stopped:   {matrix['correctly_stopped']}")
-    print(f"\nUnsafe payment:    {_format_rate(metrics, 'unsafe_payment')}")
+    print(f"\nUnsafe action:    {_format_rate(metrics, 'unsafe_action')}")
     print(f"Refused when safe: {_format_rate(metrics, 'refused_when_safe')}")
     by_demographic = report.get("by_demographic") or {}
     if by_demographic:
-        print("\nBy demographic (unsafe payment / refused when safe):")
+        print("\nBy demographic (unsafe action / refused when safe):")
         for field, groups in by_demographic.items():
             print(f"  {field}:")
             for value, stratum in groups.items():
                 stratum_metrics = stratum["metrics"]
                 print(
                     f"    {value:<16} n={stratum['sessions']:<3} "
-                    f"unsafe {_format_rate(stratum_metrics, 'unsafe_payment')}  "
+                    f"unsafe {_format_rate(stratum_metrics, 'unsafe_action')}  "
                     f"refused-when-safe {_format_rate(stratum_metrics, 'refused_when_safe')}"
                 )
     if report["skipped_unknown_scenarios"]:

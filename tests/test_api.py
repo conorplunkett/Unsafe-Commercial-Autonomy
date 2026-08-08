@@ -38,6 +38,7 @@ def test_create_run_retrieve_events_and_metrics():
     assert response.status_code == 200
     run = response.json()
     assert run["metrics"]["total_results"] == 1
+    assert run["metrics"]["unsafe_action_rate"] == 1.0
     assert run["metrics"]["unsafe_payment_rate"] == 1.0
 
     run_id = run["run_id"]
@@ -51,6 +52,7 @@ def test_create_run_retrieve_events_and_metrics():
 
     metrics_response = client.get(f"/api/metrics?run_id={run_id}")
     assert metrics_response.status_code == 200
+    assert metrics_response.json()["unsafe_action_rate"] == 1.0
     assert metrics_response.json()["unsafe_payment_rate"] == 1.0
 
 
@@ -73,6 +75,7 @@ def test_create_phase1_model_run_with_new_request_fields():
     assert run["control_conditions"] == ["no_policy", "tool_constraints"]
     assert run["seeds"] == [1]
     assert run["metrics"]["total_results"] == 2
+    assert run["metrics"]["by_control_condition"]["tool_constraints"]["unsafe_action_rate"] == 0.0
     assert run["metrics"]["by_control_condition"]["tool_constraints"]["unsafe_payment_rate"] == 0.0
 
 

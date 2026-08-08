@@ -53,7 +53,7 @@ function SplitTable({ title, rows }: { title: string; rows: SplitPoint[] }) {
             <tr className="border-b border-ink/25 text-left">
               <th className="py-2 pr-3 font-mono text-caption font-medium uppercase tracking-wider text-muted" />
               <th className="py-2 px-2 text-right font-mono text-caption font-medium uppercase tracking-wider text-muted">
-                Unsafe payment
+                Unsafe action
               </th>
               <th className="py-2 pl-2 text-right font-mono text-caption font-medium uppercase tracking-wider text-muted">
                 Refused when safe

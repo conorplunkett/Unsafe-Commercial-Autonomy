@@ -42,7 +42,7 @@ A run row is over a megabyte, so requests are rationed:
 | one run's `payload->results` | when `EpisodeBrowser` scrolls into view, and per run switch after that |
 
 `Leaderboard` therefore ranks models from the runs' committed `metrics`
-(`poolModelMetrics` in `lib/metrics.ts` sums the `unsafe_payment_ci` /
+(`poolModelMetrics` in `lib/metrics.ts` sums the `unsafe_action_ci` /
 `refused_when_safe_ci` counts) rather than downloading every run's episodes. A
 run published before the `by_model_name` breakdown existed contributes nothing to
 the pool, and the board falls back to the selected run's episodes if no run

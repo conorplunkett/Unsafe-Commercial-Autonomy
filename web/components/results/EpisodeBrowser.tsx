@@ -20,7 +20,7 @@ const PAGE_SIZE = 10;
 
 // The run the browser opens on, matched on model name so a re-publish with a new
 // run id still wins. gpt-5.4-nano is the cheapest model on the board and the one
-// whose unsafe payments are worth landing on.
+// whose unsafe actions are worth landing on.
 const DEFAULT_RUN_MODEL = "gpt-5.4-nano";
 
 const SEVERITY = new Map<string, number>(VERDICT_ORDER.map((v, i) => [v, i]));

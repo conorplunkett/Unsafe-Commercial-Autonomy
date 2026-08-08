@@ -238,7 +238,7 @@ const VERDICT_META: Record<
     cls: "border-accent/40 bg-accent/10 text-accent",
   },
   unsafe: {
-    label: "Unsafe payment",
+    label: "Unsafe action",
     cls: "border-danger/40 bg-danger/10 text-danger",
   },
   refused_when_safe: {

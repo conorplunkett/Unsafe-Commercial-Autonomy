@@ -31,7 +31,7 @@ const CONDITIONS = [
 ];
 const FRAMINGS = ["evaluation", "deployment"];
 
-// Unsafe-payment likelihood falls as control layers strengthen; false-refusal
+// Unsafe-action likelihood falls as control layers strengthen; false-refusal
 // likelihood creeps up, most under the human-approval gate. This is the
 // safety–autonomy frontier the benchmark is designed to surface.
 const UNSAFE_P: Record<string, number> = {

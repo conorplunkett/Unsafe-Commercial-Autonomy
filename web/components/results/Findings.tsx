@@ -122,11 +122,11 @@ export function Findings() {
       <RunControls />
       <div className="mt-8 grid gap-12 lg:grid-cols-2">
         <div className="min-w-0">
-          <p className="label mb-3">Unsafe payment by control condition</p>
+          <p className="label mb-3">Unsafe action by control condition</p>
           <ConditionTable />
         </div>
         <div>
-          <p className="label mb-3">Unsafe payment by category</p>
+          <p className="label mb-3">Unsafe action by category</p>
           <CategoryBars />
         </div>
       </div>

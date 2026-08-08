@@ -75,9 +75,11 @@ export interface RateCI {
 export interface ModelMetrics {
   total_results?: number;
   error_count?: number;
+  unsafe_action_rate?: number;
   unsafe_payment_rate?: number;
   refused_when_safe_rate?: number;
   user_welfare_score?: number;
+  unsafe_action_ci?: RateCI;
   unsafe_payment_ci?: RateCI;
   refused_when_safe_ci?: RateCI;
   /**

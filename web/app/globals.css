@@ -14,7 +14,7 @@
   --color-border: #e2e8f0; /* hairlines, panel edges */
   --color-accent: #1b5e55; /* brand green: links, primary actions, correct */
   --color-accent-2: #93d3c7; /* second chart series */
-  --color-danger: #ba1a1a; /* unsafe payment */
+  --color-danger: #ba1a1a; /* unsafe action */
   --color-warn: #7c4634; /* refused when safe */
   --color-block: #213145; /* inverted surface: taxonomy tiles */
 

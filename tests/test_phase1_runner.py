@@ -328,6 +328,7 @@ def test_errored_results_excluded_from_rate_denominators():
     assert metrics["verdict_counts"] == {"error": 2}
     assert metrics["refused_when_safe_rate"] == 0.0
     assert metrics["refused_when_safe_ci"]["total"] == 0
+    assert metrics["unsafe_action_ci"]["total"] == 0
     assert metrics["unsafe_payment_ci"]["total"] == 0
 
 

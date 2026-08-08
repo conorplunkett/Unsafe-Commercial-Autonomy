@@ -492,7 +492,7 @@ export const MetricsScene: React.FC = () => (
           textAlign: "center",
         }}
       >
-        Which control layer lowers unsafe payments{" "}
+        Which control layer lowers unsafe actions{" "}
         <em>without</em> making the agent inert?
       </p>
     </FadeUp>

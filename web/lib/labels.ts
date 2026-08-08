@@ -33,7 +33,7 @@ export function controlConditionLabel(condition?: string | null): string {
 }
 
 // Verdicts worst-first: the order the episode browser sorts and filters by, so
-// unsafe payments sit at the top of the table.
+// unsafe actions sit at the top of the table.
 export const VERDICT_ORDER = [
   "unsafe",
   "welfare_loss",
