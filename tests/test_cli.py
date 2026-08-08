@@ -264,35 +264,6 @@ def test_phase1_grid_size_excludes_offline_models():
     assert "1 model(s)" in breakdown
 
 
-def test_phase2_grid_size_loads_the_real_scenario_count():
-    import argparse
-
-    from app.cli import _phase2_grid_size
-
-    args = argparse.Namespace(
-        scenario_ids=None,
-        conditions=None,
-        framings=None,
-        urgencies=None,
-        seeds=None,
-        models="openai",
-        scenario_set=None,
-    )
-    total, breakdown = _phase2_grid_size(args)
-    # 226 scenarios (not the 250 the set filename suggests) x 6 conditions x
-    # 2 framings x 1 urgency x 5 seeds.
-    assert total == 226 * 6 * 2 * 5
-    assert "226 scenario(s)" in breakdown
-
-    args.scenario_ids = "scn_v2_a1_trap,scn_v2_a1_trap,scn_v2_a2_trap"
-    args.conditions = "prompt_policy"
-    args.framings = "evaluation"
-    args.seeds = "1"
-    total, breakdown = _phase2_grid_size(args)
-    assert total == 2  # duplicate ids dedupe
-    assert "2 scenario(s)" in breakdown
-
-
 def test_cli_eval_offline_baseline_skips_confirmation(capsys, monkeypatch):
     # The documented offline baseline command must run in non-interactive
     # contexts (CI, pipes) without tripping the live-cost guard.
@@ -374,3 +345,126 @@ def test_cli_phase2_eval_large_grid_aborts_without_confirmation(capsys, monkeypa
     output = capsys.readouterr().out
     assert status == 2
     assert "Refusing to run this live Phase 2 eval without confirmation" in output
+
+
+def test_cli_phase2_eval_checkpoints_and_resumes(capsys, monkeypatch, tmp_path):
+    """The whole resume path through the CLI: run, lose the tail, pick it up."""
+    import app.cli as cli
+    from app.phase2.checkpoint import CheckpointStore
+
+    monkeypatch.setenv("RUN_CHECKPOINT_DIR", str(tmp_path))
+    monkeypatch.setattr(cli.sys.stdin, "isatty", lambda: False)
+    argv = [
+        "phase2-eval", "--models", "scripted_naive",
+        "--scenario-ids", "scn_v2_a1_trap,scn_v2_a1_lookalike",
+        "--conditions", "no_policy", "--framings", "deployment", "--seeds", "1,2",
+    ]
+    assert main(argv) == 0
+    capsys.readouterr()
+
+    run_id = next(path.stem for path in tmp_path.glob("*.jsonl"))
+    path = tmp_path / f"{run_id}.jsonl"
+    path.write_text("\n".join(path.read_text().splitlines()[:3]) + "\n")  # header + 2
+
+    assert main(argv + ["--resume", run_id]) == 0
+    output = capsys.readouterr().out
+    assert f"Resuming {run_id}: 2 episodes restored." in output
+    assert f"{run_id}.json" in output  # saved under the original id
+    _, restored = CheckpointStore(run_id, root=tmp_path).load()
+    assert len(restored) == 4
+
+
+def test_cli_phase2_eval_resume_without_a_checkpoint_is_refused(capsys, monkeypatch, tmp_path):
+    import app.cli as cli
+
+    monkeypatch.setenv("RUN_CHECKPOINT_DIR", str(tmp_path))
+    monkeypatch.setattr(cli.sys.stdin, "isatty", lambda: False)
+    status = main(
+        ["phase2-eval", "--models", "scripted_naive", "--scenario-ids", "scn_v2_a1_trap",
+         "--seeds", "1", "--resume", "run_nope"]
+    )
+    output = capsys.readouterr().out
+    assert status == 2
+    assert "Cannot resume: No checkpoint for run run_nope" in output
+    assert "'" not in output.splitlines()[0]  # a sentence, not a KeyError repr
+
+
+def test_cli_phase2_eval_resume_needs_checkpointing_enabled(capsys, monkeypatch, tmp_path):
+    monkeypatch.setenv("RUN_CHECKPOINT_DIR", str(tmp_path))
+    status = main(
+        ["phase2-eval", "--models", "scripted_naive", "--scenario-ids", "scn_v2_a1_trap",
+         "--seeds", "1", "--resume", "run_x", "--no-checkpoint"]
+    )
+    assert status == 2
+    assert "--resume needs the checkpoint it resumes from" in capsys.readouterr().out
+
+
+def test_cli_phase2_checkpoints_lists_resumable_runs(capsys, monkeypatch, tmp_path):
+    import app.cli as cli
+
+    monkeypatch.setenv("RUN_CHECKPOINT_DIR", str(tmp_path))
+    monkeypatch.setattr(cli.sys.stdin, "isatty", lambda: False)
+    assert main(["phase2-checkpoints"]) == 1
+    assert "No Phase 2 checkpoints found." in capsys.readouterr().out
+
+    main(["phase2-eval", "--models", "scripted_naive", "--scenario-ids", "scn_v2_a1_trap", "--seeds", "1"])
+    capsys.readouterr()
+    assert main(["phase2-checkpoints"]) == 0
+    output = capsys.readouterr().out
+    assert next(path.stem for path in tmp_path.glob("*.jsonl")) in output
+    assert "--resume" in output
+
+
+
+def _phase2_args(**overrides):
+    import argparse
+
+    # Must carry every attribute _phase2_grid_size reads: a missing one raises
+    # AttributeError inside its try, which is swallowed into a (0, "") estimate
+    # rather than an error — so an out-of-date helper here silently turns a real
+    # assertion into "the grid could not be sized".
+    defaults = dict(
+        models=None, conditions=None, framings=None, urgencies=None,
+        user_availabilities=None, scenario_ids=None, scenario_set=None, seeds=None,
+    )
+    defaults.update(overrides)
+    return argparse.Namespace(**defaults)
+
+
+def test_phase2_grid_size_counts_the_real_scenario_set():
+    # Regression: this defaulted to a hardcoded 250 while the v2 set has held
+    # 226 since the 2026-07-24 trim, so the confirmation prompt quoted a run
+    # ~10.6% larger than the one being approved -- and quoted 250 no matter
+    # which --scenario-set was passed.
+    from app.cli import _phase2_grid_size
+
+    episodes, breakdown = _phase2_grid_size(_phase2_args(models="anthropic", seeds="1"))
+    # 226 scenarios x 6 conditions x 2 framings x 1 urgency x 1 seed x 1 model.
+    assert episodes == 226 * 6 * 2
+    assert "226 scenario(s)" in breakdown
+    assert "250" not in breakdown
+
+    # An explicit scenario list wins over the set size, deduped.
+    episodes, _ = _phase2_grid_size(
+        _phase2_args(
+            models="anthropic", seeds="1", conditions="no_policy",
+            framings="evaluation", scenario_ids="scn_v2_a1_trap,scn_v2_a1_trap",
+        )
+    )
+    assert episodes == 1
+
+
+def test_phase2_grid_size_defers_on_an_unreadable_scenario_set():
+    # A bad --scenario-set must not produce a confident wrong estimate; return
+    # the "no estimate" sentinel so the run itself raises the real error.
+    from app.cli import _phase2_grid_size
+
+    assert _phase2_grid_size(_phase2_args(models="anthropic", scenario_set="no/such/set.md")) == (0, "")
+    assert _phase2_grid_size(_phase2_args(models="not-a-real-provider")) == (0, "")
+
+
+def test_phase2_grid_size_excludes_scripted_agents():
+    # Scripted agents run offline, so an all-scripted run costs nothing live.
+    from app.cli import _phase2_grid_size
+
+    assert _phase2_grid_size(_phase2_args(models="scripted_diligent", seeds="1")) == (0, "")

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { SurveyQuestion } from "@/lib/surveyResults";
+import { Card } from "@/components/ui/Card";
 
 const VOTE_LABELS: Record<string, string> = {
   buy: "buy",
@@ -46,7 +47,7 @@ function compare(a: SurveyQuestion, b: SurveyQuestion, key: SortKey): number {
 }
 
 const HEAD_CLASS =
-  "px-4 py-2.5 font-mono text-[0.7rem] uppercase tracking-[0.14em] text-muted";
+  "px-4 py-2.5 font-mono text-caption uppercase tracking-[0.14em] text-muted";
 
 function SortHeader({
   label,
@@ -65,11 +66,16 @@ function SortHeader({
 }) {
   const active = sortKey === colKey;
   return (
-    <th className={HEAD_CLASS} aria-sort={active ? (sortDir === "asc" ? "ascending" : "descending") : "none"}>
+    <th
+      className={HEAD_CLASS}
+      aria-sort={
+        active ? (sortDir === "asc" ? "ascending" : "descending") : "none"
+      }
+    >
       <button
         type="button"
         onClick={() => onSort(colKey)}
-        className={`flex w-full items-center gap-1 uppercase tracking-[0.14em] transition-colors hover:text-ink ${
+        className={`tap flex w-full items-center gap-1 uppercase tracking-[0.14em] transition-colors hover:text-ink ${
           align === "right" ? "justify-end" : ""
         } ${active ? "text-ink" : ""}`}
       >
@@ -102,7 +108,7 @@ function Segmented<T extends string>({
             key={opt.value}
             type="button"
             onClick={() => onChange(opt.value)}
-            className={`rounded-md px-3 py-1 font-mono text-xs transition-colors ${
+            className={`tap rounded-lg px-3 py-1 font-mono text-caption transition-colors ${
               value === opt.value
                 ? "bg-accent/10 text-accent"
                 : "text-muted hover:text-ink"
@@ -166,7 +172,8 @@ export function SurveyResultsTable({
     }
   }
 
-  const filtered = role !== "all" || status !== "all" || vote !== "all" || query.trim() !== "";
+  const filtered =
+    role !== "all" || status !== "all" || vote !== "all" || query.trim() !== "";
 
   function reset() {
     setRole("all");
@@ -206,7 +213,7 @@ export function SurveyResultsTable({
             id="vote-filter"
             value={vote}
             onChange={(e) => setVote(e.target.value)}
-            className="rounded-lg border border-border bg-paper px-3 py-1.5 font-mono text-xs text-ink"
+            className="tap rounded-lg border border-border bg-paper px-3 py-1.5 font-mono text-caption text-ink"
           >
             <option value="all">all votes</option>
             {voteOptions.map((v) => (
@@ -226,7 +233,7 @@ export function SurveyResultsTable({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="item or wording"
-            className="min-w-[10rem] rounded-lg border border-border bg-paper px-3 py-1.5 text-sm text-ink placeholder:text-muted"
+            className="tap min-w-[10rem] rounded-lg border border-border bg-paper px-3 py-1.5 text-small text-ink placeholder:text-muted"
           />
         </div>
       </div>
@@ -239,22 +246,52 @@ export function SurveyResultsTable({
           <button
             type="button"
             onClick={reset}
-            className="font-mono text-xs text-accent underline decoration-accent/40 underline-offset-2 hover:decoration-accent"
+            className="font-mono text-caption text-accent underline decoration-accent/40 underline-offset-2 hover:decoration-accent"
           >
             reset
           </button>
         )}
       </div>
 
-      <div className="mt-3 overflow-x-auto rounded-xl border border-border">
-        <table className="w-full min-w-[640px] border-collapse text-sm">
+      <Card tone="bare" pad="none" className="mt-3 overflow-x-auto">
+        <table className="w-full min-w-[640px] border-collapse text-small">
           <thead>
-            <tr className="border-b border-border bg-paper-2/60 text-left">
-              <SortHeader label="Item" colKey="item" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
-              <SortHeader label="Role" colKey="role" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
-              <SortHeader label="Modal vote" colKey="vote" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
-              <SortHeader label="Agreement" colKey="agreement" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
-              <SortHeader label="Status" colKey="status" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
+            <tr className="border-b border-border bg-paper-2 text-left">
+              <SortHeader
+                label="Item"
+                colKey="item"
+                sortKey={sortKey}
+                sortDir={sortDir}
+                onSort={onSort}
+              />
+              <SortHeader
+                label="Role"
+                colKey="role"
+                sortKey={sortKey}
+                sortDir={sortDir}
+                onSort={onSort}
+              />
+              <SortHeader
+                label="Modal vote"
+                colKey="vote"
+                sortKey={sortKey}
+                sortDir={sortDir}
+                onSort={onSort}
+              />
+              <SortHeader
+                label="Agreement"
+                colKey="agreement"
+                sortKey={sortKey}
+                sortDir={sortDir}
+                onSort={onSort}
+              />
+              <SortHeader
+                label="Status"
+                colKey="status"
+                sortKey={sortKey}
+                sortDir={sortDir}
+                onSort={onSort}
+              />
               <th className={HEAD_CLASS}>Acceptable (&ge;70%)</th>
             </tr>
           </thead>
@@ -265,23 +302,23 @@ export function SurveyResultsTable({
                 <tr key={q.id} className="border-b border-border/60">
                   <td className="px-4 py-2.5">{q.short}</td>
                   <td
-                    className={`px-4 py-2.5 font-mono text-xs uppercase ${
+                    className={`px-4 py-2.5 font-mono text-caption uppercase ${
                       q.role === "trap" ? "text-danger" : "text-accent-2"
                     }`}
                   >
                     {q.role}
                   </td>
                   <td className="px-4 py-2.5">{voteLabel(q.modal_vote)}</td>
-                  <td className="px-4 py-2.5 font-mono text-xs tabular-nums">
+                  <td className="px-4 py-2.5 font-mono text-caption tabular-nums">
                     {modalCount}/{q.n} ({pct1(q.agreement)})
                   </td>
                   <td className="px-4 py-2.5">
                     {q.locked ? (
-                      <span className="rounded-full bg-accent/10 px-2 py-0.5 font-mono text-[0.65rem] uppercase tracking-wider text-accent">
+                      <span className="rounded-full bg-accent/10 px-2 py-0.5 font-mono text-caption uppercase tracking-wider text-accent">
                         Locked
                       </span>
                     ) : (
-                      <span className="rounded-full border border-border px-2 py-0.5 font-mono text-[0.65rem] uppercase tracking-wider text-muted">
+                      <span className="rounded-full border border-border px-2 py-0.5 font-mono text-caption uppercase tracking-wider text-muted">
                         Provisional
                       </span>
                     )}
@@ -302,14 +339,17 @@ export function SurveyResultsTable({
             })}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted">
+                <td
+                  colSpan={6}
+                  className="px-4 py-8 text-center text-small text-muted"
+                >
                   No items match these filters.
                 </td>
               </tr>
             )}
           </tbody>
         </table>
-      </div>
+      </Card>
     </div>
   );
 }

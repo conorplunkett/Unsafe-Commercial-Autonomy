@@ -14,7 +14,7 @@ function RunControls() {
           value={runId ?? ""}
           onChange={(e) => setRunId(e.target.value)}
           // max-w-full: the longest run label is wider than a phone viewport.
-          className="max-w-full rounded-md border border-border bg-paper px-3 py-1.5 font-mono text-sm"
+          className="max-w-full rounded-lg border border-border bg-paper px-3 py-1.5 font-mono text-small"
         >
           {runs.map((r) => (
             <option key={r.run_id} value={r.run_id}>
@@ -24,13 +24,13 @@ function RunControls() {
           ))}
         </select>
       ) : (
-        <span className="font-mono text-xs text-muted">
+        <span className="font-mono text-caption text-muted">
           {runDisplayLabel(run?.label) || "Latest run"} ·{" "}
           {compactDate(run?.created_at)}
         </span>
       )}
       {isSample && (
-        <span className="rounded-full border border-warn/40 bg-warn/10 px-2.5 py-1 font-mono text-[0.65rem] uppercase tracking-wider text-warn">
+        <span className="rounded-full border border-warn/40 bg-warn/10 px-2.5 py-1 font-mono text-caption uppercase tracking-wider text-warn">
           Sample data — live results unavailable right now
         </span>
       )}
@@ -42,37 +42,49 @@ function ConditionTable() {
   const { results } = useData();
   const rows = byCondition(results);
   if (!rows.length) {
-    return <p className="text-muted">No control-condition breakdown in this run.</p>;
+    return (
+      <p className="text-muted">No control-condition breakdown in this run.</p>
+    );
   }
   return (
-    <table className="w-full border-collapse text-[0.95rem]">
-      <thead>
-        <tr className="border-b border-ink/25 text-left">
-          <th className="py-2 pr-3 font-mono text-xs font-medium uppercase tracking-wider text-muted">
-            Control condition
-          </th>
-          <th className="py-2 px-2 text-right font-mono text-xs font-medium uppercase tracking-wider text-muted">
-            Unsafe
-          </th>
-          <th className="py-2 px-2 text-right font-mono text-xs font-medium uppercase tracking-wider text-muted">
-            Refused
-          </th>
-          <th className="py-2 pl-2 text-right font-mono text-xs font-medium uppercase tracking-wider text-muted">
-            User welfare
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((r) => (
-          <tr key={r.condition} className="border-b border-border">
-            <td className="py-2.5 pr-3">{CONDITION_LABELS[r.condition] ?? r.condition}</td>
-            <td className="py-2.5 px-2 text-right font-mono text-danger">{pct(r.unsafe)}</td>
-            <td className="py-2.5 px-2 text-right font-mono text-warn">{pct(r.refusedWhenSafe)}</td>
-            <td className="py-2.5 pl-2 text-right font-mono text-accent">{pct(r.welfare)}</td>
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse text-small">
+        <thead>
+          <tr className="border-b border-ink/25 text-left">
+            <th className="py-2 pr-3 font-mono text-caption font-medium uppercase tracking-wider text-muted">
+              Control condition
+            </th>
+            <th className="py-2 px-2 text-right font-mono text-caption font-medium uppercase tracking-wider text-muted">
+              Unsafe
+            </th>
+            <th className="py-2 px-2 text-right font-mono text-caption font-medium uppercase tracking-wider text-muted">
+              Refused
+            </th>
+            <th className="py-2 pl-2 text-right font-mono text-caption font-medium uppercase tracking-wider text-muted">
+              User welfare
+            </th>
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.condition} className="border-b border-border">
+              <td className="py-2.5 pr-3">
+                {CONDITION_LABELS[r.condition] ?? r.condition}
+              </td>
+              <td className="py-2.5 px-2 text-right font-mono text-danger">
+                {pct(r.unsafe)}
+              </td>
+              <td className="py-2.5 px-2 text-right font-mono text-warn">
+                {pct(r.refusedWhenSafe)}
+              </td>
+              <td className="py-2.5 pl-2 text-right font-mono text-accent">
+                {pct(r.welfare)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -87,8 +99,10 @@ function CategoryBars() {
       {rows.map((r) => (
         <div key={r.category}>
           <div className="mb-1 flex items-baseline justify-between">
-            <span className="text-[0.95rem]">{categoryLabel(r.category)}</span>
-            <span className="font-mono text-sm text-muted">{pct(r.unsafe)}</span>
+            <span className="text-small">{categoryLabel(r.category)}</span>
+            <span className="font-mono text-small text-muted">
+              {pct(r.unsafe)}
+            </span>
           </div>
           <div className="h-2.5 w-full overflow-hidden rounded-full bg-paper-2">
             <div
@@ -107,7 +121,7 @@ export function Findings() {
     <div className="mt-6">
       <RunControls />
       <div className="mt-8 grid gap-12 lg:grid-cols-2">
-        <div>
+        <div className="min-w-0">
           <p className="label mb-3">Unsafe payment by control condition</p>
           <ConditionTable />
         </div>

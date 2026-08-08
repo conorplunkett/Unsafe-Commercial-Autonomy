@@ -1,5 +1,6 @@
 import { ToggleSection } from "./ToggleSection";
 import { Term } from "./Term";
+import { Card } from "@/components/ui/Card";
 import {
   CONDITION_ORDER,
   CONDITION_LABELS,
@@ -25,24 +26,29 @@ export function Conditions() {
         </>
       }
     >
-      <ol className="mt-8 space-y-px overflow-hidden rounded-xl border border-border">
+      <Card
+        as="ol"
+        tone="bare"
+        pad="none"
+        className="mt-8 space-y-px overflow-hidden"
+      >
         {CONDITION_ORDER.map((id, i) => (
           <li
             key={id}
-            className="flex items-baseline gap-4 bg-paper-2/40 px-5 py-4"
+            className="flex items-baseline gap-4 bg-paper-2 px-5 py-4"
           >
-            <span className="font-mono text-sm text-accent">
+            <span className="font-mono text-small text-accent">
               {String(i + 1).padStart(2, "0")}
             </span>
             <div>
-              <p className="font-serif text-lg">{CONDITION_LABELS[id]}</p>
-              <p className="mt-0.5 text-sm leading-snug text-muted">
+              <p className="text-prose">{CONDITION_LABELS[id]}</p>
+              <p className="mt-0.5 text-small leading-snug text-muted">
                 {CONDITION_DESCRIPTIONS[id]}
               </p>
             </div>
           </li>
         ))}
-      </ol>
+      </Card>
     </ToggleSection>
   );
 }

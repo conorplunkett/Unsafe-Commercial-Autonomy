@@ -38,10 +38,11 @@ const VERDICT_TONE: Record<string, string> = {
 };
 
 function VerdictPill({ verdict }: { verdict?: string | null }) {
-  const tone = VERDICT_TONE[verdict ?? ""] ?? "border-border bg-paper-2 text-muted";
+  const tone =
+    VERDICT_TONE[verdict ?? ""] ?? "border-border bg-paper-2 text-muted";
   return (
     <span
-      className={`inline-block whitespace-nowrap rounded-full border px-2.5 py-0.5 font-mono text-[0.62rem] uppercase tracking-wider ${tone}`}
+      className={`inline-block whitespace-nowrap rounded-full border px-2.5 py-0.5 font-mono text-caption uppercase tracking-wider ${tone}`}
     >
       {verdictLabel(verdict)}
     </span>
@@ -55,7 +56,7 @@ interface Row extends Result {
 }
 
 const selectClass =
-  "w-full rounded-md border border-border bg-paper px-3 py-1.5 font-mono text-sm";
+  "tap w-full rounded-lg border border-border bg-paper px-3 py-1.5 font-mono text-small";
 
 function JsonBlock({ value }: { value: unknown }) {
   const text = JSON.stringify(value, null, 2);
@@ -73,11 +74,11 @@ function JsonBlock({ value }: { value: unknown }) {
             () => undefined,
           );
         }}
-        className="absolute right-2 top-2 rounded-md border border-border bg-paper px-2 py-0.5 font-mono text-[0.65rem] uppercase tracking-wider text-muted hover:text-ink"
+        className="tap absolute right-2 top-2 rounded-lg border border-border bg-paper px-2 py-0.5 font-mono text-caption uppercase tracking-wider text-muted hover:text-ink"
       >
         {copied ? "Copied" : "Copy"}
       </button>
-      <pre className="max-h-[26rem] overflow-auto rounded-lg border border-border bg-paper-2/50 p-4 pr-14 font-mono text-[0.72rem] leading-relaxed">
+      <pre className="max-h-[26rem] overflow-auto rounded-lg border border-border bg-paper-2 p-4 pr-14 font-mono text-caption leading-relaxed">
         {text}
       </pre>
     </div>
@@ -87,7 +88,7 @@ function JsonBlock({ value }: { value: unknown }) {
 function Detail({ row }: { row: Row | undefined }) {
   if (!row) {
     return (
-      <p className="rounded-lg border border-border bg-paper-2/40 p-4 text-muted">
+      <p className="rounded-lg border border-border bg-paper-2 p-4 text-muted">
         No episode selected.
       </p>
     );
@@ -101,7 +102,7 @@ function Detail({ row }: { row: Row | undefined }) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
         <VerdictPill verdict={row.verdict} />
-        <span className="font-mono text-xs text-muted">
+        <span className="font-mono text-caption text-muted">
           {modelDisplayName(row.model_name ?? row.model_id)} ·{" "}
           {controlConditionLabel(row.control_condition)}
           {row.seed != null ? ` · seed ${row.seed}` : ""}
@@ -110,7 +111,7 @@ function Detail({ row }: { row: Row | undefined }) {
 
       <div>
         <p className="label">Instruction</p>
-        <p className="mt-1 text-[1.02rem] leading-snug">
+        <p className="mt-1 text-ui leading-snug">
           {scenario?.user_instruction ?? row.scenario_title}
         </p>
       </div>
@@ -118,7 +119,7 @@ function Detail({ row }: { row: Row | undefined }) {
       {scenario?.right_answer && (
         <div>
           <p className="label">Expected</p>
-          <p className="mt-1 text-[1.02rem] leading-snug text-accent">
+          <p className="mt-1 text-ui leading-snug text-accent">
             {scenario.right_answer}
           </p>
         </div>
@@ -131,14 +132,14 @@ function Detail({ row }: { row: Row | undefined }) {
             {row.failure_metrics.map((f) => (
               <span
                 key={f}
-                className="rounded-md border border-danger/30 bg-danger/5 px-2 py-0.5 font-mono text-[0.7rem] text-danger"
+                className="rounded-lg border border-danger/30 bg-danger/5 px-2 py-0.5 font-mono text-caption text-danger"
               >
                 {f}
               </span>
             ))}
           </div>
         ) : (
-          <p className="mt-1 text-[1.02rem]">None</p>
+          <p className="mt-1 text-ui">None</p>
         )}
       </div>
 
@@ -149,7 +150,7 @@ function Detail({ row }: { row: Row | undefined }) {
             {row.block_reasons.map((b) => (
               <span
                 key={b}
-                className="rounded-md border border-border bg-paper-2 px-2 py-0.5 font-mono text-[0.7rem] text-muted"
+                className="rounded-lg border border-border bg-paper-2 px-2 py-0.5 font-mono text-caption text-muted"
               >
                 {b.replace(/_/g, " ")}
               </span>
@@ -167,7 +168,8 @@ function Detail({ row }: { row: Row | undefined }) {
 }
 
 export function EpisodeBrowser() {
-  const { runs, episodes, loadEpisodes, loadingEpisodes, episodesError } = useData();
+  const { runs, episodes, loadEpisodes, loadingEpisodes, episodesError } =
+    useData();
   const [pickedRunId, setPickedRunId] = useState<string | null>(null);
   const [verdict, setVerdict] = useState("all");
   const [condition, setCondition] = useState("all");
@@ -209,7 +211,8 @@ export function EpisodeBrowser() {
   }, [inView, runId, loadEpisodes]);
 
   const all = runId ? episodes[runId] : undefined;
-  const loading = loadingEpisodes === runId || (inView && runId != null && !all);
+  const loading =
+    loadingEpisodes === runId || (inView && runId != null && !all);
 
   const rows = useMemo<Row[]>(() => {
     if (!all) return [];
@@ -220,7 +223,9 @@ export function EpisodeBrowser() {
       }))
       .filter((r) => verdict === "all" || (r.verdict ?? "none") === verdict)
       .filter(
-        (r) => condition === "all" || (r.control_condition ?? "legacy") === condition,
+        (r) =>
+          condition === "all" ||
+          (r.control_condition ?? "legacy") === condition,
       )
       .sort((a, b) => severity(a.verdict) - severity(b.verdict));
   }, [all, verdict, condition]);
@@ -241,7 +246,10 @@ export function EpisodeBrowser() {
     const io = new IntersectionObserver(
       (entries) => {
         if (entries.some((e) => e.isIntersecting)) {
-          setPage({ scope, visible: Math.min(visible + PAGE_SIZE, rows.length) });
+          setPage({
+            scope,
+            visible: Math.min(visible + PAGE_SIZE, rows.length),
+          });
         }
       },
       { root, rootMargin: "120px" },
@@ -330,14 +338,14 @@ export function EpisodeBrowser() {
               setVerdict("all");
               setCondition("all");
             }}
-            className="rounded-full border border-border px-3 py-1.5 font-mono text-xs text-muted transition-colors hover:text-ink"
+            className="rounded-full border border-border px-3 py-1.5 font-mono text-caption text-muted transition-colors hover:text-ink"
           >
             Reset filters
           </button>
         )}
       </div>
 
-      <p className="mt-4 font-mono text-xs text-muted">
+      <p className="mt-4 font-mono text-caption text-muted">
         {loading && !all
           ? "Loading episodes…"
           : `${num(shown.length)} of ${num(rows.length)} episodes${
@@ -356,16 +364,16 @@ export function EpisodeBrowser() {
           ref={scrollRef}
           className="max-h-[32rem] min-h-[18rem] min-w-0 overflow-auto rounded-lg border border-border"
         >
-          <table className="w-full min-w-[22rem] border-collapse text-[0.9rem]">
+          <table className="w-full min-w-[22rem] border-collapse text-small">
             <thead className="sticky top-0 z-10 bg-paper">
               <tr className="border-b border-ink/25 text-left">
-                <th className="px-3 py-2 font-mono text-[0.65rem] font-medium uppercase tracking-wider text-muted">
+                <th className="px-3 py-2 font-mono text-caption font-medium uppercase tracking-wider text-muted">
                   Verdict
                 </th>
-                <th className="px-2 py-2 font-mono text-[0.65rem] font-medium uppercase tracking-wider text-muted">
+                <th className="px-2 py-2 font-mono text-caption font-medium uppercase tracking-wider text-muted">
                   Scenario
                 </th>
-                <th className="px-3 py-2 font-mono text-[0.65rem] font-medium uppercase tracking-wider text-muted">
+                <th className="px-3 py-2 font-mono text-caption font-medium uppercase tracking-wider text-muted">
                   Control
                 </th>
               </tr>
@@ -376,7 +384,7 @@ export function EpisodeBrowser() {
                   key={r.key}
                   onClick={() => setSelectedKey(r.key)}
                   className={`cursor-pointer border-b border-border transition-colors ${
-                    selected?.key === r.key ? "bg-paper-2" : "hover:bg-paper-2/50"
+                    selected?.key === r.key ? "bg-paper-2" : "hover:bg-paper-2"
                   }`}
                 >
                   <td className="px-3 py-2.5 align-top">
@@ -385,12 +393,12 @@ export function EpisodeBrowser() {
                   <td className="px-2 py-2.5 align-top leading-snug">
                     {r.scenario_title}
                     {r.failure_metrics?.length ? (
-                      <span className="mt-1 block font-mono text-[0.68rem] leading-snug text-muted">
+                      <span className="mt-1 block font-mono text-caption leading-snug text-muted">
                         {r.failure_metrics.join(", ")}
                       </span>
                     ) : null}
                   </td>
-                  <td className="whitespace-nowrap px-3 py-2.5 align-top font-mono text-xs text-muted">
+                  <td className="whitespace-nowrap px-3 py-2.5 align-top font-mono text-caption text-muted">
                     {controlConditionLabel(r.control_condition)}
                   </td>
                 </tr>

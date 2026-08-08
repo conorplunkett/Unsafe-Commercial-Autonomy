@@ -32,8 +32,10 @@ function Axis({
   return (
     <div className="border-l border-border pl-4 first:border-l-0 first:pl-0 sm:border-l sm:first:border-l-0">
       <p className="label">{label}</p>
-      <p className={`mt-1 font-mono text-[1.7rem] leading-none ${tone}`}>{value}</p>
-      <p className="mt-1.5 font-mono text-[0.7rem] leading-snug text-muted">{note}</p>
+      <p className={`mt-1 font-mono text-stat leading-none ${tone}`}>{value}</p>
+      <p className="mt-1.5 font-mono text-caption leading-snug text-muted">
+        {note}
+      </p>
     </div>
   );
 }
@@ -43,34 +45,38 @@ function SplitTable({ title, rows }: { title: string; rows: SplitPoint[] }) {
   const cell = (rate: number | null, count: number, total: number) =>
     total ? `${count}/${total} · ${pct(rate)}` : "—";
   return (
-    <div>
+    <div className="min-w-0">
       <p className="label mb-3">{title}</p>
-      <table className="w-full border-collapse text-[0.95rem]">
-        <thead>
-          <tr className="border-b border-ink/25 text-left">
-            <th className="py-2 pr-3 font-mono text-xs font-medium uppercase tracking-wider text-muted" />
-            <th className="py-2 px-2 text-right font-mono text-xs font-medium uppercase tracking-wider text-muted">
-              Unsafe payment
-            </th>
-            <th className="py-2 pl-2 text-right font-mono text-xs font-medium uppercase tracking-wider text-muted">
-              Refused when safe
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.bucket} className="border-b border-border">
-              <td className="py-2.5 pr-3">{BUCKET_LABELS[r.bucket] ?? r.bucket}</td>
-              <td className="py-2.5 px-2 text-right font-mono text-danger">
-                {cell(r.unsafe, r.unsafeCount, r.unsafeTotal)}
-              </td>
-              <td className="py-2.5 pl-2 text-right font-mono text-warn">
-                {cell(r.refusedWhenSafe, r.refusedCount, r.refusedTotal)}
-              </td>
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse text-small">
+          <thead>
+            <tr className="border-b border-ink/25 text-left">
+              <th className="py-2 pr-3 font-mono text-caption font-medium uppercase tracking-wider text-muted" />
+              <th className="py-2 px-2 text-right font-mono text-caption font-medium uppercase tracking-wider text-muted">
+                Unsafe payment
+              </th>
+              <th className="py-2 pl-2 text-right font-mono text-caption font-medium uppercase tracking-wider text-muted">
+                Refused when safe
+              </th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.bucket} className="border-b border-border">
+                <td className="py-2.5 pr-3">
+                  {BUCKET_LABELS[r.bucket] ?? r.bucket}
+                </td>
+                <td className="py-2.5 px-2 text-right font-mono text-danger">
+                  {cell(r.unsafe, r.unsafeCount, r.unsafeTotal)}
+                </td>
+                <td className="py-2.5 pl-2 text-right font-mono text-warn">
+                  {cell(r.refusedWhenSafe, r.refusedCount, r.refusedTotal)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -127,7 +133,12 @@ export function SurveyAxes() {
   // A run scored before these axes existed carries none of their inputs. Four
   // em-dashes would read as four measured zeroes, so say once that the run
   // predates them and render nothing else.
-  if (!axes.missedRecovery && !axes.humanAlignment && !axes.askCalibration && !floor) {
+  if (
+    !axes.missedRecovery &&
+    !axes.humanAlignment &&
+    !axes.askCalibration &&
+    !floor
+  ) {
     return (
       <p className="mt-6 text-muted">
         This run was scored before the survey-grounded axes were added, so it
@@ -152,7 +163,9 @@ export function SurveyAxes() {
         <Axis
           label="Human alignment"
           value={
-            axes.humanAlignment ? axes.humanAlignment.preferredMean.toFixed(2) : "—"
+            axes.humanAlignment
+              ? axes.humanAlignment.preferredMean.toFixed(2)
+              : "—"
           }
           note={
             axes.humanAlignment ? (
@@ -164,7 +177,8 @@ export function SurveyAxes() {
                   <>
                     {" · "}
                     <span className="whitespace-nowrap">
-                      would-accept {axes.humanAlignment.acceptableMean.toFixed(2)}
+                      would-accept{" "}
+                      {axes.humanAlignment.acceptableMean.toFixed(2)}
                     </span>
                   </>
                 )}
@@ -190,7 +204,11 @@ export function SurveyAxes() {
         <Axis
           label="Vs reflexive floor"
           value={signedPct(excess)}
-          note={floor ? `${pct(floor.rate)} floor · n=${floor.total}` : "no survey floor"}
+          note={
+            floor
+              ? `${pct(floor.rate)} floor · n=${floor.total}`
+              : "no survey floor"
+          }
           tone={excess != null && excess > 0 ? "text-danger" : "text-accent"}
         />
       </div>
@@ -200,7 +218,7 @@ export function SurveyAxes() {
         <SplitTable title="By answer key" rows={bySemanticOnly(results)} />
       </div>
 
-      <dl className="mt-8 max-w-3xl space-y-2 text-sm leading-snug text-muted">
+      <dl className="mt-8 max-w-3xl space-y-2 text-small leading-snug text-muted">
         {GLOSSARY.map(([term, definition]) => (
           <div key={term} className="sm:flex sm:gap-3">
             <dt className="text-ink sm:w-44 sm:shrink-0">{term}</dt>
@@ -209,7 +227,7 @@ export function SurveyAxes() {
         ))}
       </dl>
 
-      <p className="mt-4 max-w-3xl text-sm leading-snug text-muted">
+      <p className="mt-4 max-w-3xl text-small leading-snug text-muted">
         All four axes are additive: the two headline rates keep their
         definitions, so runs scored before and after these landed stay
         comparable on them.

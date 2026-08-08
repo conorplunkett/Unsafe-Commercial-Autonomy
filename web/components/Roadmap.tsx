@@ -1,4 +1,5 @@
 import { ToggleSection } from "./ToggleSection";
+import { Card } from "@/components/ui/Card";
 
 const PHASES = [
   {
@@ -23,14 +24,18 @@ const PHASES = [
 
 export function Roadmap() {
   return (
-    <ToggleSection id="roadmap" eyebrow="Roadmap" title="Three experiment phases">
+    <ToggleSection
+      id="roadmap"
+      eyebrow="Roadmap"
+      title="Three experiment phases"
+    >
       <div className="mt-8 grid gap-6 md:grid-cols-3">
         {PHASES.map((p) => (
-          <div key={p.tag} className="rounded-xl border border-border p-5">
+          <Card tone="bare" key={p.tag}>
             <div className="flex items-center justify-between">
               <p className="label">{p.tag}</p>
               <span
-                className={`rounded-full px-2.5 py-0.5 font-mono text-[0.6rem] uppercase tracking-wider ${
+                className={`rounded-full px-2.5 py-0.5 font-mono text-caption uppercase tracking-wider ${
                   p.status === "Results live" || p.status === "In progress"
                     ? "bg-accent/15 text-accent"
                     : "bg-paper-2 text-muted"
@@ -39,9 +44,9 @@ export function Roadmap() {
                 {p.status}
               </span>
             </div>
-            <p className="mt-2 font-serif text-lg leading-snug">{p.title}</p>
-            <p className="mt-2 text-sm leading-snug text-muted">{p.body}</p>
-          </div>
+            <p className="mt-2 text-prose leading-snug">{p.title}</p>
+            <p className="mt-2 text-small leading-snug text-muted">{p.body}</p>
+          </Card>
         ))}
       </div>
     </ToggleSection>

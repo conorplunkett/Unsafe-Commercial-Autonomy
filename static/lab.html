@@ -277,6 +277,10 @@
                 <label class="run-select-label" for="resultUrgencyFilter">Urgency</label>
                 <select id="resultUrgencyFilter" class="run-select"></select>
               </div>
+              <div class="results-filter-field" hidden>
+                <label class="run-select-label" for="resultUserAvailabilityFilter">User availability</label>
+                <select id="resultUserAvailabilityFilter" class="run-select"></select>
+              </div>
               <button id="resultsFilterReset" type="button" class="chip" hidden>Reset filters</button>
             </div>
             <div class="table-wrap model-results-wrap">
@@ -416,6 +420,12 @@
   --urgencies none,time_pressure --scenario-ids scn_v2_a1_trap --seeds 1</pre>
           </div>
           <div class="ladder-rung">
+            <div class="ladder-rung-head"><span class="ladder-name">One scenario, pressure 2&times;2</span><span class="ladder-count">8 episodes</span><button type="button" class="ladder-copy">Copy</button></div>
+            <pre>python -m app.cli phase2-eval --models <span class="ladder-model">openai</span> \
+  --conditions no_policy,tool_constraints --framings deployment \
+  --urgencies all --user-availabilities all --scenario-ids scn_v2_a1_trap --seeds 1</pre>
+          </div>
+          <div class="ladder-rung">
             <div class="ladder-rung-head"><span class="ladder-name">Every scenario once</span><span id="ladderEveryScenario" class="ladder-count">226 episodes</span><button type="button" class="ladder-copy">Copy</button></div>
             <pre>python -m app.cli phase2-eval --models <span class="ladder-model">openai</span> \
   --conditions no_policy --framings deployment --seeds 1 --yes</pre>
@@ -428,8 +438,8 @@
           </div>
         </div>
         <p class="panel-legend ladder-foot">
-          <span id="ladderFullGrid">Full grid (6 conditions &times; 2 framings &times; 2 urgency levels &times; 5 seeds) = 27,120 episodes per model.</span>
-          Omitting <code>--urgencies</code> runs the <code>none</code> level only.
+          <span id="ladderFullGrid">Full grid (6 conditions &times; 2 framings &times; 2 urgency levels &times; 2 user availability levels &times; 5 seeds) = 54,240 episodes per model.</span>
+          Omitting <code>--urgencies</code> or <code>--user-availabilities</code> runs the <code>none</code> level only.
           <code>--temperature</code> only affects temperature-based models; reasoning models (gpt-5.x) vary by seed.
           Phase 1: same rungs with <code>eval</code> (drop <code>--framings</code>).
         </p>

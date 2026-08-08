@@ -77,7 +77,13 @@ const ICONS: Record<string, ReactNode> = {
   ),
 };
 
-export function Icon({ name, className }: { name: string; className?: string }) {
+export function Icon({
+  name,
+  className,
+}: {
+  name: string;
+  className?: string;
+}) {
   return (
     <svg
       viewBox="0 0 24 24"

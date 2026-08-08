@@ -11,17 +11,24 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import time
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 import httpx
 
 from ..providers import (
+    ANTHROPIC_DEFAULT_THINKING_PREFIXES,
     DEFAULT_ANTHROPIC_MODEL,
     DEFAULT_KIMI_MODEL,
     DEFAULT_OPENAI_MODEL,
+    DEFAULT_TRANSIENT_RETRIES,
     ProviderError,
+    _anthropic_rejects_temperature,
+    _anthropic_supports_effort,
     _is_openai_reasoning_model,
+    backoff_delay,
+    is_retryable_provider_error,
 )
 from .sandbox import MAX_TURNS, SandboxWorld, evaluate_payment_policy, tool_schemas
 
@@ -94,6 +101,16 @@ class BaseEpisodeProvider:
 class ToolLoopProvider(BaseEpisodeProvider):
     """Drives the generic tool loop; subclasses implement vendor transport."""
 
+    # Per-turn transient-failure budget, mirroring the Phase 1 policy in
+    # app/runner.py::_generate_with_retry. Phase 1 retries a single-shot call;
+    # a Phase 2 episode is up to MAX_TURNS calls, so the budget is per turn —
+    # one 429 twelve turns in should not throw away the eleven turns already
+    # paid for.
+    transient_retries: int = DEFAULT_TRANSIENT_RETRIES
+    # Injection seam for tests, so they assert the backoff schedule without
+    # waiting it out (same pattern as _generate_with_retry's `sleep` argument).
+    _sleep: Callable[[float], None] = staticmethod(time.sleep)
+
     def start_conversation(self, system_prompt: str, user_prompt: str, tools: List[Dict[str, Any]], temperature: float) -> None:
         raise NotImplementedError
 
@@ -105,6 +122,32 @@ class ToolLoopProvider(BaseEpisodeProvider):
         """
         raise NotImplementedError
 
+    def _step_with_retry(self, tool_results: Optional[List[Dict[str, Any]]]):
+        """One turn, retrying transient transport failures with backoff.
+
+        Providers wrap everything as ProviderError, so the retryable/terminal
+        split comes from ``is_retryable_provider_error`` walking the
+        ``raise ... from exc`` chain: 429s and 5xx and dropped connections get
+        another attempt, a 400 or a bad model id still fails on the first one.
+        """
+        pending = tool_results
+        retries_left = self.transient_retries
+        attempts = 0
+        while True:
+            try:
+                return self.step(pending)
+            except ProviderError as exc:
+                if retries_left <= 0 or not is_retryable_provider_error(exc):
+                    raise
+                retries_left -= 1
+                self._sleep(backoff_delay(attempts))
+                attempts += 1
+                # Every transport folds `tool_results` into its own conversation
+                # state *before* issuing the request and commits the reply only
+                # after it succeeds, so this turn is already staged. Re-sending
+                # them would append duplicates; None re-issues the same request.
+                pending = None
+
     def run_episode(self, world, system_prompt, user_prompt, seed, temperature) -> EpisodeResult:
         result = EpisodeResult()
         tools = tool_schemas(world.control_condition)
@@ -113,7 +156,7 @@ class ToolLoopProvider(BaseEpisodeProvider):
             self.start_conversation(system_prompt, f"{user_prompt}\n(seed {seed})", tools, temperature)
             tool_results: Optional[List[Dict[str, Any]]] = None
             for _ in range(MAX_TURNS):
-                text, tool_calls = self.step(tool_results)
+                text, tool_calls = self._step_with_retry(tool_results)
                 if text:
                     result.raw_outputs.append(text)
                 if not tool_calls:
@@ -232,10 +275,18 @@ class OpenAIToolProvider(ToolLoopProvider):
 class AnthropicToolProvider(ToolLoopProvider):
     provider_id = "anthropic"
 
-    def __init__(self, model_name: Optional[str] = None, api_key: Optional[str] = None):
+    def __init__(
+        self,
+        model_name: Optional[str] = None,
+        api_key: Optional[str] = None,
+        reasoning_effort: Optional[str] = None,
+    ):
         # Cheapest current model by default (matches the Phase 1 provider).
         self.model_name = model_name or os.environ.get("ANTHROPIC_MODEL") or DEFAULT_ANTHROPIC_MODEL
         self.api_key = api_key
+        # run_phase2_evaluation sets this after construction when --reasoning-effort
+        # is passed; unset means send no effort at all.
+        self.reasoning_effort = reasoning_effort
         self._client = None
         self._system = ""
         self._messages: List[Dict[str, Any]] = []
@@ -285,15 +336,28 @@ class AnthropicToolProvider(ToolLoopProvider):
                     ],
                 }
             )
+        # Same model gating as the Phase 1 provider (app/providers.py): Opus
+        # 4.7+/Opus 5/Sonnet 5/Fable/Mythos reject sampling params with a 400,
+        # and take reasoning depth through output_config.effort instead.
+        effort = self.reasoning_effort if _anthropic_supports_effort(self.model_name) else None
+        default_thinking = (self.model_name or "").lower().startswith(
+            ANTHROPIC_DEFAULT_THINKING_PREFIXES
+        )
+        params: Dict[str, Any] = {
+            "model": self.model_name,
+            # Thinking tokens count against max_tokens, so leave headroom when
+            # the model reasons before each tool call.
+            "max_tokens": 8000 if (effort or default_thinking) else 2000,
+            "system": self._system,
+            "tools": self._tools,
+            "messages": self._messages,
+        }
+        if effort:
+            params["output_config"] = {"effort": effort}
+        if not _anthropic_rejects_temperature(self.model_name):
+            params["temperature"] = self._temperature
         try:
-            response = client.messages.create(
-                model=self.model_name,
-                max_tokens=2000,
-                temperature=self._temperature,
-                system=self._system,
-                tools=self._tools,
-                messages=self._messages,
-            )
+            response = client.messages.create(**params)
         except Exception as exc:
             raise ProviderError(f"Anthropic request failed: {exc}") from exc
         self._last_assistant_content = response.content

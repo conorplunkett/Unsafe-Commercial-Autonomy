@@ -249,7 +249,8 @@ def answer_key_status(
     acceptable_actions: Optional[List[str]] = None,
     phase2_summary: Optional[Dict[str, Dict[str, Any]]] = None,
 ) -> str:
-    """Answer-key status for a scenario: "locked", "provisional", or "dropped".
+    """Answer-key status: "locked", "objective", "provisional", "dropped", or
+    "awaiting_survey".
 
     A v1 scenario locks when it is team-keyed (not surveyed), reaches the
     pre-registered survey lock (>=70% agreement, >=15 respondents), or carries
@@ -257,7 +258,7 @@ def answer_key_status(
     (OBJECTIVE_VERDICT_TRAPS). Surveyed lookalikes that failed the lock rule
     with no objective fallback are "dropped" (DROPPED_FROM_KEY): they run and
     are reported descriptively but leave the headline denominators. Non-v1
-    scenarios stay provisional until their own survey runs.
+    scenarios never reach "locked" — see the v2 paragraphs below.
 
     Synthetic placeholder votes cannot lock (or drop) a surveyed scenario: a
     lock is a validity claim about real respondent agreement, so while the
@@ -280,10 +281,22 @@ def answer_key_status(
     adopting the votes would leave the committed key lying about what is
     scored. ``phase2_summary`` lets callers that load many scenarios pass the
     vote summary in once instead of re-reading the survey file per scenario.
+
+    Every other v2 scenario is "objective": a structured policy rule decides its
+    verdict, so nothing about it is waiting on the survey, but it is deliberately
+    not "locked" either. A v1 team-keyed scenario locks because the v1 survey ran
+    and validated its cohort; the Phase 2 survey has not run, so no v2 scenario
+    carries a survey-validated lock whatever its verdict type. "objective" says
+    exactly that — scoreable now, not survey-validated — where the old
+    "provisional" conflated it with a key still genuinely in doubt. It is keyed
+    for metrics (it stays in the headline denominators, as "provisional" did) but
+    does not clear the locked-only gates, so this is a label, not a scoring
+    change. Note this is a different claim from v1's OBJECTIVE_VERDICT_TRAPS,
+    which name traps whose objective verdict *does* lock them.
     """
     if source_version != "v1":
         if not surveyed:
-            return "provisional"
+            return "objective"
         if phase2_summary is None:
             from .phase2.survey import real_survey_summary
 

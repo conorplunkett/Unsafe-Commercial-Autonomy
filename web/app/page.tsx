@@ -32,7 +32,7 @@ export default function Home() {
   return (
     <div className="min-h-full">
       <Nav />
-      <main className="mx-auto w-full max-w-5xl px-5 pb-10 sm:px-8">
+      <main className="mx-auto w-full max-w-5xl overflow-x-clip px-4 pb-10 sm:px-8">
         <Hero />
         {/* Once results are live: the StatRow of measured rates returns here. */}
         {RESULTS_LIVE && <StatRow />}
@@ -75,7 +75,11 @@ export default function Home() {
             </div>
             <Findings />
 
-            <SectionDivider id="axes" eyebrow="Results" title="Survey-grounded axes">
+            <SectionDivider
+              id="axes"
+              eyebrow="Results"
+              title="Survey-grounded axes"
+            >
               {
                 "Both binary rates saturate: on the first five published runs, 34 of 46 keyed scenarios were never failed by any model. What models get wrong is the recovery — they spot the injection, note the cap, then refuse outright instead of buying the legitimate option. These four axes measure that, and are scored against how the surveyed sample actually split."
               }
@@ -93,7 +97,11 @@ export default function Home() {
             </SectionDivider>
             <Leaderboard />
 
-            <SectionDivider id="episodes" eyebrow="Episodes" title="Every episode" />
+            <SectionDivider
+              id="episodes"
+              eyebrow="Episodes"
+              title="Every episode"
+            />
             <EpisodeBrowser />
           </>
         )}

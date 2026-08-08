@@ -206,7 +206,7 @@ Coverage caveats:
   responses load from a Google Form CSV via `phase2-human-import`, then publish
   with `publish-human-baseline`.
 
-### `phase2-eval` — six-condition sandbox ablation + framing/urgency tests
+### `phase2-eval` — six-condition sandbox ablation + framing/urgency/user-availability tests
 
 ```bash
 # Offline scripted agents (no API keys)
@@ -226,10 +226,14 @@ python -m app.cli phase2-eval --models openai \
 | `--models` | `openai` | `openai`, `anthropic`, `kimi`, `inkling`, `grok`, `deepseek`, `mistral`, `qwen`, `openrouter`, `openweights`, `scripted_diligent`, `scripted_naive`, `all` |
 | `--conditions` | all six | `no_policy`, `prompt_policy`, `structured_policy`, `preflight_check`, `tool_constraints`, `approval_gate` |
 | `--framings` | both | `evaluation` (benchmark framing) vs `deployment` (live-task framing) |
-| `--urgencies` | `none` only | `none` vs `time_pressure` (adds a system-prompt preamble telling the agent to act now, the user is unreachable). Unlike `--framings`, omitting this does **not** run both levels — pass `--urgencies=time_pressure` or `--urgencies=all` to opt in |
+| `--urgencies` | `none` only | `none` vs `time_pressure` (adds a system-prompt deadline, and nothing else). Unlike `--framings`, omitting this does **not** run both levels — pass `--urgencies=time_pressure` or `--urgencies=all` to opt in |
+| `--user-availabilities` | `none` only | `none` vs `unreachable` (states the delegating user is away for the day; never instructs the agent to skip asking). Crosses with `--urgencies` for the pressure 2×2. Also opt-in — omitting it runs `none` only |
 | `--scenario-set` | v2 (226) | Markdown scenario-set path |
 | `--scenario-ids` / `--seeds` / `--temperature` / `--reasoning-effort` | all / `1,2,3,4,5` / 0.7 / unset | Same semantics as Phase 1 `eval` |
 | `--dry-run` | off | Offline scripted agents (live ids map to a deterministic diligent/naive mix) |
+| `--resume` | off | Resume run `RUN_ID` from its checkpoint; only the missing episodes run |
+| `--no-checkpoint` | off | Skip the per-episode checkpoint (a crash then loses the run) |
+| `--concurrency` | `1` | Episodes in flight at once; each worker gets its own provider connection |
 
 Condition matrix: `no_policy`/`prompt_policy`/`structured_policy` vary the
 prompt only (pay always succeeds); `preflight_check` makes `pay` reject until
@@ -268,13 +272,52 @@ provider (key/config presence, and a cheap model-id lookup for OpenAI) and
 aborts with one clear message instead of walking the episode grid and saving an
 all-error run.
 
+#### Surviving a long run: checkpoint, resume, retry, concurrency
+
+A full grid is 13,560 episodes per model, so the run has to be interruptible.
+
+**Checkpointing is on by default.** Every finished episode is appended to
+`runtime/checkpoints/<run_id>.jsonl` and flushed, so a crash or a `Ctrl-C`
+costs the one episode in flight rather than the whole run. `runtime/runs/` is
+unchanged — the checkpoint is the write-ahead log, the run JSON is still the
+artifact.
+
+```bash
+python -m app.cli phase2-checkpoints          # resumable runs, newest first
+python -m app.cli phase2-eval ... --resume run_3b0bfbb951c8
+```
+
+A resume replays the checkpointed episodes and runs only what is missing.
+Episodes that recorded an **error** are re-run, since a rate-limit cascade is
+the usual reason to resume. Resuming requires the same axes the run started
+with — a different grid is refused rather than silently mixed into one run
+file. The resumed run keeps the original `run_id`, and reproduces exactly the
+run an uninterrupted pass would have produced.
+
+**Transient failures retry.** Each turn of the tool loop retries a 429, a 5xx
+or a dropped connection up to 3 times with exponential backoff (0.5s, 1s, 2s,
+capped at 8s) — the same `is_retryable_provider_error` classification Phase 1
+uses, applied per turn so one blip eleven turns in doesn't discard the eleven
+turns already paid for. Deterministic errors (a 400, an unknown model id) still
+fail on the first attempt. After 10 consecutive episodes fail post-retry the
+run aborts rather than filling the grid with error rows, and prints the resume
+command.
+
+**`--concurrency N`** runs N episodes at once. It defaults to 1, and results
+are sorted back into grid order, so a parallel run serializes identically to a
+serial one. Live providers hold per-episode conversation state, so each worker
+gets its own provider instance — raise this against the provider's rate limit,
+not past it.
+
 Episodes are capped at 12 tool turns. Full tool transcripts are stored as
 `tool_call` audit events. Runs save to `runtime/runs/` tagged
 `"phase": "phase2"` with `metrics.phase2.by_framing`,
-`.by_condition_and_framing`, and (when `--urgencies` selects more than one
-level) `.by_urgency` / `.by_condition_and_urgency`. **Full live grid = 226 ×
-6 × 2 × 5 = 13,560 multi-turn episodes per model** at the default single
-urgency level — adding `--urgencies=all` doubles that.
+`.by_condition_and_framing`, and — when the axis selects more than one level —
+`.by_urgency` / `.by_condition_and_urgency`, `.by_user_availability` /
+`.by_condition_and_user_availability`, plus `.by_urgency_and_user_availability` when both
+axes vary. **Full live grid = 226 × 6 × 2 × 5 = 13,560 multi-turn episodes per
+model** at the default single urgency and user-availability level — `--urgencies=all`
+doubles that, and adding `--user-availabilities=all` quadruples it.
 
 Every run's summary (both `eval` and `phase2-eval`) also prints the unsafe
 rate split by `metrics.by_semantic_only`: `semantic_only` traps (the 44 in v2 /
@@ -283,6 +326,15 @@ i.e. exactly the survey's own subject matter) versus `objective` (everything a
 structured policy rule decides outright). This pile has held at ~18% of both
 scenario sets, so it is reported apart from the headline rate rather than
 folded into it.
+
+### `phase2-checkpoints` — resumable Phase 2 runs
+
+```bash
+python -m app.cli phase2-checkpoints
+```
+
+Lists every run with a checkpoint in `runtime/checkpoints/`, newest first, with
+its episode and error counts — the run ids `phase2-eval --resume` accepts.
 
 ### `phase2-survey` / `phase2-survey-collect` — v2 answer-key survey
 
@@ -713,7 +765,7 @@ Agent actions must be one of: `purchase`, `pay_tool`, `send_stablecoin`,
 | `app/storage.py` | Run JSON persistence |
 | `app/phase2/sandbox.py` | Phase 2 tools, SandboxWorld, policy engine, prompts |
 | `app/phase2/providers.py` | Tool-loop adapters (OpenAI/Anthropic/Kimi/Inkling/Grok/DeepSeek/Mistral/Qwen/OpenRouter/openweights) + scripted agents |
-| `app/phase2/runner.py` | Phase 2 eval loop (model × condition × framing × urgency × scenario × seed) |
+| `app/phase2/runner.py` | Phase 2 eval loop (model × condition × framing × urgency × user availability × scenario × seed) |
 | `app/phase2/survey.py` | 50-respondent survey aggregation, lock, collection |
 | `app/phase2/humans.py` | Human-baseline sessions: report + interactive collection |
 | `app/phase2/transfer.py` | Phase 1 → sandbox transfer correlation |

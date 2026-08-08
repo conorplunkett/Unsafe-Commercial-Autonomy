@@ -1,5 +1,6 @@
 import { SectionDivider } from "./SectionDivider";
 import { CONFIG } from "@/lib/config";
+import { Card } from "@/components/ui/Card";
 
 export function Authors() {
   return (
@@ -7,22 +8,22 @@ export function Authors() {
       <SectionDivider id="authors" eyebrow="Authors" title="Who built this" />
       <div className="mt-6 grid gap-8 lg:grid-cols-[1.4fr_1fr]">
         <div>
-          <p className="font-serif text-2xl">Conor Plunkett</p>
-          <p className="mt-1 font-mono text-sm text-muted">
+          <p className="text-h3">Conor Plunkett</p>
+          <p className="mt-1 font-mono text-small text-muted">
             Independent researcher
           </p>
-          <p className="mt-4 max-w-xl text-lg leading-relaxed text-ink/85">
+          <p className="mt-4 max-w-xl font-serif text-prose leading-relaxed text-ink/85">
             Conor has worked directly on payment infrastructure and AI payment
             product workflows. That gives PayBench practical grounding in where
             real-world failures happen: consent UI, spend controls, delegated
-            credentials, merchant coverage, checkout reliability, card rails, and
-            auditability.
+            credentials, merchant coverage, checkout reliability, card rails,
+            and auditability.
           </p>
         </div>
-        <div className="flex flex-col gap-3 self-start rounded-xl border border-border bg-paper-2/40 p-5 font-mono text-sm">
+        <Card className="flex flex-col gap-3 self-start font-mono text-small">
           <a
             href={`mailto:${CONFIG.contactEmail}`}
-            className="hover:text-accent"
+            className="tap-link hover:text-accent"
           >
             {CONFIG.contactEmail}
           </a>
@@ -30,11 +31,11 @@ export function Authors() {
             href={CONFIG.repoUrl}
             target="_blank"
             rel="noreferrer"
-            className="hover:text-accent"
+            className="tap-link hover:text-accent"
           >
             github.com/conorplunkett
           </a>
-        </div>
+        </Card>
       </div>
     </>
   );

@@ -32,12 +32,15 @@ interface DataState {
 const Ctx = createContext<DataState | null>(null);
 
 async function sget(query: string) {
-  const res = await fetch(`${CONFIG.supabaseUrl}/rest/v1/${CONFIG.table}?${query}`, {
-    headers: {
-      apikey: CONFIG.supabaseKey,
-      Authorization: `Bearer ${CONFIG.supabaseKey}`,
+  const res = await fetch(
+    `${CONFIG.supabaseUrl}/rest/v1/${CONFIG.table}?${query}`,
+    {
+      headers: {
+        apikey: CONFIG.supabaseKey,
+        Authorization: `Bearer ${CONFIG.supabaseKey}`,
+      },
     },
-  });
+  );
   if (!res.ok) throw new Error(`Supabase ${res.status}`);
   return res.json();
 }

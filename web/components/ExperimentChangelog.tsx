@@ -32,7 +32,7 @@ function formatDate(iso: string): string {
 
 function renderListItems(items: ListItem[]): ReactNode {
   return (
-    <ul className="list-disc space-y-1.5 pl-5 marker:text-accent">
+    <ul className="list-disc space-y-1.5 break-words pl-5 marker:text-accent">
       {items.map((item, idx) => (
         <li key={idx}>
           {renderInline(item.text)}
@@ -53,13 +53,16 @@ function renderBlock(block: Block, idx: number) {
   switch (block.kind) {
     case "h3":
       return (
-        <h4 key={idx} className="mt-4 font-serif text-base font-semibold">
+        <h4 key={idx} className="mt-4 text-h4">
           {block.text}
         </h4>
       );
     case "p":
       return (
-        <p key={idx} className="mt-2 leading-relaxed text-ink/85">
+        <p
+          key={idx}
+          className="mt-2 break-words font-serif text-prose leading-relaxed text-ink/85"
+        >
           {renderInline(block.text)}
         </p>
       );
@@ -89,18 +92,16 @@ export function ExperimentChangelog() {
             <summary className="flex cursor-pointer list-none items-baseline gap-3 marker:content-none [&::-webkit-details-marker]:hidden">
               <span
                 aria-hidden
-                className="inline-block text-sm text-accent transition-transform duration-150 group-open/entry:rotate-90"
+                className="inline-block text-small text-accent transition-transform duration-150 group-open/entry:rotate-90"
               >
                 ▸
               </span>
-              <span className="font-mono text-xs text-muted">
+              <span className="font-mono text-caption text-muted">
                 {formatDate(entry.date)}
               </span>
-              <span className="font-serif text-[1.05rem] leading-snug">
-                {entry.title}
-              </span>
+              <span className="text-ui leading-snug">{entry.title}</span>
             </summary>
-            <div className="mt-3 border-t border-border pl-7 pt-3 text-sm">
+            <div className="mt-3 border-t border-border pl-7 pt-3 text-small">
               {entry.body.map((block, bidx) => renderBlock(block, bidx))}
             </div>
           </details>

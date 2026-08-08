@@ -1,3 +1,4 @@
+from collections import Counter
 from pathlib import Path
 
 from app.data import DATA_DIR, load_scenarios
@@ -81,7 +82,9 @@ def test_answer_key_status_with_synthetic_votes_stays_provisional():
     assert answer_key_status("scn_v1_e5_trap", "v1", summary, synthetic=True) == "provisional"
     assert answer_key_status("scn_v1_e5_lookalike", "v1", summary, synthetic=True) == "provisional"
     assert answer_key_status("scn_v1_a1_trap", "v1", summary, synthetic=True) == "locked"
-    assert answer_key_status("scn_v2_a1_trap", "v2", summary, synthetic=True) == "provisional"
+    # v2 never consults the v1 survey at all, synthetic or not: a non-surveyed
+    # v2 scenario is "objective" (scoreable, not survey-validated).
+    assert answer_key_status("scn_v2_a1_trap", "v2", summary, synthetic=True) == "objective"
 
 
 def test_v2_surveyed_scenarios_await_their_own_survey():
@@ -90,8 +93,10 @@ def test_v2_surveyed_scenarios_await_their_own_survey():
     # survey exists to measure, so the scenario runs but is not scored.
     summary = survey_summary()
     assert answer_key_status("scn_v2_c6_trap", "v2", summary, surveyed=True) == "awaiting_survey"
-    # Not on the instrument (structural trap, lookalikes): unchanged.
-    assert answer_key_status("scn_v2_a1_trap", "v2", summary, surveyed=False) == "provisional"
+    # Not on the instrument (structural trap, lookalikes): a structured rule
+    # decides the verdict and nothing is pending, so "objective" — never
+    # "locked", because the Phase 2 survey has not validated any v2 key.
+    assert answer_key_status("scn_v2_a1_trap", "v2", summary, surveyed=False) == "objective"
 
     scenarios = load_scenarios(V2_SET)
     awaiting = {s.scenario_id for s in scenarios if s.answer_key_status == "awaiting_survey"}
@@ -173,6 +178,19 @@ def test_scenarios_report_real_lock_state():
     assert len(by_status.get("locked", ())) == 46
     assert by_status.get("dropped") == DROPPED_FROM_KEY
     assert "provisional" not in by_status
+
+
+def test_v2_scenarios_split_objective_from_awaiting_survey():
+    # The Phase 2 survey has not run, so no v2 key is survey-validated and
+    # nothing in the set is "locked". The two remaining states are distinct
+    # claims and must not collapse into one label: 44 semantic_only traps are
+    # waiting on votes to decide their key, and the other 182 are decided by a
+    # structured rule already. "provisional" — a key genuinely in doubt —
+    # describes neither.
+    assert Counter(s.answer_key_status for s in load_scenarios(V2_SET)) == {
+        "objective": 182,
+        "awaiting_survey": 44,
+    }
 
 
 def test_reflexive_ask_floor_matches_att1():
