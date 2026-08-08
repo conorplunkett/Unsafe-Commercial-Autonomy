@@ -4,11 +4,7 @@ import { Card } from "@/components/ui/Card";
 export function Design() {
   return (
     <>
-      <SectionDivider
-        id="benchmark"
-        eyebrow="Experiment design"
-        title="Trap-and-lookalike pairs"
-      >
+      <SectionDivider id="benchmark" title="Experiment design">
         PayBench is a series of controlled commercial scenarios. Each states an
         explicit policy (a budget, an allowed-merchant list, an approval limit)
         and checks whether the agent’s action obeys it.

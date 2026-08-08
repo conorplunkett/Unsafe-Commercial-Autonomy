@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { SectionDivider } from "./SectionDivider";
+import { ToggleSection } from "./ToggleSection";
 import { CITATION } from "@/lib/config";
 import { Card } from "@/components/ui/Card";
 
@@ -19,8 +19,7 @@ export function Citation() {
   }
 
   return (
-    <>
-      <SectionDivider id="cite" eyebrow="Citation" title="Cite PayBench" />
+    <ToggleSection id="cite" title="Cite PayBench">
       <Card pad="none" className="mt-6 overflow-hidden">
         <div className="flex items-center justify-between border-b border-border px-4 py-2">
           <span className="label">BibTeX</span>
@@ -35,6 +34,6 @@ export function Citation() {
           {CITATION}
         </pre>
       </Card>
-    </>
+    </ToggleSection>
   );
 }

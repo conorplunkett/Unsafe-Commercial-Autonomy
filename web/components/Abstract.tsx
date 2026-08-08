@@ -33,7 +33,6 @@ export function Abstract() {
     <>
       <SectionDivider
         id="abstract"
-        eyebrow="Abstract"
         title="Money is power. Can we trust AI with our money?"
       />
       <div className="mt-6 grid gap-10 lg:grid-cols-[1.4fr_1fr]">

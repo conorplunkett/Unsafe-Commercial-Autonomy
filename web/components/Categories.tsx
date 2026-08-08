@@ -5,11 +5,7 @@ import { Card } from "@/components/ui/Card";
 export function Categories() {
   return (
     <>
-      <SectionDivider
-        id="coverage"
-        eyebrow="Experiment coverage"
-        title="Five spend categories"
-      >
+      <SectionDivider id="coverage" title="Experiment coverage">
         There are five categories of commercial scenario, simulating the diverse
         arenas of the internet, with matched trap-and-lookalike pairs in each.
       </SectionDivider>

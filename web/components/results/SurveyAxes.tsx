@@ -140,10 +140,7 @@ export function SurveyAxes() {
     !floor
   ) {
     return (
-      <p className="mt-6 text-muted">
-        This run was scored before the survey-grounded axes were added, so it
-        carries none of their inputs. Newer runs report all four.
-      </p>
+      <p className="mt-6 text-muted">This run predates these axes.</p>
     );
   }
 

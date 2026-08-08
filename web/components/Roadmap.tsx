@@ -24,11 +24,7 @@ const PHASES = [
 
 export function Roadmap() {
   return (
-    <ToggleSection
-      id="roadmap"
-      eyebrow="Roadmap"
-      title="Three experiment phases"
-    >
+    <ToggleSection id="roadmap" title="Three experiment phases">
       <div className="mt-8 grid gap-6 md:grid-cols-3">
         {PHASES.map((p) => (
           <Card tone="bare" key={p.tag}>
