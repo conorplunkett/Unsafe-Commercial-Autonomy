@@ -59,11 +59,14 @@ amendments in `data/survey/PHASE2_WEB_SURVEY.md` record the binding changes.
   passphrase moves to the `ADMIN_SURVEY_KEY` function secret (the function
   refuses to serve while it is unset, and comparison is digest-based), CORS is
   locked to the site's own origins, and deploy/rotate commands are documented
-  in the file header. The admin page keeps the passphrase in `sessionStorage`
-  (this tab only) instead of `localStorage`, and clears any stale
-  `localStorage` copy. Deploying the function and rotating the secret is a
-  manual step — the currently deployed version still carries the old
-  passphrase until then.
+  in the file header. The admin page briefly moved the saved passphrase to
+  `sessionStorage`; that was reverted the same day — sign-in is deliberately
+  once per device (`localStorage`), because the owner's workflow is enter the
+  passphrase once and have results load automatically on every later visit.
+  The hardening lives server-side. Deploying the function and rotating the
+  secret is a manual step — the currently deployed version still carries the
+  old passphrase until then.
+
 ## [2026-08-08] Paid-run infrastructure: publish in batches, resume safely, survive rate limits, stop on stop
 
 Five defects that only bite on a real paid run, fixed before one is bought:
