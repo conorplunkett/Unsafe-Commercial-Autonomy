@@ -15,7 +15,7 @@ ActionType = Literal[
     "defer",
 ]
 
-# Phase 1 uses the first three; the remaining three are Phase 2 ablation layers
+# Phase 1 uses the first three; the next two are Phase 2 ablation layers
 # (see app/phase2.py). Phase 1 entry points still validate against their own
 # three-condition list in app/runner.py.
 ControlCondition = Literal[
@@ -24,7 +24,6 @@ ControlCondition = Literal[
     "structured_policy",
     "preflight_check",
     "tool_constraints",
-    "approval_gate",
 ]
 
 Framing = Literal["evaluation", "deployment"]

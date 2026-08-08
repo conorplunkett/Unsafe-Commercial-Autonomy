@@ -58,7 +58,7 @@ def _per_scenario_unsafe_rates(results: Iterable[Any], scenario_ids: List[str]) 
 def run_transfer_check(
     phase1_run_id: str,
     model_id: str = "openai",
-    control_condition: str = "prompt_policy",
+    control_condition: str = "tool_constraints",
     seeds: Optional[List[int]] = None,
     live: bool = False,
     storage: Optional[RunStorage] = None,

@@ -216,8 +216,8 @@ payment with a delegated card. It lives in `app/phase2/` and is fully
 separate from Phase 1: the Phase 1 commands never import it, and the Phase 1
 runner still rejects the Phase 2-only control conditions.
 
-Key design point: Phase 2 enforcement (`check_policy`, `tool_constraints`
-pay blocks, `approval_gate` pauses) runs a policy engine over **structured
+Key design point: Phase 2 enforcement (`check_policy` and `tool_constraints`
+pay blocks) runs a policy engine over **structured
 policy fields only** (`app/phase2/sandbox.py::evaluate_payment_policy`) — it
 never sees trap labels, unlike Phase 1's `apply_tool_constraints`.
 
@@ -237,7 +237,7 @@ Coverage caveats:
   responses load from a Google Form CSV via `phase2-human-import`, then publish
   with `publish-human-baseline`.
 
-### `phase2-eval` — six-condition sandbox ablation + framing/urgency/user-availability tests
+### `phase2-eval` — four-condition sandbox ablation + framing/urgency/user-availability tests
 
 ```bash
 # Offline scripted agents (no API keys)
@@ -258,7 +258,7 @@ python -m app.cli phase2-eval --models openai --split objective --concurrency 4
 | Flag | Default | Description |
 | --- | --- | --- |
 | `--models` | `openai` | `openai`, `anthropic`, `gemini`, `kimi`, `inkling`, `grok`, `deepseek`, `mistral`, `qwen`, `openrouter`, `openweights`, `scripted_diligent`, `scripted_naive`, `all` |
-| `--conditions` | `no_policy` only | `no_policy`, `prompt_policy`, `structured_policy`, `preflight_check`, `tool_constraints`, `approval_gate`, or `all`. No additional control layers by default — unlike `--framings`, omitting this does **not** run all six; pass a list or `--conditions=all` to turn constraints on |
+| `--conditions` | `no_policy` only | `no_policy`, `structured_policy`, `preflight_check`, `tool_constraints`, or `all`. No additional control layers by default — unlike `--framings`, omitting this does **not** run all four; pass a list or `--conditions=all` to turn constraints on |
 | `--framings` | both | `evaluation` (benchmark framing) vs `deployment` (live-task framing) |
 | `--urgencies` | `none` only | `none` vs `time_pressure` (adds a system-prompt deadline, and nothing else). Unlike `--framings`, omitting this does **not** run both levels — pass `--urgencies=time_pressure` or `--urgencies=all` to opt in |
 | `--user-availabilities` | `none` only | `none` vs `unreachable` (states the delegating user is away for the day; never instructs the agent to skip asking). Crosses with `--urgencies` for the pressure 2×2. Also opt-in — omitting it runs `none` only |
@@ -270,12 +270,11 @@ python -m app.cli phase2-eval --models openai --split objective --concurrency 4
 | `--no-checkpoint` | off | Skip the per-episode checkpoint (a crash then loses the run) |
 | `--concurrency` | `1` | Episodes in flight at once; each worker gets its own provider connection |
 
-Condition matrix: `no_policy`/`prompt_policy`/`structured_policy` vary the
-prompt only (pay always succeeds); `preflight_check` makes `pay` reject until
+Condition matrix: `no_policy`/`structured_policy` vary the prompt only (pay
+always succeeds); `preflight_check` makes `pay` reject until
 `check_policy` was called for that offer (a block **verdict** does not stop
 pay — heeding it is measured); `tool_constraints` hard-enforces the policy
-engine at `pay`; `approval_gate` pauses flagged payments as `pending_approval`
-and ends the episode as ask_approval.
+engine at `pay`.
 
 #### Offer-grounded v1 (Flaw C fix)
 
@@ -287,7 +286,7 @@ the offer the agent paid and what it disclosed:
 ```bash
 python -m app.cli phase2-eval \
   --scenario-set data/scenario_sets/v1_50_scenarios.md \
-  --conditions no_policy,prompt_policy,tool_constraints \
+  --conditions no_policy,structured_policy,tool_constraints \
   --framings deployment --dry-run        # live: drop --dry-run, add --models openai
 ```
 
