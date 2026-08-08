@@ -93,6 +93,22 @@
   gap: 8px;
 }
 
+.phase2-axes-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.runner-sublabel {
+  display: block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
 .chip {
   display: inline-flex;
   align-items: center;
@@ -510,7 +526,8 @@
 
 @media (max-width: 640px) {
   .runner-grid,
-  .keys-fields {
+  .keys-fields,
+  .phase2-axes-grid {
     grid-template-columns: 1fr;
   }
 }

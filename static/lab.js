@@ -5,6 +5,10 @@
 
 const state = {
   scenarios: [],
+  // Phase 2's v2 scenario set, kept separate from `scenarios` (Phase 1's v1
+  // set) so the Category/Scenario dropdowns can switch pools when the Phase
+  // toggle flips instead of only ever offering Phase 1 scenarios.
+  phase2Scenarios: [],
   scenarioIndex: new Map(),
   allResults: [],
   runList: [],
@@ -18,6 +22,18 @@ const state = {
   provider: null,
   dryRun: false,
   conditions: new Set(["no_policy", "prompt_policy", "tool_constraints"]),
+  // Runner-card phase toggle. "1" builds a `python -m app.cli eval` command
+  // and can also be launched live via the Run benchmark button (/api/jobs).
+  // "2" builds a `python -m app.cli phase2-eval` command with the framing/
+  // urgency/pressure axes below — Phase 2 has no live endpoint, so it is
+  // CLI-only (the copyable command is the only way to run it from this page).
+  phase: "1",
+  // Phase 2 ablation-axis selections for the CLI command builder. Empty means
+  // "use the CLI's own default for this axis" (framings: both; urgency/
+  // pressure: none only) rather than "run nothing" — see buildCliCommand.
+  framings: new Set(),
+  urgencies: new Set(),
+  userAvailabilities: new Set(),
   modelFilter: null,
   // Results-panel slice filters, independent of the model click-filter above.
   // runFilter holds a run_id; verdictFilter/conditionFilter hold an enum value
@@ -51,7 +67,12 @@ for (const id of [
   "providerChips",
   "modelSelect",
   "modelCustomInput",
+  "phaseChips",
   "conditionChips",
+  "phase2AxesRow",
+  "framingChips",
+  "urgencyChips",
+  "userAvailabilityChips",
   "dryRunChip",
   "categoryFilter",
   "scenarioFilter",
@@ -814,25 +835,72 @@ function pickProvider(providerId) {
 }
 
 function renderConditionChips() {
-  els.conditionChips.innerHTML = CONDITION_ORDER.map(
-    (condition) => `
+  const conditionOrder = conditionsForPhase(state.phase);
+  els.conditionChips.innerHTML = conditionOrder
+    .map(
+      (condition) => `
       <button type="button" class="chip ${state.conditions.has(condition) ? "chip-on" : ""}"
         data-condition="${condition}" title="${CONDITION_DESCRIPTIONS[condition]}">
         ${CONDITION_LABELS[condition]}
       </button>
     `
-  ).join("");
+    )
+    .join("");
 }
 
-function scenarioPool() {
-  const category = els.categoryFilter.value;
-  return state.scenarios.filter(
-    (scenario) => category === "all" || scenario.category === category
+// Generic renderer for the three Phase 2 axis chip-rows: multi-select, empty
+// selection allowed (it means "use the CLI default"), so unlike the
+// condition/provider chips there is no single active value to compare against.
+function renderAxisChips(el, order, labels, selected) {
+  el.innerHTML = order
+    .map(
+      (value) => `
+      <button type="button" class="chip ${selected.has(value) ? "chip-on" : ""}" data-value="${value}">
+        ${labels[value] || value.replaceAll("_", " ")}
+      </button>
+    `
+    )
+    .join("");
+}
+
+function renderPhase2AxesChips() {
+  renderAxisChips(els.framingChips, FRAMING_ORDER, FRAMING_LABELS, state.framings);
+  renderAxisChips(els.urgencyChips, URGENCY_ORDER, URGENCY_LABELS, state.urgencies);
+  renderAxisChips(
+    els.userAvailabilityChips,
+    USER_AVAILABILITY_ORDER,
+    USER_AVAILABILITY_LABELS,
+    state.userAvailabilities
   );
 }
 
+// Switches the runner card between Phase 1 (live-runnable, 3 conditions) and
+// Phase 2 (CLI-only, 6 conditions plus the framing/urgency/pressure axes).
+// Resets the condition selection to "every condition this phase defines" so
+// switching phases never leaves a Phase 1 condition checked that Phase 2's
+// chip row doesn't even render (and vice versa).
+function pickPhase(phase) {
+  state.phase = phase;
+  state.conditions = new Set(conditionsForPhase(phase));
+  els.phaseChips
+    .querySelectorAll("[data-phase]")
+    .forEach((chip) => chip.classList.toggle("chip-on", chip.dataset.phase === phase));
+  els.phase2AxesRow.hidden = phase !== "2";
+  renderConditionChips();
+  renderPhase2AxesChips();
+  renderScenarioFilters();
+  updateRunCount();
+}
+
+function scenarioPool() {
+  const scenarios = state.phase === "2" ? state.phase2Scenarios : state.scenarios;
+  const category = els.categoryFilter.value;
+  return scenarios.filter((scenario) => category === "all" || scenario.category === category);
+}
+
 function renderScenarioFilters() {
-  const categories = [...new Set(state.scenarios.map((scenario) => scenario.category))].sort();
+  const scenarios = state.phase === "2" ? state.phase2Scenarios : state.scenarios;
+  const categories = [...new Set(scenarios.map((scenario) => scenario.category))].sort();
   els.categoryFilter.innerHTML = [
     '<option value="all">All categories</option>',
     ...categories.map(
@@ -861,19 +929,42 @@ function parseSeeds() {
   return seeds.length ? seeds : [1];
 }
 
+// Effective size of a Phase 2 axis for the cell count: an empty selection
+// means "CLI default for this axis", not zero, so it counts as the CLI's
+// default breadth (framings default to both; urgency/pressure default to the
+// single "none" level) rather than making the whole product collapse to 0.
+function axisCount(selected, defaultCount) {
+  return selected.size || defaultCount;
+}
+
 function updateRunCount() {
   const pool = scenarioPool();
   const scenarioCount =
     els.scenarioFilter.value === "all" ? pool.length : Math.min(1, pool.length);
-  const cells = scenarioCount * state.conditions.size * parseSeeds().length;
+  const isPhase2 = state.phase === "2";
+  const framingCount = isPhase2 ? axisCount(state.framings, FRAMING_ORDER.length) : 1;
+  const urgencyCount = isPhase2 ? axisCount(state.urgencies, 1) : 1;
+  const availabilityCount = isPhase2 ? axisCount(state.userAvailabilities, 1) : 1;
+  const axesCount = framingCount * urgencyCount * availabilityCount;
+  const cells = scenarioCount * state.conditions.size * parseSeeds().length * axesCount;
+  const axesPart = isPhase2 && axesCount > 1 ? ` × ${axesCount} axis combo${axesCount === 1 ? "" : "s"}` : "";
   els.runCount.textContent = cells
     ? `${scenarioCount} scenario${scenarioCount === 1 ? "" : "s"} × ${state.conditions.size} condition${
         state.conditions.size === 1 ? "" : "s"
-      } × ${parseSeeds().length} seed${parseSeeds().length === 1 ? "" : "s"} = ${cells} calls`
+      } × ${parseSeeds().length} seed${parseSeeds().length === 1 ? "" : "s"}${axesPart} = ${cells} calls`
     : state.conditions.size
       ? ""
       : "Pick at least one condition.";
-  els.runBenchmark.disabled = !cells;
+  // Phase 2 has no live /api/jobs endpoint — the CLI command below is the only
+  // way to run it. Keep the button disabled with an explanatory label rather
+  // than letting it silently launch a Phase 1 job under a Phase 2 selection.
+  if (isPhase2) {
+    els.runBenchmark.disabled = true;
+    els.runBenchmark.textContent = "Copy CLI command below →";
+  } else {
+    els.runBenchmark.disabled = !cells;
+    els.runBenchmark.textContent = "Run benchmark";
+  }
   updateCliCommand();
 }
 
@@ -900,22 +991,16 @@ function scenarioSelectionForCommand() {
   return { ids: null, note: null };
 }
 
-// The `python -m app.cli eval` invocation equivalent to the current run form,
-// so a run can be copied into a real terminal/script instead of only clicked.
-// Best-effort: options with no direct CLI flag (a random scenario pick) get a
-// trailing comment instead of a flag. Never includes an actual secret — a
-// missing key becomes a named-env-var reminder, not the pasted value.
-function buildCliCommand() {
+// Flags/notes shared by both `eval` (Phase 1) and `phase2-eval` (Phase 2):
+// model, scenario selection, seeds, temperature, reasoning effort, dry-run,
+// and the env-var prefix/API-key reminder. Condition and axis flags differ
+// per phase and are added by the caller.
+function buildCommonCliParts() {
   const provider = state.provider;
   const profile = providerProfile();
   const modelName = selectedModelName();
   const notes = [];
   const flags = [`--models ${provider}`];
-
-  const conditions = CONDITION_ORDER.filter((condition) => state.conditions.has(condition));
-  if (conditions.length && conditions.length !== CONDITION_ORDER.length) {
-    flags.push(`--conditions ${conditions.join(",")}`);
-  }
 
   const scenarioSelection = scenarioSelectionForCommand();
   if (scenarioSelection.ids) {
@@ -952,10 +1037,63 @@ function buildCliCommand() {
     notes.push(keyVar ? `needs ${keyVar} set (or paste a key above)` : "needs an API key set (or paste one above)");
   }
 
+  return { flags, notes, envParts };
+}
+
+// The `python -m app.cli eval` invocation equivalent to the current Phase 1
+// run form, so a run can be copied into a real terminal/script instead of
+// only clicked. Best-effort: options with no direct CLI flag (a random
+// scenario pick) get a trailing comment instead of a flag. Never includes an
+// actual secret — a missing key becomes a named-env-var reminder, not the
+// pasted value.
+function buildPhase1CliCommand() {
+  const { flags, notes, envParts } = buildCommonCliParts();
+
+  const conditions = CONDITION_ORDER.filter((condition) => state.conditions.has(condition));
+  if (conditions.length && conditions.length !== CONDITION_ORDER.length) {
+    flags.push(`--conditions ${conditions.join(",")}`);
+  }
+
   const prefix = envParts.length ? `${envParts.join(" ")} ` : "";
   let command = `${prefix}python -m app.cli eval ${flags.join(" ")}`;
   if (notes.length) command += `  # ${notes.join("; ")}`;
   return command;
+}
+
+// The `python -m app.cli phase2-eval` invocation for the current Phase 2 run
+// form, covering the six-condition ablation plus the framing/urgency/pressure
+// axes (app/models.py Framing / Urgency / UserAvailability). Phase 2 has no
+// live endpoint, so unlike Phase 1 this command is the only way to launch the
+// selection — every axis flag is emitted explicitly (never left to the CLI's
+// own default) so the copied command always matches what the form shows.
+function buildPhase2CliCommand() {
+  const { flags, notes, envParts } = buildCommonCliParts();
+
+  const conditions = PHASE2_CONDITION_ORDER.filter((condition) => state.conditions.has(condition));
+  if (conditions.length && conditions.length !== PHASE2_CONDITION_ORDER.length) {
+    flags.push(`--conditions ${conditions.join(",")}`);
+  }
+  if (!conditions.length) notes.push("no conditions selected — pick at least one");
+
+  const framings = FRAMING_ORDER.filter((framing) => state.framings.has(framing));
+  if (framings.length) flags.push(`--framings ${framings.join(",")}`);
+
+  const urgencies = URGENCY_ORDER.filter((urgency) => state.urgencies.has(urgency));
+  if (urgencies.length) flags.push(`--urgencies ${urgencies.join(",")}`);
+
+  const userAvailabilities = USER_AVAILABILITY_ORDER.filter((availability) =>
+    state.userAvailabilities.has(availability)
+  );
+  if (userAvailabilities.length) flags.push(`--user-availabilities ${userAvailabilities.join(",")}`);
+
+  const prefix = envParts.length ? `${envParts.join(" ")} ` : "";
+  let command = `${prefix}python -m app.cli phase2-eval ${flags.join(" ")}`;
+  if (notes.length) command += `  # ${notes.join("; ")}`;
+  return command;
+}
+
+function buildCliCommand() {
+  return state.phase === "2" ? buildPhase2CliCommand() : buildPhase1CliCommand();
 }
 
 function updateCliCommand() {
@@ -2121,6 +2259,27 @@ function bindEvents() {
     renderConditionChips();
     updateRunCount();
   });
+  els.phaseChips.addEventListener("click", (event) => {
+    const chip = event.target.closest("[data-phase]");
+    if (chip) pickPhase(chip.dataset.phase);
+  });
+  // Shared toggle handler for the three Phase 2 axis chip-rows: each is a
+  // multi-select Set keyed by the chip's data-value, re-rendered from state
+  // the same way the condition chips are.
+  function bindAxisChips(el, selectedSet) {
+    el.addEventListener("click", (event) => {
+      const chip = event.target.closest("[data-value]");
+      if (!chip) return;
+      const value = chip.dataset.value;
+      if (selectedSet.has(value)) selectedSet.delete(value);
+      else selectedSet.add(value);
+      renderPhase2AxesChips();
+      updateRunCount();
+    });
+  }
+  bindAxisChips(els.framingChips, state.framings);
+  bindAxisChips(els.urgencyChips, state.urgencies);
+  bindAxisChips(els.userAvailabilityChips, state.userAvailabilities);
   els.dryRunChip.addEventListener("click", () => {
     state.dryRun = !state.dryRun;
     els.dryRunChip.classList.toggle("chip-on", state.dryRun);
@@ -2211,6 +2370,7 @@ function bindEvents() {
 
 async function init() {
   renderConditionChips();
+  renderPhase2AxesChips();
   bindEvents();
   try {
     state.providerProfiles = await fetchJson("/api/models");
@@ -2226,8 +2386,8 @@ async function init() {
   pickProvider(state.provider);
   try {
     state.scenarios = await fetchJson("/api/scenarios");
-    const phase2Scenarios = await fetchJson("/api/phase2/scenarios").catch(() => []);
-    for (const scenario of [...state.scenarios, ...phase2Scenarios]) {
+    state.phase2Scenarios = await fetchJson("/api/phase2/scenarios").catch(() => []);
+    for (const scenario of [...state.scenarios, ...state.phase2Scenarios]) {
       state.scenarioIndex.set(scenario.scenario_id, scenario);
     }
     renderScenarioFilters();
