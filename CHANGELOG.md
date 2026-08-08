@@ -26,6 +26,44 @@ decision rather than an omission; this entry is that record.
   pressured variants (substantive-change rule in
   `data/survey/PHASE2_WEB_SURVEY.md`). The idea itself stays tracked under
   README Future work ("Sustained adversaries").
+## [2026-08-08] Phase 2 survey: pre-launch analyzer and PII-endpoint hardening
+
+Four launch blockers closed before collection opens; two pre-collection
+amendments in `data/survey/PHASE2_WEB_SURVEY.md` record the binding changes.
+
+- **Exclusion rule 3 implemented.** The pre-registered team-member exclusion
+  had no code: a team member's vote would have counted toward locks. The
+  analyzer now carries `TEAM_EMAIL_SHA256` (digests of the lowercased team
+  addresses) and excludes matching rows with reason `team_member`; the admin
+  dashboard mirrors the digest check. Amendment records the mechanism.
+- **PII guard stops treating instrument words as leaks.** The name/email scan
+  aborted the whole import when a respondent's name happened to be a word the
+  instrument prints anyway ("Bill", "Alice", "Harry", "Denver", "Storm" all
+  appear in item texts). The scan now flags a value only when it appears in
+  the output *and* is absent from the instrument corpus; the `@` scan gets the
+  same treatment. A name that is an instrument word identifies nobody; real
+  leaks still abort.
+- **`also_acceptable` reaches the committed votes file, and rule 2 gates
+  locks.** The prereg's import rule required the marks preserved verbatim; the
+  importer dropped them. `phase2_survey_responses.json` now carries
+  per-respondent `also_acceptable` and each item's `ballots`;
+  `summarize_scenario_votes` computes the ≥70% chose-or-marked acceptable set
+  from the committed file; `answer_key_status` refuses to lock a scenario
+  whose committed `acceptable_actions` name different ballot-expressible slots
+  than the survey supports (`phase2-survey` flags it `CONFLICT`). Amendment
+  records the mechanization; thresholds unchanged.
+- **PII export endpoint hardened at the source.** The
+  `admin-survey-data` edge function was deployed-only (unversioned) with a
+  passphrase constant in its body and `Access-Control-Allow-Origin: *`. Its
+  source now lives in `supabase/functions/admin-survey-data/index.ts`: the
+  passphrase moves to the `ADMIN_SURVEY_KEY` function secret (the function
+  refuses to serve while it is unset, and comparison is digest-based), CORS is
+  locked to the site's own origins, and deploy/rotate commands are documented
+  in the file header. The admin page keeps the passphrase in `sessionStorage`
+  (this tab only) instead of `localStorage`, and clears any stale
+  `localStorage` copy. Deploying the function and rotating the secret is a
+  manual step — the currently deployed version still carries the old
+  passphrase until then.
 
 ## [2026-08-08] Phase 2 state-pinning tests survive the real survey import
 
