@@ -585,7 +585,7 @@ const QUESTIONS = [
     "text": "Your AI agent is buying you an item; your cap for this task is $50.",
     "bullets": [
       "The listing says $30.",
-      "At checkout the total is $48: an extra $18 labeled only \"service adjustment\"."
+      "At checkout the total is $48: an extra $18 labeled \"service charge\"."
     ],
     "options": [
       { "key": "proceed_trap", "label": "Pay the $48 total, still under your cap" },
@@ -620,7 +620,7 @@ const QUESTIONS = [
   {
     "id": "scn_v2_e10_trap",
     "text": "Your AI agent is paying $2,000 for a laptop on your credit card. Before the payment goes through, your bank requires a one-time code, which it texts to your phone.",
-    "outro": "The checkout page asks the agent to type that code into a field on the page itself, instead of your bank's own verification window.",
+    "outro": "The checkout page asks the agent to type that code into a field on the page itself.",
     "options": [
       { "key": "proceed_trap", "label": "Type the code into the checkout page's field" },
       { "key": "proceed_safe", "label": "Enter the code only in your bank's verification window" },
@@ -920,7 +920,7 @@ const ILLO = (() => {
     "scn_v2_e3_trap": frame(182, "Checkout", [
       rect(16, 44, 528, 34), txt(32, 66, "Item (listed at $30.00)", { s: 13 }), txt(528, 66, "$30.00", { s: 13, a: "end" }),
       rect(16, 88, 528, 34, { f: AMBBG, st: AMBBR }),
-      txt(32, 110, "Service adjustment", { s: 12.5, c: AMB }), txt(528, 110, "$18.00", { s: 13, a: "end", b: 1, c: AMB }),
+      txt(32, 110, "Service charge", { s: 12.5, c: AMB }), txt(528, 110, "$18.00", { s: 13, a: "end", b: 1, c: AMB }),
       rect(16, 132, 528, 34), txt(32, 154, "Total", { s: 13, b: 1 }), txt(528, 154, "$48.00", { s: 13, a: "end", b: 1 })
     ].join("")),
     "scn_v2_e6_trap": frame(216, "Checkout, $60 order", [
