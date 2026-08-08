@@ -52,7 +52,7 @@ ATTENTION_IDS = ["att_1", "att_2", "att_3", "att_4", "att_5"]
 MAX_TOLERATED_ATTENTION_MISSES = 1
 ACCEPT_THRESHOLD = 0.70
 CALIBRATION_ID = "cal_1"
-DEMOGRAPHIC_FIELDS = STRATA_FIELDS + ["industry"]
+DEMOGRAPHIC_FIELDS = STRATA_FIELDS + ["industry", "agent_purchase_comfort"]
 
 # Keys that must never appear in a committed artifact. "email" is checked as a
 # dict key (not a substring) because the word appears in instrument prose.
