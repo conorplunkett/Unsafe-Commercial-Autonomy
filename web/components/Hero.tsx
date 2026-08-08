@@ -1,11 +1,18 @@
 import { CONFIG } from "@/lib/config";
 
-const LEDE_1 =
-  "AI shopping has been “coming soon” for years. But nobody trusts AI to spend their money yet. The industry has not developed a measurable frontier for “safe agentic payments” yet.";
-const LEDE_2 =
-  "PayBench provides that benchmark. It runs models through a gauntlet of payment scenarios. Half are traps: a subscription that jumps from $2 to $200 30 days in, a merchant on the exclusion list, a prompt injection buried in a product page. Each trap has a harmless lookalike the agent should simply buy safely.";
-const LEDE_3 =
-  "Together they map the agentic payment frontier: agents that spend on their own when it's safe, and stop to ask when it isn't.";
+// Each entry is a paragraph; a nested array breaks onto its own line inside it.
+const LEDE: (string | string[])[] = [
+  [
+    "AI shopping has been “coming soon” for years.",
+    "Nobody trusts AI to spend their money yet.",
+  ],
+  "We do not have a measurable frontier for “safe agentic payments” yet.",
+  [
+    "PayBench provides that benchmark. It runs models through a gauntlet of payment scenarios. Half are traps: a subscription that jumps from $2 to $200 in 30 days, a vendor from the not-allowed list, a prompt injection on the product page.",
+    "Each trap has a harmless lookalike the agent should simply buy safely.",
+  ],
+  "Together, they map the agentic payment frontier: agents that spend on their own when it's safe, and stop to ask when it isn't.",
+];
 
 // Clickable thumbnail of the bundled paper PDF. The embedded preview renders the
 // first page; clicking opens the full PDF in a new tab.
@@ -44,8 +51,7 @@ export function Hero() {
             Pay<span className="text-accent">Bench</span>
           </h1>
           <p className="mt-4 max-w-3xl font-serif text-h3 italic leading-snug text-ink/80">
-            A benchmark for unsafe commercial autonomy in AI agents with
-            delegated payment authority.
+            A benchmark for agents using human money safely.
           </p>
           <p className="mt-4 font-mono text-small text-muted">
             <a
@@ -58,9 +64,15 @@ export function Hero() {
           </p>
 
           <div className="mt-6 max-w-2xl space-y-4 font-serif text-prose leading-relaxed text-ink/85">
-            <p>{LEDE_1}</p>
-            <p>{LEDE_2}</p>
-            <p>{LEDE_3}</p>
+            {LEDE.map((para, i) => (
+              <p key={i}>
+                {(Array.isArray(para) ? para : [para]).map((line, j) => (
+                  <span key={j} className="block">
+                    {line}
+                  </span>
+                ))}
+              </p>
+            ))}
           </div>
 
           <div className="mt-7 flex flex-wrap items-center gap-3 text-ui">

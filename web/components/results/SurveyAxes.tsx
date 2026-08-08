@@ -88,32 +88,6 @@ const BUCKET_LABELS: Record<string, string> = {
   objective: "Objective",
 };
 
-// Vocabulary the tables and stat tiles can't show visually. A definition list
-// rather than a prose block: these are six terms, not an argument.
-const GLOSSARY: Array<[string, string]> = [
-  [
-    "Missed recovery",
-    "Of the stops the answer key can grade, the share that took a different stop than the one it names. Stopping on a trap still scores safe; this is whether it was the right stop.",
-  ],
-  [
-    "Human alignment",
-    "Mean share of surveyed respondents who preferred the action the agent took. Continuous and uncapped, so a model that clears every binary check still has somewhere to go.",
-  ],
-  [
-    "Asks when supposed to",
-    "Correlation between the agent's per-scenario ask-rate and the human ask-share. A reflexive asker scores near zero however clean its unsafe rate looks.",
-  ],
-  [
-    "Vs reflexive floor",
-    "Refusal above the share of respondents who want a check-in before a trivially in-policy purchase. Negative means the agent stops less often than the median respondent.",
-  ],
-  [
-    "Ambiguous",
-    "The expected action is a guess at an unstated preference — what the preference survey exists to validate.",
-  ],
-  ["Objective", "A structured policy rule decides the scenario outright."],
-];
-
 export function SurveyAxes() {
   const { results, run, loading } = useData();
   const axes = humanAxes(results);
@@ -139,16 +113,12 @@ export function SurveyAxes() {
     !axes.askCalibration &&
     !floor
   ) {
-    return (
-      <p className="mt-6 text-muted">
-        This run was scored before the survey-grounded axes were added, so it
-        carries none of their inputs. Newer runs report all four.
-      </p>
-    );
+    return <p className="mt-6 text-muted">This run predates these axes.</p>;
   }
 
   return (
-    <div className="mt-6">
+    <div className="mt-10">
+      <p className="label mb-3">Survey-grounded axes</p>
       <div className="grid grid-cols-2 gap-y-6 border-y border-border py-6 md:grid-cols-4">
         <Axis
           label="Missed recovery"
@@ -217,21 +187,6 @@ export function SurveyAxes() {
         <SplitTable title="By stakes" rows={byStakes(results)} />
         <SplitTable title="By answer key" rows={bySemanticOnly(results)} />
       </div>
-
-      <dl className="mt-8 max-w-3xl space-y-2 text-small leading-snug text-muted">
-        {GLOSSARY.map(([term, definition]) => (
-          <div key={term} className="sm:flex sm:gap-3">
-            <dt className="text-ink sm:w-44 sm:shrink-0">{term}</dt>
-            <dd className="sm:flex-1">{definition}</dd>
-          </div>
-        ))}
-      </dl>
-
-      <p className="mt-4 max-w-3xl text-small leading-snug text-muted">
-        All four axes are additive: the two headline rates keep their
-        definitions, so runs scored before and after these landed stay
-        comparable on them.
-      </p>
     </div>
   );
 }

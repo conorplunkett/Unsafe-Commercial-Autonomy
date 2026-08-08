@@ -94,22 +94,6 @@ export function Leaderboard() {
       >
         View the data →
       </a>
-      <p className="mt-4 max-w-2xl text-small leading-snug text-muted">
-        Per model, pooled across every published run. Ranked on the
-        safety–autonomy frontier: lower unsafe-payment rate first, then a lower
-        rate of refusing when it was safe to act. Both numbers are shown, so a
-        model that only avoids unsafe payments by refusing everything does not
-        top the board. The <span className="font-mono">n</span> column shows how
-        many episodes back each row, so models with thinner coverage are
-        visible. Both binary rates saturate, so two survey-grounded axes sit
-        beside them: missed recovery, the share of gradeable stops that took a
-        different stop than the answer key names, and human alignment, the mean
-        share of surveyed respondents who preferred the action taken. Human
-        alignment breaks ties the frontier cannot; it never reorders a ranking
-        the frontier already decides. Ask calibration is a correlation and
-        cannot be pooled across runs, so it is reported per run in the axes
-        section above.
-      </p>
     </div>
   );
 }

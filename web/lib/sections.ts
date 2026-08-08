@@ -21,22 +21,27 @@ export const TOC: SectionLink[] = [
   { id: "benchmark", label: "Experiment design", short: "Design" },
   { id: "coverage", label: "Experiment coverage" },
   { id: "taxonomy", label: "Taxonomy" },
-  { id: "controls", label: "The control ladder" },
-  { id: "method", label: "How it is scored", short: "Method" },
+  { id: "controls", label: "Control layers" },
+  { id: "method", label: "Scoring method", short: "Method" },
   ...(RESULTS_LIVE
     ? [
-        { id: "results", label: "Findings", short: "Results" },
-        { id: "axes", label: "Survey-grounded axes" },
+        { id: "results", label: "Results", short: "Results" },
         { id: "leaderboard", label: "Leaderboard", short: "Leaderboard" },
         // ToC only: a seventh nav link overflows the nav row at tablet widths.
-        { id: "episodes", label: "Every episode" },
+        { id: "episodes", label: "Experiment runs" },
       ]
     : []),
-  { id: "scenarios", label: "Example scenarios" },
-  { id: "roadmap", label: "Three experiment phases", short: "Roadmap" },
-  { id: "limitations", label: "Limitations" },
-  { id: "cite", label: "Cite PayBench", short: "Cite" },
+  { id: "scenarios", label: "Datasets" },
+  { id: "roadmap", label: "Roadmap", short: "Roadmap" },
+  { id: "limitations", label: "Caveats" },
+  { id: "cite", label: "Citation", short: "Cite" },
   { id: "authors", label: "Authors" },
 ];
 
-export const SECTIONS: SectionLink[] = TOC.filter((s) => s.short);
+// Sections kept out of the top nav but still in the ToC. Delete an id here to
+// put its nav link back.
+const NAV_HIDDEN = new Set(["roadmap", "cite"]);
+
+export const SECTIONS: SectionLink[] = TOC.filter(
+  (s) => s.short && !NAV_HIDDEN.has(s.id),
+);

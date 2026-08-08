@@ -18,7 +18,7 @@ function Ref({ href, children }: { href: string; children: string }) {
 export function WhyThisMatters() {
   return (
     <>
-      <SectionDivider id="why" eyebrow="Motivation" title="Why this matters" />
+      <SectionDivider id="why" title="Why this matters" />
       <div className="mt-6 grid gap-10 lg:grid-cols-[1.4fr_1fr]">
         <div className="space-y-5 font-serif text-prose leading-relaxed text-ink/85">
           <p>

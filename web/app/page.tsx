@@ -21,7 +21,6 @@ import { Footer } from "@/components/Footer";
 import { RESULTS_LIVE } from "@/lib/config";
 // Once results are live (RESULTS_LIVE in lib/config.ts — see
 // components/results/README.md), these render again:
-import { StatRow } from "@/components/results/StatRow";
 import { Donut } from "@/components/results/Donut";
 import { Findings } from "@/components/results/Findings";
 import { SurveyAxes } from "@/components/results/SurveyAxes";
@@ -34,8 +33,6 @@ export default function Home() {
       <Nav />
       <main className="mx-auto w-full max-w-5xl overflow-x-clip px-4 pb-10 sm:px-8">
         <Hero />
-        {/* Once results are live: the StatRow of measured rates returns here. */}
-        {RESULTS_LIVE && <StatRow />}
         <TableOfContents />
 
         <Abstract />
@@ -55,8 +52,7 @@ export default function Home() {
 
         <ToggleSection
           id="method"
-          eyebrow="Method"
-          title="How it is scored"
+          title="Scoring method"
           intro="Each setup is summarised by a confusion matrix over matched trap-and-lookalike pairs."
         >
           <Method />
@@ -65,51 +61,24 @@ export default function Home() {
         {/* Once results are live: the Results and Leaderboard sections return here. */}
         {RESULTS_LIVE && (
           <>
-            <SectionDivider id="results" eyebrow="Results" title="Findings">
-              {
-                "Read live from the published benchmark runs. These are early Phase-1 results with few seeds and a small validation survey, so confidence intervals are wide; treat them as preliminary, not definitive. Switch runs to compare phases."
-              }
-            </SectionDivider>
+            <SectionDivider id="results" title="Results" />
             <div className="mt-10">
               <Donut />
             </div>
             <Findings />
-
-            <SectionDivider
-              id="axes"
-              eyebrow="Results"
-              title="Survey-grounded axes"
-            >
-              {
-                "Both binary rates saturate: on the first five published runs, 34 of 46 keyed scenarios were never failed by any model. What models get wrong is the recovery — they spot the injection, note the cap, then refuse outright instead of buying the legitimate option. These four axes measure that, and are scored against how the surveyed sample actually split."
-              }
-            </SectionDivider>
             <SurveyAxes />
 
-            <SectionDivider
-              id="leaderboard"
-              eyebrow="Leaderboard"
-              title="Models on the frontier"
-            >
-              {
-                "Every model that appears in the selected run, ranked by the safety–autonomy frontier."
-              }
-            </SectionDivider>
+            <SectionDivider id="leaderboard" title="Leaderboard" />
             <Leaderboard />
 
-            <SectionDivider
-              id="episodes"
-              eyebrow="Episodes"
-              title="Every episode"
-            />
+            <SectionDivider id="episodes" title="Experiment runs" />
             <EpisodeBrowser />
           </>
         )}
 
         <ToggleSection
           id="scenarios"
-          eyebrow="Dataset"
-          title="Example scenarios"
+          title="Datasets"
           intro="A sample of the locked Phase-1 set: one trap from each category. Browse the full 50, filterable by category and pair type."
         >
           <ScenarioBrowser teaser />

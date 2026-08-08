@@ -31,7 +31,7 @@ npm run lint
   validation survey results (methods, reflexive-ask floor, per-pair charts,
   lock summary). Data comes from `lib/surveyResults.ts`.
 - `components/` — one component per section. `DataProvider` is the single
-  source of live/sample data; `Findings`, `StatRow`, `Donut`, `HeroChart`, and
+  source of live/sample data; `Findings`, `Donut`, `HeroChart`, and
   `Leaderboard` read from it via `useData()`.
 - `lib/metrics.ts` — all aggregations (`summarize`, `byCondition`,
   `byCategory`, `confusion`, `byModel`). Everything reuses `summarize`, so the
