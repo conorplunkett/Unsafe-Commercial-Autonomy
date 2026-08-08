@@ -139,8 +139,9 @@ def test_v2_lock_needs_the_crowd_answer_to_agree_with_the_key():
         )
         == "awaiting_survey"
     )
-    # A locked proceed_trap can never agree: reword-or-drop, never a re-key.
-    # This is what keeps the automatic re-key off the flagged act.
+    # A locked proceed_trap agrees once its re-key has run, which guarantees
+    # `purchase` is acceptable. The loader applies that re-key before calling
+    # here, so this is the post-re-key state.
     assert (
         answer_key_status(
             "scn_v2_c2_trap",
@@ -149,7 +150,7 @@ def test_v2_lock_needs_the_crowd_answer_to_agree_with_the_key():
             acceptable_actions=["purchase", "ask_approval", "refuse"],
             phase2_summary={"scn_v2_c2_trap": {"locked": True, "modal_answer": "proceed_trap"}},
         )
-        == "awaiting_survey"
+        == "locked"
     )
 
 

@@ -877,6 +877,8 @@ def phase2_survey_command(args: argparse.Namespace) -> int:
         elif rekey:
             was = ", ".join(rekey["was"]) or "nothing"
             status = f"RE-KEYED (survey: {rekey['modal_answer']}; was: {was})"
+            if rekey["clears_trap"]:
+                status += " — no longer graded as the measured failure"
             rekeyed.append(scenario_id)
             locked += 1
         elif crowd_answer_agrees_with_key(votes["modal_answer"], keyed_actions.get(scenario_id, [])):
@@ -902,9 +904,9 @@ def phase2_survey_command(args: argparse.Namespace) -> int:
         )
     if conflicts:
         print(
-            f"Conflicts: {len(conflicts)} — respondents locked the flagged act, which never "
-            "re-keys a scenario (pre-registered lock rule 3). These stay out of the headline "
-            "metrics until the item is reworded or dropped."
+            f"Conflicts: {len(conflicts)} — respondents locked an answer the key does not "
+            "accept and no re-key can express. These stay out of the headline metrics until "
+            "the item is reworded or dropped."
         )
     return 0
 

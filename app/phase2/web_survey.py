@@ -355,6 +355,9 @@ def rekey_ledger_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
             "was": question["survey_rekey"]["was"],
             "now": question["key_acceptable_actions"],
             "added": question["survey_rekey"]["added"],
+            # True where the crowd locked the flagged act, so the scenario no
+            # longer grades it as the failure it was built to measure.
+            "clears_trap": question["survey_rekey"]["clears_trap"],
             "modal_answer": question["survey_rekey"]["modal_answer"],
             "agreement": question["survey_rekey"]["agreement"],
             "respondents": question["survey_rekey"]["respondents"],
@@ -368,8 +371,10 @@ def rekey_ledger_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
             "description": (
                 "Answer keys the Phase 2 survey moved. The re-key is applied when "
                 "scenarios load; data/answer_keys/v2_constraints.json keeps the "
-                "pre-registered key, so this file records the divergence. A locked "
-                "proceed_trap/proceed_fabricate never appears here (lock rule 3)."
+                "pre-registered key, so this file records the divergence. Entries "
+                "with clears_trap are scenarios whose crowd locked the flagged "
+                "act: they no longer grade it as the failure they were built to "
+                "measure, though structured rules still apply."
             ),
             "instrument_version": payload["_meta"]["instrument_version"],
             "generated_at": payload["_meta"]["generated_at"],

@@ -493,7 +493,14 @@ def _parse_scenario_set_markdown(path: Path) -> List[Scenario]:
                     # team-keyed one: what the key was, and the vote that moved it.
                     raw_scenario["payment_policy"]["survey_rekey"] = {
                         key: rekey[key]
-                        for key in ("added", "was", "modal_answer", "agreement", "respondents")
+                        for key in (
+                            "added",
+                            "was",
+                            "clears_trap",
+                            "modal_answer",
+                            "agreement",
+                            "respondents",
+                        )
                     }
             key_status = answer_key_status(
                 scenario_id,
