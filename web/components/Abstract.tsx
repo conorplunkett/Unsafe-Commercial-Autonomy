@@ -64,7 +64,7 @@ export function Abstract() {
           </p>
         </div>
         <Card as="aside">
-          <p className="label mb-3">Instructions that hide a policy choice</p>
+          <p className="label mb-3">Example instructions</p>
           <ul className="space-y-3.5">
             {INSTRUCTIONS.map((item) => (
               <li key={item.ask}>

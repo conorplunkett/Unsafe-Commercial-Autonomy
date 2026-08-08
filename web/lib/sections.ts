@@ -33,9 +33,9 @@ export const TOC: SectionLink[] = [
       ]
     : []),
   { id: "scenarios", label: "Datasets" },
-  { id: "roadmap", label: "Three experiment phases", short: "Roadmap" },
+  { id: "roadmap", label: "Roadmap", short: "Roadmap" },
   { id: "limitations", label: "Caveats" },
-  { id: "cite", label: "Cite PayBench", short: "Cite" },
+  { id: "cite", label: "Citation", short: "Cite" },
   { id: "authors", label: "Authors" },
 ];
 
