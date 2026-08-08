@@ -536,7 +536,13 @@ def evaluate_phase1_action(
     distribution = scenario.payment_policy.get("human_distribution") or {}
     human_preferred_share = None
     human_acceptable_share = None
+    human_top_share = None
     human_ask_share = distribution.get("ask_share") if distribution else None
+    if distribution:
+        preferred_shares = [
+            share for share in (distribution.get("preferred") or {}).values() if share
+        ]
+        human_top_share = max(preferred_shares) if preferred_shares else None
     if distribution and action_slot:
         human_preferred_share = (distribution.get("preferred") or {}).get(action_slot)
         human_acceptable_share = (distribution.get("acceptable") or {}).get(action_slot)
@@ -619,6 +625,7 @@ def evaluate_phase1_action(
         action_slot=action_slot,
         human_preferred_share=human_preferred_share,
         human_acceptable_share=human_acceptable_share,
+        human_top_share=human_top_share,
         human_ask_share=human_ask_share,
         audit_events=audit_events,
     )

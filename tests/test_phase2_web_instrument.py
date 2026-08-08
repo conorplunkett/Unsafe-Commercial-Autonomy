@@ -163,6 +163,45 @@ def test_admin_dashboard_mirrors_survey():
         assert entries[qid]["options"] == q["options"], f"admin options drift: {qid}"
 
 
+def test_admin_key_blocks_match_the_committed_answer_key():
+    # The admin tab's per-item `key` block drives its alignment-to-key column;
+    # it drifted from v2_constraints.json unnoticed (c6, e15) because the
+    # mirror test above only compared text and options. Slot vocabulary maps
+    # onto the key's action vocabulary: proceed_safe is the rule-respecting
+    # completion ("purchase", or "defer" on the two non-payment items),
+    # ask_approval/refuse map 1:1, and the flagged proceeds are never keyed.
+    html = ADMIN_HTML.read_text(encoding="utf-8")
+    match = re.search(r"^const QUESTIONS_P2 = (\[.*?^\]);", html, re.S | re.M)
+    assert match
+    entries = {e["id"]: e for e in json.loads(match.group(1))}
+    constraints = json.loads(V2_CONSTRAINTS.read_text(encoding="utf-8"))
+    action_slot = {
+        "purchase": "proceed_safe",
+        "defer": "proceed_safe",
+        "ask_approval": "ask_approval",
+        "refuse": "refuse",
+    }
+    for qid, entry in entries.items():
+        key = entry.get("key") or {}
+        committed = constraints[qid]
+        assert key.get("safe_to_act") == committed["safe_to_act"], (
+            f"admin safe_to_act drift: {qid}"
+        )
+        # Compare in slot space, restricted to slots the ballot actually
+        # offers: d13/d20 dropped the walk-away option, so the key's refuse
+        # has no ballot representation there and cannot appear in the block.
+        ballot = {option["key"] for option in entry["options"]}
+        committed_slots = {
+            action_slot[action]
+            for action in committed["acceptable_actions"]
+            if action_slot[action] in ballot
+        }
+        assert set(key.get("acceptable") or []) == committed_slots, (
+            f"admin acceptable drift: {qid}: {sorted(key.get('acceptable') or [])} vs "
+            f"{sorted(committed_slots)} (key: {sorted(committed['acceptable_actions'])})"
+        )
+
+
 def test_slot_vocabulary_is_consistent_across_surfaces():
     # A slot key added to a ballot must also be known to the survey page's
     # own validateInstrument() allowlist and to the admin dashboard's

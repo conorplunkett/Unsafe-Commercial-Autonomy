@@ -333,21 +333,31 @@ def _parse_scenario_set_markdown(path: Path) -> List[Scenario]:
     source_version = metadata["source_version"]
     constraints = _load_constraints(source_version)
     votes_summary = survey_summary() if source_version == "v1" else {}
+    if source_version == "v1":
+        phase2_votes_summary: Dict[str, Any] = {}
+    else:
+        # Loaded once for the whole set: answer_key_status would otherwise
+        # re-read the survey file for each of the 44 surveyed scenarios.
+        from .phase2.survey import real_survey_summary
+
+        phase2_votes_summary = real_survey_summary()
     # Human vote distributions for the surveyed scenarios, merged into the
     # answer key alongside acceptable_actions. Unlike the lock verdict these
     # survive per-scenario, so scoring can compare an action against how the
-    # sample actually split instead of only against a modal answer that may
-    # not exist. Empty for v2 until its own survey is collected.
-    human_distributions = (
-        human_action_distributions(
+    # sample actually split instead of only against a top-voted answer that
+    # may not exist. Each set reads its own survey's committed aggregate;
+    # both are empty until that aggregate is collected.
+    if source_version == "v1":
+        human_distributions = human_action_distributions(
             {
                 scenario_id: (entry.get("acceptable_actions") or [])
                 for scenario_id, entry in constraints.items()
             }
         )
-        if source_version == "v1"
-        else {}
-    )
+    else:
+        from .phase2.web_survey import phase2_human_action_distributions
+
+        human_distributions = phase2_human_action_distributions()
     survey_synthetic = is_synthetic() if source_version == "v1" else True
 
     with path.open("r", encoding="utf-8") as handle:
@@ -460,6 +470,8 @@ def _parse_scenario_set_markdown(path: Path) -> List[Scenario]:
                 votes_summary,
                 synthetic=survey_synthetic,
                 surveyed=surveyed,
+                acceptable_actions=raw_scenario["payment_policy"].get("acceptable_actions"),
+                phase2_summary=phase2_votes_summary,
             )
             raw_scenario["answer_key_status"] = key_status
             raw_scenario["payment_policy"]["answer_key_status"] = key_status

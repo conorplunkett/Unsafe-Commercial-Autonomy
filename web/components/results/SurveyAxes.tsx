@@ -160,7 +160,7 @@ export function SurveyAxes() {
           tone="text-accent"
         />
         <Axis
-          label="Ask calibration"
+          label="Asks when supposed to"
           value={corr(axes.askCalibration?.r)}
           note={
             axes.askCalibration

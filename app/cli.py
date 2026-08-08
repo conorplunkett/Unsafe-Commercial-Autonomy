@@ -309,10 +309,17 @@ def _print_human_axes(metrics: dict) -> None:
             f"{acceptable_text} "
             f"(mean share of respondents, {alignment['scenarios']} surveyed scenarios)"
         )
-    calibration = metrics.get("ask_calibration")
+    top_choice = metrics.get("top_choice_match_ci")
+    if top_choice and top_choice.get("total"):
+        lines.append(
+            f"Top-choice match:   {metrics['top_choice_match_rate']:.1%} "
+            f"({top_choice['count']}/{top_choice['total']} graded actions were "
+            f"the crowd's top pick)"
+        )
+    calibration = metrics.get("ask_when_supposed_to")
     if calibration and calibration.get("pearson_r") is not None:
         lines.append(
-            f"Ask calibration:    r={calibration['pearson_r']} "
+            f"Asks when supposed to: r={calibration['pearson_r']} "
             f"(agent {calibration['agent_ask_rate']:.1%} vs human "
             f"{calibration['human_ask_rate']:.1%} ask-rate, "
             f"{calibration['scenarios']} scenarios)"
@@ -825,23 +832,44 @@ def phase2_checkpoints_command(args: argparse.Namespace) -> int:
 
 def phase2_survey_command(args: argparse.Namespace) -> int:
     """Phase 2 survey agreement and lock-status table for the v2 answer key."""
-    from .phase2.survey import EXPECTED_RESPONDENTS, LOCK_THRESHOLD, is_example, phase2_survey_summary
+    from .data import load_scenarios
+    from .phase2.runner import PHASE2_SCENARIO_SET
+    from .phase2.survey import (
+        EXPECTED_RESPONDENTS,
+        LOCK_THRESHOLD,
+        crowd_answer_agrees_with_key,
+        is_example,
+        phase2_survey_summary,
+    )
 
     if is_example():
         print(
-            "WARNING: survey file contains EXAMPLE data only. Collect real responses "
-            "with `python -m app.cli phase2-survey-collect`.\n"
+            "WARNING: survey file contains EXAMPLE data only. Import web responses "
+            "with `python scripts/analyze_phase2_survey.py <raw_export.json>` or "
+            "collect via `python -m app.cli phase2-survey-collect`.\n"
         )
     summary = phase2_survey_summary()
     if not summary:
         print("No survey responses recorded yet.")
         return 1
-    print("Scenario                          Modal answer      Agreement  Key status")
-    print("-" * 80)
+    keyed_actions = {
+        scenario.scenario_id: list(scenario.payment_policy.get("acceptable_actions") or [])
+        for scenario in load_scenarios(PHASE2_SCENARIO_SET)
+    }
+    print("Scenario                          Crowd answer      Agreement  Key status")
+    print("-" * 88)
     locked = 0
+    conflicts = []
     for scenario_id, votes in sorted(summary.items()):
-        status = "locked" if votes["locked"] else "provisional"
-        locked += votes["locked"]
+        if not votes["locked"]:
+            status = "collecting"
+        elif crowd_answer_agrees_with_key(votes["modal_answer"], keyed_actions.get(scenario_id, [])):
+            status = "locked"
+            locked += 1
+        else:
+            key = ", ".join(keyed_actions.get(scenario_id, [])) or "nothing"
+            status = f"CONFLICT (key accepts: {key})"
+            conflicts.append(scenario_id)
         print(
             f"{scenario_id[:32]:32}  {votes['modal_answer']:16}  "
             f"{votes['modal_count']}/{votes['respondents']:<7}  {status}"
@@ -850,6 +878,12 @@ def phase2_survey_command(args: argparse.Namespace) -> int:
         f"\nLocked: {locked}/{len(summary)} surveyed scenarios "
         f"(lock needs >={LOCK_THRESHOLD} of >={EXPECTED_RESPONDENTS} respondents agreeing)"
     )
+    if conflicts:
+        print(
+            f"Conflicts: {len(conflicts)} — respondents locked an answer the key does not "
+            "accept. These stay out of the headline metrics until the key is updated in "
+            "data/answer_keys/v2_constraints.json (with a CHANGELOG entry)."
+        )
     return 0
 
 
