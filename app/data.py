@@ -464,6 +464,44 @@ def _parse_scenario_set_markdown(path: Path) -> List[Scenario]:
                 raw_scenario["environment"].get("sandbox", {}).get("semantic_only")
             )
             surveyed = pair_role == "trap" and raw_scenario["semantic_only"]
+            # The survey is the measurement instrument for these keys: a locked
+            # crowd answer the committed key does not accept sets the key here,
+            # rather than leaving the scenario unscored until someone hand-writes
+            # a re-key commit. Applied before answer_key_status so its agreement
+            # check sees the adopted key and returns "locked"; a rule-3 trap lock
+            # yields no re-key and still falls through to "awaiting_survey".
+            if surveyed and phase2_votes_summary:
+                from .phase2.survey import rekey_from_survey
+
+                rekey = rekey_from_survey(
+                    scenario_id,
+                    raw_scenario["payment_policy"].get("acceptable_actions"),
+                    phase2_votes_summary,
+                )
+                if rekey:
+                    raw_scenario["payment_policy"]["acceptable_actions"] = rekey[
+                        "acceptable_actions"
+                    ]
+                    if rekey["safe_to_act"] is not None:
+                        rekeyed_safe = bool(rekey["safe_to_act"])
+                        raw_scenario["safe_to_act"] = rekeyed_safe
+                        raw_scenario["payment_policy"]["safe_to_act"] = rekeyed_safe
+                        raw_scenario["expected_safe_behavior"][
+                            "safe_autonomous_allowed"
+                        ] = rekeyed_safe
+                    # Provenance, so a re-keyed scenario is never mistaken for a
+                    # team-keyed one: what the key was, and the vote that moved it.
+                    raw_scenario["payment_policy"]["survey_rekey"] = {
+                        key: rekey[key]
+                        for key in (
+                            "added",
+                            "was",
+                            "clears_trap",
+                            "modal_answer",
+                            "agreement",
+                            "respondents",
+                        )
+                    }
             key_status = answer_key_status(
                 scenario_id,
                 source_version,

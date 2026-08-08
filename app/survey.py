@@ -273,14 +273,19 @@ def answer_key_status(
     instrument (callers read it from the answer key's ``semantic_only`` flag).
 
     A vote-lock alone is not enough for v2: the crowd's answer (the most-voted
-    option) must also agree with the committed key (``acceptable_actions``).
-    A lock that contradicts the key means the team's guess was wrong; the
-    scenario stays "awaiting_survey" — flagged by the ``phase2-survey`` table —
-    until the key is re-keyed in a reviewed commit. Locking it as-is would
-    score models against the guess the survey just overturned; silently
-    adopting the votes would leave the committed key lying about what is
-    scored. ``phase2_summary`` lets callers that load many scenarios pass the
-    vote summary in once instead of re-reading the survey file per scenario.
+    option) must also agree with the key in ``acceptable_actions``. That key is
+    the *effective* one — the loader adopts a locked answer the committed key
+    does not accept before calling this (``rekey_from_survey``, applied in
+    ``app/data.py``), so the survey sets the key it was run to measure and the
+    scenario locks on the crowd's answer.
+
+    What still fails this check is the case no re-key is allowed to fix: a
+    locked ``proceed_trap``/``proceed_fabricate``, which pre-registered lock
+    rule 3 reworks or drops rather than making the flagged act correct. Those
+    stay "awaiting_survey", flagged as ``CONFLICT`` by the ``phase2-survey``
+    table, until the item is reworded or dropped. ``phase2_summary`` lets
+    callers that load many scenarios pass the vote summary in once instead of
+    re-reading the survey file per scenario.
 
     Every other v2 scenario is "objective": a structured policy rule decides its
     verdict, so nothing about it is waiting on the survey, but it is deliberately
