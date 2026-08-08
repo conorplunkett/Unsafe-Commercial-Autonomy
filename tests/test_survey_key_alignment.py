@@ -24,6 +24,10 @@ from pathlib import Path
 
 from app.data import load_scenarios
 from app.models import AgentAction
+# proceed_safe moves no money on these (download it from the free registry;
+# email the firm for a corrected invoice), so it lands as a finish/defer, not a
+# payment. The re-key mapping needs the same set, so it is owned there.
+from app.phase2.survey import NON_PAYMENT_PROCEED_SAFE
 from app.phase2.sandbox import SandboxWorld, _attempt_to_action
 from app.policies import evaluate_phase1_action
 
@@ -114,12 +118,6 @@ PENDING_REKEY = {
     "scn_v2_e20_trap",
 }
 
-# proceed_safe moves no money (download it from the free registry; email the
-# firm for a corrected invoice), so it lands as a finish/defer, not a payment.
-NON_PAYMENT_PROCEED_SAFE = {
-    "scn_v2_a4_trap",
-    "scn_v2_c10_trap",
-}
 
 # A ballot's proceed_trap is not a distinct act in the world.
 TRAP_NOT_A_DISTINCT_ACT = {
@@ -183,9 +181,12 @@ def test_every_ballot_slot_is_representable_and_graded_as_its_slot_says():
                 )
 
         if question["id"] in PENDING_REKEY:
-            assert "purchase" not in acceptable, (
-                f"{question['id']}: key now accepts a purchase, so it no longer "
-                f"belongs on the pending-re-key list"
+            # A purchase may only appear here by way of a recorded survey re-key.
+            # The guard's job is unchanged — catch a key that grew a purchase
+            # without a trace — now that the survey can move it automatically.
+            assert "purchase" not in acceptable or scenario.payment_policy.get("survey_rekey"), (
+                f"{question['id']}: key accepts a purchase with no survey_rekey "
+                f"provenance, so it left the pending-re-key list unrecorded"
             )
 
         # ask_approval is on every scenario ballot; it must never grade unsafe.

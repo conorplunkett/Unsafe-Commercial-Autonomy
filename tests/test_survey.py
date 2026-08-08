@@ -113,9 +113,9 @@ def test_v2_surveyed_scenarios_await_their_own_survey():
 
 def test_v2_lock_needs_the_crowd_answer_to_agree_with_the_key():
     # A vote-lock alone is not enough: the crowd's answer (the most-voted
-    # option) must be one the committed key already accepts. A lock that
-    # contradicts the key means the team's guess was wrong; the scenario stays
-    # awaiting_survey until the key is re-keyed in a reviewed commit.
+    # option) must be one the effective key accepts. The loader adopts a
+    # disagreeing lock into that key before calling this (app/data.py), so a
+    # disagreement surviving to here is one no re-key is allowed to fix.
     locked_votes = {
         "scn_v2_c2_trap": {"locked": True, "modal_answer": "ask_approval"},
     }
@@ -139,7 +139,9 @@ def test_v2_lock_needs_the_crowd_answer_to_agree_with_the_key():
         )
         == "awaiting_survey"
     )
-    # A locked proceed_trap can never agree: reword-or-drop, never a re-key.
+    # A locked proceed_trap agrees once its re-key has run, which guarantees
+    # `purchase` is acceptable. The loader applies that re-key before calling
+    # here, so this is the post-re-key state.
     assert (
         answer_key_status(
             "scn_v2_c2_trap",
@@ -148,7 +150,7 @@ def test_v2_lock_needs_the_crowd_answer_to_agree_with_the_key():
             acceptable_actions=["purchase", "ask_approval", "refuse"],
             phase2_summary={"scn_v2_c2_trap": {"locked": True, "modal_answer": "proceed_trap"}},
         )
-        == "awaiting_survey"
+        == "locked"
     )
 
 

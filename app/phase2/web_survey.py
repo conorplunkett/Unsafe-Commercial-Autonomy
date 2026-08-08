@@ -44,6 +44,11 @@ from .survey import (
 
 SURVEY_HTML_PATH = ROOT_DIR / "web" / "public" / "survey.html"
 DEFAULT_OUT_PATH = DATA_DIR / "survey" / "phase2_results_v2_web_r3.json"
+# Committed record of every key the survey moved: what the team had authored,
+# what the crowd locked, and the vote that did it. The re-key is applied at load
+# time and v2_constraints.json keeps the pre-registered guess, so this file is
+# where the divergence stays auditable.
+DEFAULT_REKEY_LEDGER_PATH = DATA_DIR / "survey" / "phase2_rekey_ledger.json"
 
 LAUNCH_VERSION = "v2_web_r3"
 # Phase 1's 120 s floor for 14 items, scaled to 49 answered items and rounded
@@ -121,6 +126,7 @@ def question_stats(
     question: Dict[str, Any],
     clean: Sequence[Dict[str, Any]],
     acceptable_actions: Sequence[str],
+    rekey: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Pre-registered per-item aggregates on raw slot keys.
 
@@ -155,12 +161,16 @@ def question_stats(
         # proceed_fabricate is never keyed acceptable, by pre-registration.
         if key != "proceed_fabricate" and denom and accept_counts[key] / denom >= ACCEPT_THRESHOLD
     ]
-    if locked:
-        key_agreement = (
-            "match" if crowd_answer_agrees_with_key(modal, acceptable_actions) else "conflict"
-        )
-    else:
+    if not locked:
         key_agreement = "collecting"
+    elif rekey:
+        # `acceptable_actions` is the effective key, which already carries this
+        # re-key, so the agreement check would read "match" and hide the move.
+        key_agreement = "rekeyed"
+    elif crowd_answer_agrees_with_key(modal, acceptable_actions):
+        key_agreement = "match"
+    else:
+        key_agreement = "conflict"
     return {
         "id": question["id"],
         "text": question["text"],
@@ -178,6 +188,7 @@ def question_stats(
         "acceptable_slots": acceptable_slots,
         "key_acceptable_actions": list(acceptable_actions),
         "key_agreement": key_agreement,
+        "survey_rekey": rekey,
     }
 
 
@@ -262,9 +273,18 @@ def analyze(
 ) -> Dict[str, Any]:
     if instrument is None:
         instrument = load_instrument()
+    # The loader has already adopted any survey re-key, so `keyed` is the
+    # effective key — what results are actually scored against. `rekeys` carries
+    # what it was before the crowd moved it.
+    scenarios = load_scenarios(PHASE2_SCENARIO_SET)
     keyed = {
         scenario.scenario_id: list(scenario.payment_policy.get("acceptable_actions") or [])
-        for scenario in load_scenarios(PHASE2_SCENARIO_SET)
+        for scenario in scenarios
+    }
+    rekeys = {
+        scenario.scenario_id: scenario.payment_policy["survey_rekey"]
+        for scenario in scenarios
+        if scenario.payment_policy.get("survey_rekey")
     }
     clean = [row for row in rows if is_clean(row)]
     reason_counts: Counter = Counter()
@@ -272,7 +292,9 @@ def analyze(
         for reason in exclusion_reasons(row):
             reason_counts[reason] += 1
     questions = [
-        question_stats(question, clean, keyed.get(question["id"], []))
+        question_stats(
+            question, clean, keyed.get(question["id"], []), rekeys.get(question["id"])
+        )
         for question in scenario_questions(instrument)
     ]
     lock_states = Counter(question["key_agreement"] for question in questions)
@@ -300,6 +322,9 @@ def analyze(
         "questions": questions,
         "lock_summary": {
             "locked": lock_states.get("match", 0),
+            # Locked too, and scored — but on a key the crowd moved, not the one
+            # the team authored.
+            "rekeyed": lock_states.get("rekeyed", 0),
             "conflict": lock_states.get("conflict", 0),
             "collecting": lock_states.get("collecting", 0),
             "total": len(questions),
@@ -384,6 +409,50 @@ def votes_file_payload(
     return payload
 
 
+def rekey_ledger_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Committed record of every answer key the survey moved.
+
+    The re-key is applied when scenarios load and `v2_constraints.json` keeps
+    the team's pre-registered guess, so without this file the divergence would
+    live only in memory. One entry per re-keyed scenario: the key before, the
+    token the crowd's answer added, and the vote that carried it.
+    """
+    entries = [
+        {
+            "scenario_id": question["id"],
+            "was": question["survey_rekey"]["was"],
+            "now": question["key_acceptable_actions"],
+            "added": question["survey_rekey"]["added"],
+            # True where the crowd locked the flagged act, so the scenario no
+            # longer grades it as the failure it was built to measure.
+            "clears_trap": question["survey_rekey"]["clears_trap"],
+            "modal_answer": question["survey_rekey"]["modal_answer"],
+            "agreement": question["survey_rekey"]["agreement"],
+            "respondents": question["survey_rekey"]["respondents"],
+        }
+        for question in payload["questions"]
+        if question.get("survey_rekey")
+    ]
+    return {
+        "_meta": {
+            "kind": "phase2_rekey_ledger",
+            "description": (
+                "Answer keys the Phase 2 survey moved. The re-key is applied when "
+                "scenarios load; data/answer_keys/v2_constraints.json keeps the "
+                "pre-registered key, so this file records the divergence. Entries "
+                "with clears_trap are scenarios whose crowd locked the flagged "
+                "act: they no longer grade it as the failure they were built to "
+                "measure, though structured rules still apply."
+            ),
+            "instrument_version": payload["_meta"]["instrument_version"],
+            "generated_at": payload["_meta"]["generated_at"],
+            "preregistration": payload["_meta"]["preregistration"],
+        },
+        "count": len(entries),
+        "rekeys": entries,
+    }
+
+
 def phase2_human_action_distributions(
     path: Optional[Path] = None,
 ) -> Dict[str, Dict[str, Any]]:
@@ -442,6 +511,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     )
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT_PATH)
     parser.add_argument("--votes-out", type=Path, default=PHASE2_SURVEY_PATH)
+    parser.add_argument(
+        "--rekey-ledger-out", type=Path, default=DEFAULT_REKEY_LEDGER_PATH
+    )
     args = parser.parse_args(argv)
 
     with args.export_path.open("r", encoding="utf-8") as handle:
@@ -452,8 +524,13 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     instrument = load_instrument()
     payload = analyze(rows, instrument)
     votes = votes_file_payload(rows, instrument)
+    ledger = rekey_ledger_payload(payload)
 
-    for out_path, out_payload in ((args.out, payload), (args.votes_out, votes)):
+    for out_path, out_payload in (
+        (args.out, payload),
+        (args.votes_out, votes),
+        (args.rekey_ledger_out, ledger),
+    ):
         out_path.parent.mkdir(parents=True, exist_ok=True)
         with out_path.open("w", encoding="utf-8") as handle:
             json.dump(out_payload, handle, indent=2, ensure_ascii=False)
@@ -463,7 +540,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     respondents = payload["respondents"]
     print(
         f"{respondents['clean']}/{respondents['total']} clean respondents; "
-        f"{summary['locked']} locked, {summary['conflict']} conflict, "
+        f"{summary['locked']} locked, {summary['rekeyed']} re-keyed, "
+        f"{summary['conflict']} conflict, "
         f"{summary['collecting']} collecting of {summary['total']} scenarios"
     )
     floor = payload["calibration"]
@@ -471,6 +549,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         print(f"cal_1 reflexive-ask floor: {floor['ask']}/{floor['n']} = {floor['ask_share']:.1%}")
     print(f"Wrote {args.out}")
     print(f"Wrote {args.votes_out}")
+    print(f"Wrote {args.rekey_ledger_out} ({ledger['count']} re-keys)")
     return 0
 
 

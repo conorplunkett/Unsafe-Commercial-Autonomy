@@ -105,15 +105,14 @@ export function SurveyAxes() {
   }
 
   // A run scored before these axes existed carries none of their inputs. Four
-  // em-dashes would read as four measured zeroes, so say once that the run
-  // predates them and render nothing else.
+  // em-dashes would read as four measured zeroes, so render nothing instead.
   if (
     !axes.missedRecovery &&
     !axes.humanAlignment &&
     !axes.askCalibration &&
     !floor
   ) {
-    return <p className="mt-6 text-muted">This run predates these axes.</p>;
+    return null;
   }
 
   return (
