@@ -9,9 +9,13 @@ from app.providers import (
     DryRunProvider,
     ProviderError,
     ProviderOutputError,
+    RateLimitGate,
+    TransientRetryPolicy,
     build_messages,
+    is_rate_limit_error,
     is_retryable_provider_error,
     parse_action_json,
+    retry_after_seconds,
 )
 from app.data import get_scenario
 
@@ -850,3 +854,93 @@ def test_phase2_anthropic_provider_mirrors_the_phase1_model_gating():
     assert sent["temperature"] == 0.3
     assert "output_config" not in sent
     assert sent["max_tokens"] == 2000
+
+
+def _rate_limited(retry_after=None) -> ProviderError:
+    request = httpx.Request("POST", "https://example.invalid/chat/completions")
+    headers = {"Retry-After": str(retry_after)} if retry_after is not None else {}
+    response = httpx.Response(429, request=request, headers=headers)
+    return _wrapped(httpx.HTTPStatusError("HTTP 429", request=request, response=response))
+
+
+def test_rate_limit_detection_walks_the_cause_chain():
+    assert is_rate_limit_error(_rate_limited()) is True
+    assert is_rate_limit_error(_wrapped(_http_status_error(503))) is False
+    assert is_rate_limit_error(_wrapped(httpx.ConnectError("refused"))) is False
+
+
+def test_retry_after_reads_the_header_and_the_sdk_attribute():
+    assert retry_after_seconds(_rate_limited(retry_after=23)) == 23.0
+    sdk_shaped = ProviderError("limited")
+    sdk_shaped.retry_after = 9
+    assert retry_after_seconds(sdk_shaped) == 9.0
+    assert retry_after_seconds(_rate_limited()) is None
+    unparseable = ProviderError("limited")
+    unparseable.retry_after = "soon"
+    assert retry_after_seconds(unparseable) is None
+
+
+def test_rate_limit_gate_pauses_and_releases():
+    clock = {"now": 0.0}
+    gate = RateLimitGate(clock=lambda: clock["now"])
+    slept: list[float] = []
+
+    def sleep(seconds: float) -> None:
+        slept.append(seconds)
+        clock["now"] += seconds
+
+    gate.wait(sleep)  # no pause: no sleeping
+    assert slept == []
+    gate.pause_for(7.0)
+    gate.pause_for(3.0)  # overlapping pauses coalesce to the later deadline
+    gate.wait(sleep)
+    assert sum(slept) == 7.0
+    gate.wait(sleep)  # deadline passed: the next waiter sleeps nothing
+    assert sum(slept) == 7.0
+
+
+def test_policy_rate_limits_ride_the_budget_not_the_attempt_count():
+    # Six consecutive 429s exhaust the classic 3-attempt budget many times
+    # over; the wall-clock budget rides them out on the growing schedule.
+    policy = TransientRetryPolicy()
+    slept: list[float] = []
+    for _ in range(6):
+        assert policy.wait_before_retry(_rate_limited(), slept.append)
+    assert slept == [2.0, 4.0, 8.0, 16.0, 32.0, 60.0]
+
+
+def test_policy_honors_retry_after_and_gives_up_past_the_budget():
+    policy = TransientRetryPolicy(rate_limit_budget=300.0)
+    slept: list[float] = []
+    assert policy.wait_before_retry(_rate_limited(retry_after=150), slept.append)
+    assert policy.wait_before_retry(_rate_limited(retry_after=150), slept.append)
+    # 300 s of budget burned: the third 429 gives up instead of waiting.
+    assert not policy.wait_before_retry(_rate_limited(retry_after=1), slept.append)
+    assert slept == [150.0, 150.0]
+
+
+def test_policy_registers_rate_limits_on_the_shared_gate():
+    clock = {"now": 0.0}
+    gate = RateLimitGate(clock=lambda: clock["now"])
+    policy = TransientRetryPolicy(gate=gate)
+    slept: list[float] = []
+
+    def sleep(seconds: float) -> None:
+        slept.append(seconds)
+        clock["now"] += seconds
+
+    assert policy.wait_before_retry(_rate_limited(), sleep)
+    assert sum(slept) == 2.0  # waited out via the gate
+    assert gate.remaining() == 0.0  # and consumed it for every other worker too
+
+
+def test_policy_keeps_the_classic_schedule_for_non_rate_limit_transients():
+    policy = TransientRetryPolicy()
+    slept: list[float] = []
+    assert policy.wait_before_retry(_wrapped(httpx.ConnectError("x")), slept.append)
+    assert policy.wait_before_retry(_wrapped(httpx.ConnectError("x")), slept.append)
+    assert policy.wait_before_retry(_wrapped(httpx.ConnectError("x")), slept.append)
+    assert not policy.wait_before_retry(_wrapped(httpx.ConnectError("x")), slept.append)
+    assert slept == [0.5, 1.0, 2.0]
+    # Terminal errors never retry, whatever the budgets have left.
+    assert not TransientRetryPolicy().wait_before_retry(_wrapped(_http_status_error(400)))

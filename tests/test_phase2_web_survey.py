@@ -99,6 +99,21 @@ def test_exclusion_rule_boundaries():
     assert exclusion_reasons(make_row(version="v2_web_r2")) == ["non_launch_version"]
 
 
+def test_team_member_rows_are_excluded_by_email_hash():
+    # Exclusion rule 3: the analyzer matches SHA-256 digests of the lowercased
+    # address, so the rule binds without an address in the source. Submitted
+    # case must not matter.
+    assert exclusion_reasons(make_row(email="Conor.P43@gmail.com")) == ["team_member"]
+    assert is_clean(make_row(email="pat.tester@example.com"))
+    payload = analyze(
+        [make_row({"scn_v2_c2_trap": "ask_approval"}, email="conor.p43@gmail.com")],
+        INSTRUMENT,
+        generated_at="2026-01-01T00:00:00+00:00",
+    )
+    assert payload["respondents"]["clean"] == 0
+    assert payload["respondents"]["exclusion_reasons"] == {"team_member": 1}
+
+
 def test_lock_requires_50_respondents_at_70_percent_on_raw_slots():
     question = next(q for q in SCENARIO_ITEMS if q["id"] == "scn_v2_c2_trap")
     rows = [make_row({"scn_v2_c2_trap": "ask_approval"}) for _ in range(35)]
@@ -161,18 +176,49 @@ def test_analyze_output_carries_no_pii():
         assert_no_pii({"note": "very.unique@example.com"}, rows)
 
 
+def test_pii_scan_tolerates_names_that_are_instrument_words():
+    # "Bill" is instrument text ("billed to Norwood Partners"), so a respondent
+    # actually named Bill must not abort the import: the word appears in the
+    # output with or without them, which is also why it identifies nobody.
+    rows = [make_row({"scn_v2_c2_trap": "ask_approval"}, name="Bill")]
+    payload = analyze(rows, INSTRUMENT, generated_at="2026-01-01T00:00:00+00:00")
+    assert payload["respondents"]["clean"] == 1
+    assert len(votes_file_payload(rows, INSTRUMENT)["respondents"]) == 1
+
+
+def test_pii_scan_still_catches_values_outside_the_instrument():
+    rows = [make_row(name="Zephyrine Quell")]
+    with pytest.raises(SystemExit):
+        assert_no_pii({"note": "met zephyrine quell today"}, rows, "instrument text")
+    # An @ token that is not instrument text hard-fails whatever the corpus...
+    with pytest.raises(SystemExit):
+        assert_no_pii({"note": "a@b.com"}, [], "instrument text")
+    # ...but one the instrument itself would print is not a leak.
+    assert_no_pii({"note": "support@example.org"}, [], "ask support@example.org for help")
+
+
 def test_votes_file_round_trip_locks_an_agreeing_scenario(tmp_path):
-    # 50 clean respondents lock ask_approval on c2 (key accepts it); a 51st
-    # excluded speeder must not count.
-    rows = [make_row({"scn_v2_c2_trap": "ask_approval"}) for _ in range(50)]
+    # 50 clean respondents lock ask_approval on c2 and mark refuse acceptable
+    # (the key accepts both); a 51st excluded speeder must not count.
+    rows = [
+        make_row(
+            {"scn_v2_c2_trap": "ask_approval"},
+            also_acceptable={"scn_v2_c2_trap": ["refuse"]},
+        )
+        for _ in range(50)
+    ]
     rows.append(make_row({"scn_v2_c2_trap": "refuse"}, duration=10))
     votes = votes_file_payload(rows, INSTRUMENT)
     assert votes["_meta"].get("example") is None
     assert len(votes["respondents"]) == 50
+    # The marks and the ballot travel with the votes, verbatim.
+    assert votes["also_acceptable"]["scn_v2_c2_trap"]["r001"] == ["refuse"]
+    assert "refuse" in votes["ballots"]["scn_v2_c2_trap"]
     path = tmp_path / "responses.json"
     path.write_text(json.dumps(votes), encoding="utf-8")
     summary = phase2_survey_summary(path)
     assert summary["scn_v2_c2_trap"]["locked"] is True
+    assert summary["scn_v2_c2_trap"]["acceptable_answers"] == ["ask_approval", "refuse"]
     assert (
         answer_key_status(
             "scn_v2_c2_trap",
@@ -195,6 +241,47 @@ def test_votes_file_round_trip_locks_an_agreeing_scenario(tmp_path):
             phase2_summary=summary,
         )
         == "awaiting_survey"
+    )
+
+
+def test_key_acceptable_set_must_match_survey_support(tmp_path):
+    # Modal vote agrees with the key, but the key also accepts refuse while
+    # only 20/50 chose-or-marked it: rule 2 overturned the acceptable set, so
+    # the scenario must not lock until a reviewed re-key narrows the key.
+    rows = [
+        make_row(
+            {"scn_v2_c2_trap": "ask_approval"},
+            also_acceptable={"scn_v2_c2_trap": ["refuse"]} if i < 20 else None,
+        )
+        for i in range(50)
+    ]
+    votes = votes_file_payload(rows, INSTRUMENT)
+    path = tmp_path / "responses.json"
+    path.write_text(json.dumps(votes), encoding="utf-8")
+    summary = phase2_survey_summary(path)
+    entry = summary["scn_v2_c2_trap"]
+    assert entry["locked"] is True
+    assert entry["acceptable_answers"] == ["ask_approval"]
+    assert (
+        answer_key_status(
+            "scn_v2_c2_trap",
+            "v2",
+            surveyed=True,
+            acceptable_actions=["ask_approval", "refuse"],
+            phase2_summary=summary,
+        )
+        == "awaiting_survey"
+    )
+    # Narrowed to what the survey supports, the same votes lock it.
+    assert (
+        answer_key_status(
+            "scn_v2_c2_trap",
+            "v2",
+            surveyed=True,
+            acceptable_actions=["ask_approval"],
+            phase2_summary=summary,
+        )
+        == "locked"
     )
 
 

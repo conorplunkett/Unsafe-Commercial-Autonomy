@@ -59,6 +59,85 @@ decision rather than an omission; this entry is that record.
   pressured variants (substantive-change rule in
   `data/survey/PHASE2_WEB_SURVEY.md`). The idea itself stays tracked under
   README Future work ("Sustained adversaries").
+## [2026-08-08] Phase 2 survey: pre-launch analyzer and PII-endpoint hardening
+
+Four launch blockers closed before collection opens; two pre-collection
+amendments in `data/survey/PHASE2_WEB_SURVEY.md` record the binding changes.
+
+- **Exclusion rule 3 implemented.** The pre-registered team-member exclusion
+  had no code: a team member's vote would have counted toward locks. The
+  analyzer now carries `TEAM_EMAIL_SHA256` (digests of the lowercased team
+  addresses) and excludes matching rows with reason `team_member`; the admin
+  dashboard mirrors the digest check. Amendment records the mechanism.
+- **PII guard stops treating instrument words as leaks.** The name/email scan
+  aborted the whole import when a respondent's name happened to be a word the
+  instrument prints anyway ("Bill", "Alice", "Harry", "Denver", "Storm" all
+  appear in item texts). The scan now flags a value only when it appears in
+  the output *and* is absent from the instrument corpus; the `@` scan gets the
+  same treatment. A name that is an instrument word identifies nobody; real
+  leaks still abort.
+- **`also_acceptable` reaches the committed votes file, and rule 2 gates
+  locks.** The prereg's import rule required the marks preserved verbatim; the
+  importer dropped them. `phase2_survey_responses.json` now carries
+  per-respondent `also_acceptable` and each item's `ballots`;
+  `summarize_scenario_votes` computes the ≥70% chose-or-marked acceptable set
+  from the committed file; `answer_key_status` refuses to lock a scenario
+  whose committed `acceptable_actions` name different ballot-expressible slots
+  than the survey supports (`phase2-survey` flags it `CONFLICT`). Amendment
+  records the mechanization; thresholds unchanged.
+- **PII export endpoint hardened at the source.** The
+  `admin-survey-data` edge function was deployed-only (unversioned) with a
+  passphrase constant in its body and `Access-Control-Allow-Origin: *`. Its
+  source now lives in `supabase/functions/admin-survey-data/index.ts`: the
+  passphrase moves to the `ADMIN_SURVEY_KEY` function secret (the function
+  refuses to serve while it is unset, and comparison is digest-based), CORS is
+  locked to the site's own origins, and deploy/rotate commands are documented
+  in the file header. The admin page briefly moved the saved passphrase to
+  `sessionStorage`; that was reverted the same day — sign-in is deliberately
+  once per device (`localStorage`), because the owner's workflow is enter the
+  passphrase once and have results load automatically on every later visit.
+  The hardening lives server-side. Deploying the function and rotating the
+  secret is a manual step — the currently deployed version still carries the
+  old passphrase until then.
+
+## [2026-08-08] Paid-run infrastructure: publish in batches, resume safely, survive rate limits, stop on stop
+
+Five defects that only bite on a real paid run, fixed before one is bought:
+
+- **Publishing a full run no longer sends one giant request.** A complete run
+  serializes to hundreds of MB; `publish` sent it as a single POST with a 30 s
+  timeout, which cannot succeed, and the site's `select=payload` read of such
+  a row could not either. Episodes now upload row-per-episode into
+  `benchmark_run_episodes` (`db/migrations/0009`, applied to the project) in
+  size-capped batches with per-request retries, delete-then-insert so
+  re-publishing is idempotent, and the slim run row (config + metrics, plus
+  `episode_count`) lands last as the commit point — a publish that dies
+  mid-batch leaves nothing visible, and re-running heals it. The dashboard
+  pages episodes back in order and still serves pre-migration rows from their
+  full payload. The derived `events` log ships in neither place; the site
+  never read it.
+- **Resume refuses a changed run mode.** The checkpoint grid check said *what*
+  was running but not *how*: a live run could be resumed with `--dry-run`,
+  splicing free fake episodes among paid real ones, indistinguishable in the
+  finished file. `verify` now also compares the header's `live`,
+  `temperature` and `reasoning_effort` and refuses on any mismatch.
+- **Rate limits ride a minutes-scale budget.** A 429 used to get the same
+  3.5 s of total backoff as a blip, then recorded the episode as an error —
+  ten in a row killed the run. 429s now retry on a 300 s wall-clock budget
+  with growing waits capped at 60 s, honor the provider's Retry-After hint,
+  and register on a per-run gate so every parallel worker pauses together
+  instead of hammering in lockstep. 5xx/transport blips keep the classic
+  0.5/1/2 s schedule.
+- **Stop means stop.** In parallel mode, Ctrl-C (and the consecutive-error
+  auto-stop) let the whole submitted wave run to completion — up to
+  `workers x 4` more paid episodes. A stop signal is now checked before each
+  episode starts and queued futures are cancelled; only genuinely in-flight
+  episodes finish, and they are checkpointed.
+- **A degraded run cannot publish silently.** Each run computes a quality
+  stamp (`ok` / `degraded` / `incomplete`) that publishing ignored and the
+  site never showed. `publish` now refuses a non-ok run without
+  `--allow-degraded` (printing the reasons), and the episode browser badges
+  non-ok runs from the metrics already shipped with the run list.
 
 ## [2026-08-08] Phase 2 state-pinning tests survive the real survey import
 

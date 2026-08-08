@@ -928,6 +928,7 @@ def phase2_survey_command(args: argparse.Namespace) -> int:
         LOCK_THRESHOLD,
         crowd_answer_agrees_with_key,
         is_example,
+        key_acceptables_supported_by_survey,
         phase2_survey_summary,
     )
 
@@ -950,15 +951,23 @@ def phase2_survey_command(args: argparse.Namespace) -> int:
     locked = 0
     conflicts = []
     for scenario_id, votes in sorted(summary.items()):
+        key_actions = keyed_actions.get(scenario_id, [])
         if not votes["locked"]:
             status = "collecting"
-        elif crowd_answer_agrees_with_key(votes["modal_answer"], keyed_actions.get(scenario_id, [])):
-            status = "locked"
-            locked += 1
-        else:
-            key = ", ".join(keyed_actions.get(scenario_id, [])) or "nothing"
+        elif not crowd_answer_agrees_with_key(votes["modal_answer"], key_actions):
+            key = ", ".join(key_actions) or "nothing"
             status = f"CONFLICT (key accepts: {key})"
             conflicts.append(scenario_id)
+        elif not key_acceptables_supported_by_survey(key_actions, votes):
+            # Rule 1 agrees but rule 2 does not: the key's acceptable set names
+            # different slots than the crowd's chose-or-marked >=70% set.
+            supported = ", ".join(votes.get("acceptable_answers") or []) or "nothing"
+            key = ", ".join(key_actions) or "nothing"
+            status = f"CONFLICT (key accepts: {key}; survey supports: {supported})"
+            conflicts.append(scenario_id)
+        else:
+            status = "locked"
+            locked += 1
         print(
             f"{scenario_id[:32]:32}  {votes['modal_answer']:16}  "
             f"{votes['modal_count']}/{votes['respondents']:<7}  {status}"
@@ -1041,14 +1050,33 @@ def publish_command(args: argparse.Namespace) -> int:
         print(f"Could not load run: {exc}")
         return 1
 
+    # A published run goes on the public leaderboard, so a run whose own
+    # quality stamp says its rates describe survivors must not slip out by
+    # habit. Runs from before the quality metric carry no stamp and publish
+    # as before.
+    quality = (run.get("metrics") or {}).get("quality") or {}
+    status = quality.get("status")
+    if status and status != "ok" and not args.allow_degraded:
+        print(f"Refusing to publish: this run's quality is '{status}', not 'ok'.")
+        for reason in quality.get("reasons", []):
+            print(f"  - {reason}")
+        print("Pass --allow-degraded to publish anyway; the site badges the run.")
+        return 1
+
+    def _episode_progress(sent: int, total: int) -> None:
+        print(f"\r  episodes {sent}/{total}", end="", flush=True)
+        if sent >= total:
+            print("")
+
     try:
-        row = publish_run(run, label=args.label)
+        row = publish_run(run, label=args.label, progress=_episode_progress)
     except SupabasePublishError as exc:
         print(f"Publish failed: {exc}")
         return 1
 
     label = row.get("label") or "no label"
-    print(f"Published run {row['run_id']} to Supabase ({label}).")
+    episodes = (row.get("payload") or {}).get("episode_count", 0)
+    print(f"Published run {row['run_id']} to Supabase ({label}; {episodes} episodes).")
     return 0
 
 
@@ -1469,6 +1497,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     publish_group.add_argument(
         "--file", default=None, help="Publish a run JSON file directly (path)."
+    )
+    publish_parser.add_argument(
+        "--allow-degraded",
+        action="store_true",
+        help=(
+            "Publish even when the run's quality stamp is degraded/incomplete "
+            "(the site shows a quality badge on such runs)."
+        ),
     )
     publish_parser.add_argument(
         "--label",

@@ -597,3 +597,59 @@ def test_phase2_resume_command_line_carries_the_split():
 
     args.split = "all"
     assert "--split" not in _resume_command_line(args, "run_abc123")
+
+
+def test_cli_publish_refuses_a_degraded_run_without_the_flag(tmp_path, capsys, monkeypatch):
+    import json as _json
+
+    published = {}
+
+    def _fake_publish(run, label=None, progress=None):
+        published["run_id"] = run["run_id"]
+        return {"run_id": run["run_id"], "label": label, "payload": {"episode_count": 0}}
+
+    monkeypatch.setattr("app.supabase_publish.publish_run", _fake_publish)
+    run = {
+        "run_id": "run_degraded",
+        "metrics": {
+            "quality": {"status": "degraded", "reasons": ["52/750 calls failed (6.9%)"]}
+        },
+        "results": [],
+    }
+    path = tmp_path / "run.json"
+    path.write_text(_json.dumps(run), encoding="utf-8")
+
+    status = main(["publish", "--file", str(path)])
+    output = capsys.readouterr().out
+    assert status == 1
+    assert "degraded" in output
+    assert "52/750" in output
+    assert not published  # the refusal happened before any network path
+
+    # The explicit override publishes, and says how many episodes went up.
+    status = main(["publish", "--file", str(path), "--allow-degraded"])
+    output = capsys.readouterr().out
+    assert status == 0
+    assert published["run_id"] == "run_degraded"
+    assert "0 episodes" in output
+
+
+def test_cli_publish_passes_ok_and_unstamped_runs(tmp_path, capsys, monkeypatch):
+    import json as _json
+
+    monkeypatch.setattr(
+        "app.supabase_publish.publish_run",
+        lambda run, label=None, progress=None: {
+            "run_id": run["run_id"],
+            "label": label,
+            "payload": {"episode_count": len(run.get("results") or [])},
+        },
+    )
+    ok_run = {"run_id": "run_ok", "metrics": {"quality": {"status": "ok"}}, "results": []}
+    legacy_run = {"run_id": "run_legacy", "metrics": {}, "results": []}
+    for run in (ok_run, legacy_run):
+        path = tmp_path / f"{run['run_id']}.json"
+        path.write_text(_json.dumps(run), encoding="utf-8")
+        assert main(["publish", "--file", str(path)]) == 0
+    out = capsys.readouterr().out
+    assert "run_ok" in out and "run_legacy" in out

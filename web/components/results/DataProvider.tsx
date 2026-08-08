@@ -31,18 +31,48 @@ interface DataState {
 
 const Ctx = createContext<DataState | null>(null);
 
-async function sget(query: string) {
-  const res = await fetch(
-    `${CONFIG.supabaseUrl}/rest/v1/${CONFIG.table}?${query}`,
-    {
-      headers: {
-        apikey: CONFIG.supabaseKey,
-        Authorization: `Bearer ${CONFIG.supabaseKey}`,
-      },
+async function sgetFrom(table: string, query: string) {
+  const res = await fetch(`${CONFIG.supabaseUrl}/rest/v1/${table}?${query}`, {
+    headers: {
+      apikey: CONFIG.supabaseKey,
+      Authorization: `Bearer ${CONFIG.supabaseKey}`,
     },
-  );
+  });
   if (!res.ok) throw new Error(`Supabase ${res.status}`);
   return res.json();
+}
+
+async function sget(query: string) {
+  return sgetFrom(CONFIG.table, query);
+}
+
+const EPISODE_PAGE = 1000;
+
+// A run's episodes. New-style runs store one row per episode (publishing a
+// full run as a single payload blob timed out at hundreds of MB), paged back
+// in order; runs published before the episodes table keep `payload.results`
+// and are served from it unchanged.
+async function fetchEpisodes(id: string): Promise<Result[]> {
+  const all: Result[] = [];
+  try {
+    for (let offset = 0; ; offset += EPISODE_PAGE) {
+      const rows = await sgetFrom(
+        CONFIG.episodesTable,
+        `select=result&run_id=eq.${encodeURIComponent(id)}` +
+          `&order=episode_index.asc&limit=${EPISODE_PAGE}&offset=${offset}`,
+      );
+      all.push(...rows.map((row: { result: Result }) => row.result));
+      if (rows.length < EPISODE_PAGE) break;
+    }
+  } catch {
+    // Episodes table unreachable (e.g. a deployment ahead of the migration):
+    // the payload fallback below still serves old-style runs.
+  }
+  if (all.length) return all;
+  const rows = await sget(
+    `select=results:payload->results&run_id=eq.${encodeURIComponent(id)}&limit=1`,
+  );
+  return (rows[0]?.results ?? []) as Result[];
 }
 
 export function DataProvider({ children }: { children: ReactNode }) {
@@ -99,9 +129,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Load the selected run's full payload. The "sample" case needs no fetch:
-  // the fallback branch above already sets loading false when it picks the
-  // sample run.
+  // Load the selected run: its (slim or legacy-full) payload, then its
+  // episodes. The "sample" case needs no fetch: the fallback branch above
+  // already sets loading false when it picks the sample run.
   useEffect(() => {
     if (!runId || runId === "sample") {
       return;
@@ -116,10 +146,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
         if (!active) return;
         if (rows.length) {
           const payload = rows[0].payload as Run;
+          if (!payload.results?.length) {
+            payload.results = await fetchEpisodes(runId);
+          }
+          if (!active) return;
           setRun(payload);
           setIsSample(false);
-          // The payload we just paid for carries this run's episodes, so the
-          // browser reuses them instead of fetching the same rows again.
+          // These are this run's episodes; the browser reuses them instead of
+          // fetching the same rows again.
           if (payload.results?.length) {
             requested.current.add(runId);
             setEpisodes((prev) => ({ ...prev, [runId]: payload.results }));
@@ -137,8 +171,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [runId]);
 
   // One run's episodes, fetched only when something asks for them (the episode
-  // browser, when it scrolls into view). `payload->results` skips the run's
-  // event log, which is a third of the row and is never rendered.
+  // browser, when it scrolls into view). Row-per-episode runs page from the
+  // episodes table; legacy runs fall back to `payload->results`, which skips
+  // the run's event log — never rendered either way.
   const loadEpisodes = useCallback((id: string) => {
     if (!id || id === "sample" || requested.current.has(id)) return;
     requested.current.add(id);
@@ -146,10 +181,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setEpisodesError(false);
     (async () => {
       try {
-        const rows = await sget(
-          `select=results:payload->results&run_id=eq.${encodeURIComponent(id)}&limit=1`,
-        );
-        const results = (rows[0]?.results ?? []) as Result[];
+        const results = await fetchEpisodes(id);
         setEpisodes((prev) => ({ ...prev, [id]: results }));
       } catch {
         // Allow a retry on the next request for this run.

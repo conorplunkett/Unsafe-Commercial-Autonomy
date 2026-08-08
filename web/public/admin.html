@@ -250,7 +250,7 @@
   </div>
 
   <div class="card" id="gate">
-    <div class="warn">Enter the admin passphrase to load results. This page never touches your Supabase service_role key; the passphrase only unlocks read access to this one survey table via a server-side function. It's saved on this device so you stay signed in, and never sent anywhere else. Use “Sign out” to forget it.</div>
+    <div class="warn">Enter the admin passphrase to load results. This page never touches your Supabase service_role key; the passphrase only unlocks read access to this one survey table via a server-side function. It's saved in this browser so results load automatically on your next visit, and never sent anywhere else. Use “Sign out” to forget it.</div>
     <label for="key">Admin passphrase</label>
     <input id="key" type="password" autocomplete="off" placeholder="paste passphrase">
     <button id="load">Load responses</button>
@@ -500,7 +500,30 @@ async function loadResponses(passphrase, phase) {
     const body = await res.text().catch(() => "");
     throw new Error(`HTTP ${res.status}${body ? ": " + body.slice(0, 200) : ""}`);
   }
-  return res.json();
+  const rows = await res.json();
+  if (phase === "2") await markTeamRowsP2(rows);
+  return rows;
+}
+
+// Exclusion rule 3 (team members), mirrored from the analyzer
+// (app/phase2/web_survey.py TEAM_EMAIL_SHA256): emails are matched as SHA-256
+// digests of the lowercased, trimmed address, so no address lives in this
+// page's source. The analyzer is binding; this mirror keeps the live counts
+// honest.
+const TEAM_EMAIL_SHA256_P2 = new Set([
+  "eee28b31061efde1f7e21967f0ca8e50560430ba00074d3f279ea70148fbf561",
+  "ac32a773f4e18242157fedef960c29280b3d7cca6ae198dfb76116e7dcc27add",
+]);
+async function markTeamRowsP2(rows) {
+  if (!window.crypto || !crypto.subtle) return rows; // analyzer still enforces the rule
+  for (const row of rows) {
+    const email = String(row.email || "").trim().toLowerCase();
+    if (!email) continue;
+    const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(email));
+    const hex = [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, "0")).join("");
+    if (TEAM_EMAIL_SHA256_P2.has(hex)) row.__teamMember = true;
+  }
+  return rows;
 }
 
 // Compute the vote breakdown for one question over the clean respondents.
@@ -901,11 +924,12 @@ function isExcludedP2(row) {
   const tooFast = (row.duration_seconds || 0) < MIN_DURATION_SECONDS_P2;
   const test = row.meta && row.meta.test;
   const wrongVer = !row.meta || row.meta.survey_version !== LAUNCH_VERSION_P2;
-  return attFailsP2(row) >= 2 || tooFast || !!test || wrongVer;
+  return attFailsP2(row) >= 2 || tooFast || !!test || wrongVer || !!row.__teamMember;
 }
 function exclusionReasonP2(row) {
   const r = [];
   if (row.meta && row.meta.test) r.push("test run");
+  if (row.__teamMember) r.push("team member");
   const fails = attFailsP2(row);
   if (fails >= 2) r.push(`failed ${fails} of 5 attention checks`);
   if ((row.duration_seconds || 0) < MIN_DURATION_SECONDS_P2) r.push("<6.5min");
@@ -1491,6 +1515,8 @@ async function doLoad() {
   try {
     cacheRows[activeTab] = await loadResponses(key, activeTab);  // also the auth check
     adminKey = key;
+    // Saved on this device on purpose: the owner signs in once and results
+    // load automatically on every later visit.
     localStorage.setItem("pb_admin_key", key);
     showSignedIn();
     await renderTab(activeTab);

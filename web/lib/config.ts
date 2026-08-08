@@ -17,6 +17,10 @@ export const CONFIG = {
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
     "sb_publishable_eWFeJOuV_jq9eZ8wNhlanQ_29XMuY2j",
   table: process.env.NEXT_PUBLIC_BENCHMARK_TABLE ?? "benchmark_runs",
+  // Row-per-episode store for runs published in batches; older runs keep
+  // their episodes inside `payload` and the DataProvider falls back to it.
+  episodesTable:
+    process.env.NEXT_PUBLIC_BENCHMARK_EPISODES_TABLE ?? "benchmark_run_episodes",
   repoUrl: "https://github.com/conorplunkett/Unsafe-Commercial-Autonomy",
   // Where the published runs come from and how they are written out — the
   // repo's results-publishing section. Target of the leaderboard's
