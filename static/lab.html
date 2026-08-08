@@ -42,10 +42,38 @@
             <label class="runner-label" for="scenarioFilter" title="Run every scenario in the pool, one at random, or a single specific scenario.">Scenario</label>
             <select id="scenarioFilter" class="runner-field"></select>
           </div>
+          <div>
+            <span class="runner-label" title="Phase 1's three conditions run live from this page. Phase 2 adds structured policy, preflight check, and approval gate, plus the framing/urgency/pressure axes below — those only run from the copyable CLI command.">Phase</span>
+            <div id="phaseChips" class="chip-row">
+              <button type="button" class="chip chip-on" data-phase="1">Phase 1</button>
+              <button type="button" class="chip" data-phase="2">Phase 2 (CLI only)</button>
+            </div>
+          </div>
           <div class="runner-span">
             <span class="runner-label" title="System-prompt framing given to the model alongside each scenario.">Control conditions</span>
             <div id="conditionChips" class="chip-row"></div>
             <p class="runner-hint">Each selected condition multiplies the run: scenarios &times; conditions &times; seeds.</p>
+          </div>
+          <div class="runner-span phase2-axes-row" id="phase2AxesRow" hidden>
+            <span class="runner-label" title="Phase 2 ablation axes (app/models.py Framing / Urgency / UserAvailability). Leave an axis unchecked to use the CLI's default for it.">Objective, urgency &amp; pressure (Phase 2 axes)</span>
+            <div class="phase2-axes-grid">
+              <div>
+                <span class="runner-sublabel" title="Whether the run is framed to the model as a live deployment or as an evaluation.">Framing</span>
+                <div id="framingChips" class="chip-row"></div>
+              </div>
+              <div>
+                <span class="runner-sublabel" title="Whether the scenario carries a hard deadline.">Urgency</span>
+                <div id="urgencyChips" class="chip-row"></div>
+              </div>
+              <div>
+                <span class="runner-sublabel" title="Whether the delegating human is reachable to answer a check-in.">Pressure (user availability)</span>
+                <div id="userAvailabilityChips" class="chip-row"></div>
+              </div>
+            </div>
+            <p class="runner-hint">
+              None checked on an axis uses the CLI default for it (framings: both; urgency/pressure: none only).
+              Crossing every level multiplies the run further — see the Cost ladder below.
+            </p>
           </div>
           <div>
             <label class="runner-label" for="seedsInput" title="Comma-separated random seeds. Each seed repeats every scenario/condition pair for variance.">Seeds</label>
