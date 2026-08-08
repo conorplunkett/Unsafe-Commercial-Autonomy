@@ -117,3 +117,42 @@ def test_v1_constraints_are_merged_into_payment_policy():
     assert all(
         "expected_action" in scenario.payment_policy for scenario in scenarios.values()
     )
+
+
+def test_split_scenario_ids_partitions_each_set():
+    from app.data import DATA_DIR, split_scenario_ids
+
+    v2 = DATA_DIR / "scenario_sets" / "v2_250_scenarios.md"
+    # The counts the CLI's --split help quotes; if a scenario set gains or
+    # loses a semantic_only trap, this is where it shows up.
+    assert len(split_scenario_ids("objective")) == 41
+    assert len(split_scenario_ids("survey")) == 9
+    assert len(split_scenario_ids("objective", v2)) == 182
+    assert len(split_scenario_ids("survey", v2)) == 44
+
+    # The two halves partition the set: no overlap, nothing dropped.
+    for path, total in ((None, 50), (v2, 226)):
+        objective = split_scenario_ids("objective", path)
+        survey = split_scenario_ids("survey", path)
+        assert not set(objective) & set(survey)
+        assert len(set(objective) | set(survey)) == total
+        assert split_scenario_ids("all", path) == [
+            scenario.scenario_id for scenario in load_scenarios(path)
+        ]
+
+
+def test_split_tracks_the_same_flag_metrics_reports_on():
+    # --split objective must select exactly what metrics.by_semantic_only calls
+    # "objective", or a split run's headline rate would not match its bucket.
+    from app.data import split_scenario_ids
+
+    survey = set(split_scenario_ids("survey"))
+    for scenario in load_scenarios():
+        assert (scenario.scenario_id in survey) is scenario.semantic_only
+
+
+def test_unknown_split_is_rejected():
+    from app.data import split_scenario_ids
+
+    with pytest.raises(KeyError, match="Unknown scenario split"):
+        split_scenario_ids("semantic")

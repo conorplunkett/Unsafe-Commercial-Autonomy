@@ -59,6 +59,30 @@ python -m app.cli --help
 python -m app.cli eval --help
 ```
 
+Every subcommand (the same list the admin dashboard's **Commands** card
+carries):
+
+| Command | Purpose |
+| --- | --- |
+| `eval` | Phase 1 model evaluation harness |
+| `test` | 1 model / 1 condition / 2 scenarios / 2 seeds — validates API keys |
+| `smoketest-openai` | 1 scenario, 1 seed, `gpt-5.4-mini` — OpenAI connectivity |
+| `smoketest-openai-5` | Same, across 5 scenarios |
+| `models` | Model ids each provider's key can use |
+| `survey` | v1 answer-key agreement and lock status |
+| `phase2-eval` | Phase 2 six-condition sandbox ablation |
+| `phase2-checkpoints` | Resumable Phase 2 runs |
+| `phase2-survey` | v2 answer-key agreement and lock status |
+| `phase2-survey-collect` | Record one respondent's v2 votes |
+| `phase2-transfer` | Phase 1 run vs sandbox rerun of the v1 traps |
+| `phase2-human-baseline` | Human calibration sessions (report or collect) |
+| `phase2-human-import` | Import a Google Form CSV of human responses |
+| `publish` | Push a stored run to Supabase |
+| `publish-human-baseline` | Push scored human sessions to Supabase |
+
+`eval` and `phase2-eval` both take `--split objective` / `--split survey` to
+run one half of a scenario set.
+
 ### `survey` — answer-key lock status (v1)
 
 Shows per-scenario survey agreement and whether the v1 answer key is locked.
@@ -113,6 +137,7 @@ python -m app.cli eval [options]
 | `--conditions` | `no_policy,prompt_policy,tool_constraints` | Control layers to test |
 | `--scenario-ids` | all in set | Filter, e.g. `scn_v1_a1_trap,scn_v1_a1_lookalike` |
 | `--scenario-set` | v1 (50 scenarios) | Path to Markdown set, e.g. `data/scenario_sets/v2_250_scenarios.md` |
+| `--split` | `all` | `objective` or `survey` — run one half of the set (see [Objective vs survey split](#objective-vs-survey-split)) |
 | `--seeds` | `1,2,3,4,5` | Seeds per (model, condition, scenario) combo |
 | `--temperature` | `0.7` | Model sampling temperature |
 | `--dry-run` | off | Offline fake providers — **no real API calls** |
@@ -155,6 +180,12 @@ python -m app.cli eval \
   --models openai \
   --conditions no_policy,prompt_policy,tool_constraints \
   --seeds 1,2,3,4,5
+
+# Objective half only — 41 of 50 in v1, 182 of 226 in v2
+python -m app.cli eval --models openai --split objective
+
+# Survey half only — the 9 (v1) / 44 (v2) semantic-only traps
+python -m app.cli eval --models openai --split survey
 
 # All providers (each needs env configured)
 export ANTHROPIC_API_KEY=... ANTHROPIC_MODEL=...
@@ -219,16 +250,20 @@ export OPENAI_API_KEY=...
 python -m app.cli phase2-eval --models openai \
   --conditions no_policy,tool_constraints --framings deployment \
   --scenario-ids scn_v2_a1_trap,scn_v2_a1_lookalike --seeds 1,2,3
+
+# Objective half only (182 of 226); --split survey runs the other 44
+python -m app.cli phase2-eval --models openai --split objective --concurrency 4
 ```
 
 | Flag | Default | Description |
 | --- | --- | --- |
-| `--models` | `openai` | `openai`, `anthropic`, `kimi`, `inkling`, `grok`, `deepseek`, `mistral`, `qwen`, `openrouter`, `openweights`, `scripted_diligent`, `scripted_naive`, `all` |
+| `--models` | `openai` | `openai`, `anthropic`, `gemini`, `kimi`, `inkling`, `grok`, `deepseek`, `mistral`, `qwen`, `openrouter`, `openweights`, `scripted_diligent`, `scripted_naive`, `all` |
 | `--conditions` | all six | `no_policy`, `prompt_policy`, `structured_policy`, `preflight_check`, `tool_constraints`, `approval_gate` |
 | `--framings` | both | `evaluation` (benchmark framing) vs `deployment` (live-task framing) |
 | `--urgencies` | `none` only | `none` vs `time_pressure` (adds a system-prompt deadline, and nothing else). Unlike `--framings`, omitting this does **not** run both levels — pass `--urgencies=time_pressure` or `--urgencies=all` to opt in |
 | `--user-availabilities` | `none` only | `none` vs `unreachable` (states the delegating user is away for the day; never instructs the agent to skip asking). Crosses with `--urgencies` for the pressure 2×2. Also opt-in — omitting it runs `none` only |
 | `--scenario-set` | v2 (226) | Markdown scenario-set path |
+| `--split` | `all` | `objective` or `survey` — run one half of the set (see [Objective vs survey split](#objective-vs-survey-split)) |
 | `--scenario-ids` / `--seeds` / `--temperature` / `--reasoning-effort` | all / `1,2,3,4,5` / 0.7 / unset | Same semantics as Phase 1 `eval` |
 | `--dry-run` | off | Offline scripted agents (live ids map to a deterministic diligent/naive mix) |
 | `--resume` | off | Resume run `RUN_ID` from its checkpoint; only the missing episodes run |
@@ -604,6 +639,10 @@ path is used. Otherwise `agent_ids` run through scripted deterministic agents.
 With `--dry-run`, live model IDs use `DryRunProvider` (offline scripted
 actions). `baseline_naive` is always offline regardless of `--dry-run`.
 
+`phase2-eval` takes the same live ids (`baseline_naive` is Phase 1 only; Phase
+2 substitutes `scripted_diligent` / `scripted_naive`), with the same env vars
+and model defaults — a model id that runs in Phase 1 runs in Phase 2.
+
 ---
 
 ## Control conditions (`--conditions`)
@@ -651,6 +690,32 @@ heuristic provider for Phase 1 CLI evals.
 
 Scenario IDs are derived at load time, e.g. `scn_v1_a1_trap`, `scn_v2_a1_trap`.
 There is intentionally no editable `data/scenarios.json` copy.
+
+### Objective vs survey split
+
+Every scenario set has two halves, keyed off `semantic_only` in the answer key
+— the split `metrics.by_semantic_only` reports on.
+
+| Split | v1 | v2 | What decides the verdict |
+| --- | --- | --- | --- |
+| `objective` | 41 of 50 | 182 of 226 | Structured policy fields (budget, merchant, payment type, total cost) |
+| `survey` | 9 of 50 | 44 of 226 | The human preference the answer-key survey measures (`semantic_only` traps) |
+
+`--split objective` / `--split survey` on `eval` and `phase2-eval` resolve the
+half against whichever scenario set the run is using and pass its ids to the
+grid. With `--scenario-ids` as well, the split narrows that list rather than
+replacing it; a combination that selects nothing exits 2 instead of falling
+through to the whole set.
+
+```bash
+python -m app.cli eval --models openai --split objective
+python -m app.cli phase2-eval --models openai --split survey --concurrency 4
+python -m app.cli eval --models openai \
+  --scenario-set data/scenario_sets/v2_250_scenarios.md --split objective
+```
+
+In Python: `app.data.split_scenario_ids("objective", path)` returns the same
+ids, and `split_scenarios(split, scenarios)` filters an already-loaded list.
 
 ### Choosing a scenario set
 

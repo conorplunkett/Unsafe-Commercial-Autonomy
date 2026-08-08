@@ -128,6 +128,61 @@ def _phase1_grid_size(
     return total, breakdown
 
 
+def _resolve_split(
+    split: Optional[str],
+    scenario_ids: Optional[List[str]],
+    scenario_set_path: Optional[Path],
+) -> Optional[List[str]]:
+    """Turn ``--split objective|survey`` into the scenario ids to run.
+
+    ``objective`` and ``survey`` are the two halves of a scenario set (the same
+    split ``metrics.by_semantic_only`` reports on), and nothing in a run
+    selects one — the grid only takes ids. So this resolves the split against
+    whichever scenario set the run is using and hands back its ids, narrowed to
+    ``--scenario-ids`` when both are given. ``--split all`` (the default) leaves
+    the ids untouched.
+    """
+    if not split or split == "all":
+        return scenario_ids
+    from .data import split_scenario_ids
+
+    ids = split_scenario_ids(split, scenario_set_path)
+    if scenario_ids:
+        requested = set(scenario_ids)
+        ids = [scenario_id for scenario_id in ids if scenario_id in requested]
+    return ids
+
+
+def _split_selection_error(split: Optional[str], scenario_ids: Optional[List[str]]) -> Optional[str]:
+    """Message for a --split/--scenario-ids combination that selects nothing.
+
+    Empty ids would otherwise fall through to the runner's "no scenario ids"
+    default and silently run the whole set — the opposite of what was asked.
+    """
+    if not split or split == "all" or scenario_ids:
+        return None
+    return (
+        f"--split {split} selected no scenarios. "
+        "The ids passed with --scenario-ids are all in the other half of this "
+        "scenario set (or are not in it at all)."
+    )
+
+
+def _add_split_argument(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--split",
+        choices=["all", "objective", "survey"],
+        default="all",
+        help=(
+            "Run one half of the scenario set: objective (structured-rule "
+            "verdicts; 41 of 50 in v1, 182 of 226 in v2) or survey (the "
+            "semantic-only traps the answer-key survey keys; 9 of 50 in v1, "
+            "44 of 226 in v2). Default: all. Narrows --scenario-ids when both "
+            "are given."
+        ),
+    )
+
+
 class _ProgressBar:
     """Render a determinate, single-line progress bar for a CLI eval run.
 
@@ -395,9 +450,20 @@ def _print_summary(run_payload: dict, saved_path=None) -> None:
 def eval_command(args: argparse.Namespace) -> int:
     model_ids = _csv(args.models) or ["openai"]
     control_conditions = _csv_conditions(args.conditions) or DEFAULT_CONTROL_CONDITIONS
-    scenario_ids = _csv(args.scenario_ids)
     seeds = _csv_int(args.seeds) or DEFAULT_SEEDS
     scenario_set_path = Path(args.scenario_set) if args.scenario_set else None
+    split = getattr(args, "split", "all")
+    try:
+        scenario_ids = _resolve_split(split, _csv(args.scenario_ids), scenario_set_path)
+    except (KeyError, OSError, ValueError) as exc:
+        print(f"Cannot start eval: {exc}")
+        return 2
+    error = _split_selection_error(split, scenario_ids)
+    if error:
+        print(error)
+        return 2
+    if split != "all":
+        print(f"Split: {split} — {len(scenario_ids or [])} scenario(s).")
     live = not args.dry_run
     total_calls, breakdown = _phase1_grid_size(
         model_ids, control_conditions, scenario_ids, scenario_set_path, seeds
@@ -627,7 +693,9 @@ def smoketest_openai_5_command(args: argparse.Namespace) -> int:
 # ---------------------------------------------------------------------------
 
 
-def _phase2_grid_size(args: argparse.Namespace) -> tuple[int, str]:
+def _phase2_grid_size(
+    args: argparse.Namespace, scenario_ids: Optional[List[str]] = None
+) -> tuple[int, str]:
     """Estimate the (model x condition x framing x urgency x user_availability x
     scenario x seed) episode count for a Phase 2 eval, and a breakdown string for the confirmation
     prompt. Returns (0, "") if it can't be estimated (e.g. a bad model id or an
@@ -643,7 +711,11 @@ def _phase2_grid_size(args: argparse.Namespace) -> tuple[int, str]:
         # file has held 226 since the 2026-07-24 trim, and --scenario-set can
         # point anywhere. This is the number the confirmation prompt asks the
         # user to approve spend against, so a stale constant is a real cost lie.
-        scenario_count = len(set(_csv(args.scenario_ids) or [])) or len(
+        # `scenario_ids` is what the run will actually execute — already
+        # narrowed by --split when one was passed — so it, not the raw flag,
+        # is what the cost estimate has to count.
+        selected = scenario_ids if scenario_ids is not None else _csv(args.scenario_ids)
+        scenario_count = len(set(selected or [])) or len(
             load_scenarios(Path(args.scenario_set) if args.scenario_set else PHASE2_SCENARIO_SET)
         )
         conditions = len(_csv(args.conditions) or []) or 6
@@ -683,6 +755,7 @@ def _resume_command_line(args: argparse.Namespace, run_id: str) -> str:
         ("--user-availabilities", args.user_availabilities),
         ("--scenario-ids", args.scenario_ids),
         ("--scenario-set", args.scenario_set),
+        ("--split", args.split if getattr(args, "split", "all") != "all" else None),
         ("--seeds", args.seeds),
         ("--reasoning-effort", args.reasoning_effort),
     ):
@@ -701,9 +774,25 @@ def _resume_command_line(args: argparse.Namespace, run_id: str) -> str:
 def phase2_eval_command(args: argparse.Namespace) -> int:
     """Phase 2 six-condition sandbox ablation with framing variation."""
     from .phase2 import CheckpointMismatch, CheckpointMissing, CheckpointStore, run_phase2_evaluation
+    from .phase2.runner import PHASE2_SCENARIO_SET
 
     live = not args.dry_run
     checkpoint = not args.no_checkpoint
+    split = getattr(args, "split", "all")
+    scenario_set_path = Path(args.scenario_set) if args.scenario_set else None
+    try:
+        scenario_ids = _resolve_split(
+            split, _csv(args.scenario_ids), scenario_set_path or PHASE2_SCENARIO_SET
+        )
+    except (KeyError, OSError, ValueError) as exc:
+        print(f"Cannot start Phase 2 eval: {exc}")
+        return 2
+    error = _split_selection_error(split, scenario_ids)
+    if error:
+        print(error)
+        return 2
+    if split != "all":
+        print(f"Split: {split} — {len(scenario_ids or [])} scenario(s).")
     # A resume reuses the interrupted run's id, so the same checkpoint file
     # keeps filling and the finished run lands under that id in runtime/runs.
     run_id = args.resume or f"run_{uuid4().hex[:12]}"
@@ -726,7 +815,7 @@ def phase2_eval_command(args: argparse.Namespace) -> int:
             + "."
         )
 
-    episodes, breakdown = _phase2_grid_size(args)
+    episodes, breakdown = _phase2_grid_size(args, scenario_ids)
     # Quote what this invocation will actually spend, not the whole grid.
     remaining = max(episodes - banked, 0) if episodes else episodes
     if remaining != episodes and breakdown:
@@ -744,8 +833,8 @@ def phase2_eval_command(args: argparse.Namespace) -> int:
             framings=_csv(args.framings),
             urgencies=_csv(args.urgencies),
             user_availabilities=_csv(args.user_availabilities),
-            scenario_ids=_csv(args.scenario_ids),
-            scenario_set_path=Path(args.scenario_set) if args.scenario_set else None,
+            scenario_ids=scenario_ids,
+            scenario_set_path=scenario_set_path,
             seeds=_csv_int(args.seeds),
             temperature=args.temperature,
             reasoning_effort=args.reasoning_effort,
@@ -1115,6 +1204,7 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Markdown scenario-set path, for example data/scenario_sets/v2_250_scenarios.md.",
     )
+    _add_split_argument(eval_parser)
     eval_parser.add_argument("--seeds", default=",".join(str(seed) for seed in DEFAULT_SEEDS))
     eval_parser.add_argument(
         "--temperature",
@@ -1226,7 +1316,8 @@ def build_parser() -> argparse.ArgumentParser:
         "--models",
         default="openai",
         help=(
-            "Comma-separated: openai, anthropic, openweights, scripted_diligent, "
+            "Comma-separated: openai, anthropic, gemini, kimi, inkling, grok, "
+            "deepseek, mistral, qwen, openrouter, openweights, scripted_diligent, "
             "scripted_naive, or all."
         ),
     )
@@ -1297,6 +1388,7 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Markdown scenario-set path. Default: data/scenario_sets/v2_250_scenarios.md.",
     )
+    _add_split_argument(phase2_eval_parser)
     phase2_eval_parser.add_argument("--seeds", default=None, help="Comma-separated seeds. Default: 1,2,3,4,5.")
     phase2_eval_parser.add_argument("--temperature", type=float, default=None)
     phase2_eval_parser.add_argument(
