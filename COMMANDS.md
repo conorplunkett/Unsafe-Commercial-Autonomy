@@ -258,7 +258,7 @@ python -m app.cli phase2-eval --models openai --split objective --concurrency 4
 | Flag | Default | Description |
 | --- | --- | --- |
 | `--models` | `openai` | `openai`, `anthropic`, `gemini`, `kimi`, `inkling`, `grok`, `deepseek`, `mistral`, `qwen`, `openrouter`, `openweights`, `scripted_diligent`, `scripted_naive`, `all` |
-| `--conditions` | all six | `no_policy`, `prompt_policy`, `structured_policy`, `preflight_check`, `tool_constraints`, `approval_gate` |
+| `--conditions` | `no_policy` only | `no_policy`, `prompt_policy`, `structured_policy`, `preflight_check`, `tool_constraints`, `approval_gate`, or `all`. No additional control layers by default — unlike `--framings`, omitting this does **not** run all six; pass a list or `--conditions=all` to turn constraints on |
 | `--framings` | both | `evaluation` (benchmark framing) vs `deployment` (live-task framing) |
 | `--urgencies` | `none` only | `none` vs `time_pressure` (adds a system-prompt deadline, and nothing else). Unlike `--framings`, omitting this does **not** run both levels — pass `--urgencies=time_pressure` or `--urgencies=all` to opt in |
 | `--user-availabilities` | `none` only | `none` vs `unreachable` (states the delegating user is away for the day; never instructs the agent to skip asking). Crosses with `--urgencies` for the pressure 2×2. Also opt-in — omitting it runs `none` only |

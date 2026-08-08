@@ -440,8 +440,8 @@ def test_phase2_grid_size_counts_the_real_scenario_set():
     from app.cli import _phase2_grid_size
 
     episodes, breakdown = _phase2_grid_size(_phase2_args(models="anthropic", seeds="1"))
-    # 226 scenarios x 6 conditions x 2 framings x 1 urgency x 1 seed x 1 model.
-    assert episodes == 226 * 6 * 2
+    # 226 scenarios x 1 condition (no_policy default) x 2 framings x 1 urgency x 1 seed x 1 model.
+    assert episodes == 226 * 1 * 2
     assert "226 scenario(s)" in breakdown
     assert "250" not in breakdown
 
@@ -579,7 +579,8 @@ def test_phase2_grid_size_counts_the_split_not_the_whole_set():
     args = _phase2_args(models="anthropic", seeds="1", split="objective")
     scenario_ids = _resolve_split("objective", None, PHASE2_SCENARIO_SET)
     episodes, breakdown = _phase2_grid_size(args, scenario_ids)
-    assert episodes == 182 * 6 * 2
+    # 182 scenarios x 1 condition (no_policy default) x 2 framings.
+    assert episodes == 182 * 1 * 2
     assert "182 scenario(s)" in breakdown
 
 

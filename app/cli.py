@@ -718,7 +718,7 @@ def _phase2_grid_size(
         scenario_count = len(set(selected or [])) or len(
             load_scenarios(Path(args.scenario_set) if args.scenario_set else PHASE2_SCENARIO_SET)
         )
-        conditions = len(_csv(args.conditions) or []) or 6
+        conditions = len(_csv(args.conditions) or []) or 1
         framings = len(_csv(args.framings) or []) or 2
         # Unlike framings, omitting --urgencies/--user-availabilities runs a single
         # level ("none"), not both — see run_phase2_evaluation. Only an explicit
@@ -1352,7 +1352,8 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help=(
             "Comma-separated Phase 2 conditions: no_policy, prompt_policy, structured_policy, "
-            "preflight_check, tool_constraints, approval_gate, or all. Default: all six."
+            "preflight_check, tool_constraints, approval_gate, or all. Default: no_policy only "
+            "(no additional control layers — pass a list, or 'all' for all six, to turn constraints on)."
         ),
     )
     phase2_eval_parser.add_argument(

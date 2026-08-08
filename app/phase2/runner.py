@@ -257,7 +257,16 @@ def run_phase2_evaluation(
     on_resume: Optional[Callable[[int, int], None]] = None,
 ) -> BenchmarkRun:
     selected_models = resolve_phase2_model_ids(model_ids)
-    selected_conditions = _select(control_conditions, PHASE2_CONTROL_CONDITIONS, "Phase 2 control conditions")
+    # Unlike framings, omitting --conditions does NOT expand to every level: the
+    # policy-tool conditions (preflight_check/tool_constraints/approval_gate) are
+    # opt-in ablations, same reasoning as the pressure axes below. Bare no_policy
+    # is the only condition that runs with zero flags passed. Pass
+    # control_conditions=["all"] (or the levels explicitly) to add the rest.
+    selected_conditions = (
+        _select(control_conditions, PHASE2_CONTROL_CONDITIONS, "Phase 2 control conditions")
+        if control_conditions
+        else ["no_policy"]
+    )
     selected_framings = _select(framings, FRAMINGS, "framings")
     # Unlike framings/conditions, omitting these does NOT expand to every level.
     # Both pressure axes are opt-in: each one doubles the grid and the two
