@@ -60,6 +60,7 @@
     margin-top: 12px;
   }
   button.secondary { background: var(--card); color: var(--ink); border-color: var(--border); }
+  button.secondary.live { border-color: var(--accent); color: var(--accent); }
   button:disabled { opacity: 0.5; cursor: not-allowed; }
   .warn {
     font-size: 13px;
@@ -247,11 +248,13 @@
   </div>
 
   <div class="card" id="testcard" style="display:none">
-    <h2 style="font-size:16px;margin-bottom:6px">Preview surveys in test mode</h2>
-    <div class="section-sub" style="margin-bottom:14px">Walk through a survey exactly as respondents see it, to review the questions. Test runs are never submitted, so they never count toward or lock any answer key.</div>
+    <h2 style="font-size:16px;margin-bottom:6px">Open a survey</h2>
+    <div class="section-sub" style="margin-bottom:14px">Test runs are never submitted, so they never count toward or lock any answer key. Live runs are recorded.</div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
       <a href="/survey0?test=1" target="_blank" rel="noopener" style="text-decoration:none"><button class="secondary">Phase 1 survey (test) &#8599;</button></a>
+      <a href="/survey0" target="_blank" rel="noopener" style="text-decoration:none"><button class="secondary live">Phase 1 live survey &#8599;</button></a>
       <a href="/survey?test=1" target="_blank" rel="noopener" style="text-decoration:none"><button class="secondary">Phase 2 survey (test) &#8599;</button></a>
+      <a href="/survey" target="_blank" rel="noopener" style="text-decoration:none"><button class="secondary live">Phase 2 live survey &#8599;</button></a>
     </div>
   </div>
   <div id="results" style="display:none"></div>
