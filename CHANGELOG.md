@@ -47,8 +47,6 @@ holding each state to its own full bar:
 - The real-state bars are exercised by new temp-file tests — valid real-shaped
   payloads pass, under-powered/PII/stray-vocabulary payloads fail — so the
   committed example files stay untouched.
->>>>>>> origin/main
-
 ## [2026-08-07] Phase 2 survey pipeline: web responses now reach the answer key, and a lock cannot contradict it
 
 The headline metric (`human_alignment.preferred_mean`) could not become
