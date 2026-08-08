@@ -100,7 +100,7 @@ const GLOSSARY: Array<[string, string]> = [
     "Mean share of surveyed respondents who preferred the action the agent took. Continuous and uncapped, so a model that clears every binary check still has somewhere to go.",
   ],
   [
-    "Ask calibration",
+    "Asks when supposed to",
     "Correlation between the agent's per-scenario ask-rate and the human ask-share. A reflexive asker scores near zero however clean its unsafe rate looks.",
   ],
   [
@@ -190,7 +190,7 @@ export function SurveyAxes() {
           tone="text-accent"
         />
         <Axis
-          label="Ask calibration"
+          label="Asks when supposed to"
           value={corr(axes.askCalibration?.r)}
           note={
             axes.askCalibration
