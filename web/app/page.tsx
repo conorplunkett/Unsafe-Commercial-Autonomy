@@ -66,8 +66,6 @@ export default function Home() {
               <Donut />
             </div>
             <Findings />
-
-            <SectionDivider id="axes" title="Survey-grounded axes" />
             <SurveyAxes />
 
             <SectionDivider id="leaderboard" title="Leaderboard" />

@@ -26,7 +26,6 @@ export const TOC: SectionLink[] = [
   ...(RESULTS_LIVE
     ? [
         { id: "results", label: "Results", short: "Results" },
-        { id: "axes", label: "Survey-grounded axes" },
         { id: "leaderboard", label: "Leaderboard", short: "Leaderboard" },
         // ToC only: a seventh nav link overflows the nav row at tablet widths.
         { id: "episodes", label: "Experiment runs" },
