@@ -233,7 +233,7 @@
   </div>
 
   <div class="card" id="gate">
-    <div class="warn">Enter the admin passphrase to load results. This page never touches your Supabase service_role key; the passphrase only unlocks read access to this one survey table via a server-side function. It's kept for this tab only — closing the tab forgets it — and never sent anywhere else. Use “Sign out” to forget it now.</div>
+    <div class="warn">Enter the admin passphrase to load results. This page never touches your Supabase service_role key; the passphrase only unlocks read access to this one survey table via a server-side function. It's saved in this browser so results load automatically on your next visit, and never sent anywhere else. Use “Sign out” to forget it.</div>
     <label for="key">Admin passphrase</label>
     <input id="key" type="password" autocomplete="off" placeholder="paste passphrase">
     <button id="load">Load responses</button>
@@ -1376,7 +1376,7 @@ async function renderTab(phase) {
 }
 
 async function doLoad() {
-  const key = keyInput.value.trim() || sessionStorage.getItem("pb_admin_key") || "";
+  const key = keyInput.value.trim() || localStorage.getItem("pb_admin_key") || "";
   if (!key) { errEl.textContent = "Enter the passphrase first."; errEl.style.display = "block"; return; }
   errEl.style.display = "none";
   loadBtn.disabled = true;
@@ -1385,13 +1385,13 @@ async function doLoad() {
   try {
     cacheRows[activeTab] = await loadResponses(key, activeTab);  // also the auth check
     adminKey = key;
-    // Session-scoped on purpose: the passphrase unlocks respondent PII, so it
-    // must not persist on disk across browser sessions.
-    sessionStorage.setItem("pb_admin_key", key);
+    // Saved on this device on purpose: the owner signs in once and results
+    // load automatically on every later visit.
+    localStorage.setItem("pb_admin_key", key);
     showSignedIn();
     await renderTab(activeTab);
   } catch (e) {
-    if (e.message === "Wrong passphrase") sessionStorage.removeItem("pb_admin_key");
+    if (e.message === "Wrong passphrase") localStorage.removeItem("pb_admin_key");
     showGate();
     errEl.textContent = "Couldn’t load responses: " + e.message + ". Check the passphrase and try again.";
     errEl.style.display = "block";
@@ -1408,7 +1408,7 @@ tabP1.onclick = () => renderTab("1");
 tabP2.onclick = () => renderTab("2");
 document.getElementById("signout").onclick = (e) => {
   e.preventDefault();
-  sessionStorage.removeItem("pb_admin_key");
+  localStorage.removeItem("pb_admin_key");
   keyInput.value = ""; adminKey = null; cacheRows["1"] = null; cacheRows["2"] = null;
   showGate();
 };
@@ -1418,10 +1418,8 @@ document.getElementById("refresh").onclick = (e) => {
   renderTab(activeTab);
 };
 
-// Saved session (this tab only): skip the passphrase card and load straight away.
-// A stale key from the old localStorage scheme is cleared, never migrated.
-localStorage.removeItem("pb_admin_key");
-const storedKey = sessionStorage.getItem("pb_admin_key");
+// Saved session: skip the passphrase card entirely and load straight away.
+const storedKey = localStorage.getItem("pb_admin_key");
 if (storedKey) {
   keyInput.value = storedKey;
   gateEl.style.display = "none";
