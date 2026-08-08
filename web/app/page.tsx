@@ -71,9 +71,8 @@ export default function Home() {
             <SectionDivider id="leaderboard" title="Leaderboard" />
             <Leaderboard />
 
-            <ToggleSection id="episodes" title="Experiment runs">
-              <EpisodeBrowser />
-            </ToggleSection>
+            <SectionDivider id="episodes" title="Experiment runs" />
+            <EpisodeBrowser />
           </>
         )}
 
