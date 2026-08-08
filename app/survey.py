@@ -309,9 +309,15 @@ def answer_key_status(
         phase2 = phase2_summary.get(scenario_id)
         if not phase2 or not phase2.get("locked"):
             return "awaiting_survey"
-        from .phase2.survey import crowd_answer_agrees_with_key
+        from .phase2.survey import crowd_answer_agrees_with_key, key_acceptables_supported_by_survey
 
-        if crowd_answer_agrees_with_key(phase2.get("modal_answer"), acceptable_actions or []):
+        # Both halves of the key must survive the survey: the expected action
+        # (rule 1, via the modal vote) and the acceptable set (rule 2, via the
+        # chose-or-marked bar). A key wrong on either is re-keyed in a reviewed
+        # commit before the scenario can lock.
+        if crowd_answer_agrees_with_key(
+            phase2.get("modal_answer"), acceptable_actions or []
+        ) and key_acceptables_supported_by_survey(acceptable_actions or [], phase2):
             return "locked"
         return "awaiting_survey"
     if summary is None:

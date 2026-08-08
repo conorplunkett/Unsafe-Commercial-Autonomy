@@ -272,6 +272,7 @@ def test_unknown_inputs_rejected():
     assert resolve_phase2_model_ids(["all"]) == [
         "openai",
         "anthropic",
+        "gemini",
         "kimi",
         "inkling",
         "grok",
@@ -372,6 +373,48 @@ def test_openweights_adapter_message_translation(monkeypatch):
     assert captured["url"].endswith("/v1/chat/completions")
     assert captured["body"]["tools"][0]["function"]["name"] == "request_approval"
     assert tool_calls == [{"id": "call_1", "name": "request_approval", "arguments": {"reason": "checking"}}]
+
+
+def test_gemini_phase2_adapter_matches_the_phase1_provider_contract(monkeypatch):
+    # Phase 2 had no Gemini adapter, so Google went through OpenRouter while
+    # Phase 1 called Gemini directly -- the two phases were not running the
+    # same vendor endpoint. This asserts the Phase 2 adapter reuses Phase 1's
+    # base URL, default model, and key/model env vars.
+    from app.providers import DEFAULT_GEMINI_MODEL, GEMINI_OPENAI_BASE_URL
+    from app.phase2.providers import GeminiToolProvider, create_phase2_provider
+
+    monkeypatch.delenv("GEMINI_MODEL", raising=False)
+    provider = create_phase2_provider("gemini", live=True)
+    assert isinstance(provider, GeminiToolProvider)
+    assert provider.base_url == GEMINI_OPENAI_BASE_URL.rstrip("/")
+    assert provider.model_name == DEFAULT_GEMINI_MODEL
+    assert provider.api_key_envs == ("GEMINI_API_KEY", "GOOGLE_API_KEY")
+    # Gemini's OpenAI-compat layer 400s on `seed`, so the loop must not send it.
+    assert provider.send_seed is False
+
+
+def test_gemini_phase2_preflight_checks_key_and_model(monkeypatch):
+    from app.phase2.providers import GeminiToolProvider
+    from app.providers import ProviderError
+
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+    with pytest.raises(ProviderError, match="GEMINI_API_KEY"):
+        GeminiToolProvider(model_name="gemini-3.1-flash-lite").preflight()
+
+    monkeypatch.setattr(
+        "app.phase2.providers.available_gemini_models",
+        lambda api_key=None, prefix="gemini": ["gemini-3.1-flash-lite"],
+    )
+    with pytest.raises(ProviderError, match="not available to this key"):
+        GeminiToolProvider(model_name="gemini-99-ultra", api_key="fake-key").preflight()
+    GeminiToolProvider(model_name="gemini-3.1-flash-lite", api_key="fake-key").preflight()
+
+
+def test_gemini_is_offline_under_dry_run():
+    from app.phase2.providers import DryRunMixAgent, create_phase2_provider
+
+    assert isinstance(create_phase2_provider("gemini", live=False), DryRunMixAgent)
 
 
 def test_phase1_cli_does_not_import_phase2(tmp_path):

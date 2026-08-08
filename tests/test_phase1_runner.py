@@ -385,3 +385,83 @@ def test_runner_records_reasoning_effort_on_run():
 
     assert run.reasoning_effort == "medium"
     assert run.temperature == 0.7
+
+
+def _rate_limited(retry_after=None) -> ProviderError:
+    request = httpx.Request("POST", "https://example.invalid/v1/responses")
+    headers = {"Retry-After": str(retry_after)} if retry_after is not None else {}
+    response = httpx.Response(429, request=request, headers=headers)
+    error = ProviderError("rate limited")
+    error.__cause__ = httpx.HTTPStatusError("HTTP 429", request=request, response=response)
+    return error
+
+
+class RateLimitedThenPurchaseProvider(AlwaysPurchaseProvider):
+    """429s `failures` times (optionally with a Retry-After hint), then succeeds."""
+
+    def __init__(self, failures: int, retry_after=None):
+        self.failures = failures
+        self.retry_after = retry_after
+        self.calls = 0
+
+    def generate_action(self, scenario, control_condition, seed, temperature):
+        self.calls += 1
+        if self.calls <= self.failures:
+            raise _rate_limited(self.retry_after)
+        return super().generate_action(scenario, control_condition, seed, temperature)
+
+
+def test_rate_limit_rides_the_minutes_budget_not_the_attempt_count():
+    # Five consecutive 429s used to burn the 3-attempt budget (3.5 s total)
+    # and record the cell as an error; the wall-clock budget rides them out.
+    provider = RateLimitedThenPurchaseProvider(failures=5)
+    delays: list[float] = []
+
+    action, error = _generate_with_retry(
+        provider,
+        get_scenario("scn_v1_a1_trap"),
+        "no_policy",
+        seed=1,
+        temperature=0.7,
+        sleep=delays.append,
+    )
+
+    assert error is None
+    assert action.action.action_type == "purchase"
+    assert provider.calls == 6
+    assert delays == [2.0, 4.0, 8.0, 16.0, 32.0]
+
+
+def test_rate_limit_honors_the_providers_retry_after_hint():
+    provider = RateLimitedThenPurchaseProvider(failures=1, retry_after=17)
+    delays: list[float] = []
+
+    _, error = _generate_with_retry(
+        provider,
+        get_scenario("scn_v1_a1_trap"),
+        "no_policy",
+        seed=1,
+        temperature=0.7,
+        sleep=delays.append,
+    )
+
+    assert error is None
+    assert delays == [17.0]
+
+
+def test_rate_limit_gives_up_once_the_wall_clock_budget_is_spent():
+    provider = RateLimitedThenPurchaseProvider(failures=99, retry_after=150)
+    delays: list[float] = []
+
+    _, error = _generate_with_retry(
+        provider,
+        get_scenario("scn_v1_a1_trap"),
+        "no_policy",
+        seed=1,
+        temperature=0.7,
+        sleep=delays.append,
+    )
+
+    assert error == "rate limited"
+    assert delays == [150.0, 150.0]  # two hints consume the 300 s budget, then stop
+    assert provider.calls == 3

@@ -60,6 +60,7 @@
     margin-top: 12px;
   }
   button.secondary { background: var(--card); color: var(--ink); border-color: var(--border); }
+  button.secondary.live { border-color: var(--accent); color: var(--accent); }
   button:disabled { opacity: 0.5; cursor: not-allowed; }
   .warn {
     font-size: 13px;
@@ -220,6 +221,23 @@
   .ci-bar70 { position:absolute; top:0; bottom:0; width:0; border-left:2px dashed #8a6116; opacity:0.7; }
   .mix-bar { display:flex; height:16px; border-radius:4px; overflow:hidden; border:1px solid var(--border); flex:1; }
   .mix-seg { height:100%; }
+
+  /* Runnable-command list */
+  .cmd-group { margin-top: 18px; }
+  .cmd-group:first-of-type { margin-top: 8px; }
+  .cmd-group h3 { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+  .cmd-row { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-top: 1px solid var(--border); }
+  .cmd-label { width: 190px; flex-shrink: 0; font-size: 12px; color: var(--muted); padding-top: 3px; }
+  .cmd-text {
+    flex: 1; min-width: 0; font-family: ui-monospace, monospace; font-size: 12px;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+    padding: 6px 8px; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.45;
+  }
+  .cmd-row button { margin-top: 0; padding: 5px 12px; font-size: 12px; flex-shrink: 0; }
+  @media (max-width: 700px) {
+    .cmd-row { flex-wrap: wrap; }
+    .cmd-label { width: 100%; padding-top: 0; }
+  }
 </style>
 </head>
 <body>
@@ -232,7 +250,7 @@
   </div>
 
   <div class="card" id="gate">
-    <div class="warn">Enter the admin passphrase to load results. This page never touches your Supabase service_role key; the passphrase only unlocks read access to this one survey table via a server-side function. It's saved on this device so you stay signed in, and never sent anywhere else. Use “Sign out” to forget it.</div>
+    <div class="warn">Enter the admin passphrase to load results. This page never touches your Supabase service_role key; the passphrase only unlocks read access to this one survey table via a server-side function. It's saved in this browser so results load automatically on your next visit, and never sent anywhere else. Use “Sign out” to forget it.</div>
     <label for="key">Admin passphrase</label>
     <input id="key" type="password" autocomplete="off" placeholder="paste passphrase">
     <button id="load">Load responses</button>
@@ -247,12 +265,19 @@
   </div>
 
   <div class="card" id="testcard" style="display:none">
-    <h2 style="font-size:16px;margin-bottom:6px">Preview surveys in test mode</h2>
-    <div class="section-sub" style="margin-bottom:14px">Walk through a survey exactly as respondents see it, to review the questions. Test runs are never submitted, so they never count toward or lock any answer key.</div>
+    <h2 style="font-size:16px;margin-bottom:6px">Open a survey</h2>
+    <div class="section-sub" style="margin-bottom:14px">Test runs are never submitted, so they never count toward or lock any answer key. Live runs are recorded.</div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
       <a href="/survey0?test=1" target="_blank" rel="noopener" style="text-decoration:none"><button class="secondary">Phase 1 survey (test) &#8599;</button></a>
+      <a href="/survey0" target="_blank" rel="noopener" style="text-decoration:none"><button class="secondary live">Phase 1 live survey &#8599;</button></a>
       <a href="/survey?test=1" target="_blank" rel="noopener" style="text-decoration:none"><button class="secondary">Phase 2 survey (test) &#8599;</button></a>
+      <a href="/survey" target="_blank" rel="noopener" style="text-decoration:none"><button class="secondary live">Phase 2 live survey &#8599;</button></a>
     </div>
+  </div>
+  <div class="card" id="commandcard" style="display:none">
+    <h2 style="font-size:16px;margin-bottom:6px">Commands</h2>
+    <div class="section-sub" style="margin-bottom:6px">Run from the repo root.</div>
+    <div id="cmdlist"></div>
   </div>
   <div id="results" style="display:none"></div>
 </div>
@@ -475,7 +500,30 @@ async function loadResponses(passphrase, phase) {
     const body = await res.text().catch(() => "");
     throw new Error(`HTTP ${res.status}${body ? ": " + body.slice(0, 200) : ""}`);
   }
-  return res.json();
+  const rows = await res.json();
+  if (phase === "2") await markTeamRowsP2(rows);
+  return rows;
+}
+
+// Exclusion rule 3 (team members), mirrored from the analyzer
+// (app/phase2/web_survey.py TEAM_EMAIL_SHA256): emails are matched as SHA-256
+// digests of the lowercased, trimmed address, so no address lives in this
+// page's source. The analyzer is binding; this mirror keeps the live counts
+// honest.
+const TEAM_EMAIL_SHA256_P2 = new Set([
+  "eee28b31061efde1f7e21967f0ca8e50560430ba00074d3f279ea70148fbf561",
+  "ac32a773f4e18242157fedef960c29280b3d7cca6ae198dfb76116e7dcc27add",
+]);
+async function markTeamRowsP2(rows) {
+  if (!window.crypto || !crypto.subtle) return rows; // analyzer still enforces the rule
+  for (const row of rows) {
+    const email = String(row.email || "").trim().toLowerCase();
+    if (!email) continue;
+    const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(email));
+    const hex = [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, "0")).join("");
+    if (TEAM_EMAIL_SHA256_P2.has(hex)) row.__teamMember = true;
+  }
+  return rows;
 }
 
 // Compute the vote breakdown for one question over the clean respondents.
@@ -876,11 +924,12 @@ function isExcludedP2(row) {
   const tooFast = (row.duration_seconds || 0) < MIN_DURATION_SECONDS_P2;
   const test = row.meta && row.meta.test;
   const wrongVer = !row.meta || row.meta.survey_version !== LAUNCH_VERSION_P2;
-  return attFailsP2(row) >= 2 || tooFast || !!test || wrongVer;
+  return attFailsP2(row) >= 2 || tooFast || !!test || wrongVer || !!row.__teamMember;
 }
 function exclusionReasonP2(row) {
   const r = [];
   if (row.meta && row.meta.test) r.push("test run");
+  if (row.__teamMember) r.push("team member");
   const fails = attFailsP2(row);
   if (fails >= 2) r.push(`failed ${fails} of 5 attention checks`);
   if ((row.duration_seconds || 0) < MIN_DURATION_SECONDS_P2) r.push("<6.5min");
@@ -1306,6 +1355,7 @@ const sessionBar = document.getElementById("session-bar");
 const resultsEl = document.getElementById("results");
 const tabsEl = document.getElementById("tabs");
 const testcardEl = document.getElementById("testcard");
+const commandcardEl = document.getElementById("commandcard");
 const tabP1 = document.getElementById("tab-p1");
 const tabP2 = document.getElementById("tab-p2");
 
@@ -1319,6 +1369,7 @@ function showGate() {
   sessionBar.style.display = "none";
   tabsEl.style.display = "none";
   testcardEl.style.display = "none";
+  commandcardEl.style.display = "none";
   resultsEl.style.display = "none";
   keyInput.focus();
 }
@@ -1329,6 +1380,112 @@ function showSignedIn() {
   sessionBar.style.display = "inline";
   tabsEl.style.display = "flex";
   testcardEl.style.display = "block";
+  commandcardEl.style.display = "block";
+  renderCommands();
+}
+
+// Every CLI command the repo can run, mirroring COMMANDS.md and
+// app/cli.py::build_parser. Kept here rather than fetched: this page is a
+// static file on the marketing deploy and has no access to the harness.
+const COMMAND_GROUPS = [
+  {
+    title: "Phase 1 eval",
+    commands: [
+      { label: "Smoke test (offline)", cmd: "python -m app.cli eval --models openai --scenario-ids scn_v1_a1_trap --seeds 1 --dry-run" },
+      { label: "Naive baseline", cmd: "python -m app.cli eval --models baseline_naive --seeds 1" },
+      { label: "Full v1, one model", cmd: "python -m app.cli eval --models openai" },
+      { label: "Objective half (41/50)", cmd: "python -m app.cli eval --models openai --split objective" },
+      { label: "Survey half (9/50)", cmd: "python -m app.cli eval --models openai --split survey" },
+      { label: "Objective half, v2 (182/226)", cmd: "python -m app.cli eval --models openai --scenario-set data/scenario_sets/v2_250_scenarios.md --split objective" },
+      { label: "Survey half, v2 (44/226)", cmd: "python -m app.cli eval --models openai --scenario-set data/scenario_sets/v2_250_scenarios.md --split survey" },
+      { label: "Every provider", cmd: "python -m app.cli eval --models all" },
+      { label: "Key check", cmd: "python -m app.cli test --models openai" },
+      { label: "OpenAI connectivity", cmd: "python -m app.cli smoketest-openai" },
+      { label: "OpenAI, 5 scenarios", cmd: "python -m app.cli smoketest-openai-5" },
+    ],
+  },
+  {
+    title: "Phase 2 eval",
+    commands: [
+      { label: "Scripted agents (offline)", cmd: "python -m app.cli phase2-eval --models scripted_naive,scripted_diligent --seeds 1 --dry-run" },
+      { label: "Full v2, one model", cmd: "python -m app.cli phase2-eval --models openai --concurrency 4" },
+      { label: "Objective half (182/226)", cmd: "python -m app.cli phase2-eval --models openai --split objective --concurrency 4" },
+      { label: "Survey half (44/226)", cmd: "python -m app.cli phase2-eval --models openai --split survey --concurrency 4" },
+      { label: "Gemini", cmd: "python -m app.cli phase2-eval --models gemini --concurrency 4" },
+      { label: "Resume a run", cmd: "python -m app.cli phase2-eval --resume RUN_ID" },
+      { label: "Resumable runs", cmd: "python -m app.cli phase2-checkpoints" },
+      { label: "Transfer check", cmd: "python -m app.cli phase2-transfer --phase1-run RUN_ID --model openai" },
+    ],
+  },
+  {
+    title: "Answer key and survey",
+    commands: [
+      { label: "v1 lock status", cmd: "python -m app.cli survey" },
+      { label: "v2 lock status", cmd: "python -m app.cli phase2-survey" },
+      { label: "Record a respondent", cmd: "python -m app.cli phase2-survey-collect --respondent-id R01" },
+      { label: "Human baseline", cmd: "python -m app.cli phase2-human-baseline" },
+      { label: "Collect a participant", cmd: "python -m app.cli phase2-human-baseline --participant-id P01" },
+      { label: "Import a Form CSV", cmd: "python -m app.cli phase2-human-import --csv path/to/responses.csv" },
+      { label: "Analyse Phase 1 survey", cmd: "python scripts/analyze_phase1_survey.py" },
+      { label: "Analyse Phase 2 survey", cmd: "python scripts/analyze_phase2_survey.py" },
+    ],
+  },
+  {
+    title: "Models and publish",
+    commands: [
+      { label: "Model ids per key", cmd: "python -m app.cli models --provider all" },
+      { label: "Gemini model ids", cmd: "python -m app.cli models --provider gemini" },
+      { label: "Publish latest run", cmd: "python -m app.cli publish --latest --label \"Phase 2 official\"" },
+      { label: "Publish one run", cmd: "python -m app.cli publish --run-id RUN_ID" },
+      { label: "Publish human baseline", cmd: "python -m app.cli publish-human-baseline" },
+    ],
+  },
+  {
+    title: "Server and tests",
+    commands: [
+      { label: "Experiment Lab", cmd: "uvicorn app.main:app --reload" },
+      { label: "Test suite", cmd: "python -m pytest tests -q" },
+      { label: "Website", cmd: "cd web && npm run dev" },
+    ],
+  },
+];
+
+let commandsRendered = false;
+
+function renderCommands() {
+  if (commandsRendered) return;
+  commandsRendered = true;
+  const host = document.getElementById("cmdlist");
+  host.innerHTML = COMMAND_GROUPS.map((group) => `
+    <div class="cmd-group">
+      <h3>${escapeHtml(group.title)}</h3>
+      ${group.commands.map((entry) => `
+        <div class="cmd-row">
+          <div class="cmd-label">${escapeHtml(entry.label)}</div>
+          <div class="cmd-text">${escapeHtml(entry.cmd)}</div>
+          <button class="secondary cmd-copy" data-cmd="${escapeHtml(entry.cmd)}">Copy</button>
+        </div>`).join("")}
+    </div>`).join("");
+  host.querySelectorAll(".cmd-copy").forEach((button) => {
+    button.onclick = async () => {
+      const text = button.getAttribute("data-cmd");
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch (e) {
+        // Clipboard API needs a secure context and permission; fall back to a
+        // hidden textarea so the button still works over plain http.
+        const field = document.createElement("textarea");
+        field.value = text;
+        document.body.appendChild(field);
+        field.select();
+        try { document.execCommand("copy"); } catch (e2) {}
+        field.remove();
+      }
+      const original = button.textContent;
+      button.textContent = "Copied";
+      setTimeout(() => { button.textContent = original; }, 1200);
+    };
+  });
 }
 
 async function renderTab(phase) {
@@ -1358,6 +1515,8 @@ async function doLoad() {
   try {
     cacheRows[activeTab] = await loadResponses(key, activeTab);  // also the auth check
     adminKey = key;
+    // Saved on this device on purpose: the owner signs in once and results
+    // load automatically on every later visit.
     localStorage.setItem("pb_admin_key", key);
     showSignedIn();
     await renderTab(activeTab);

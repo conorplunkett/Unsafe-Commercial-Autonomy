@@ -528,6 +528,35 @@ def load_scenarios(path: Optional[Path] = None) -> List[Scenario]:
     return _parse_scenario_set_markdown(scenario_path)
 
 
+# The two halves of a scenario set, keyed off `Scenario.semantic_only` — the
+# same split `metrics.by_semantic_only` reports on. "objective" scenarios are
+# decided by structured policy fields alone; "survey" scenarios are the traps
+# whose expected action is the human preference the answer-key survey exists to
+# measure. There is no flag on a run that selects one, so selecting one means
+# passing its scenario ids; these helpers produce them.
+SCENARIO_SPLITS = ("all", "objective", "survey")
+
+
+def split_scenarios(split: str, scenarios: List[Scenario]) -> List[Scenario]:
+    """Filter already-loaded scenarios to one half of the objective/survey split."""
+    if split not in SCENARIO_SPLITS:
+        raise KeyError(
+            f"Unknown scenario split {split!r}. Choose one of: {', '.join(SCENARIO_SPLITS)}."
+        )
+    if split == "all":
+        return list(scenarios)
+    want_semantic = split == "survey"
+    return [scenario for scenario in scenarios if scenario.semantic_only == want_semantic]
+
+
+def split_scenario_ids(split: str, path: Optional[Path] = None) -> List[str]:
+    """Scenario ids for one half of the split, in scenario-set order.
+
+    v1 (50 scenarios) is 41 objective / 9 survey; v2 (226) is 182 / 44.
+    """
+    return [scenario.scenario_id for scenario in split_scenarios(split, load_scenarios(path))]
+
+
 def load_catalog(path: Optional[Path] = None) -> Dict:
     return load_json(path or DATA_DIR / "catalog.json")
 

@@ -223,6 +223,15 @@ Run a v2 scenario from the 226-scenario set:
 python -m app.cli eval --models openai --scenario-set data/scenario_sets/v2_250_scenarios.md --scenario-ids scn_v2_a1_trap --seeds 1 --dry-run
 ```
 
+Run one half of a set — `objective` (41 of 50 in v1, 182 of 226 in v2) or
+`survey`, the `semantic_only` traps the answer-key survey keys (9 and 44).
+Works the same on `phase2-eval`:
+
+```bash
+python -m app.cli eval --models openai --split objective
+python -m app.cli phase2-eval --models openai --split survey
+```
+
 Run the naive heuristic baseline (always-cheapest, never-ask; offline, no API
 keys needed). It calibrates the false-refusal axis: it should show a high
 unsafe-payment rate and roughly zero false refusals:
@@ -454,7 +463,7 @@ Two numbers are reported together and never separately.
 
 The central claim becomes which control layer moves the frontier: lower unsafe payments at the same or better false-refusal rate. A control layer that only lowers unsafe payments by making the agent inert does not move the frontier, and the metric will show it.
 
-Both headline rates are also reported split by `semantic_only`: traps whose expected action is the team's guess at an unstated preference — precisely the scenarios the preference survey exists to validate — versus every scenario a structured policy rule decides outright. This pile has held at a near-constant ~18-19% of the 50-scenario v1 set and the v2 set both before (44/250) and after (44/226) the 2026-07-24 trim of trivially easy pairs, none of which were `semantic_only`, so a run's headline rate is mostly driven by the ~81% a model can pass through careful reading and arithmetic alone; `metrics.by_semantic_only` (`bySemanticOnly` in `web/lib/metrics.ts`) keeps a good record there from hiding a worse one on the scenarios that are actually ambiguous.
+Both headline rates are also reported split by `semantic_only`: traps whose expected action is the team's guess at an unstated preference — precisely the scenarios the preference survey exists to validate — versus every scenario a structured policy rule decides outright. This pile has held at a near-constant ~18-19% of the 50-scenario v1 set and the v2 set both before (44/250) and after (44/226) the 2026-07-24 trim of trivially easy pairs, none of which were `semantic_only`, so a run's headline rate is mostly driven by the ~81% a model can pass through careful reading and arithmetic alone; `metrics.by_semantic_only` (`bySemanticOnly` in `web/lib/metrics.ts`) keeps a good record there from hiding a worse one on the scenarios that are actually ambiguous. `--split objective` / `--split survey` runs either half on its own.
 
 ### Survey-grounded axes
 

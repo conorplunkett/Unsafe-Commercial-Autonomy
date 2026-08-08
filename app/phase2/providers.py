@@ -20,15 +20,18 @@ import httpx
 from ..providers import (
     ANTHROPIC_DEFAULT_THINKING_PREFIXES,
     DEFAULT_ANTHROPIC_MODEL,
+    DEFAULT_GEMINI_MODEL,
     DEFAULT_KIMI_MODEL,
     DEFAULT_OPENAI_MODEL,
     DEFAULT_TRANSIENT_RETRIES,
+    GEMINI_OPENAI_BASE_URL,
     ProviderError,
+    RateLimitGate,
+    TransientRetryPolicy,
     _anthropic_rejects_temperature,
     _anthropic_supports_effort,
     _is_openai_reasoning_model,
-    backoff_delay,
-    is_retryable_provider_error,
+    available_gemini_models,
 )
 from .sandbox import MAX_TURNS, SandboxWorld, evaluate_payment_policy, tool_schemas
 
@@ -36,6 +39,7 @@ from .sandbox import MAX_TURNS, SandboxWorld, evaluate_payment_policy, tool_sche
 PHASE2_MODEL_IDS = [
     "openai",
     "anthropic",
+    "gemini",
     "kimi",
     "inkling",
     "grok",
@@ -50,6 +54,7 @@ PHASE2_MODEL_IDS = [
 LIVE_MODEL_IDS = {
     "openai",
     "anthropic",
+    "gemini",
     "kimi",
     "inkling",
     "grok",
@@ -105,8 +110,13 @@ class ToolLoopProvider(BaseEpisodeProvider):
     # app/runner.py::_generate_with_retry. Phase 1 retries a single-shot call;
     # a Phase 2 episode is up to MAX_TURNS calls, so the budget is per turn —
     # one 429 twelve turns in should not throw away the eleven turns already
-    # paid for.
+    # paid for. Rate limits get their own minutes-scale wall-clock budget
+    # inside TransientRetryPolicy, also per turn.
     transient_retries: int = DEFAULT_TRANSIENT_RETRIES
+    # Shared by every worker of a run (the runner attaches one): when any
+    # worker hits a 429, all workers hold at their next attempt instead of
+    # hammering a provider that just said slow down.
+    rate_limit_gate: Optional[RateLimitGate] = None
     # Injection seam for tests, so they assert the backoff schedule without
     # waiting it out (same pattern as _generate_with_retry's `sleep` argument).
     _sleep: Callable[[float], None] = staticmethod(time.sleep)
@@ -126,22 +136,25 @@ class ToolLoopProvider(BaseEpisodeProvider):
         """One turn, retrying transient transport failures with backoff.
 
         Providers wrap everything as ProviderError, so the retryable/terminal
-        split comes from ``is_retryable_provider_error`` walking the
-        ``raise ... from exc`` chain: 429s and 5xx and dropped connections get
-        another attempt, a 400 or a bad model id still fails on the first one.
+        split comes from TransientRetryPolicy walking the ``raise ... from
+        exc`` chain: 5xx and dropped connections get the short attempts, a
+        429 keeps retrying on its minutes-scale budget (Retry-After honored,
+        the shared gate pausing every worker), and a 400 or a bad model id
+        still fails on the first one.
         """
         pending = tool_results
-        retries_left = self.transient_retries
-        attempts = 0
+        policy = TransientRetryPolicy(
+            transient_retries=self.transient_retries, gate=self.rate_limit_gate
+        )
         while True:
+            if self.rate_limit_gate is not None:
+                # Hold while another worker's rate-limit pause is active.
+                self.rate_limit_gate.wait(self._sleep)
             try:
                 return self.step(pending)
             except ProviderError as exc:
-                if retries_left <= 0 or not is_retryable_provider_error(exc):
+                if not policy.wait_before_retry(exc, self._sleep):
                     raise
-                retries_left -= 1
-                self._sleep(backoff_delay(attempts))
-                attempts += 1
                 # Every transport folds `tool_results` into its own conversation
                 # state *before* issuing the request and commits the reply only
                 # after it succeeds, so this turn is already staged. Re-sending
@@ -688,6 +701,38 @@ class OpenAICompatToolProvider(ToolLoopProvider):
         return message.get("content") or "", tool_calls
 
 
+class GeminiToolProvider(OpenAICompatToolProvider):
+    """Google Gemini via its OpenAI-compatible endpoint.
+
+    Same key/model/env contract as the Phase 1 ``GeminiProvider`` — the tool
+    loop is the only difference — so a model id that works in Phase 1 works
+    here. Gemini's OpenAI-compat layer rejects ``seed`` (400 "Unknown name
+    seed"), which is why ``send_seed`` stays off; the seed still perturbs the
+    episode through the prompt.
+    """
+
+    provider_id = "gemini"
+    display_label = "Gemini"
+    default_base_url = GEMINI_OPENAI_BASE_URL
+    model_env = "GEMINI_MODEL"
+    default_model = DEFAULT_GEMINI_MODEL
+    api_key_envs = ("GEMINI_API_KEY", "GOOGLE_API_KEY")
+
+    def preflight(self) -> None:
+        api_key = self._resolved_api_key()
+        if not self.model_name:
+            raise ProviderError("Set GEMINI_MODEL to run the Gemini Phase 2 provider.")
+        # One cheap models-list call confirms the id exists for this key before
+        # the episode grid spends real calls on it (mirrors the Phase 1
+        # Gemini preflight).
+        model_ids = available_gemini_models(api_key=api_key)
+        if self.model_name.removeprefix("models/") not in model_ids:
+            raise ProviderError(
+                f"Gemini model {self.model_name!r} is not available to this key. "
+                "List valid ids with `python -m app.cli models --provider gemini` and set GEMINI_MODEL."
+            )
+
+
 class GrokToolProvider(OpenAICompatToolProvider):
     provider_id = "grok"
     display_label = "Grok"
@@ -908,6 +953,8 @@ def create_phase2_provider(
         return OpenAIToolProvider(model_name=model_name, api_key=api_key)
     if model_id == "anthropic":
         return AnthropicToolProvider(model_name=model_name, api_key=api_key)
+    if model_id == "gemini":
+        return GeminiToolProvider(model_name=model_name, api_key=api_key)
     if model_id == "kimi":
         return KimiToolProvider(model_name=model_name, api_key=api_key)
     if model_id == "inkling":
