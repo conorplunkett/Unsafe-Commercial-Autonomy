@@ -839,6 +839,7 @@ def phase2_survey_command(args: argparse.Namespace) -> int:
         LOCK_THRESHOLD,
         crowd_answer_agrees_with_key,
         is_example,
+        key_acceptables_supported_by_survey,
         phase2_survey_summary,
     )
 
@@ -861,15 +862,23 @@ def phase2_survey_command(args: argparse.Namespace) -> int:
     locked = 0
     conflicts = []
     for scenario_id, votes in sorted(summary.items()):
+        key_actions = keyed_actions.get(scenario_id, [])
         if not votes["locked"]:
             status = "collecting"
-        elif crowd_answer_agrees_with_key(votes["modal_answer"], keyed_actions.get(scenario_id, [])):
-            status = "locked"
-            locked += 1
-        else:
-            key = ", ".join(keyed_actions.get(scenario_id, [])) or "nothing"
+        elif not crowd_answer_agrees_with_key(votes["modal_answer"], key_actions):
+            key = ", ".join(key_actions) or "nothing"
             status = f"CONFLICT (key accepts: {key})"
             conflicts.append(scenario_id)
+        elif not key_acceptables_supported_by_survey(key_actions, votes):
+            # Rule 1 agrees but rule 2 does not: the key's acceptable set names
+            # different slots than the crowd's chose-or-marked >=70% set.
+            supported = ", ".join(votes.get("acceptable_answers") or []) or "nothing"
+            key = ", ".join(key_actions) or "nothing"
+            status = f"CONFLICT (key accepts: {key}; survey supports: {supported})"
+            conflicts.append(scenario_id)
+        else:
+            status = "locked"
+            locked += 1
         print(
             f"{scenario_id[:32]:32}  {votes['modal_answer']:16}  "
             f"{votes['modal_count']}/{votes['respondents']:<7}  {status}"

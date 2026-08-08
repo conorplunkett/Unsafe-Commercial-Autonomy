@@ -23,6 +23,7 @@ Run: ``python scripts/analyze_phase2_survey.py <raw_export.json>``.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 from collections import Counter
@@ -33,6 +34,7 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence
 from ..data import DATA_DIR, ROOT_DIR, load_scenarios
 from .runner import PHASE2_SCENARIO_SET
 from .survey import (
+    ACCEPT_THRESHOLD,
     EXPECTED_RESPONDENTS,
     LOCK_THRESHOLD,
     PHASE2_SURVEY_PATH,
@@ -50,13 +52,30 @@ MIN_DURATION_SECONDS = 390
 ATTENTION_IDS = ["att_1", "att_2", "att_3", "att_4", "att_5"]
 # One instructed-response miss is tolerated as a stray tap; two or more exclude.
 MAX_TOLERATED_ATTENTION_MISSES = 1
-ACCEPT_THRESHOLD = 0.70
 CALIBRATION_ID = "cal_1"
 DEMOGRAPHIC_FIELDS = STRATA_FIELDS + ["industry"]
 
 # Keys that must never appear in a committed artifact. "email" is checked as a
 # dict key (not a substring) because the word appears in instrument prose.
 FORBIDDEN_KEYS = {"respondent_name", "email", "created_at", "user_agent", "question_order"}
+
+# Exclusion rule 3 (PHASE2_WEB_SURVEY.md): responses from project team members
+# are excluded entirely. Emails are matched as SHA-256 digests of the
+# lowercased, trimmed address, so the rule is verifiable in the open repo
+# without committing an address. The admin dashboard mirrors this check.
+TEAM_EMAIL_SHA256 = frozenset(
+    {
+        "eee28b31061efde1f7e21967f0ca8e50560430ba00074d3f279ea70148fbf561",
+        "ac32a773f4e18242157fedef960c29280b3d7cca6ae198dfb76116e7dcc27add",
+    }
+)
+
+
+def is_team_member(row: Dict[str, Any]) -> bool:
+    email = str(row.get("email") or "").strip().lower()
+    if not email:
+        return False
+    return hashlib.sha256(email.encode("utf-8")).hexdigest() in TEAM_EMAIL_SHA256
 
 
 def load_instrument(path: Optional[Path] = None) -> List[Dict[str, Any]]:
@@ -82,6 +101,8 @@ def exclusion_reasons(row: Dict[str, Any]) -> List[str]:
     reasons = []
     if (row.get("meta") or {}).get("test"):
         reasons.append("test_run")
+    if is_team_member(row):
+        reasons.append("team_member")
     fails = attention_fail_count(row)
     if fails > MAX_TOLERATED_ATTENTION_MISSES:
         reasons.append("failed_attention_checks")
@@ -183,10 +204,36 @@ def demographics(clean: Sequence[Dict[str, Any]]) -> Dict[str, Dict[str, int]]:
     }
 
 
-def assert_no_pii(payload: Any, rows: Sequence[Dict[str, Any]]) -> None:
+def instrument_corpus(instrument: Sequence[Dict[str, Any]]) -> str:
+    """Every string the instrument itself contains, lowercased.
+
+    The aggregate embeds question texts and option labels verbatim, so this is
+    text a committed artifact carries even with zero respondents. The PII scan
+    uses it to tell a leak from a collision: a respondent who happens to be
+    named after an instrument word ("Bill", "Alice", "Denver") is
+    unidentifiable in output that would contain that word regardless.
+    """
+    return json.dumps(instrument, ensure_ascii=False).lower()
+
+
+def assert_no_pii(payload: Any, rows: Sequence[Dict[str, Any]], corpus: str = "") -> None:
     serialized = json.dumps(payload, ensure_ascii=False)
-    if "@" in serialized:
-        raise SystemExit("PII check failed: '@' found in the output payload")
+
+    def walk_strings(value: Any) -> Iterable[str]:
+        if isinstance(value, str):
+            yield value
+        elif isinstance(value, dict):
+            for key, child in value.items():
+                yield key
+                yield from walk_strings(child)
+        elif isinstance(value, list):
+            for child in value:
+                yield from walk_strings(child)
+
+    for text in walk_strings(payload):
+        for token in re.findall(r"\S+@\S+", text):
+            if token.lower() not in corpus:
+                raise SystemExit("PII check failed: '@' found in the output payload")
 
     def walk_keys(value: Any) -> Iterable[str]:
         if isinstance(value, dict):
@@ -203,8 +250,8 @@ def assert_no_pii(payload: Any, rows: Sequence[Dict[str, Any]]) -> None:
     lowered = serialized.lower()
     for row in rows:
         for field in ("respondent_name", "email"):
-            value = str(row.get(field) or "")
-            if len(value) >= 4 and value.lower() in lowered:
+            value = str(row.get(field) or "").lower()
+            if len(value) >= 4 and value in lowered and value not in corpus:
                 raise SystemExit(f"PII check failed: a raw {field} value appears in the output")
 
 
@@ -259,7 +306,7 @@ def analyze(
         },
         "demographics": demographics(clean),
     }
-    assert_no_pii(payload, rows)
+    assert_no_pii(payload, rows, instrument_corpus(instrument))
     return payload
 
 
@@ -268,36 +315,50 @@ def votes_file_payload(
     instrument: Optional[Sequence[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
     """Anonymized per-respondent votes in the phase2_survey_responses.json
-    format, slot keys preserved verbatim (pre-registered import rule). Only
-    clean respondents enter: this file is what locks the answer key."""
+    format, slot keys and ``also_acceptable`` sets preserved verbatim
+    (pre-registered import rule). Only clean respondents enter: this file is
+    what locks the answer key, and it also feeds acceptability (lock rule 2),
+    so the marks travel with the votes. ``ballots`` records the slot keys each
+    item offered — a zero is only citable if the option's existence is on
+    record."""
     if instrument is None:
         instrument = load_instrument()
-    scenario_ids = [question["id"] for question in scenario_questions(instrument)]
+    scenario_items = scenario_questions(instrument)
+    scenario_ids = [question["id"] for question in scenario_items]
     clean = [row for row in rows if is_clean(row)]
     respondents: Dict[str, Dict[str, str]] = {}
     responses: Dict[str, Dict[str, str]] = {scenario_id: {} for scenario_id in scenario_ids}
+    also_acceptable: Dict[str, Dict[str, List[str]]] = {
+        scenario_id: {} for scenario_id in scenario_ids
+    }
     for index, row in enumerate(clean, start=1):
         respondent_id = f"r{index:03d}"
         respondents[respondent_id] = {
             field: (row.get(field) or "unknown") for field in STRATA_FIELDS
         }
         votes = row.get("votes") or {}
+        marks = row.get("also_acceptable") or {}
         for scenario_id in scenario_ids:
             vote = votes.get(scenario_id)
             if vote:
                 responses[scenario_id][respondent_id] = vote
+            marked = marks.get(scenario_id) or []
+            if marked:
+                also_acceptable[scenario_id][respondent_id] = list(marked)
     payload = {
         "_meta": {
             "description": (
                 "Phase 2 answer-key survey votes, imported from the web instrument "
-                "by scripts/analyze_phase2_survey.py. Votes are ballot slot keys, "
-                "preserved verbatim; respondent identities are anonymized. The "
-                "coarse CLI vocabulary remains valid for the fallback collector "
+                "by scripts/analyze_phase2_survey.py. Votes and also-acceptable "
+                "marks are ballot slot keys, preserved verbatim; respondent "
+                "identities are anonymized. The coarse CLI vocabulary remains "
+                "valid for the fallback collector "
                 "(`python -m app.cli phase2-survey-collect`)."
             ),
             "instrument_version": LAUNCH_VERSION,
             "expected_respondents": EXPECTED_RESPONDENTS,
             "lock_threshold": LOCK_THRESHOLD,
+            "accept_threshold": ACCEPT_THRESHOLD,
             "strata": STRATA_FIELDS,
             "valid_votes": [
                 "proceed_trap",
@@ -307,12 +368,19 @@ def votes_file_payload(
                 "refuse",
             ],
         },
+        "ballots": {
+            question["id"]: [option["key"] for option in question.get("options") or []]
+            for question in scenario_items
+        },
         "respondents": respondents,
         "responses": {
             scenario_id: votes for scenario_id, votes in responses.items() if votes
         },
+        "also_acceptable": {
+            scenario_id: marks for scenario_id, marks in also_acceptable.items() if marks
+        },
     }
-    assert_no_pii(payload, rows)
+    assert_no_pii(payload, rows, instrument_corpus(instrument))
     return payload
 
 
