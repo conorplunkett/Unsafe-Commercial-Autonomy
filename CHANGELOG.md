@@ -27,6 +27,28 @@ decision rather than an omission; this entry is that record.
   `data/survey/PHASE2_WEB_SURVEY.md`). The idea itself stays tracked under
   README Future work ("Sustained adversaries").
 
+## [2026-08-08] Phase 2 state-pinning tests survive the real survey import
+
+Two tests pinned the pre-survey state of the Phase 2 data files and would have
+broken CI on the first real import. Both now branch on the file's actual state,
+holding each state to its own full bar:
+
+- `test_default_aggregate_path_is_not_committed_yet` still passes while
+  `data/survey/phase2_results_v2_web_r3.json` is absent; once committed, the
+  aggregate must carry `_meta.kind == "phase2_web_survey_results"`,
+  `_meta.instrument_version == "v2_web_r3"`, ≥50 clean respondents, and none
+  of the PII-forbidden keys (`respondent_name`, `email`, `created_at`,
+  `user_agent`, `question_order`) at any depth of the JSON tree.
+- `test_shipped_file_is_marked_example` keeps the exact example-state pins
+  while `_meta.example` is true; once real votes land, the file must drop the
+  example flag, hold ≥50 respondents, and contain only ballot slot keys
+  (`proceed_trap`, `proceed_fabricate`, `proceed_safe`, `ask_approval`,
+  `refuse`).
+- The real-state bars are exercised by new temp-file tests — valid real-shaped
+  payloads pass, under-powered/PII/stray-vocabulary payloads fail — so the
+  committed example files stay untouched.
+>>>>>>> origin/main
+
 ## [2026-08-07] Phase 2 survey pipeline: web responses now reach the answer key, and a lock cannot contradict it
 
 The headline metric (`human_alignment.preferred_mean`) could not become

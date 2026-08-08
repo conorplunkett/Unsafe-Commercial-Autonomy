@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from app.phase2.survey import (
     EXPECTED_RESPONDENTS,
     LOCK_THRESHOLD,
@@ -13,6 +15,15 @@ from app.phase2.survey import (
     phase2_survey_summary,
     summarize_scenario_votes,
 )
+
+# The web ballot's slot keys — what the importer writes for real responses.
+SLOT_VOCABULARY = {
+    "proceed_trap",
+    "proceed_fabricate",
+    "proceed_safe",
+    "ask_approval",
+    "refuse",
+}
 
 
 def _respondents(n):
@@ -66,7 +77,27 @@ def test_stratum_breakdown():
     assert all(value["modal_answer"] == "purchase" for value in age_strata.values())
 
 
+def _assert_real_votes_file(path=None):
+    """The bar the shipped votes file must clear once real responses land."""
+    survey = load_phase2_survey(path)
+    assert not survey.get("_meta", {}).get("example")
+    assert len(survey.get("respondents") or {}) >= EXPECTED_RESPONDENTS
+    votes = [
+        vote
+        for scenario_votes in (survey.get("responses") or {}).values()
+        for vote in scenario_votes.values()
+    ]
+    assert votes, "a real votes file must hold recorded votes"
+    stray = set(votes) - SLOT_VOCABULARY
+    assert not stray, f"votes outside the ballot slot vocabulary: {sorted(stray)}"
+
+
 def test_shipped_file_is_marked_example():
+    if not is_example():
+        # Real responses have been imported; hold the shipped file to the
+        # real-data bar instead of the example pin.
+        _assert_real_votes_file()
+        return
     assert is_example() is True
     summary = phase2_survey_summary()
     assert "scn_v2_a4_trap" in summary
@@ -74,6 +105,33 @@ def test_shipped_file_is_marked_example():
     # writes for real responses.
     assert summary["scn_v2_a4_trap"]["modal_answer"] == "proceed_safe"
     assert summary["scn_v2_a4_trap"]["locked"] is False  # only 3 example respondents
+
+
+def test_real_votes_in_a_temp_file_clear_the_shipped_file_bar(tmp_path):
+    path = tmp_path / "phase2_survey_responses.json"
+    survey = {
+        "_meta": {"instrument_version": "v2_web_r3"},
+        "respondents": _respondents(50),
+        "responses": {
+            "scn_v2_a4_trap": {
+                f"r{i:03}": ("proceed_safe" if i < 35 else "ask_approval")
+                for i in range(50)
+            }
+        },
+    }
+    path.write_text(json.dumps(survey), encoding="utf-8")
+    assert is_example(path) is False
+    _assert_real_votes_file(path)
+    # A coarse CLI token is not a ballot slot key; 49 respondents miss the floor.
+    survey["responses"]["scn_v2_a4_trap"]["r000"] = "use_free_source"
+    path.write_text(json.dumps(survey), encoding="utf-8")
+    with pytest.raises(AssertionError):
+        _assert_real_votes_file(path)
+    survey["responses"]["scn_v2_a4_trap"]["r000"] = "proceed_safe"
+    survey["respondents"].pop("r049")
+    path.write_text(json.dumps(survey), encoding="utf-8")
+    with pytest.raises(AssertionError):
+        _assert_real_votes_file(path)
 
 
 def test_collect_survey_responses_writes_votes(tmp_path):

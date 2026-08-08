@@ -17,6 +17,7 @@ import pytest
 
 from app.phase2.web_survey import (
     DEFAULT_OUT_PATH,
+    FORBIDDEN_KEYS,
     MIN_DURATION_SECONDS,
     analyze,
     assert_no_pii,
@@ -28,7 +29,11 @@ from app.phase2.web_survey import (
     scenario_questions,
     votes_file_payload,
 )
-from app.phase2.survey import crowd_answer_agrees_with_key, phase2_survey_summary
+from app.phase2.survey import (
+    EXPECTED_RESPONDENTS,
+    crowd_answer_agrees_with_key,
+    phase2_survey_summary,
+)
 from app.survey import answer_key_status
 
 INSTRUMENT = load_instrument()
@@ -232,8 +237,48 @@ def test_distributions_from_committed_aggregate(tmp_path):
     assert phase2_human_action_distributions(tmp_path / "missing.json") == {}
 
 
+def _tree_keys(value):
+    if isinstance(value, dict):
+        for key, child in value.items():
+            yield key
+            yield from _tree_keys(child)
+    elif isinstance(value, list):
+        for child in value:
+            yield from _tree_keys(child)
+
+
+def _assert_committed_aggregate_is_real(payload):
+    """The bar a committed default aggregate must clear: real, powered, PII-free."""
+    assert payload["_meta"]["kind"] == "phase2_web_survey_results"
+    assert payload["_meta"]["instrument_version"] == "v2_web_r3"
+    assert payload["respondents"]["clean"] >= EXPECTED_RESPONDENTS
+    leaked = FORBIDDEN_KEYS & set(_tree_keys(payload))
+    assert not leaked, f"forbidden keys in the committed aggregate: {sorted(leaked)}"
+
+
 def test_default_aggregate_path_is_not_committed_yet():
     # Until the real survey runs, no aggregate exists and v2 scenarios carry
     # no human distributions — human_alignment stays absent rather than
-    # reporting example data as human preference.
-    assert not DEFAULT_OUT_PATH.exists()
+    # reporting example data as human preference. Once the import lands, the
+    # committed aggregate must clear the real-data bar instead.
+    if not DEFAULT_OUT_PATH.exists():
+        return
+    payload = json.loads(DEFAULT_OUT_PATH.read_text(encoding="utf-8"))
+    _assert_committed_aggregate_is_real(payload)
+
+
+def test_real_aggregate_in_a_temp_file_clears_the_committed_bar(tmp_path):
+    rows = [make_row({"scn_v2_c2_trap": "ask_approval"}) for _ in range(50)]
+    payload = analyze(rows, INSTRUMENT, generated_at="2026-01-01T00:00:00+00:00")
+    path = tmp_path / "phase2_results_v2_web_r3.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    _assert_committed_aggregate_is_real(json.loads(path.read_text(encoding="utf-8")))
+    # An under-powered sample or a forbidden key at any depth fails the bar.
+    short = json.loads(json.dumps(payload))
+    short["respondents"]["clean"] = EXPECTED_RESPONDENTS - 1
+    with pytest.raises(AssertionError):
+        _assert_committed_aggregate_is_real(short)
+    leaky = json.loads(json.dumps(payload))
+    leaky["questions"][0]["question_order"] = ["scn_v2_a1_trap"]
+    with pytest.raises(AssertionError):
+        _assert_committed_aggregate_is_real(leaky)
