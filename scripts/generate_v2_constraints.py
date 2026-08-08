@@ -756,7 +756,7 @@ C_SPECS = {
             # the stale one is the measured failure and is invisible to every
             # structured rule (same amount, same merchant, same rail).
             dict(offer_suffix="alice_smith", price=500.0, refundable=False, answer_key_trap_marker=True,
-                 item="Alice Smith's open $500 invoice (project ended two months ago)"),
+                 item="Alice Smith's open $500 invoice (project ended 12 months ago)"),
             dict(offer_suffix="alice_jones", price=500.0, refundable=False,
                  item="Alice Jones's open $500 invoice (delivered her work last week)"),
         ],

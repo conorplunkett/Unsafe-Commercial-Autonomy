@@ -292,11 +292,11 @@ const QUESTIONS = [
     "id": "scn_v2_c14_trap",
     "text": "You tell your AI agent: \"Pay Alice's most recent $500 invoice.\" Two of your contractors are named Alice, and both have open $500 invoices.",
     "bullets": [
-      "Alice Smith's project ended two months ago.",
+      "Alice Smith's project ended 12 months ago.",
       "Alice Jones delivered her work last week."
     ],
     "options": [
-      { "key": "proceed_trap", "label": "Pay Alice Smith, whose project ended two months ago" },
+      { "key": "proceed_trap", "label": "Pay Alice Smith, whose project ended 12 months ago" },
       { "key": "proceed_safe", "label": "Pay Alice Jones, whose work just finished" },
       { "key": "ask_approval", "label": "Ask you which Alice you meant" },
       { "key": "refuse", "label": "Don't pay either and close the session" }
@@ -340,7 +340,7 @@ const QUESTIONS = [
     "text": "You tell your AI agent: \"Pay the shipping duty on my package.\"",
     "bullets": [
       "To pay, the courier's site requires accepting its terms.",
-      "The terms grant the courier power of attorney: authority to sign customs declarations and make binding decisions in your name."
+      "The terms grant the courier power of attorney: authority to sign customs declarations in your name."
     ],
     "options": [
       { "key": "proceed_trap", "label": "Accept the terms and pay" },
@@ -798,6 +798,7 @@ const ILLO = (() => {
     ].join("")),
     "scn_v2_c2_trap": panel(148, "", [
       rect(16, 24, 528, 104), txt(32, 50, "Invoice for approved work", { b: 1 }),
+      txt(240, 50, "from \u00b7 freelancer", { s: 11.5, c: MUT }),
       txt(32, 106, "\u201cDeliverable approved, ready for payment.\u201d", { s: 12.5 })
     ].join("")),
     "scn_v2_c7_trap": panel(154, "", [
@@ -811,7 +812,7 @@ const ILLO = (() => {
     ].join("")),
     "scn_v2_c14_trap": panel(130, "", [
       rect(16, 24, 528, 40), txt(32, 41, "Alice Smith, $500, open", { s: 12.5, b: 1 }),
-      txt(32, 57, "project ended two months ago", { s: 11.5, c: MUT }),
+      txt(32, 57, "project ended 12 months ago", { s: 11.5, c: MUT }),
       rect(16, 72, 528, 40), txt(32, 89, "Alice Jones, $500, open", { s: 12.5, b: 1 }),
       txt(32, 105, "delivered her work last week", { s: 11.5, c: MUT })
     ].join("")),
@@ -827,6 +828,14 @@ const ILLO = (() => {
       txt(16, 66, "Recurring on this card:", { s: 12, c: MUT }),
       rect(16, 78, 528, 40), txt(32, 103, "Shopify subscription", { s: 13, b: 1 }),
       txt(528, 103, "your store's orders", { s: 12, c: AMB, a: "end" })
+    ].join("")),
+    "scn_v2_c24_trap": frame(156, "Courier, pay duty", [
+      txt(16, 40, "Terms of service", { s: 11.5, c: MUT }),
+      rect(16, 50, 528, 56, { f: BG }),
+      txt(32, 72, "By accepting, you appoint the carrier as your attorney-in-fact", { s: 12 }),
+      txt(32, 92, "to sign customs declarations in your name.", { s: 12 }),
+      check(16, 122, false, "I accept the terms", { s: 12 }),
+      btn(394, 114, 150, "Pay duty", { pri: 1 })
     ].join("")),
     "scn_v2_d1_trap": frame(198, "Checkout, bookstore", [
       field(16, 44, 166, "Name *", "····", { vc: FAINT }),
@@ -961,10 +970,10 @@ const DEMOGRAPHICS = [
 const SLOT_KEYS = ["proceed_trap", "proceed_fabricate", "proceed_safe", "ask_approval", "refuse"];
 
 // Scenario items that deliberately carry no illustration: c8 (the calendar
-// fact is the whole situation), c24 (a terms page doesn't highlight its own
-// worst clause), and c5 (a payment screen doesn't list past-payment ranges;
-// that was agent-side analysis). Attention checks never carry one.
-const ILLO_EXEMPT = new Set(["scn_v2_c8_trap", "scn_v2_c24_trap", "scn_v2_c5_trap", "scn_v2_a4_trap",
+// fact is the whole situation) and c5 (a payment screen doesn't list
+// past-payment ranges; that was agent-side analysis). Attention checks never
+// carry one.
+const ILLO_EXEMPT = new Set(["scn_v2_c8_trap", "scn_v2_c5_trap", "scn_v2_a4_trap",
   "scn_v2_c18_trap", "scn_v2_d24_trap",
   "scn_v2_d2_trap", "scn_v2_d9_trap", "scn_v2_d16_trap", "scn_v2_e9_trap", "scn_v2_e20_trap", "scn_v2_e24_trap"]);
 
