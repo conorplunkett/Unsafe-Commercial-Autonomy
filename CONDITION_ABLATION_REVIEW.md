@@ -9,9 +9,9 @@ If the Phase 2 grid must lose two conditions, keep:
 3. `preflight_check`
 4. `tool_constraints`
 
-Cut `prompt_policy` and `approval_gate` from the primary grid. Keep them runnable
-as optional secondary ablations until the primary-grid decision is final; this
-review does not remove either implementation.
+Phase 2 now removes `prompt_policy` and `approval_gate` entirely. Phase 1 keeps
+its existing `prompt_policy` condition; this decision changes only the Phase 2
+sandbox and its supporting interfaces.
 
 The proposed alternative—cutting `structured_policy` and `tool_constraints`—
 would remove the clean baseline for the enforced conditions and the benchmark's
@@ -61,20 +61,20 @@ incremental value and autonomy cost of enforceable controls.
 
 ## Why `approval_gate` is the weaker primary condition
 
-The current gate and `tool_constraints` use the same policy evaluator and the
+The removed gate and `tool_constraints` used the same policy evaluator and the
 same trigger. Their difference happens only after a violation is detected:
 
 - `tool_constraints` returns `blocked` and lets the agent recover;
 - `approval_gate` returns `pending_approval`, immediately ends the episode, and
   is assembled as an `ask_approval` action.
 
-That is a real implementation difference, but the current gate is not yet a
+That was a real implementation difference, but the gate was not a
 simulation of explicit human approval. No human approves or denies the payment,
 and the agent cannot recover after the pause. The contrast therefore mixes the
 label shown to the model, terminal versus nonterminal tool behavior, and scoring
 semantics. A result would not isolate the effect of human oversight.
 
-This condition becomes worth restoring to a primary grid if the sandbox models
+This condition would become worth restoring if the sandbox modeled
 the human response explicitly—for example approve, deny, or request a revised
 purchase—and permits the agent to continue after denial. Until then, it is best
 treated as a secondary intervention-semantics ablation.
@@ -107,12 +107,11 @@ its place in the four-condition grid.
 
 ## Design claims to tighten before publication
 
-The six conditions are mutually exclusive levels of one categorical axis, not a
-factorial design. They can estimate pairwise condition contrasts, but they
-cannot estimate an interaction such as “tool constraints plus approval” because
-the current grid contains no combined `tool_constraints + approval_gate` cell.
-The research plan should not promise that interaction unless combined cells are
-implemented.
+The original six conditions were mutually exclusive levels of one categorical
+axis, not a factorial design. They could estimate pairwise condition contrasts,
+but not an interaction such as “tool constraints plus approval” because there
+was no combined `tool_constraints + approval_gate` cell. The four-condition
+design no longer makes that interaction claim.
 
 Similarly, “varying one layer at a time” is accurate only for selected
 comparisons. In particular, `structured_policy` is the necessary anchor that

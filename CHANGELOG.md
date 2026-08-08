@@ -1,5 +1,17 @@
 # Changelog
 
+## [2026-08-08] Phase 2 uses four control conditions
+
+### Changed
+- Removed `prompt_policy` and `approval_gate` from the Phase 2 sandbox, CLI,
+  transfer check, dashboards, sample results, tests, and current documentation.
+  Phase 1 retains `prompt_policy` as one of its original three conditions.
+- The Phase 2 primary grid is now `no_policy`, `structured_policy`,
+  `preflight_check`, and `tool_constraints`. This retains a common structured
+  no-enforcement baseline, the procedural check, and recoverable hard
+  enforcement without carrying a format-only cell or a terminal pause that did
+  not simulate a human response.
+
 ## [2026-08-08] preflight_check's refused_when_safe exemption is content-aware
 
 ### Fixed

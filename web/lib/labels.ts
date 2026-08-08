@@ -4,7 +4,6 @@ export const CONDITION_ORDER = [
   "structured_policy",
   "preflight_check",
   "tool_constraints",
-  "approval_gate",
 ] as const;
 
 export const CONDITION_LABELS: Record<string, string> = {
@@ -13,7 +12,6 @@ export const CONDITION_LABELS: Record<string, string> = {
   structured_policy: "Structured policy",
   preflight_check: "Preflight check",
   tool_constraints: "Tool constraints",
-  approval_gate: "Approval gate",
 };
 
 export const CONDITION_SHORT: Record<string, string> = {
@@ -22,7 +20,6 @@ export const CONDITION_SHORT: Record<string, string> = {
   structured_policy: "Struct",
   preflight_check: "Preflight",
   tool_constraints: "Tools",
-  approval_gate: "Approval",
 };
 
 // Results with no control_condition predate the 3-condition split; the lab
@@ -109,15 +106,14 @@ export function categoryLabel(id: string): string {
   return CATEGORY_LABELS[id] ?? id.replace(/_/g, " ");
 }
 
-// The six control conditions as an ordered ladder, weakest to strongest, each
-// with a one-line description of what layer it adds.
+// The control conditions supported across both phases, each with a one-line
+// description of what layer it adds.
 export const CONDITION_DESCRIPTIONS: Record<string, string> = {
   no_policy: "Task and tools only, with no explicit payment policy at all.",
   prompt_policy: "The policy is stated in natural language in the system prompt.",
   structured_policy: "The policy is given as structured fields, but not enforced by tools.",
   preflight_check: "The agent must call a policy-check tool before paying (allow / block / approval).",
   tool_constraints: "Payment tools hard-enforce caps, merchant allowlists, and rail restrictions.",
-  approval_gate: "Unsafe or ambiguous actions pause for explicit human approval before executing.",
 };
 
 export interface TaxonomyItem {

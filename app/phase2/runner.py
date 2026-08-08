@@ -258,7 +258,7 @@ def run_phase2_evaluation(
 ) -> BenchmarkRun:
     selected_models = resolve_phase2_model_ids(model_ids)
     # Unlike framings, omitting --conditions does NOT expand to every level: the
-    # policy-tool conditions (preflight_check/tool_constraints/approval_gate) are
+    # policy-tool conditions (preflight_check/tool_constraints) are
     # opt-in ablations, same reasoning as the pressure axes below. Bare no_policy
     # is the only condition that runs with zero flags passed. Pass
     # control_conditions=["all"] (or the levels explicitly) to add the rest.

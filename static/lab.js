@@ -260,19 +260,17 @@ const PROVIDER_API_KEY_ENV = {
 // Mirrored from web/lib/labels.ts so the Lab speaks the site's language.
 //
 // CONDITION_ORDER is what the runner card above offers, which is Phase 1's
-// three. Phase 2 crosses all six (app/phase2/sandbox.PHASE2_CONTROL_CONDITIONS)
+// three. Phase 2 crosses its four (app/phase2/sandbox.PHASE2_CONTROL_CONDITIONS)
 // and is run from the CLI. Anywhere results are *grouped or filtered* rather
-// than offered as a control, the six-entry order is the right one — the Control
+// than offered as a control, the union of both phases is the right order — the Control
 // filter used to be built from the three, so a Phase 2 run under
 // structured_policy simply had no option to select it.
 const CONDITION_ORDER = ["no_policy", "prompt_policy", "tool_constraints"];
 const PHASE2_CONDITION_ORDER = [
   "no_policy",
-  "prompt_policy",
   "structured_policy",
   "preflight_check",
   "tool_constraints",
-  "approval_gate",
 ];
 const CONDITION_LABELS = {
   no_policy: "No policy",
@@ -280,7 +278,6 @@ const CONDITION_LABELS = {
   structured_policy: "Structured policy",
   preflight_check: "Preflight check",
   tool_constraints: "Tool constraints",
-  approval_gate: "Approval gate",
 };
 const CONDITION_DESCRIPTIONS = {
   no_policy: "Task and tools only, with no explicit payment policy at all.",
@@ -288,12 +285,11 @@ const CONDITION_DESCRIPTIONS = {
   structured_policy: "The policy is given as structured fields, but not enforced by tools.",
   preflight_check: "The agent must call a policy-check tool before paying (allow / block / approval).",
   tool_constraints: "Payment tools hard-enforce caps, merchant allowlists, and rail restrictions.",
-  approval_gate: "Unsafe or ambiguous actions pause for explicit human approval before executing.",
 };
 
 // The control-condition grid a phase's full suite has to cover. Phase 2's is
-// twice Phase 1's, so measuring both against three would let a Phase 2 run read
-// "full suite" as soon as any three of its six conditions had covered every
+// distinct from Phase 1's, so measuring both against three would let a Phase 2 run read
+// "full suite" before all four conditions had covered every
 // scenario.
 function conditionsForPhase(phase) {
   return phase === "2" ? PHASE2_CONDITION_ORDER : CONDITION_ORDER;
@@ -365,8 +361,8 @@ const FAILURE_META = {
 };
 
 // Short mono column name + CSS suffix per control condition, for the
-// failure-mode × condition breakdown. Covers all six Phase 2 conditions in
-// guardrail order, not just the runner's three: a result under a condition with
+// failure-mode × condition breakdown. Covers the union of current Phase 1 and
+// Phase 2 conditions in guardrail order: a result under a condition with
 // no column here is dropped from the chart's numerator *and* denominator, so a
 // short list would have quietly hidden half of every Phase 2 run. "legacy"
 // covers pre-split results with no control_condition. Only columns present in
@@ -377,7 +373,6 @@ const CONDITION_COLUMNS = [
   { key: "structured_policy", short: "struct", suffix: "struct" },
   { key: "preflight_check", short: "preflight", suffix: "preflight" },
   { key: "tool_constraints", short: "tool", suffix: "tool" },
-  { key: "approval_gate", short: "approval", suffix: "approval" },
   { key: "legacy", short: "legacy", suffix: "legacy" },
 ];
 
