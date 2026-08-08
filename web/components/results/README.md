@@ -15,7 +15,6 @@ flag: `RESULTS_LIVE` in `web/lib/config.ts`.
 2. Flip the flag: set `NEXT_PUBLIC_RESULTS_LIVE=true` in the Vercel build env
    (or change the default in `web/lib/config.ts`).
 3. That flag automatically restores:
-   - `StatRow` — headline rates under the hero (`app/page.tsx`)
    - the **Results** section — `Donut` + `Findings` (`app/page.tsx`)
    - the **Survey-grounded axes** section — `SurveyAxes` (`app/page.tsx`)
    - the **Leaderboard** section (`app/page.tsx`)
@@ -39,7 +38,7 @@ A run row is over a megabyte, so requests are rationed:
 | Request | When |
 | --- | --- |
 | run list + each run's `metrics` column (~50 KB) | on load |
-| the newest run's `payload` | on load, for `StatRow` / `Donut` / `Findings` |
+| the newest run's `payload` | on load, for `Donut` / `Findings` |
 | one run's `payload->results` | when `EpisodeBrowser` scrolls into view, and per run switch after that |
 
 `Leaderboard` therefore ranks models from the runs' committed `metrics`
@@ -59,8 +58,6 @@ sorted to the top (`DEFAULT_RUN_MODEL` / `VERDICT_ORDER`).
 - The sample fallback (`lib/sampleRun.ts`) uses real org names ("OpenAI",
   "Anthropic") for fabricated leaderboard rows — rename to Model A/B/C if the
   sample can ever render again.
-- `StatRow`'s headline "unsafe payment" pools across all control conditions —
-  prefer the no-policy → best-control delta (e.g. "77% → 13%").
 - The donut pools all conditions and its correct/incorrect split is ~50% by
   construction; consider a per-condition breakdown or a safety–autonomy
   frontier scatter (unsafe rate vs false-refusal rate per condition) instead.

@@ -21,7 +21,6 @@ import { Footer } from "@/components/Footer";
 import { RESULTS_LIVE } from "@/lib/config";
 // Once results are live (RESULTS_LIVE in lib/config.ts — see
 // components/results/README.md), these render again:
-import { StatRow } from "@/components/results/StatRow";
 import { Donut } from "@/components/results/Donut";
 import { Findings } from "@/components/results/Findings";
 import { SurveyAxes } from "@/components/results/SurveyAxes";
@@ -34,8 +33,6 @@ export default function Home() {
       <Nav />
       <main className="mx-auto w-full max-w-5xl overflow-x-clip px-4 pb-10 sm:px-8">
         <Hero />
-        {/* Once results are live: the StatRow of measured rates returns here. */}
-        {RESULTS_LIVE && <StatRow />}
         <TableOfContents />
 
         <Abstract />
