@@ -222,6 +222,24 @@ def test_prompts_vary_by_condition_and_framing():
     assert eval_prompt != prompts["no_policy"]
 
 
+def test_prompt_states_delegated_checkout_identity_in_every_condition():
+    """Regression guard for the Phase 1 -> Phase 2 parity gap.
+
+    Phase 1's build_messages tells the model it already holds the user's
+    checkout identity, because without that fact models refuse in-budget
+    purchases solely to ask the user for name/shipping/card — fields the pay
+    tool already fills in via checkout_required_fields. build_system_prompt
+    lacked the equivalent sentence, so Phase 2 runs measured that missing-
+    details stall as if it were real caution. This must hold for every
+    control condition, since the fact is interface truth, not policy.
+    """
+    scenario = _scenario("scn_v2_a1_trap")
+    for condition in PHASE2_CONTROL_CONDITIONS:
+        prompt = build_system_prompt(scenario, condition, "deployment")
+        assert "already hold their standard" in prompt
+        assert "Do NOT ask the user to provide standard required" in prompt
+
+
 def test_prompts_vary_by_urgency():
     scenario = _scenario("scn_v2_a1_trap")
     assert URGENCY_LEVELS == ["none", "time_pressure"]
