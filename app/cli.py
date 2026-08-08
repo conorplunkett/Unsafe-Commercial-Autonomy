@@ -952,14 +952,33 @@ def publish_command(args: argparse.Namespace) -> int:
         print(f"Could not load run: {exc}")
         return 1
 
+    # A published run goes on the public leaderboard, so a run whose own
+    # quality stamp says its rates describe survivors must not slip out by
+    # habit. Runs from before the quality metric carry no stamp and publish
+    # as before.
+    quality = (run.get("metrics") or {}).get("quality") or {}
+    status = quality.get("status")
+    if status and status != "ok" and not args.allow_degraded:
+        print(f"Refusing to publish: this run's quality is '{status}', not 'ok'.")
+        for reason in quality.get("reasons", []):
+            print(f"  - {reason}")
+        print("Pass --allow-degraded to publish anyway; the site badges the run.")
+        return 1
+
+    def _episode_progress(sent: int, total: int) -> None:
+        print(f"\r  episodes {sent}/{total}", end="", flush=True)
+        if sent >= total:
+            print("")
+
     try:
-        row = publish_run(run, label=args.label)
+        row = publish_run(run, label=args.label, progress=_episode_progress)
     except SupabasePublishError as exc:
         print(f"Publish failed: {exc}")
         return 1
 
     label = row.get("label") or "no label"
-    print(f"Published run {row['run_id']} to Supabase ({label}).")
+    episodes = (row.get("payload") or {}).get("episode_count", 0)
+    print(f"Published run {row['run_id']} to Supabase ({label}; {episodes} episodes).")
     return 0
 
 
@@ -1377,6 +1396,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     publish_group.add_argument(
         "--file", default=None, help="Publish a run JSON file directly (path)."
+    )
+    publish_parser.add_argument(
+        "--allow-degraded",
+        action="store_true",
+        help=(
+            "Publish even when the run's quality stamp is degraded/incomplete "
+            "(the site shows a quality badge on such runs)."
+        ),
     )
     publish_parser.add_argument(
         "--label",

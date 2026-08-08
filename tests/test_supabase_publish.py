@@ -2,12 +2,15 @@ import json
 
 import pytest
 
+import app.supabase_publish as supabase_publish
 from app.supabase_publish import (
     SupabasePublishError,
+    episode_rows_from_run,
     model_names_from_run,
     publish_human_baseline,
     publish_run,
     row_from_run,
+    slim_run_payload,
 )
 
 
@@ -22,6 +25,17 @@ SAMPLE_RUN = {
 }
 
 
+def _episode_run(count=3):
+    return {
+        **SAMPLE_RUN,
+        "results": [
+            {"scenario_id": f"scn_{i}", "model_name": "gpt-5.4-mini", "verdict": "safe"}
+            for i in range(count)
+        ],
+        "events": [{"event_id": f"e{i}"} for i in range(count)],
+    }
+
+
 class _StubResponse:
     def __init__(self, status_code=201, text=""):
         self.status_code = status_code
@@ -29,27 +43,43 @@ class _StubResponse:
 
 
 class _StubClient:
-    """Records the single POST a publish makes, returning a canned response."""
+    """Records every request a publish makes, returning canned responses."""
 
     def __init__(self, response):
         self._response = response
         self.calls = []
 
     def post(self, url, headers=None, content=None):
-        self.calls.append({"url": url, "headers": headers, "content": content})
+        self.calls.append({"method": "post", "url": url, "headers": headers, "content": content})
+        return self._response
+
+    def delete(self, url, headers=None):
+        self.calls.append({"method": "delete", "url": url, "headers": headers})
         return self._response
 
 
-def test_row_from_run_lifts_listing_fields_and_keeps_full_payload():
-    row = row_from_run(SAMPLE_RUN, label="Phase 2 official")
+def test_row_from_run_lifts_listing_fields_and_slims_the_payload():
+    row = row_from_run(_episode_run(2), label="Phase 2 official")
     assert row["run_id"] == "run_123"
     assert row["created_at"] == "2026-06-15T12:00:00Z"
     assert row["phase"] == "phase2"
     assert row["label"] == "Phase 2 official"
     assert row["model_ids"] == ["openai"]
     assert row["metrics"] == {"total_results": 10}
-    # The whole run is preserved so the dashboard renders it like a local run.
-    assert row["payload"] == SAMPLE_RUN
+    # Episodes live in the episodes table; the run row keeps config + metrics.
+    assert "results" not in row["payload"]
+    assert "events" not in row["payload"]
+    assert row["payload"]["episode_count"] == 2
+
+
+def test_episode_rows_carry_canonical_order_and_lifted_fields():
+    rows = episode_rows_from_run(_episode_run(3))
+    assert [row["episode_index"] for row in rows] == [0, 1, 2]
+    assert rows[0]["run_id"] == "run_123"
+    assert rows[0]["scenario_id"] == "scn_0"
+    assert rows[0]["model_name"] == "gpt-5.4-mini"
+    assert rows[0]["result"]["verdict"] == "safe"
+    assert slim_run_payload(_episode_run(3))["episode_count"] == 3
 
 
 def test_row_from_run_requires_run_id():
@@ -249,3 +279,101 @@ def test_publish_human_baseline_honors_custom_table(monkeypatch):
     publish_human_baseline(HUMAN_ROWS, client=client)
 
     assert client.calls[0]["url"].endswith("/rest/v1/hb_custom")
+
+
+def test_publish_run_batches_episodes_then_commits_the_run_row(monkeypatch):
+    monkeypatch.setenv("SUPABASE_URL", "https://proj.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_KEY", "service-secret")
+    monkeypatch.delenv("SUPABASE_BENCHMARK_EPISODES_TABLE", raising=False)
+    client = _StubClient(_StubResponse(status_code=201))
+
+    row = publish_run(_episode_run(3), client=client)
+
+    shapes = [
+        (call["method"], call["url"].split("/rest/v1/")[1].split("?")[0])
+        for call in client.calls
+    ]
+    # Delete-then-insert on the episodes table, and the run row LAST: the site
+    # lists runs from benchmark_runs, so a publish that dies mid-batch leaves
+    # nothing visible.
+    assert shapes[0] == ("delete", "benchmark_run_episodes")
+    assert shapes[1] == ("post", "benchmark_run_episodes")
+    assert shapes[-1] == ("post", "benchmark_runs")
+    assert "run_id=eq.run_123" in client.calls[0]["url"]
+    batch = json.loads(client.calls[1]["content"])
+    assert [entry["episode_index"] for entry in batch] == [0, 1, 2]
+    run_row = json.loads(client.calls[-1]["content"])
+    assert "results" not in run_row["payload"]
+    assert run_row["payload"]["episode_count"] == 3
+    assert row["payload"]["episode_count"] == 3
+
+
+def test_publish_run_splits_episode_batches(monkeypatch):
+    monkeypatch.setenv("SUPABASE_URL", "https://proj.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_KEY", "service-secret")
+    monkeypatch.setattr(supabase_publish, "EPISODE_BATCH_MAX_ROWS", 2)
+    client = _StubClient(_StubResponse(status_code=201))
+    seen = []
+
+    publish_run(_episode_run(5), client=client, progress=lambda sent, total: seen.append((sent, total)))
+
+    episode_posts = [
+        call for call in client.calls
+        if call["method"] == "post" and "benchmark_run_episodes" in call["url"]
+    ]
+    assert [len(json.loads(call["content"])) for call in episode_posts] == [2, 2, 1]
+    assert seen == [(2, 5), (4, 5), (5, 5)]
+
+
+def test_publish_run_zero_episode_run_skips_the_episodes_table(monkeypatch):
+    monkeypatch.setenv("SUPABASE_URL", "https://proj.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_KEY", "service-secret")
+    client = _StubClient(_StubResponse(status_code=201))
+
+    publish_run(SAMPLE_RUN, client=client)
+
+    assert [call["method"] for call in client.calls] == ["post"]
+    assert client.calls[0]["url"].endswith("/rest/v1/benchmark_runs")
+
+
+def test_publish_run_names_the_missing_episodes_migration(monkeypatch):
+    monkeypatch.setenv("SUPABASE_URL", "https://proj.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_KEY", "service-secret")
+    client = _StubClient(
+        _StubResponse(
+            status_code=404,
+            text='{"code":"PGRST205","message":"Could not find the table '
+            "'public.benchmark_run_episodes' in the schema cache\"}",
+        )
+    )
+
+    with pytest.raises(SupabasePublishError) as excinfo:
+        publish_run(_episode_run(1), client=client)
+    assert "0008_add_benchmark_run_episodes" in str(excinfo.value)
+
+
+def test_publish_run_retries_transient_5xx_per_request(monkeypatch):
+    monkeypatch.setenv("SUPABASE_URL", "https://proj.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_KEY", "service-secret")
+    monkeypatch.setattr(supabase_publish, "_RETRY_SLEEP", lambda seconds: None)
+
+    class _FlakyClient(_StubClient):
+        def __init__(self):
+            super().__init__(_StubResponse(status_code=201))
+            self.failed_once = False
+
+        def post(self, url, headers=None, content=None):
+            if "benchmark_run_episodes" in url and not self.failed_once:
+                self.failed_once = True
+                self.calls.append({"method": "post", "url": url, "content": content})
+                return _StubResponse(status_code=503, text="upstream hiccup")
+            return super().post(url, headers=headers, content=content)
+
+    client = _FlakyClient()
+    publish_run(_episode_run(2), client=client)
+
+    episode_posts = [
+        call for call in client.calls
+        if call["method"] == "post" and "benchmark_run_episodes" in call["url"]
+    ]
+    assert len(episode_posts) == 2  # the 503 was retried, not fatal

@@ -268,6 +268,9 @@ export function EpisodeBrowser() {
   const filtered = verdict !== "all" || condition !== "all";
   const activeRun = runs.find((r) => r.run_id === runId);
   const modelNames = (activeRun?.model_names ?? []).map(modelDisplayName);
+  const quality = activeRun?.metrics?.quality;
+  const qualityStatus =
+    quality?.status && quality.status !== "ok" ? quality.status : null;
 
   return (
     <div ref={sectionRef} className="mt-6">
@@ -285,13 +288,32 @@ export function EpisodeBrowser() {
               setSelectedKey(null);
             }}
           >
-            {runs.map((r) => (
-              <option key={r.run_id} value={r.run_id}>
-                {runDisplayLabel(r.label) || r.phase || r.run_id} ·{" "}
-                {compactDate(r.published_at ?? r.created_at)}
-              </option>
-            ))}
+            {runs.map((r) => {
+              const status = r.metrics?.quality?.status;
+              return (
+                <option key={r.run_id} value={r.run_id}>
+                  {runDisplayLabel(r.label) || r.phase || r.run_id} ·{" "}
+                  {compactDate(r.published_at ?? r.created_at)}
+                  {status && status !== "ok" ? ` · ${status}` : ""}
+                </option>
+              );
+            })}
           </select>
+          {qualityStatus && (
+            <p
+              className={`mt-1.5 inline-block rounded border px-1.5 py-0.5 font-mono text-caption uppercase tracking-wider ${
+                qualityStatus === "degraded"
+                  ? "border-warn/40 bg-warn/10 text-warn"
+                  : "border-danger/40 bg-danger/10 text-danger"
+              }`}
+              title={(quality?.reasons ?? []).join("; ")}
+            >
+              {qualityStatus}
+              {typeof quality?.error_rate === "number" && quality.error_rate > 0
+                ? ` · ${(quality.error_rate * 100).toFixed(1)}% errors`
+                : ""}
+            </p>
+          )}
         </div>
         <div>
           <label className="label" htmlFor="episode-verdict">

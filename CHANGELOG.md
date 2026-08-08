@@ -1,5 +1,44 @@
 # Changelog
 
+## [2026-08-08] Paid-run infrastructure: publish in batches, resume safely, survive rate limits, stop on stop
+
+Five defects that only bite on a real paid run, fixed before one is bought:
+
+- **Publishing a full run no longer sends one giant request.** A complete run
+  serializes to hundreds of MB; `publish` sent it as a single POST with a 30 s
+  timeout, which cannot succeed, and the site's `select=payload` read of such
+  a row could not either. Episodes now upload row-per-episode into
+  `benchmark_run_episodes` (`db/migrations/0008`, applied to the project) in
+  size-capped batches with per-request retries, delete-then-insert so
+  re-publishing is idempotent, and the slim run row (config + metrics, plus
+  `episode_count`) lands last as the commit point — a publish that dies
+  mid-batch leaves nothing visible, and re-running heals it. The dashboard
+  pages episodes back in order and still serves pre-migration rows from their
+  full payload. The derived `events` log ships in neither place; the site
+  never read it.
+- **Resume refuses a changed run mode.** The checkpoint grid check said *what*
+  was running but not *how*: a live run could be resumed with `--dry-run`,
+  splicing free fake episodes among paid real ones, indistinguishable in the
+  finished file. `verify` now also compares the header's `live`,
+  `temperature` and `reasoning_effort` and refuses on any mismatch.
+- **Rate limits ride a minutes-scale budget.** A 429 used to get the same
+  3.5 s of total backoff as a blip, then recorded the episode as an error —
+  ten in a row killed the run. 429s now retry on a 300 s wall-clock budget
+  with growing waits capped at 60 s, honor the provider's Retry-After hint,
+  and register on a per-run gate so every parallel worker pauses together
+  instead of hammering in lockstep. 5xx/transport blips keep the classic
+  0.5/1/2 s schedule.
+- **Stop means stop.** In parallel mode, Ctrl-C (and the consecutive-error
+  auto-stop) let the whole submitted wave run to completion — up to
+  `workers x 4` more paid episodes. A stop signal is now checked before each
+  episode starts and queued futures are cancelled; only genuinely in-flight
+  episodes finish, and they are checkpointed.
+- **A degraded run cannot publish silently.** Each run computes a quality
+  stamp (`ok` / `degraded` / `incomplete`) that publishing ignored and the
+  site never showed. `publish` now refuses a non-ok run without
+  `--allow-degraded` (printing the reasons), and the episode browser badges
+  non-ok runs from the metrics already shipped with the run list.
+
 ## [2026-08-08] Phase 2 state-pinning tests survive the real survey import
 
 Two tests pinned the pre-survey state of the Phase 2 data files and would have
