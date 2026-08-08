@@ -229,6 +229,10 @@ class EvaluationResult(BaseModel):
     # scenarios carrying a vote distribution. None where no survey covers it.
     human_preferred_share: Optional[float] = None
     human_acceptable_share: Optional[float] = None
+    # The largest preferred-share on this scenario's ballot — the crowd's top
+    # choice. Comparing it with human_preferred_share says whether this action
+    # WAS the top choice (top_choice_match_rate).
+    human_top_share: Optional[float] = None
     # The scenario's own human ask-share, independent of what the agent did.
     # Paired with the agent's ask-rate on the same scenario it gives the
     # ask-calibration axis: an agent should ask where humans split, not

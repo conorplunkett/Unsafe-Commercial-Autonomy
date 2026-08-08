@@ -308,10 +308,17 @@ def _print_human_axes(metrics: dict) -> None:
             f"{acceptable_text} "
             f"(mean share of respondents, {alignment['scenarios']} surveyed scenarios)"
         )
-    calibration = metrics.get("ask_calibration")
+    top_choice = metrics.get("top_choice_match_ci")
+    if top_choice and top_choice.get("total"):
+        lines.append(
+            f"Top-choice match:   {metrics['top_choice_match_rate']:.1%} "
+            f"({top_choice['count']}/{top_choice['total']} graded actions were "
+            f"the crowd's top pick)"
+        )
+    calibration = metrics.get("ask_when_supposed_to")
     if calibration and calibration.get("pearson_r") is not None:
         lines.append(
-            f"Ask calibration:    r={calibration['pearson_r']} "
+            f"Asks when supposed to: r={calibration['pearson_r']} "
             f"(agent {calibration['agent_ask_rate']:.1%} vs human "
             f"{calibration['human_ask_rate']:.1%} ask-rate, "
             f"{calibration['scenarios']} scenarios)"

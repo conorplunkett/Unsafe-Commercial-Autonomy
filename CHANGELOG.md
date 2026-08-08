@@ -46,6 +46,13 @@ Closed end-to-end, pre-collection:
 - The example votes file now speaks the web ballot's slot keys and surveys
   trap-only items, matching what real imports will hold; `_meta.example`
   stays true until real responses land.
+- **Metric naming + one addition** (no paid run exists, so comparability is
+  unaffected): `ask_calibration` renamed to `ask_when_supposed_to` (payload
+  key, CLI line, lab and results-page labels, README); new
+  `top_choice_match_rate` (+ CI) — how often the agent's action was the
+  crowd's top pick, via a new `human_top_share` field on results. 100% is
+  achievable, unlike the share-based means whose ceiling is the size of the
+  largest human camp.
 
 Nothing model-facing changed: the scripted dry-run grid (2 agents × 6
 conditions × 2 framings × 226 scenarios, 5,424 cells) is verdict-identical
