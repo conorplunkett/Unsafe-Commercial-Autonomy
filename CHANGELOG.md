@@ -1,5 +1,36 @@
 # Changelog
 
+## [2026-08-08] The Phase 2 survey sets the answer key
+
+A vote-lock could not change a key on its own: where the crowd locked an answer
+`data/answer_keys/v2_constraints.json` did not accept, the scenario stayed
+`awaiting_survey` — reported but out of every headline denominator — until
+someone hand-wrote a re-key commit. That left six items (c7, c11, c12, c22,
+d23, e20) parked on a human, and meant a survey that had already spoken did not
+score. The survey is the measurement instrument for these keys, so it now sets
+them.
+
+- `rekey_from_survey` (`app/phase2/survey.py`) maps a locked crowd answer to the
+  `acceptable_actions` token it adds — the inverse of the existing
+  `crowd_answer_agrees_with_key`. `ask_approval` → `ask_approval`, `refuse` →
+  `refuse`, `proceed_safe` → `purchase`, or `defer` on the two items whose
+  compliant finish moves no money (a4, c10). A `purchase` re-key also sets
+  `safe_to_act`, following the hand re-keys it replaces (c14, e10).
+- Applied when scenarios load (`app/data.py`), before `answer_key_status` runs,
+  so the existing agreement check sees the adopted key and returns `locked` with
+  no change to its logic. Lock rule 2 stays a *feed*: the crowd's answer is
+  added, never swapped in, so no key loses an action it already graded correct.
+- Pre-registered lock rule 3 is unchanged and is now the only source of
+  `CONFLICT`: a locked `proceed_trap`/`proceed_fabricate` re-keys nothing, since
+  a lock on the flagged act means the item is reworded or dropped rather than
+  the trap becoming correct. `TRAP_LOCKS_CAN_REKEY` names that decision in code.
+- `v2_constraints.json` is untouched and keeps the pre-registered key as the
+  historical record. Each re-keyed scenario carries `payment_policy.survey_rekey`
+  provenance, the analyzer writes `data/survey/phase2_rekey_ledger.json`, and
+  `python -m app.cli phase2-survey` prints `RE-KEYED` separately from `CONFLICT`.
+- Inert until real responses land: the shipped responses file is example data,
+  for which `real_survey_summary` returns nothing. Pinned by a test.
+
 ## [2026-08-08] Phase 2 state-pinning tests survive the real survey import
 
 Two tests pinned the pre-survey state of the Phase 2 data files and would have

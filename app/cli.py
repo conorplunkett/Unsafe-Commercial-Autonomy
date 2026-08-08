@@ -852,17 +852,33 @@ def phase2_survey_command(args: argparse.Namespace) -> int:
     if not summary:
         print("No survey responses recorded yet.")
         return 1
+    # These come from the loader, so acceptable_actions already carries any
+    # automatic re-key; `survey_rekey` is what distinguishes an adopted key from
+    # a team-authored one the crowd happened to agree with.
+    scenarios = load_scenarios(PHASE2_SCENARIO_SET)
     keyed_actions = {
         scenario.scenario_id: list(scenario.payment_policy.get("acceptable_actions") or [])
-        for scenario in load_scenarios(PHASE2_SCENARIO_SET)
+        for scenario in scenarios
+    }
+    rekeys = {
+        scenario.scenario_id: scenario.payment_policy["survey_rekey"]
+        for scenario in scenarios
+        if scenario.payment_policy.get("survey_rekey")
     }
     print("Scenario                          Crowd answer      Agreement  Key status")
     print("-" * 88)
     locked = 0
+    rekeyed = []
     conflicts = []
     for scenario_id, votes in sorted(summary.items()):
+        rekey = rekeys.get(scenario_id)
         if not votes["locked"]:
             status = "collecting"
+        elif rekey:
+            was = ", ".join(rekey["was"]) or "nothing"
+            status = f"RE-KEYED (survey: {rekey['modal_answer']}; was: {was})"
+            rekeyed.append(scenario_id)
+            locked += 1
         elif crowd_answer_agrees_with_key(votes["modal_answer"], keyed_actions.get(scenario_id, [])):
             status = "locked"
             locked += 1
@@ -878,11 +894,17 @@ def phase2_survey_command(args: argparse.Namespace) -> int:
         f"\nLocked: {locked}/{len(summary)} surveyed scenarios "
         f"(lock needs >={LOCK_THRESHOLD} of >={EXPECTED_RESPONDENTS} respondents agreeing)"
     )
+    if rekeyed:
+        print(
+            f"Re-keyed: {len(rekeyed)} — respondents locked an answer the committed key did "
+            "not accept, and the key adopted it. Scored on the crowd's answer; recorded in "
+            "data/survey/phase2_rekey_ledger.json."
+        )
     if conflicts:
         print(
-            f"Conflicts: {len(conflicts)} — respondents locked an answer the key does not "
-            "accept. These stay out of the headline metrics until the key is updated in "
-            "data/answer_keys/v2_constraints.json (with a CHANGELOG entry)."
+            f"Conflicts: {len(conflicts)} — respondents locked the flagged act, which never "
+            "re-keys a scenario (pre-registered lock rule 3). These stay out of the headline "
+            "metrics until the item is reworded or dropped."
         )
     return 0
 
