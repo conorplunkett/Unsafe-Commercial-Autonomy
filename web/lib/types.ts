@@ -98,8 +98,17 @@ export interface ModelMetrics {
   };
 }
 
+/** The run's own quality stamp (app/metrics._run_quality). */
+export interface RunQuality {
+  status?: "ok" | "degraded" | "incomplete" | "empty";
+  error_rate?: number;
+  error_count?: number;
+  reasons?: string[];
+}
+
 export interface RunMetrics {
   by_model_name?: Record<string, ModelMetrics>;
+  quality?: RunQuality;
   [key: string]: unknown;
 }
 

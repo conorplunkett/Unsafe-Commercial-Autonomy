@@ -317,7 +317,9 @@ class _RetryStub(ToolLoopProvider):
 
 
 def test_transient_failure_is_retried_with_backoff():
-    provider = _RetryStub(failures=2)
+    # 5xx-class transients keep the classic short schedule; 429s ride the
+    # separate wall-clock budget (tested below).
+    provider = _RetryStub(failures=2, status=503)
     run = run_phase2_evaluation(
         model_ids=["openai"],
         control_conditions=["no_policy"],
@@ -355,7 +357,7 @@ def test_retry_does_not_resend_the_pending_turn():
 
 
 def test_retry_budget_is_finite():
-    provider = _RetryStub(failures=99)
+    provider = _RetryStub(failures=99, status=503)
     run = run_phase2_evaluation(
         model_ids=["openai"],
         control_conditions=["no_policy"],
@@ -368,6 +370,27 @@ def test_retry_budget_is_finite():
     )
     assert run.results[0].error is not None
     assert len(provider.delays) == 3  # DEFAULT_TRANSIENT_RETRIES
+
+
+def test_rate_limited_turn_rides_the_minutes_budget():
+    # A 429 no longer burns the three short attempts (3.5 s total): the turn
+    # keeps retrying on the wall-clock budget with growing waits, and only
+    # after minutes of budget does the episode record an error. Waits arrive
+    # via the run's shared gate, chunked, so only their sum is asserted.
+    provider = _RetryStub(failures=99, status=429)
+    run = run_phase2_evaluation(
+        model_ids=["openai"],
+        control_conditions=["no_policy"],
+        framings=["deployment"],
+        scenario_ids=["scn_v2_a1_trap"],
+        seeds=[1],
+        live=True,
+        checkpoint=False,
+        provider_factory=lambda model_id, live: provider,
+    )
+    assert run.results[0].error is not None
+    assert len(provider.delays) > 3
+    assert sum(provider.delays) >= 300.0
 
 
 def test_deterministic_errors_are_not_retried():
@@ -396,3 +419,103 @@ def test_missing_checkpoint_reads_as_a_sentence(tmp_path):
         CheckpointStore("run_absent", root=tmp_path).load()
     assert str(excinfo.value).startswith("No checkpoint for run run_absent")
     assert isinstance(excinfo.value, KeyError)  # existing handlers still catch it
+
+
+def test_resume_refuses_a_changed_run_mode(tmp_path):
+    # The grid matching is not enough: resuming a checkpoint with different
+    # sampling settings would mix two runs in one file. temperature stands in
+    # for all header-recorded settings here; live has its own test below.
+    run_phase2_evaluation(run_id="run_ck20", checkpoint_root=tmp_path, **GRID)
+    with pytest.raises(CheckpointMismatch) as excinfo:
+        run_phase2_evaluation(
+            run_id="run_ck20", checkpoint_root=tmp_path, resume=True, temperature=0.9, **GRID
+        )
+    assert "temperature" in str(excinfo.value)
+
+
+def test_verify_refuses_a_live_dry_mismatch_and_tolerates_legacy_headers(tmp_path):
+    # A --dry-run resume of a live checkpoint would splice free fake episodes
+    # among the paid real ones, indistinguishable in the finished run file.
+    store = CheckpointStore("run_ck21", root=tmp_path)
+    store.open(
+        {"run_id": "run_ck21", "live": True, "temperature": 0.7, "reasoning_effort": None, "grid": {}}
+    )
+    store.close()
+    with pytest.raises(CheckpointMismatch) as excinfo:
+        CheckpointStore("run_ck21", root=tmp_path).verify(
+            {}, settings={"live": False, "temperature": 0.7, "reasoning_effort": None}
+        )
+    assert "live" in str(excinfo.value)
+    # Matching settings resume; a field the header never recorded is skipped
+    # rather than refused, so pre-settings checkpoints stay resumable.
+    CheckpointStore("run_ck21", root=tmp_path).verify(
+        {},
+        settings={"live": True, "temperature": 0.7, "reasoning_effort": None, "later_field": 1},
+    )
+
+
+def test_auto_stop_halts_queued_episodes_in_the_same_wave(tmp_path):
+    # The 8-cell grid is one wave at concurrency 2. When the breaker trips at
+    # 2 consecutive errors, episodes already queued in the wave must not start:
+    # at most the 2 recorded errors plus one in-flight episode per worker.
+    started = []
+
+    class DeadProvider(BaseEpisodeProvider):
+        provider_id = "dead"
+        model_name = "dead"
+
+        def run_episode(self, world, system_prompt, user_prompt, seed, temperature):
+            started.append(1)
+            return EpisodeResult(error="503 upstream down")
+
+    with pytest.raises(RunAbortedError):
+        run_phase2_evaluation(
+            run_id="run_ck22",
+            checkpoint_root=tmp_path,
+            concurrency=2,
+            consecutive_error_limit=2,
+            provider_factory=lambda model_id, live: DeadProvider(),
+            **GRID,
+        )
+    assert len(started) <= 4  # without the stop signal the whole wave (8) ran
+
+
+def test_worker_crash_cancels_the_queued_remainder_of_the_wave(tmp_path):
+    # A hard crash in one worker (Ctrl-C takes the same path out of the wave
+    # loop) must cancel queued futures. The first grid cell crashes instantly,
+    # so the main thread cancels while the other worker is still in flight: at
+    # most the crasher plus one blocked episode per worker ever start; the
+    # queued remainder of the 8-cell wave never does.
+    import threading
+
+    started = []
+    release = threading.Event()
+
+    class CrashingProvider(BaseEpisodeProvider):
+        provider_id = "crashing"
+        model_name = "crashing"
+
+        def run_episode(self, world, system_prompt, user_prompt, seed, temperature):
+            started.append(1)
+            if (
+                world.scenario.scenario_id == PAIR_IDS[0]
+                and world.control_condition == "no_policy"
+                and seed == 1
+            ):
+                raise RuntimeError("process died")
+            release.wait(timeout=5)
+            return EpisodeResult(raw_outputs=["ok"])
+
+    # The in-flight survivors unblock shortly after the crash propagates, so
+    # executor shutdown can finish.
+    threading.Timer(0.3, release.set).start()
+    with pytest.raises(RuntimeError):
+        run_phase2_evaluation(
+            run_id="run_ck23",
+            checkpoint_root=tmp_path,
+            concurrency=2,
+            provider_factory=lambda model_id, live: CrashingProvider(),
+            **GRID,
+        )
+    release.set()
+    assert 2 <= len(started) <= 3  # without cancellation all 8 cells ran

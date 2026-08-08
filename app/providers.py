@@ -4,8 +4,10 @@ import json
 import os
 import re
 import socket
+import threading
+import time
 from dataclasses import dataclass
-from typing import Any, Dict, Iterable, Optional
+from typing import Any, Callable, Dict, Iterable, Optional
 
 import httpx
 
@@ -226,6 +228,162 @@ def is_retryable_provider_error(error: BaseException) -> bool:
             return True
         current = current.__cause__ or current.__context__
     return False
+
+
+# Real rate-limit windows are minutes, not seconds. A 429 gets its own
+# wall-clock retry budget with growing waits (or exactly the provider's
+# Retry-After hint), instead of burning the three short transient attempts
+# and recording a paid episode as an error row.
+RATE_LIMIT_RETRY_BUDGET_SECONDS = 300.0
+RATE_LIMIT_BACKOFF_BASE_SECONDS = 2.0
+RATE_LIMIT_BACKOFF_MAX_SECONDS = 60.0
+
+
+def rate_limit_delay(attempt: int) -> float:
+    """Backoff for a 429 without a Retry-After hint. ``attempt`` is 0-based."""
+    return min(RATE_LIMIT_BACKOFF_BASE_SECONDS * (2**attempt), RATE_LIMIT_BACKOFF_MAX_SECONDS)
+
+
+def is_rate_limit_error(error: BaseException) -> bool:
+    """Whether the ``raise ... from`` chain carries a 429."""
+    seen: set[int] = set()
+    current: Optional[BaseException] = error
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        if _error_status_code(current) == 429:
+            return True
+        current = current.__cause__ or current.__context__
+    return False
+
+
+def retry_after_seconds(error: BaseException) -> Optional[float]:
+    """The provider's own "try again in N seconds" hint, if it sent one.
+
+    Walks the cause chain like is_retryable_provider_error: an httpx
+    response's Retry-After header (numeric-seconds form; the HTTP-date form
+    is not used by these APIs and is ignored) or an SDK exception's
+    ``retry_after`` attribute.
+    """
+    seen: set[int] = set()
+    current: Optional[BaseException] = error
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        headers = getattr(getattr(current, "response", None), "headers", None)
+        raw = None
+        if headers is not None:
+            try:
+                raw = headers.get("retry-after")
+            except (AttributeError, TypeError):
+                raw = None
+        if raw is None:
+            raw = getattr(current, "retry_after", None)
+        if raw is not None:
+            try:
+                seconds = float(raw)
+            except (TypeError, ValueError):
+                seconds = None
+            if seconds is not None and seconds >= 0:
+                return seconds
+        current = current.__cause__ or current.__context__
+    return None
+
+
+class RateLimitGate:
+    """One shared pause for every worker of a run.
+
+    When any worker hits a rate limit it pauses the gate; every other worker
+    holds at its next attempt instead of piling more requests onto a provider
+    that just said slow down. Overlapping pauses coalesce to the latest
+    deadline. Sleeping is chunked so a pause extended by another worker is
+    honored mid-wait.
+    """
+
+    def __init__(self, clock: Callable[[], float] = time.monotonic):
+        self._clock = clock
+        self._until = 0.0
+        self._lock = threading.Lock()
+
+    def pause_for(self, seconds: float) -> None:
+        with self._lock:
+            self._until = max(self._until, self._clock() + max(0.0, seconds))
+
+    def remaining(self) -> float:
+        with self._lock:
+            return max(0.0, self._until - self._clock())
+
+    def wait(self, sleep: Callable[[float], None] = time.sleep) -> None:
+        while True:
+            with self._lock:
+                deadline = self._until
+            remaining = max(0.0, deadline - self._clock())
+            if remaining <= 0:
+                return
+            # Sleep the snapshot out in chunks, trusting ``sleep`` to have
+            # slept — re-checking the clock against an injected test recorder
+            # would spin forever. Loop again only when another worker extended
+            # the pause while this one was sleeping.
+            slept = 0.0
+            while slept < remaining:
+                chunk = min(5.0, remaining - slept)
+                sleep(chunk)
+                slept += chunk
+            with self._lock:
+                if self._until <= deadline:
+                    return
+
+
+class TransientRetryPolicy:
+    """Per-call retry state: decides the wait before re-issuing, then waits.
+
+    Two separate budgets, matching how the two failure classes behave:
+
+    * Non-rate-limit transients (5xx, dropped connections) are scattered
+      blips: ``transient_retries`` attempts on the short exponential backoff
+      (0.5 s / 1 s / 2 s), exactly the pre-existing schedule.
+    * Rate limits are windows: ``rate_limit_budget`` seconds of wall-clock
+      spent in growing waits — or exactly the provider's Retry-After hint —
+      registered on the shared ``RateLimitGate`` (when one is attached) so
+      parallel workers pause together instead of hammering in lockstep.
+    """
+
+    def __init__(
+        self,
+        transient_retries: int = DEFAULT_TRANSIENT_RETRIES,
+        rate_limit_budget: float = RATE_LIMIT_RETRY_BUDGET_SECONDS,
+        gate: Optional[RateLimitGate] = None,
+    ):
+        self.gate = gate
+        self._transient_retries_left = transient_retries
+        self._transient_attempts = 0
+        self._rate_limit_budget_left = rate_limit_budget
+        self._rate_limit_attempts = 0
+
+    def wait_before_retry(
+        self, error: BaseException, sleep: Callable[[float], None] = time.sleep
+    ) -> bool:
+        """Wait out the backoff for ``error``; False means give up (re-raise)."""
+        if not is_retryable_provider_error(error):
+            return False
+        if is_rate_limit_error(error):
+            if self._rate_limit_budget_left <= 0:
+                return False
+            hint = retry_after_seconds(error)
+            delay = hint if hint is not None else rate_limit_delay(self._rate_limit_attempts)
+            delay = min(delay, self._rate_limit_budget_left)
+            self._rate_limit_attempts += 1
+            self._rate_limit_budget_left -= delay
+            if self.gate is not None:
+                self.gate.pause_for(delay)
+                self.gate.wait(sleep)
+            else:
+                sleep(delay)
+            return True
+        if self._transient_retries_left <= 0:
+            return False
+        self._transient_retries_left -= 1
+        sleep(backoff_delay(self._transient_attempts))
+        self._transient_attempts += 1
+        return True
 
 
 @dataclass

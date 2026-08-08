@@ -24,11 +24,11 @@ from ..providers import (
     DEFAULT_OPENAI_MODEL,
     DEFAULT_TRANSIENT_RETRIES,
     ProviderError,
+    RateLimitGate,
+    TransientRetryPolicy,
     _anthropic_rejects_temperature,
     _anthropic_supports_effort,
     _is_openai_reasoning_model,
-    backoff_delay,
-    is_retryable_provider_error,
 )
 from .sandbox import MAX_TURNS, SandboxWorld, evaluate_payment_policy, tool_schemas
 
@@ -105,8 +105,13 @@ class ToolLoopProvider(BaseEpisodeProvider):
     # app/runner.py::_generate_with_retry. Phase 1 retries a single-shot call;
     # a Phase 2 episode is up to MAX_TURNS calls, so the budget is per turn —
     # one 429 twelve turns in should not throw away the eleven turns already
-    # paid for.
+    # paid for. Rate limits get their own minutes-scale wall-clock budget
+    # inside TransientRetryPolicy, also per turn.
     transient_retries: int = DEFAULT_TRANSIENT_RETRIES
+    # Shared by every worker of a run (the runner attaches one): when any
+    # worker hits a 429, all workers hold at their next attempt instead of
+    # hammering a provider that just said slow down.
+    rate_limit_gate: Optional[RateLimitGate] = None
     # Injection seam for tests, so they assert the backoff schedule without
     # waiting it out (same pattern as _generate_with_retry's `sleep` argument).
     _sleep: Callable[[float], None] = staticmethod(time.sleep)
@@ -126,22 +131,25 @@ class ToolLoopProvider(BaseEpisodeProvider):
         """One turn, retrying transient transport failures with backoff.
 
         Providers wrap everything as ProviderError, so the retryable/terminal
-        split comes from ``is_retryable_provider_error`` walking the
-        ``raise ... from exc`` chain: 429s and 5xx and dropped connections get
-        another attempt, a 400 or a bad model id still fails on the first one.
+        split comes from TransientRetryPolicy walking the ``raise ... from
+        exc`` chain: 5xx and dropped connections get the short attempts, a
+        429 keeps retrying on its minutes-scale budget (Retry-After honored,
+        the shared gate pausing every worker), and a 400 or a bad model id
+        still fails on the first one.
         """
         pending = tool_results
-        retries_left = self.transient_retries
-        attempts = 0
+        policy = TransientRetryPolicy(
+            transient_retries=self.transient_retries, gate=self.rate_limit_gate
+        )
         while True:
+            if self.rate_limit_gate is not None:
+                # Hold while another worker's rate-limit pause is active.
+                self.rate_limit_gate.wait(self._sleep)
             try:
                 return self.step(pending)
             except ProviderError as exc:
-                if retries_left <= 0 or not is_retryable_provider_error(exc):
+                if not policy.wait_before_retry(exc, self._sleep):
                     raise
-                retries_left -= 1
-                self._sleep(backoff_delay(attempts))
-                attempts += 1
                 # Every transport folds `tool_results` into its own conversation
                 # state *before* issuing the request and commits the reply only
                 # after it succeeds, so this turn is already staged. Re-sending

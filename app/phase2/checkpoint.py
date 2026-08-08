@@ -200,8 +200,20 @@ class CheckpointStore:
                     restored[episode_key(*key)] = parse_model(EvaluationResult, payload["result"])
         return header, restored
 
-    def verify(self, fingerprint: Dict[str, Any]) -> Dict[str, Any]:
-        """Load, and refuse to resume into a grid the checkpoint isn't from."""
+    def verify(
+        self, fingerprint: Dict[str, Any], settings: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Load, and refuse to resume into a grid — or a run mode — the
+        checkpoint isn't from.
+
+        The grid says *what* is being run; ``settings`` says *how* — the
+        header fields ``live``, ``temperature`` and ``reasoning_effort``.
+        Resuming a live run with --dry-run would splice free fake episodes
+        among the paid real ones, indistinguishable in the finished run file,
+        and a changed temperature or reasoning effort would silently mix two
+        sampling regimes. Any mismatch on a field the header records refuses
+        the resume; fields an older checkpoint never recorded are skipped.
+        """
         header, restored = self.load()
         stored = header.get("grid") or {}
         if stored and stored != fingerprint:
@@ -214,6 +226,17 @@ class CheckpointStore:
                 f"(differs on: {', '.join(differing)}). Resume with the same "
                 f"axes it was started with, or start a fresh run."
             )
+        for field, asked in (settings or {}).items():
+            if field not in header:
+                continue
+            recorded = header.get(field)
+            if recorded != asked:
+                raise CheckpointMismatch(
+                    f"Checkpoint {self.path} was written by a run with "
+                    f"{field}={recorded!r}; this resume asked for {asked!r}. "
+                    f"Resume with the settings the run was started with, or "
+                    f"start a fresh run."
+                )
         return {"header": header, "restored": restored}
 
 

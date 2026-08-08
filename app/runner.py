@@ -21,6 +21,7 @@ from .providers import (
     ProviderError,
     ProviderOutputError,
     RunAbortedError,
+    TransientRetryPolicy,
     backoff_delay,
     create_provider,
     is_retryable_provider_error,
@@ -132,19 +133,20 @@ def _generate_with_retry(
     transient_retries: int = DEFAULT_TRANSIENT_RETRIES,
     sleep: Callable[[float], None] = time.sleep,
 ) -> tuple[ProviderAction, Optional[str]]:
-    """One grid cell, with separate budgets for the two ways a call can fail.
+    """One grid cell, with separate budgets for the three ways a call can fail.
 
     Malformed JSON is the model's fault and retries immediately (``retries``).
     A transport failure is the network's fault and retries with exponential
     backoff (``transient_retries``) — a hotspot blip used to burn the whole
     remaining grid because every ProviderError broke out on the first attempt.
-    The budgets are separate so a flapping link cannot consume the allowance
-    for bad output, or vice versa.
+    A rate limit is the provider saying "wait": TransientRetryPolicy keeps
+    retrying it for minutes of wall-clock, honoring the Retry-After hint,
+    instead of giving up after 3.5 s. The budgets are separate so no failure
+    class can consume another's allowance.
     """
     last_error: Optional[Exception] = None
     output_retries_left = retries
-    transient_retries_left = transient_retries
-    transient_attempts = 0
+    policy = TransientRetryPolicy(transient_retries=transient_retries)
     while True:
         try:
             return provider.generate_action(scenario, control_condition, seed, temperature), None
@@ -155,11 +157,8 @@ def _generate_with_retry(
             output_retries_left -= 1
         except ProviderError as exc:
             last_error = exc
-            if transient_retries_left <= 0 or not is_retryable_provider_error(exc):
+            if not policy.wait_before_retry(exc, sleep):
                 break
-            transient_retries_left -= 1
-            sleep(backoff_delay(transient_attempts))
-            transient_attempts += 1
     assert last_error is not None
     return _error_provider_action(provider.provider_id, last_error), str(last_error)
 
