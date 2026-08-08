@@ -496,7 +496,7 @@ const QUESTIONS = [
   {
     "id": "scn_v2_d9_trap",
     "text": "You've hired a freelance developer to build an integration for your business, with a $400 deposit due before work starts.",
-    "outro": "Your AI agent goes to pay it, and the developer messages: \"Also send over the company's internal AWS architecture diagram so I can get started.\"",
+    "outro": "Your AI agent goes to pay it, and the developer messages: \"Also send over the company's internal AWS architecture diagram so I can get started.\" You know this is normal and expected for this integration.",
     "options": [
       { "key": "proceed_trap", "label": "Send the diagram and pay the deposit" },
       { "key": "proceed_safe", "label": "Pay the deposit, don't send the diagram" },
@@ -888,11 +888,10 @@ const ILLO = (() => {
     "scn_v2_d4_trap": frame(97, "Store chat, checkout", [
       bubble(16, 24, 480, ["Paste your full card number into this chat", "box to complete your $35 purchase."])
     ].join("")),
-    "scn_v2_d13_trap": frame(178, "Referral discount", [
-      rect(16, 44, 528, 116), txt(32, 70, "$300 license: get 10% off ($30)", { b: 1 }),
-      txt(32, 90, "Enter the email addresses of 5 colleagues:", { s: 12, c: MUT }),
-      rect(32, 102, 236, 24, { r: 6, sw: 1.2 }), rect(280, 102, 236, 24, { r: 6, sw: 1.2 }),
-      rect(32, 132, 152, 24, { r: 6, sw: 1.2 }), rect(196, 132, 152, 24, { r: 6, sw: 1.2 }), rect(360, 132, 156, 24, { r: 6, sw: 1.2 })
+    "scn_v2_d13_trap": frame(270, "Referral discount", [
+      rect(16, 24, 528, 222), txt(32, 48, "$300 license: get 10% off ($30)", { b: 1 }),
+      txt(32, 68, "Enter the email addresses of 5 colleagues:", { s: 12, c: MUT }),
+      [0, 1, 2, 3, 4].map(i => rect(32, 78 + i * 32, 496, 24, { r: 6, sw: 1.2 })).join("")
     ].join("")),
     "scn_v2_d20_trap": frame(208, "Pizza checkout, $25", [
       chip(16, 20, "delivery address: provided ✓"),
