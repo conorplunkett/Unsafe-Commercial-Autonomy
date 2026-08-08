@@ -1,0 +1,134 @@
+# Phase 2 control-condition review
+
+## Recommendation
+
+If the Phase 2 grid must lose two conditions, keep:
+
+1. `no_policy`
+2. `structured_policy`
+3. `preflight_check`
+4. `tool_constraints`
+
+Cut `prompt_policy` and `approval_gate` from the primary grid. Keep them runnable
+as optional secondary ablations until the primary-grid decision is final; this
+review does not remove either implementation.
+
+The proposed alternative—cutting `structured_policy` and `tool_constraints`—
+would remove the clean baseline for the enforced conditions and the benchmark's
+only conventional hard backstop. It would leave four conditions, but not a
+coherent four-step mechanism comparison.
+
+## What each contrast identifies
+
+| Contrast | Question it can answer |
+| --- | --- |
+| `no_policy` → `structured_policy` | Does exposing the policy change the agent's choice? |
+| `structured_policy` → `preflight_check` | Does a required check change behavior when its verdict remains advisory? |
+| `structured_policy` → `tool_constraints` | What does actual hard enforcement add over showing the same structured policy? |
+| `prompt_policy` → `structured_policy` | Does prose versus JSON presentation matter? |
+| `tool_constraints` → `approval_gate` | Does a terminal pause differ from a recoverable block? |
+
+The first three contrasts form the strongest primary ladder: no policy
+information, policy information without enforcement, a mandatory procedure,
+and hard enforcement. The last two are narrower representation and response
+semantics ablations.
+
+## Why `structured_policy` should stay
+
+`structured_policy` is not valuable mainly because JSON might outperform prose.
+It is valuable because it is the no-enforcement comparator for every structured
+mechanism above it. The prompt shown under `structured_policy`,
+`preflight_check`, and `tool_constraints` contains the same machine-readable
+policy. Removing it means a comparison between prompt-only policy and hard
+constraints changes policy representation, tool availability, instructions,
+and enforcement at once.
+
+If prose-versus-JSON is not a central research question, `prompt_policy` is the
+condition to remove. The Phase 1 study already retains the prompt-only condition,
+so that question is not lost from the project altogether.
+
+## Why `tool_constraints` should stay
+
+`tool_constraints` is the only condition that tests a normal technical
+backstop while still allowing the episode to continue after a rejected payment.
+That recovery path matters to the stated safety-autonomy frontier: after a bad
+attempt, the agent can choose a compliant offer rather than simply stop.
+
+The condition also supplies the direct comparison against
+`structured_policy`: identical policy representation, with hard enforcement
+added. Cutting it would leave the study without its clearest measurement of the
+incremental value and autonomy cost of enforceable controls.
+
+## Why `approval_gate` is the weaker primary condition
+
+The current gate and `tool_constraints` use the same policy evaluator and the
+same trigger. Their difference happens only after a violation is detected:
+
+- `tool_constraints` returns `blocked` and lets the agent recover;
+- `approval_gate` returns `pending_approval`, immediately ends the episode, and
+  is assembled as an `ask_approval` action.
+
+That is a real implementation difference, but the current gate is not yet a
+simulation of explicit human approval. No human approves or denies the payment,
+and the agent cannot recover after the pause. The contrast therefore mixes the
+label shown to the model, terminal versus nonterminal tool behavior, and scoring
+semantics. A result would not isolate the effect of human oversight.
+
+This condition becomes worth restoring to a primary grid if the sandbox models
+the human response explicitly—for example approve, deny, or request a revised
+purchase—and permits the agent to continue after denial. Until then, it is best
+treated as a secondary intervention-semantics ablation.
+
+## What `preflight_check` actually measures
+
+`preflight_check` is a procedural gate. Before paying a particular offer, the
+agent must call `check_policy` for that offer. An unchecked payment is rejected
+whether the offer is compliant or not. Once the check has happened, payment can
+proceed even when the check returned `block`.
+
+It therefore exposes two observable behaviors:
+
+1. **Procedure compliance:** whether the agent calls the required tool before
+   payment.
+2. **Verdict adherence:** whether the agent heeds an advisory block after it has
+   satisfied the procedure.
+
+It is distinct from hard constraints, but it is not a pure one-variable
+intervention. Relative to `structured_policy`, it adds a tool, a mandatory-use
+instruction, and a pay-time rejection rule. Results should report procedure
+compliance and verdict adherence separately rather than interpret the condition
+only through the headline unsafe-payment and false-refusal rates.
+
+If the primary research question is narrowed strictly to the safety-autonomy
+frontier, `preflight_check` is the next condition to demote after
+`approval_gate`; it measures workflow obedience more directly than control
+effectiveness. If procedural discipline remains a research question, it earns
+its place in the four-condition grid.
+
+## Design claims to tighten before publication
+
+The six conditions are mutually exclusive levels of one categorical axis, not a
+factorial design. They can estimate pairwise condition contrasts, but they
+cannot estimate an interaction such as “tool constraints plus approval” because
+the current grid contains no combined `tool_constraints + approval_gate` cell.
+The research plan should not promise that interaction unless combined cells are
+implemented.
+
+Similarly, “varying one layer at a time” is accurate only for selected
+comparisons. In particular, `structured_policy` is the necessary anchor that
+makes the hard-enforcement comparison close to a one-layer change.
+
+## Decision summary
+
+- **Right:** cut two conditions to reduce cost and simplify interpretation.
+- **Right:** question whether `structured_policy` earns a cell solely as a
+  format test.
+- **Wrong condition to cut:** retain `structured_policy` as the common
+  no-enforcement anchor; cut `prompt_policy`, the actual format-only ablation.
+- **Wrong condition to cut:** retain `tool_constraints`, the cleanest and most
+  operationally relevant enforced control.
+- **Best second cut:** `approval_gate`, because its present implementation is a
+  terminal hard block labeled as human review, not a completed human-in-the-loop
+  flow.
+- **Keep with a reporting caveat:** `preflight_check`, provided procedure
+  compliance and response to the verdict are reported as separate outcomes.
