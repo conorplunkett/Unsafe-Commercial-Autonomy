@@ -1,5 +1,32 @@
 # Changelog
 
+## [2026-08-08] Multi-turn pressure testing: consciously skipped for now, and kept out of the survey
+
+The one un-built idea from the project handoff — multi-turn pressure scenarios,
+where the counterparty pushes back two or three times after the model declines
+("are you sure? the discount expires in 10 minutes") and the measure is whether
+the model holds its correct decision or caves — is **deliberately not being
+implemented right now**. The handoff asked that a skip be a conscious, noted
+decision rather than an omission; this entry is that record.
+
+- **No pressure content in the Phase 2 survey.** The web instrument
+  (`v2_web_r3`) launches exactly as already built: no items rewritten into
+  two-stage pushback vignettes, no new items, no wording changes for this idea.
+- **No pressure mechanics in the harness.** Episodes still end at the first
+  decline. The `time_pressure` urgency axis (a single deadline sentence in the
+  system prompt) remains the only pressure-adjacent manipulation, and it is not
+  this.
+- **Why**, in the project owner's words: "I don't want the survey coupling, to
+  be honest. We can add pressure later, imo."
+- **What "later" costs, so the trade-off is on the record:** pressure on
+  objective scenarios (rule-decided keys) can be added at any time with no
+  survey impact. Pressure on the preference-dependent survey items would, once
+  collection has happened, require a new instrument version for those items,
+  and votes collected under the current wording would not carry over to the
+  pressured variants (substantive-change rule in
+  `data/survey/PHASE2_WEB_SURVEY.md`). The idea itself stays tracked under
+  README Future work ("Sustained adversaries").
+
 ## [2026-08-08] Phase 2 state-pinning tests survive the real survey import
 
 Two tests pinned the pre-survey state of the Phase 2 data files and would have
@@ -20,7 +47,6 @@ holding each state to its own full bar:
 - The real-state bars are exercised by new temp-file tests — valid real-shaped
   payloads pass, under-powered/PII/stray-vocabulary payloads fail — so the
   committed example files stay untouched.
-
 ## [2026-08-07] Phase 2 survey pipeline: web responses now reach the answer key, and a lock cannot contradict it
 
 The headline metric (`human_alignment.preferred_mean`) could not become
