@@ -15,7 +15,7 @@ from ..data import DATA_DIR, load_scenarios
 from ..metrics import _summarize_group, compute_metrics, distinct_model_names
 from ..models import BenchmarkRun, EvaluationResult, Scenario
 from ..policies import evaluate_phase1_action
-from ..providers import DEFAULT_CONSECUTIVE_ERROR_LIMIT, RunAbortedError
+from ..providers import DEFAULT_CONSECUTIVE_ERROR_LIMIT, RateLimitGate, RunAbortedError
 from ..runner import _run_answer_key_status
 from .checkpoint import CheckpointStore, EpisodeKey, episode_key, grid_fingerprint
 from .providers import BaseEpisodeProvider, create_phase2_provider, resolve_phase2_model_ids
@@ -283,6 +283,12 @@ def run_phase2_evaluation(
         for provider in pool.all_instances():
             if hasattr(provider, "reasoning_effort"):
                 provider.reasoning_effort = reasoning_effort
+    # One gate per run: a 429 on any worker pauses every worker's next attempt
+    # until the window passes, instead of N workers hammering in lockstep.
+    rate_limit_gate = RateLimitGate()
+    for provider in pool.all_instances():
+        if hasattr(provider, "rate_limit_gate"):
+            provider.rate_limit_gate = rate_limit_gate
     # Validate every provider up front so a misconfigured one (missing key,
     # wrong model id) aborts before the episode grid runs, instead of being
     # swallowed per-episode by the tool loop and saved as an all-error run.
@@ -315,7 +321,17 @@ def run_phase2_evaluation(
 
     results_by_key: Dict[EpisodeKey, EvaluationResult] = {}
     if resume:
-        loaded = CheckpointStore(run_id, root=checkpoint_root).verify(fingerprint)
+        # The grid alone is not enough: resuming a live run with --dry-run
+        # would splice fake episodes among the paid ones. The header records
+        # how the run was made; a resume must match it.
+        loaded = CheckpointStore(run_id, root=checkpoint_root).verify(
+            fingerprint,
+            settings={
+                "live": live,
+                "temperature": resolved_temperature,
+                "reasoning_effort": reasoning_effort,
+            },
+        )
         # Errored episodes are re-run rather than restored: resuming after a
         # rate-limit cascade is the main reason to resume at all, and those
         # cells are exactly the ones the cascade poisoned.
@@ -343,6 +359,9 @@ def run_phase2_evaluation(
 
     lock = threading.Lock()
     state = {"completed": completed_units, "consecutive_errors": 0, "aborted": None}
+    # Set on Ctrl-C and when the auto-stop trips. Queued episodes check it
+    # before starting, so "stop" means "no new spending", not "after the wave".
+    stop = threading.Event()
 
     def _record(cell: GridCell, result: EvaluationResult) -> None:
         """Bank one finished episode. Serialized — the only shared mutation."""
@@ -369,10 +388,13 @@ def run_phase2_evaluation(
                         consecutive_errors=state["consecutive_errors"],
                         last_error=result.error,
                     )
+                    stop.set()
             else:
                 state["consecutive_errors"] = 0
 
     def _execute(cell: GridCell) -> None:
+        if stop.is_set():
+            return  # stopped while queued: skip before any provider call
         provider = pool.lease(cell.model_id)
         try:
             result = run_phase2_episode(
@@ -404,16 +426,26 @@ def run_phase2_evaluation(
                 # so an abort stops spending within a wave instead of after
                 # 13,560 futures have already been handed to the pool.
                 for start in range(0, len(pending), workers * 4):
-                    if state["aborted"] is not None:
+                    if state["aborted"] is not None or stop.is_set():
                         break
                     wave = pending[start : start + workers * 4]
                     futures = [executor.submit(_execute, cell) for cell in wave]
-                    for future in futures:
-                        future.result()
-                        if progress_cb is not None:
-                            with lock:
-                                completed_now = state["completed"]
-                            progress_cb(completed_now, total_units, f"{completed_now}/{total_units} episodes")
+                    try:
+                        for future in futures:
+                            future.result()
+                            if progress_cb is not None:
+                                with lock:
+                                    completed_now = state["completed"]
+                                progress_cb(completed_now, total_units, f"{completed_now}/{total_units} episodes")
+                    except BaseException:
+                        # Ctrl-C (or a crashed worker): stop the queue NOW.
+                        # In-flight episodes finish and are checkpointed —
+                        # a thread's provider call cannot be interrupted —
+                        # but nothing queued may start a new paid call.
+                        stop.set()
+                        for future in futures:
+                            future.cancel()
+                        raise
             if state["aborted"] is not None:
                 raise state["aborted"]
     finally:
