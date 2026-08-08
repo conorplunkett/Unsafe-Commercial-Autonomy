@@ -8,7 +8,7 @@ Five defects that only bite on a real paid run, fixed before one is bought:
   serializes to hundreds of MB; `publish` sent it as a single POST with a 30 s
   timeout, which cannot succeed, and the site's `select=payload` read of such
   a row could not either. Episodes now upload row-per-episode into
-  `benchmark_run_episodes` (`db/migrations/0008`, applied to the project) in
+  `benchmark_run_episodes` (`db/migrations/0009`, applied to the project) in
   size-capped batches with per-request retries, delete-then-insert so
   re-publishing is idempotent, and the slim run row (config + metrics, plus
   `episode_count`) lands last as the commit point — a publish that dies

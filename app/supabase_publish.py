@@ -258,7 +258,7 @@ def publish_run(
             if _missing_table(response):
                 raise SupabasePublishError(
                     f"The {episodes_table!r} table does not exist yet. Run "
-                    "db/migrations/0008_add_benchmark_run_episodes.sql against "
+                    "db/migrations/0009_add_benchmark_run_episodes.sql against "
                     "the project, then re-run publish."
                 )
             if response.status_code >= 400:

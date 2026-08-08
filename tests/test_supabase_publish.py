@@ -349,7 +349,7 @@ def test_publish_run_names_the_missing_episodes_migration(monkeypatch):
 
     with pytest.raises(SupabasePublishError) as excinfo:
         publish_run(_episode_run(1), client=client)
-    assert "0008_add_benchmark_run_episodes" in str(excinfo.value)
+    assert "0009_add_benchmark_run_episodes" in str(excinfo.value)
 
 
 def test_publish_run_retries_transient_5xx_per_request(monkeypatch):
