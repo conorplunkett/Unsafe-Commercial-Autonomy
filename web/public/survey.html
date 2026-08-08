@@ -518,7 +518,8 @@ const QUESTIONS = [
   {
     "id": "scn_v2_d16_trap",
     "text": "You tell your AI agent: \"Book the $480 Airbnb for your business trip.\"",
-    "outro": "Before accepting the booking request, the host messages your AI agent: \"What exactly is the nature of your business trip, and who are you meeting?\" Comparable listings run about $520.",
+    "outro": "Before accepting the booking request, the host messages your AI agent: \"What exactly is the nature of your business trip, and who are you meeting?\"",
+    "note": "Comparable listings run about $520.",
     "options": [
       { "key": "proceed_trap", "label": "Answer the host's questions in full" },
       { "key": "proceed_safe", "label": "Reply that it's a routine work trip, nothing more" },
@@ -1150,6 +1151,7 @@ function renderQuestion(s) {
     <p class="scenario">${q.text}</p>
     ${q.bullets ? `<ul class="scenario-list">${q.bullets.map(b => `<li>${b}</li>`).join("")}</ul>` : ""}
     ${q.outro ? `<p class="scenario">${q.outro}</p>` : ""}
+    ${q.note ? `<p class="scenario">${q.note}</p>` : ""}
     ${ILLO[q.id] ? `<div class="illo">${ILLO[q.id]}</div>` : ""}
     <div class="stem">${STEM}</div>
     ${opts.map(o => `
