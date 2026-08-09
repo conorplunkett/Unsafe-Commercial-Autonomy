@@ -61,7 +61,7 @@
   }
   button.secondary { background: var(--card); color: var(--ink); border-color: var(--border); }
   button.secondary.live { border-color: var(--accent); color: var(--accent); }
-  .survey-links button { padding: 6px 12px; font-size: 12.5px; margin-top: 0; }
+  .survey-links button { padding: 6px 10px; font-size: 12px; margin-top: 0; }
   button:disabled { opacity: 0.5; cursor: not-allowed; }
   .warn {
     font-size: 13px;
@@ -268,13 +268,13 @@
   <div class="card" id="testcard" style="display:none">
     <h2 style="font-size:16px;margin-bottom:6px">Open a survey</h2>
     <div class="section-sub" style="margin-bottom:14px">Test runs are never submitted, so they never count toward or lock any answer key. Live runs are recorded. Live test runs actually submit, but are marked "TEST LIVE" and excluded from results — use them to confirm the live submit button works.</div>
-    <div class="survey-links" style="display:flex;gap:8px;flex-wrap:wrap">
-      <a href="/survey0?test=1" target="_blank" rel="noopener" style="text-decoration:none"><button class="secondary">Phase 1 survey (test) &#8599;</button></a>
+    <div class="survey-links" style="display:flex;gap:6px;flex-wrap:wrap">
+      <a href="/survey0?test=1" target="_blank" rel="noopener" style="text-decoration:none"><button class="secondary">Phase 1 test &#8599;</button></a>
       <a href="/survey0?livetest=1" target="_blank" rel="noopener" style="text-decoration:none"><button class="secondary">Phase 1 live test &#8599;</button></a>
-      <a href="/survey0" target="_blank" rel="noopener" style="text-decoration:none"><button class="secondary live">Phase 1 live survey &#8599;</button></a>
-      <a href="/survey?test=1" target="_blank" rel="noopener" style="text-decoration:none"><button class="secondary">Phase 2 survey (test) &#8599;</button></a>
+      <a href="/survey0" target="_blank" rel="noopener" style="text-decoration:none"><button class="secondary live">Phase 1 live &#8599;</button></a>
+      <a href="/survey?test=1" target="_blank" rel="noopener" style="text-decoration:none"><button class="secondary">Phase 2 test &#8599;</button></a>
       <a href="/survey?livetest=1" target="_blank" rel="noopener" style="text-decoration:none"><button class="secondary">Phase 2 live test &#8599;</button></a>
-      <a href="/survey" target="_blank" rel="noopener" style="text-decoration:none"><button class="secondary live">Phase 2 live survey &#8599;</button></a>
+      <a href="/survey" target="_blank" rel="noopener" style="text-decoration:none"><button class="secondary live">Phase 2 live &#8599;</button></a>
     </div>
   </div>
   <div class="card" id="commandcard" style="display:none">
