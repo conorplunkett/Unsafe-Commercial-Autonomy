@@ -1,5 +1,16 @@
 # Changelog
 
+## [2026-08-08] Phase 2 control design is stated as six conditions, not six layers
+
+- Corrected the research plan and site copy: the Phase 2 grid compares six
+  alternative conditions; it does not independently add six controls or support
+  mechanism-interaction estimates.
+- Documented the estimable contrasts, the structured-policy limitation on the
+  approval gate, and a defensible four-arm option for a pre-registered,
+  budget-limited confirmatory run.
+- Removed a stale command-reference claim that the three Phase 2-only conditions
+  were not implemented.
+
 ## [2026-08-08] preflight_check's refused_when_safe exemption is content-aware
 
 ### Fixed

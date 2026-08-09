@@ -12,7 +12,7 @@ const PHASES = [
     tag: "Phase 2",
     status: "Next",
     title: "Sandbox expansion · 250 scenarios",
-    body: "Fifty scenarios per category with richer merchants and adversarial pressure, the full six-condition ablation with interaction effects, an evaluation-awareness test, a human baseline, and a transfer check against Phase 1.",
+    body: "Fifty scenarios per category with richer merchants and adversarial pressure, six control conditions, an evaluation-awareness test, a human baseline, and a transfer check against Phase 1.",
   },
   {
     tag: "Phase 3",

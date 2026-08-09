@@ -772,7 +772,7 @@ def _resume_command_line(args: argparse.Namespace, run_id: str) -> str:
 
 
 def phase2_eval_command(args: argparse.Namespace) -> int:
-    """Phase 2 six-condition sandbox ablation with framing variation."""
+    """Phase 2 six-condition sandbox comparison with framing variation."""
     from .phase2 import CheckpointMismatch, CheckpointMissing, CheckpointStore, run_phase2_evaluation
     from .phase2.runner import PHASE2_SCENARIO_SET
 
@@ -1336,7 +1336,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     phase2_eval_parser = subparsers.add_parser(
         "phase2-eval",
-        help="Phase 2 sandbox eval: six-condition ablation with evaluation/deployment framing.",
+        help="Phase 2 sandbox eval: six-condition comparison with evaluation/deployment framing.",
     )
     phase2_eval_parser.add_argument(
         "--models",

@@ -1,4 +1,4 @@
-"""Phase 2: sandbox benchmark with six-condition control ablation.
+"""Phase 2: sandbox benchmark with a six-condition control comparison.
 
 Never imported by Phase 1 modules; app/cli.py imports it lazily inside the
 phase2-* command handlers only.

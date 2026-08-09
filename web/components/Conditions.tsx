@@ -1,5 +1,4 @@
 import { ToggleSection } from "./ToggleSection";
-import { Term } from "./Term";
 import { Card } from "@/components/ui/Card";
 import {
   CONDITION_ORDER,
@@ -14,14 +13,10 @@ export function Conditions() {
       title="Control layers"
       intro={
         <>
-          The benchmark varies one control layer at a time, from no policy at
-          all up to a human approval gate, to see which actually moves the
-          frontier. Phase 1 runs three of the rungs (no policy, prompt policy,
-          and tool constraints); the full six-condition{" "}
-          <Term def="An ablation removes or varies one component at a time while holding everything else fixed, to measure how much that component contributes to the result.">
-            ablation
-          </Term>{" "}
-          below is Phase 2.
+          Phase 1 compares no policy, prompt policy, and tool constraints.
+          Phase 2 adds structured-policy, preflight, and approval conditions.
+          The six conditions are alternatives, not six controls stacked on one
+          payment.
         </>
       }
     >

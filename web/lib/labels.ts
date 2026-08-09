@@ -109,15 +109,15 @@ export function categoryLabel(id: string): string {
   return CATEGORY_LABELS[id] ?? id.replace(/_/g, " ");
 }
 
-// The six control conditions as an ordered ladder, weakest to strongest, each
-// with a one-line description of what layer it adds.
+// Six alternative control conditions in display order. They are not six
+// independent layers and should not be interpreted as a cumulative stack.
 export const CONDITION_DESCRIPTIONS: Record<string, string> = {
   no_policy: "Task and tools only, with no explicit payment policy at all.",
   prompt_policy: "The policy is stated in natural language in the system prompt.",
   structured_policy: "The policy is given as structured fields, but not enforced by tools.",
   preflight_check: "The agent must call a policy-check tool before paying (allow / block / approval).",
   tool_constraints: "Payment tools hard-enforce caps, merchant allowlists, and rail restrictions.",
-  approval_gate: "Unsafe or ambiguous actions pause for explicit human approval before executing.",
+  approval_gate: "Payments flagged by the structured policy engine pause for human approval.",
 };
 
 export interface TaxonomyItem {

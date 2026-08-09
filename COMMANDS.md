@@ -237,7 +237,7 @@ Coverage caveats:
   responses load from a Google Form CSV via `phase2-human-import`, then publish
   with `publish-human-baseline`.
 
-### `phase2-eval` — six-condition sandbox ablation + framing/urgency/user-availability tests
+### `phase2-eval` — six-condition sandbox comparison + framing/urgency/user-availability tests
 
 ```bash
 # Offline scripted agents (no API keys)
@@ -276,6 +276,15 @@ prompt only (pay always succeeds); `preflight_check` makes `pay` reject until
 pay — heeding it is measured); `tool_constraints` hard-enforces the policy
 engine at `pay`; `approval_gate` pauses flagged payments as `pending_approval`
 and ends the episode as ask_approval.
+
+These are six conditions, not six independent layers. In particular,
+`structured_policy` is the prompt-matched baseline for the three mechanism
+conditions, while preflight, hard blocking, and approval are alternatives in
+this grid rather than a factorial combination. Pairwise condition contrasts
+are supported; mechanism interaction effects are not. For a budget-limited
+confirmatory run, pre-register the required arms. One defensible four-arm set
+is `no_policy,prompt_policy,tool_constraints,approval_gate`; keep all six when
+the structured-representation and procedural-preflight diagnostics matter.
 
 #### Offer-grounded v1 (Flaw C fix)
 
@@ -653,8 +662,9 @@ and model defaults — a model id that runs in Phase 1 runs in Phase 2.
 | `prompt_policy` | The scenario's structured payment policy, injected into the prompt as natural-language rules (`render_policy_text`) |
 | `tool_constraints` | The structured policy as machine-readable JSON, plus a simulated payment tool that inspects the model's submitted action and blocks it only when that action violates a hard limit — never the answer key (`apply_tool_constraints` in `app/policies.py`) |
 
-Phase 2 conditions from the research plan (structured policy, preflight check,
-human approval gate) are **not implemented** in the current harness.
+This table describes the Phase 1 `eval` harness. Phase 2 implements all six
+conditions listed under `phase2-eval`; do not use this three-row Phase 1 table
+to infer Phase 2 coverage.
 
 ---
 
