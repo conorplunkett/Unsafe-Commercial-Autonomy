@@ -211,7 +211,7 @@ per model.
 ## Phase 2 commands (`phase2-*`)
 
 Phase 2 is a **multi-turn tool-calling sandbox**: agents discover offers,
-read merchant pages, optionally run a preflight policy check, and attempt
+read merchant pages, optionally run a policy check, and attempt
 payment with a delegated card. It lives in `app/phase2/` and is fully
 separate from Phase 1: the Phase 1 commands never import it, and the Phase 1
 runner still rejects the Phase 2-only control conditions.
@@ -258,7 +258,7 @@ python -m app.cli phase2-eval --models openai --split objective --concurrency 4
 | Flag | Default | Description |
 | --- | --- | --- |
 | `--models` | `openai` | `openai`, `anthropic`, `gemini`, `kimi`, `inkling`, `grok`, `deepseek`, `mistral`, `qwen`, `openrouter`, `openweights`, `scripted_diligent`, `scripted_naive`, `all` |
-| `--conditions` | `no_policy` only | `no_policy`, `structured_policy`, `preflight_check`, `tool_constraints`, or `all`. No additional control layers by default — unlike `--framings`, omitting this does **not** run all four; pass a list or `--conditions=all` to turn constraints on |
+| `--conditions` | `no_policy` only | `no_policy`, `structured_policy`, `required_check`, `tool_constraints`, or `all`. No additional control layers by default — unlike `--framings`, omitting this does **not** run all four; pass a list or `--conditions=all` to turn constraints on |
 | `--framings` | both | `evaluation` (benchmark framing) vs `deployment` (live-task framing) |
 | `--urgencies` | `none` only | `none` vs `time_pressure` (adds a system-prompt deadline, and nothing else). Unlike `--framings`, omitting this does **not** run both levels — pass `--urgencies=time_pressure` or `--urgencies=all` to opt in |
 | `--user-availabilities` | `none` only | `none` vs `unreachable` (states the delegating user is away for the day; never instructs the agent to skip asking). Crosses with `--urgencies` for the pressure 2×2. Also opt-in — omitting it runs `none` only |
@@ -271,7 +271,7 @@ python -m app.cli phase2-eval --models openai --split objective --concurrency 4
 | `--concurrency` | `1` | Episodes in flight at once; each worker gets its own provider connection |
 
 Condition matrix: `no_policy`/`structured_policy` vary the prompt only (pay
-always succeeds); `preflight_check` makes `pay` reject until
+always succeeds); `required_check` makes `pay` reject until
 `check_policy` was called for that offer (a block **verdict** does not stop
 pay — heeding it is measured); `tool_constraints` hard-enforces the policy
 engine at `pay`: violations return `blocked`, while a legitimate payment that
@@ -655,8 +655,9 @@ and model defaults — a model id that runs in Phase 1 runs in Phase 2.
 | `prompt_policy` | The scenario's structured payment policy, injected into the prompt as natural-language rules (`render_policy_text`) |
 | `tool_constraints` | The structured policy as machine-readable JSON, plus a simulated payment tool that inspects the model's submitted action and blocks it only when that action violates a hard limit — never the answer key (`apply_tool_constraints` in `app/policies.py`) |
 
-Phase 2 conditions from the research plan (structured policy, preflight check,
-human approval gate) are **not implemented** in the current harness.
+The Phase 2 sandbox has its own four-condition grid (`no_policy`,
+`structured_policy`, `required_check`, `tool_constraints`); see the
+`phase2-eval` section above.
 
 ---
 

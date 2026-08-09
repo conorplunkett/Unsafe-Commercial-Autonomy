@@ -732,7 +732,8 @@ def _phase2_grid_size(
     """
     from .data import load_scenarios
     from .phase2.providers import LIVE_MODEL_IDS, resolve_phase2_model_ids
-    from .phase2.runner import PHASE2_SCENARIO_SET
+    from .phase2.runner import PHASE2_SCENARIO_SET, _select
+    from .phase2.sandbox import FRAMINGS, PHASE2_CONTROL_CONDITIONS, URGENCY_LEVELS, USER_AVAILABILITY_LEVELS
 
     try:
         # Count the set actually being run rather than assuming a size: the v2
@@ -746,13 +747,27 @@ def _phase2_grid_size(
         scenario_count = len(set(selected or [])) or len(
             load_scenarios(Path(args.scenario_set) if args.scenario_set else PHASE2_SCENARIO_SET)
         )
-        conditions = len(_csv(args.conditions) or []) or 1
-        framings = len(_csv(args.framings) or []) or 2
+        # Resolve each axis exactly the way run_phase2_evaluation does (down to
+        # its "all" expansion via the same _select helper), instead of counting
+        # raw --flag items: a bare "all" is one CSV item but N real conditions/
+        # levels, and counting items instead of resolving them quoted a run at
+        # 1/4 (or 1/2) of what it actually costs.
+        raw_conditions = _csv(args.conditions)
+        conditions = (
+            len(_select(raw_conditions, PHASE2_CONTROL_CONDITIONS, "conditions")) if raw_conditions else 1
+        )
+        framings = len(_select(_csv(args.framings), FRAMINGS, "framings"))
         # Unlike framings, omitting --urgencies/--user-availabilities runs a single
         # level ("none"), not both — see run_phase2_evaluation. Only an explicit
         # flag multiplies these; both together quadruple the grid.
-        urgencies = len(_csv(args.urgencies) or []) or 1
-        user_availabilities = len(_csv(args.user_availabilities) or []) or 1
+        raw_urgencies = _csv(args.urgencies)
+        urgencies = len(_select(raw_urgencies, URGENCY_LEVELS, "urgency levels")) if raw_urgencies else 1
+        raw_user_availabilities = _csv(args.user_availabilities)
+        user_availabilities = (
+            len(_select(raw_user_availabilities, USER_AVAILABILITY_LEVELS, "user-availability levels"))
+            if raw_user_availabilities
+            else 1
+        )
         seeds = len(_csv_int(args.seeds) or []) or 5
         # Scripted agents run offline; only live providers incur episode API calls.
         models = len([m for m in resolve_phase2_model_ids(_csv(args.models)) if m in LIVE_MODEL_IDS])
@@ -1381,7 +1396,7 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help=(
             "Comma-separated Phase 2 conditions: no_policy, structured_policy, "
-            "preflight_check, tool_constraints, or all. Default: no_policy only "
+            "required_check, tool_constraints, or all. Default: no_policy only "
             "(no additional control layers — pass a list, or 'all' for all four, to turn constraints on)."
         ),
     )

@@ -273,21 +273,21 @@ const CONDITION_ORDER = ["no_policy", "prompt_policy", "tool_constraints"];
 const PHASE2_CONDITION_ORDER = [
   "no_policy",
   "structured_policy",
-  "preflight_check",
+  "required_check",
   "tool_constraints",
 ];
 const CONDITION_LABELS = {
   no_policy: "No policy",
   prompt_policy: "Prompt policy",
   structured_policy: "Structured policy",
-  preflight_check: "Preflight check",
+  required_check: "Required check",
   tool_constraints: "Tool constraints",
 };
 const CONDITION_DESCRIPTIONS = {
   no_policy: "Task and tools only, with no explicit payment policy at all.",
   prompt_policy: "The policy is stated in natural language in the system prompt.",
   structured_policy: "The policy is given as structured fields, but not enforced by tools.",
-  preflight_check: "The agent must call a policy-check tool before paying (allow / block / approval).",
+  required_check: "The agent must call a policy-check tool before paying (allow / block / approval).",
   tool_constraints: "Payment tools hard-enforce caps, merchant allowlists, and rail restrictions.",
 };
 
@@ -375,7 +375,7 @@ const CONDITION_COLUMNS = [
   { key: "no_policy", short: "none", suffix: "none" },
   { key: "prompt_policy", short: "prompt", suffix: "prompt" },
   { key: "structured_policy", short: "struct", suffix: "struct" },
-  { key: "preflight_check", short: "preflight", suffix: "preflight" },
+  { key: "required_check", short: "required", suffix: "required" },
   { key: "tool_constraints", short: "tool", suffix: "tool" },
   { key: "legacy", short: "legacy", suffix: "legacy" },
 ];

@@ -22,7 +22,7 @@ ControlCondition = Literal[
     "no_policy",
     "prompt_policy",
     "structured_policy",
-    "preflight_check",
+    "required_check",
     "tool_constraints",
 ]
 
@@ -198,6 +198,23 @@ class AgentAction(BaseModel):
 # archived run JSON (or the pre-rename Supabase payload) still load.
 _LEGACY_VERDICT_ALIASES = {"false_refusal": "refused_when_safe"}
 
+# Read-time alias: runs recorded before the 2026-08 rename stored this control
+# condition as "preflight_check". New code writes "required_check"; this map
+# lets an archived run JSON, checkpoint, or pre-rename Supabase payload still
+# load. (The provider preflight() API smoke test is unrelated and kept its
+# name.)
+_LEGACY_CONDITION_ALIASES = {"preflight_check": "required_check"}
+
+
+def _alias_condition(value: Any) -> Any:
+    return _LEGACY_CONDITION_ALIASES.get(value, value)
+
+
+def _alias_conditions(value: Any) -> Any:
+    if isinstance(value, list):
+        return [_LEGACY_CONDITION_ALIASES.get(item, item) for item in value]
+    return value
+
 
 class EvaluationResult(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
@@ -222,6 +239,11 @@ class EvaluationResult(BaseModel):
     @classmethod
     def _alias_legacy_verdict(cls, value: Any) -> Any:
         return _LEGACY_VERDICT_ALIASES.get(value, value)
+
+    @field_validator("control_condition", mode="before")
+    @classmethod
+    def _alias_legacy_condition(cls, value: Any) -> Any:
+        return _alias_condition(value)
     user_welfare_score: float = 1.0
     # Recovery grading. On an unsafe-to-act scenario a stop is always the right
     # *family* of answer, so these never feed the headline unsafe/refused rates;
@@ -274,6 +296,11 @@ class RunRequest(BaseModel):
     agent_ids: Optional[List[str]] = None
     model_ids: Optional[List[str]] = None
     control_conditions: Optional[List[ControlCondition]] = None
+
+    @field_validator("control_conditions", mode="before")
+    @classmethod
+    def _alias_legacy_conditions(cls, value: Any) -> Any:
+        return _alias_conditions(value)
     scenario_ids: Optional[List[str]] = None
     scenario_set_path: Optional[str] = None
     seeds: Optional[List[int]] = None
@@ -297,6 +324,12 @@ class BenchmarkRun(BaseModel):
     # Supabase row can rank and be queried by individual model.
     model_names: List[str] = Field(default_factory=list)
     control_conditions: List[ControlCondition] = Field(default_factory=list)
+
+    @field_validator("control_conditions", mode="before")
+    @classmethod
+    def _alias_legacy_conditions(cls, value: Any) -> Any:
+        return _alias_conditions(value)
+
     framings: List[Framing] = Field(default_factory=list)
     urgencies: List[Urgency] = Field(default_factory=list)
     user_availabilities: List[UserAvailability] = Field(default_factory=list)
