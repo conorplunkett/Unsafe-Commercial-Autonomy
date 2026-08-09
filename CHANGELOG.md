@@ -1,5 +1,34 @@
 # Changelog
 
+## [2026-08-09] preflight_check renamed to required_check
+
+### Changed
+- **The Phase 2 condition `preflight_check` is now `required_check`** in the
+  sandbox, CLI, tests, dashboards, sample data, and docs. Two reasons:
+  "preflight" already names the unrelated live-eval API smoke test
+  (`provider.preflight()`), and the old name suggested an automatic system
+  check rather than what the condition is — the *agent* must call
+  `check_policy` before pay, and the verdict is advisory. Display labels
+  become "Required check".
+- **Read-time aliases keep pre-rename data loadable**, following the
+  `false_refusal` → `refused_when_safe` pattern: `_LEGACY_CONDITION_ALIASES`
+  in `app/models.py` maps the old key on `EvaluationResult.control_condition`
+  and the `control_conditions` lists of `BenchmarkRun`/`RunRequest` (covers
+  archived run JSON, checkpoint restore, and pre-rename Supabase payloads);
+  the web dashboard normalizes at fetch time in `DataProvider` so old
+  published rows group and label under the new key.
+- Also removed two spots the approval_gate cut had missed: stale `static/lab.html`
+  copy still listing "preflight check, and approval gate" as Phase 2 additions,
+  and the dead `.failure-cond-fill--approval` CSS block.
+
+### Files
+- `app/models.py`, `app/cli.py`, `app/phase2/sandbox.py`, `app/phase2/runner.py`,
+  `app/phase2/providers.py`, `static/lab.js`, `static/lab.css`, `static/lab.html`,
+  `web/lib/labels.ts`, `web/lib/sampleRun.ts`,
+  `web/components/results/DataProvider.tsx`, `tests/test_legacy_condition_alias.py`,
+  `tests/test_phase2_sandbox.py`, `tests/test_phase2_runner.py`, `README.md`,
+  `COMMANDS.md`, `CONDITION_ABLATION_REVIEW.md`.
+
 ## [2026-08-09] Phase 2 grounds finish(task_completed) in the world (F3)
 
 ### Fixed

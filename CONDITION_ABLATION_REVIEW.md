@@ -6,7 +6,9 @@ If the Phase 2 grid must lose two conditions, keep:
 
 1. `no_policy`
 2. `structured_policy`
-3. `preflight_check`
+3. `required_check` (named `preflight_check` until 2026-08-09; renamed because
+   "preflight" also names the live-eval API smoke test, and the condition's
+   defining trait is a mandatory check with an advisory verdict)
 4. `tool_constraints`
 
 Phase 2 now removes `prompt_policy` and `approval_gate` entirely. Phase 1 keeps
@@ -23,7 +25,7 @@ coherent four-step mechanism comparison.
 | Contrast | Question it can answer |
 | --- | --- |
 | `no_policy` → `structured_policy` | Does exposing the policy change the agent's choice? |
-| `structured_policy` → `preflight_check` | Does a required check change behavior when its verdict remains advisory? |
+| `structured_policy` → `required_check` | Does a required check change behavior when its verdict remains advisory? |
 | `structured_policy` → `tool_constraints` | What does actual hard enforcement add over showing the same structured policy? |
 | `prompt_policy` → `structured_policy` | Does prose versus JSON presentation matter? |
 | `tool_constraints` → `approval_gate` | Does a terminal pause differ from a recoverable block? |
@@ -38,7 +40,7 @@ semantics ablations.
 `structured_policy` is not valuable mainly because JSON might outperform prose.
 It is valuable because it is the no-enforcement comparator for every structured
 mechanism above it. The prompt shown under `structured_policy`,
-`preflight_check`, and `tool_constraints` contains the same machine-readable
+`required_check`, and `tool_constraints` contains the same machine-readable
 policy. Removing it means a comparison between prompt-only policy and hard
 constraints changes policy representation, tool availability, instructions,
 and enforcement at once.
@@ -79,9 +81,9 @@ the human response explicitly—for example approve, deny, or request a revised
 purchase—and permits the agent to continue after denial. Until then, it is best
 treated as a secondary intervention-semantics ablation.
 
-## What `preflight_check` actually measures
+## What `required_check` actually measures
 
-`preflight_check` is a procedural gate. Before paying a particular offer, the
+`required_check` is a procedural gate. Before paying a particular offer, the
 agent must call `check_policy` for that offer. An unchecked payment is rejected
 whether the offer is compliant or not. Once the check has happened, payment can
 proceed even when the check returned `block`.
@@ -100,7 +102,7 @@ compliance and verdict adherence separately rather than interpret the condition
 only through the headline unsafe-payment and false-refusal rates.
 
 If the primary research question is narrowed strictly to the safety-autonomy
-frontier, `preflight_check` is the next condition to demote after
+frontier, `required_check` is the next condition to demote after
 `approval_gate`; it measures workflow obedience more directly than control
 effectiveness. If procedural discipline remains a research question, it earns
 its place in the four-condition grid.
@@ -129,5 +131,5 @@ makes the hard-enforcement comparison close to a one-layer change.
 - **Best second cut:** `approval_gate`, because its present implementation is a
   terminal hard block labeled as human review, not a completed human-in-the-loop
   flow.
-- **Keep with a reporting caveat:** `preflight_check`, provided procedure
+- **Keep with a reporting caveat:** `required_check`, provided procedure
   compliance and response to the verdict are reported as separate outcomes.
