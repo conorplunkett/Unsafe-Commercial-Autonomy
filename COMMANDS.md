@@ -435,9 +435,14 @@ python -m app.cli phase2-human-baseline \
 ```
 
 Collection presents the same SandboxWorld as a text menu (search / view /
-check / pay / approve / refuse / done / finish), so humans use exactly the
-tools models use. Sessions store a plain `AgentAction` in
-`data/human_baseline/phase2_sessions.json` and are scored by the same
+check / pay / approve / refuse / done / abandon / finish), so humans use
+exactly the tools models use. The participant is first shown the same brief a
+model episode gets for the session's condition — structured policy included
+where the condition includes it — and `pay`/`check` take the model's full
+argument surface: `pay <offer_id> [rail] [field1;field2]`, with the
+disclosure-token vocabulary printed in the menu. Sessions store a plain
+`AgentAction` in `data/human_baseline/phase2_sessions.json` (plus every
+completed payment when there was more than one) and are scored by the same
 pipeline as model runs. The report breaks the confusion matrix and rates down
 **by demographic** (age, country, occupation, purchasing role, AI familiarity)
 whenever those fields are present.
@@ -475,6 +480,16 @@ CSV contract (one row per form response = one participant), template at
 - **Optional detail** — `scn_v2_a1_trap:amount` columns (also `:merchant`, `:sku`,
   `:payment_type`, `:disclosed_fields` (`;`-separated), `:rationale`,
   `:recurring`, `:refundable`); `__` works in place of `:`.
+
+Payment decisions are **grounded in the scenario's sandbox world**: the
+response is resolved to one offer (`:sku`, then `:merchant`, then `:amount`;
+a single-offer scenario needs no disambiguator) and the stored action carries
+that offer's real amount, merchant, offer id, and rail — the action surface
+models are scored on. A payment response that doesn't pin down one offer is
+recorded as `underspecified` and excluded from scoring (the import and report
+both list these). Pass `--condition` to match what the form actually showed
+participants — only claim `structured_policy` if the form question included
+the policy text.
 
 Importing real data clears the `_meta.example` flag and upserts sessions by id
 (re-importing a corrected export is safe). Unknown scenario ids and stray

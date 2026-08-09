@@ -34,6 +34,22 @@ CSV contract (one row per form response = one participant):
   ``:payment_type``, ``:disclosed_fields`` (``;``-separated), ``:rationale``,
   ``:recurring``, ``:refundable``). ``__`` works in place of ``:`` for tools
   that dislike colons in headers.
+
+Every payment decision is **grounded in the scenario's sandbox world** before
+it is stored: the response is resolved to one concrete offer (by ``:sku``,
+then ``:merchant``, then ``:amount``; a single-offer scenario needs no
+disambiguator) and the stored action carries that offer's real amount,
+merchant, offer id, rail, disclosed fields, and marker attributes — the same
+action surface a model's sandbox payment produces. A payment response that
+does not pin down one offer is recorded with ``underspecified: true`` and
+excluded from scoring; grading a guess would fabricate a choice the
+participant never expressed. ``done`` claims are world-grounded the same way
+sandbox assembly grounds a model's: honored only when the scenario has a
+currently-available free source.
+
+The ``condition`` passed to the importer must reflect what the form actually
+showed participants: only claim ``structured_policy`` if the form question
+included the scenario's structured policy text alongside the task.
 """
 
 from __future__ import annotations
@@ -46,9 +62,10 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from ..data import load_scenarios
-from ..models import AgentAction, model_to_dict
+from ..models import AgentAction, Scenario, model_to_dict, normalize_policy_token
 from .humans import DEMOGRAPHIC_FIELDS, PHASE2_SESSIONS_PATH, load_sessions
 from .runner import PHASE2_SCENARIO_SET
+from .sandbox import SandboxWorld, _attempt_to_action
 
 
 # A scenario id is ``scn_`` followed by single-underscore-joined alnum segments.
@@ -214,6 +231,101 @@ def decision_to_action(token: str, extras: Optional[Dict[str, str]] = None) -> A
     return AgentAction(action_type=action_type, **fields)  # type: ignore[arg-type]
 
 
+def _split_fields(raw: str) -> List[str]:
+    return [part.strip() for part in re.split(r"[;,]", raw) if part.strip()]
+
+
+def _resolve_offer(
+    offers: List[Dict[str, Any]], extras: Dict[str, str]
+) -> Optional[Dict[str, Any]]:
+    """Pin a form response to one sandbox offer, or ``None`` when it can't be.
+
+    An explicit ``:sku``/``:offer`` id wins; otherwise ``:merchant`` and
+    ``:amount`` narrow the candidates, and a single-offer world needs no
+    disambiguator at all. Anything still ambiguous stays unresolved rather
+    than guessed.
+    """
+    sku = (extras.get("sku") or "").strip()
+    if sku:
+        return next((offer for offer in offers if offer.get("offer_id") == sku), None)
+    candidates = offers
+    merchant = normalize_policy_token(extras.get("merchant_id"))
+    if merchant:
+        candidates = [
+            offer
+            for offer in candidates
+            if normalize_policy_token(offer.get("merchant_id")) == merchant
+        ]
+    amount = _to_float(extras["amount"]) if extras.get("amount") else None
+    if amount is not None:
+        candidates = [
+            offer
+            for offer in candidates
+            if abs(float(offer.get("total") or 0.0) - amount) < 0.005
+        ]
+    return candidates[0] if len(candidates) == 1 else None
+
+
+def ground_form_action(
+    scenario: Scenario,
+    token: str,
+    extras: Optional[Dict[str, str]] = None,
+    control_condition: str = "structured_policy",
+) -> Tuple[Optional[AgentAction], Optional[str]]:
+    """Ground a form decision in the scenario's sandbox world.
+
+    A payment verb is resolved to a concrete offer and rebuilt the way the
+    sandbox assembles a model's payment, so the stored action carries the
+    offer's real amount, merchant, offer id, rail, disclosed fields, and
+    marker attributes — the same action surface models are scored on, instead
+    of a bare verb the scorer's amount/merchant/marker checks silently skip.
+    Returns ``(action, None)`` on success, or ``(None, "offer_unresolved")``
+    when the response does not pin down one offer. A ``done`` claim is honored
+    only when the world backs it (a currently-available free source),
+    mirroring sandbox assembly.
+    """
+    extras = extras or {}
+    coarse = decision_to_action(token, extras)
+    if coarse.action_type not in _PAYMENT_ACTIONS:
+        if coarse.action_type == "defer" and coarse.completed:
+            sandbox = scenario.environment.get("sandbox") or {}
+            free_source = sandbox.get("free_source")
+            if not (free_source and free_source.get("current", True)):
+                coarse.completed = False
+                coarse.rationale = (coarse.rationale + " " if coarse.rationale else "") + (
+                    "[completion claim not backed by the sandbox world]"
+                )
+        return coarse, None
+    world = SandboxWorld(scenario, control_condition)
+    offer = _resolve_offer(world.offers, extras)
+    if offer is None:
+        return None, "offer_unresolved"
+    if extras.get("disclosed_fields"):
+        disclosed = _split_fields(extras["disclosed_fields"])
+    else:
+        disclosed = list(world.checkout_required_fields)
+    payment_type = extras.get("payment_type") or (
+        "stablecoin"
+        if coarse.action_type == "send_stablecoin"
+        else offer.get("default_payment_type") or "card"
+    )
+    grounded = _attempt_to_action(
+        world,
+        {
+            "offer_id": offer["offer_id"],
+            "payment_type": payment_type,
+            "disclosed_fields": disclosed,
+            "amount": offer["total"],
+        },
+    )
+    grounded.action_type = coarse.action_type
+    grounded.paid_tool_used = coarse.paid_tool_used
+    grounded.rationale = extras.get("rationale") or (
+        f"Imported from Google Form response ({token}); grounded in offer {offer['offer_id']}."
+    )
+    return grounded, None
+
+
 def _classify_columns(fieldnames: List[str]) -> Dict[str, Any]:
     decision_cols: Dict[str, str] = {}
     attr_cols: Dict[Tuple[str, str], str] = {}
@@ -293,7 +405,9 @@ def import_google_form_csv(
     """
     csv_path = Path(csv_path)
     target = sessions_path or PHASE2_SESSIONS_PATH
-    valid_scenarios = {scenario.scenario_id for scenario in load_scenarios(PHASE2_SCENARIO_SET)}
+    valid_scenarios = {
+        scenario.scenario_id: scenario for scenario in load_scenarios(PHASE2_SCENARIO_SET)
+    }
 
     with csv_path.open("r", encoding="utf-8-sig", newline="") as handle:
         reader = csv.DictReader(handle)
@@ -310,6 +424,7 @@ def import_google_form_csv(
     participants: set[str] = set()
     unknown_scenarios: set[str] = set()
     imported_scenarios: set[str] = set()
+    underspecified_sessions: List[str] = []
     blank_cells = 0
 
     for index, row in enumerate(rows):
@@ -350,7 +465,8 @@ def import_google_form_csv(
             if not token:
                 blank_cells += 1
                 continue
-            if scenario_id not in valid_scenarios:
+            scenario = valid_scenarios.get(scenario_id)
+            if scenario is None:
                 unknown_scenarios.add(scenario_id)
                 continue
             extras = {
@@ -358,7 +474,7 @@ def import_google_form_csv(
                 for (sid, attr), attr_header in columns["attr_cols"].items()
                 if sid == scenario_id and (row.get(attr_header) or "").strip()
             }
-            action = decision_to_action(token, extras)
+            action, problem = ground_form_action(scenario, token, extras, condition)
             session_id = f"hb_{participant_id}_{scenario_id}"
             session: Dict[str, Any] = {
                 "session_id": session_id,
@@ -366,9 +482,15 @@ def import_google_form_csv(
                 "demographics": demographics,
                 "scenario_id": scenario_id,
                 "control_condition": condition,
-                "action": model_to_dict(action),
+                "action": model_to_dict(action if action is not None else decision_to_action(token, extras)),
                 "source": "google_form_csv",
             }
+            if problem:
+                # The verb is kept for the record, but nothing says which
+                # offer was bought, so the session is flagged and stays out of
+                # scoring (score_sessions skips it).
+                session["underspecified"] = True
+                underspecified_sessions.append(session_id)
             if started_at:
                 session["started_at"] = started_at
             if duration_seconds is not None:
@@ -401,6 +523,7 @@ def import_google_form_csv(
         "scenarios": sorted(imported_scenarios),
         "unknown_scenarios": sorted(unknown_scenarios),
         "unknown_columns": columns["unknown_columns"],
+        "underspecified_sessions": sorted(underspecified_sessions),
         "blank_cells": blank_cells,
         "sessions_path": str(target),
         "written": bool(write and new_sessions),

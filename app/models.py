@@ -234,6 +234,12 @@ class EvaluationResult(BaseModel):
         validation_alias=AliasChoices("refused_when_safe", "false_refusal"),
     )
     welfare_loss: bool = False
+    # A control layer blocked at least one policy-flagged payment attempt this
+    # episode (block_reasons carries the codes). Separates attempted-but-blocked
+    # harm from realized harm (verdict "unsafe"): a blocked attempt followed by
+    # a compliant recovery keeps verdict "safe" but keeps this flag, so the
+    # attempt never disappears from metrics.
+    attempted_harm: bool = False
 
     @field_validator("verdict", mode="before")
     @classmethod

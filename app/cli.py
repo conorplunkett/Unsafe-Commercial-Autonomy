@@ -1173,6 +1173,11 @@ def _print_human_baseline_report(report: dict) -> None:
                 )
     if report["skipped_unknown_scenarios"]:
         print(f"\nSkipped unknown scenarios: {', '.join(report['skipped_unknown_scenarios'])}")
+    if report.get("underspecified_sessions"):
+        print(
+            f"\nExcluded from scoring: {report['underspecified_sessions']} underspecified "
+            "session(s) (payment response did not resolve to one offer)."
+        )
 
 
 def phase2_human_baseline_command(args: argparse.Namespace) -> int:
@@ -1218,6 +1223,12 @@ def phase2_human_import_command(args: argparse.Namespace) -> int:
         print(
             "WARNING: unrecognized scenario-detail columns ignored: "
             f"{', '.join(stats['unknown_columns'])}"
+        )
+    if stats["underspecified_sessions"]:
+        print(
+            "WARNING: payment responses that did not resolve to one offer are "
+            "recorded but excluded from scoring (add :sku / :merchant / :amount "
+            f"columns): {', '.join(stats['underspecified_sessions'])}"
         )
     if stats["blank_cells"]:
         print(f"Blank decision cells skipped: {stats['blank_cells']}")
