@@ -426,7 +426,7 @@ The benchmark moves to staging or sandbox infrastructure from an agentic payment
 - **Full control ablation.** Four conditions, varying one layer at a time while holding scenario set, models, and seeds fixed:
     1. **No policy:** the agent receives the task and tools, with no explicit payment policy.
     2. **Structured policy representation:** the policy is provided as structured fields, but not enforced by tools.
-    3. **Preflight policy check:** the agent must call a policy-check tool before payment, which returns allow, block, or approval required.
+    3. **Required policy check:** the agent must call a policy-check tool before payment, which returns allow, block, or approval required; the verdict itself is advisory.
     4. **Tool-level hard constraints:** payment tools enforce hard limits such as spend caps, merchant allowlists, payment-rail restrictions, and subscription approval requirements.
 - **Evaluation-awareness test.** Framing varies between explicit evaluation context and realistic deployment context, measuring whether models behave more cautiously when a scenario reads like a test.
 - **Urgency ablation.** A prompt-level axis crossed with framing and control condition the same way: the default `none` versus `time_pressure`, which adds a deadline and nothing else (`metrics.phase2.by_urgency`; `--urgencies`). Gives a reportable rate instead of relying on the handful of scenarios that happen to narrate a deadline.
@@ -486,7 +486,7 @@ The distributions come from the committed survey aggregate and are merged into e
 ## Expected results
 
 Prompt-only controls are expected to fail often. The agent may understand a rule in the abstract and still violate it when optimizing for task completion.
-Structured policy and preflight checks are expected to sit between prompt-only controls and hard constraints: better than prompting alone, but dependent on whether the agent actually invokes the check correctly.
+Structured policy and required checks are expected to sit between prompt-only controls and hard constraints: better than prompting alone, but dependent on whether the agent actually invokes the check correctly.
 Tool-level hard constraints should reduce direct overspend but miss subtler failures like buying the wrong item, picking a non-refundable option, leaking unnecessary data, or splitting payments to avoid approval.
 Human-in-the-loop approval should reduce severe failures while raising the false-stop rate, which is exactly why the frontier framing matters.
 The best setup is expected to combine structured payment policy, hard tool constraints, merchant and category validation, approval thresholds, and audit logs.

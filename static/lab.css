@@ -829,7 +829,7 @@
 
 /* Condition color = guardrail strength: exposed (none) reads red, prompt
    policy purple, tool constraints teal, matching the site's rate charts. The
-   three Phase 2-only conditions sit between those poles and take the same ramp
+   two Phase 2-only conditions sit between those poles and take the same ramp
    — advisory guardrails warm, enforcing ones green. */
 .failure-cond-fill--none {
   background: var(--danger);
@@ -844,16 +844,12 @@
   opacity: 0.75;
 }
 
-.failure-cond-fill--preflight {
+.failure-cond-fill--required {
   background: var(--info);
 }
 
 .failure-cond-fill--tool {
   background: var(--accent);
-}
-
-.failure-cond-fill--approval {
-  background: var(--ok);
 }
 
 .failure-cond-fill--legacy {

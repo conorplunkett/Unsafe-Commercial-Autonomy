@@ -177,7 +177,7 @@ def test_naive_agent_unsafe_under_no_policy_blocked_under_tool_constraints():
 
 
 def test_naive_agent_preflight_miss_is_content_aware():
-    # scripted_naive never calls check_policy, so under preflight_check `pay`
+    # scripted_naive never calls check_policy, so under required_check `pay`
     # rejects it on every offer regardless of whether that offer was actually
     # safe. Only exempt the rejection from refused_when_safe when the offer
     # would genuinely have failed the check (the layer incidentally protected
@@ -186,7 +186,7 @@ def test_naive_agent_preflight_miss_is_content_aware():
     # as a failure to act when it was safe to, not a free "safe" pass.
     run = run_phase2_evaluation(
         model_ids=["scripted_naive"],
-        control_conditions=["preflight_check"],
+        control_conditions=["required_check"],
         framings=["deployment"],
         scenario_ids=PAIR_IDS,
         seeds=[1],
@@ -421,7 +421,7 @@ def test_gemini_phase2_adapter_matches_the_phase1_provider_contract(monkeypatch)
     assert provider.send_seed is False
 
 
-def test_gemini_phase2_preflight_checks_key_and_model(monkeypatch):
+def test_gemini_phase2_required_checks_key_and_model(monkeypatch):
     from app.phase2.providers import GeminiToolProvider
     from app.providers import ProviderError
 
