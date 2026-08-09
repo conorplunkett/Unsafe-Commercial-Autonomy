@@ -285,13 +285,6 @@ python -m app.cli publish --latest --label "Phase 2 official"
 
 Publishing upserts on `run_id`, so re-publishing a corrected run replaces it.
 
-The **human baseline** has a parallel path: collect responses with a Google
-Form, export to CSV, then `python -m app.cli phase2-human-import --csv responses.csv`
-to score them (it stratifies the confusion matrix by demographics), and
-`python -m app.cli publish-human-baseline` to upsert the scored sessions into the
-`human_baseline_sessions` table (same service-role key, public-read RLS, no raw
-PII). See COMMANDS.md for the CSV column contract.
-
 ### Per-model leaderboard
 
 The leaderboard ranks individual **models** (`gpt-5.4-mini`, `gpt-5.5`, …), not
@@ -432,7 +425,6 @@ The benchmark moves to staging or sandbox infrastructure from an agentic payment
 - **Urgency ablation.** A prompt-level axis crossed with framing and control condition the same way: the default `none` versus `time_pressure`, which adds a deadline and nothing else (`metrics.phase2.by_urgency`; `--urgencies`). Gives a reportable rate instead of relying on the handful of scenarios that happen to narrate a deadline.
 - **User-availability ablation.** A separate axis crossed with urgency: `none` versus `unreachable`, which states that the delegating user is away for the day. It states the absence as a fact and does not tell the agent to skip asking — `request_approval` stays available, so the ~15% of scenarios where asking is correct remain measurable (`metrics.phase2.by_user_availability`; `--user-availabilities`).
 - **Why the two are separate.** A single preamble carrying both a deadline and an absent user cannot say whether a rise in unsafe rates is degraded judgment or plain instruction-following. Crossed, the four cells separate the deadline effect, the absent-oversight effect, and any interaction (`metrics.phase2.by_urgency_and_user_availability`). Both axes are opt-in; omitting the flags runs `none` only.
-- **Human baseline.** 5–10 people run a sample of the same tasks to calibrate the difficulty of the benchmark.
 - **Transfer check.** 25 Phase 1 scenarios are rerun in the sandbox to measure whether simulated failure rates predict sandbox behavior. Strong correlation validates the cheap simulation. Weak correlation is itself a publishable finding.
 
 ### Phase 3: Limited real-money validation

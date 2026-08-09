@@ -75,10 +75,7 @@ carries):
 | `phase2-survey` | v2 answer-key agreement and lock status |
 | `phase2-survey-collect` | Record one respondent's v2 votes |
 | `phase2-transfer` | Phase 1 run vs sandbox rerun of the v1 traps |
-| `phase2-human-baseline` | Human calibration sessions (report or collect) |
-| `phase2-human-import` | Import a Google Form CSV of human responses |
 | `publish` | Push a stored run to Supabase |
-| `publish-human-baseline` | Push scored human sessions to Supabase |
 
 `eval` and `phase2-eval` both take `--split objective` / `--split survey` to
 run one half of a scenario set.
@@ -232,10 +229,8 @@ Coverage caveats:
   mark injection-compliant offers. Traps the structured policy engine cannot
   detect (ambiguity, missing consent) are flagged `semantic_only` and are
   scored via `safe_to_act`/`acceptable_actions` only.
-- The survey and human-baseline data files ship with **example entries
-  only** (`_meta.example: true`); collect real data before reporting. Human
-  responses load from a Google Form CSV via `phase2-human-import`, then publish
-  with `publish-human-baseline`.
+- The survey data files ship with **example entries only**
+  (`_meta.example: true`); collect real data before reporting.
 
 ### `phase2-eval` — four-condition sandbox ablation + framing/urgency/user-availability tests
 
@@ -426,76 +421,6 @@ gating, attention/calibration payload fields, demographics steps. Point them
 at a Chromium binary with `PHASE2_CHROME=/path/to/chrome` if the default
 Playwright install location differs.
 
-### `phase2-human-baseline` — human calibration sessions
-
-```bash
-python -m app.cli phase2-human-baseline               # report recorded sessions
-python -m app.cli phase2-human-baseline \
-  --participant-id p01 --scenario-ids scn_v2_a1_trap  # collect: human drives the sandbox
-```
-
-Collection presents the same SandboxWorld as a text menu (search / view /
-check / pay / approve / refuse / done / abandon / finish), so humans use
-exactly the tools models use. The participant is first shown the same brief a
-model episode gets for the session's condition — structured policy included
-where the condition includes it — and `pay`/`check` take the model's full
-argument surface: `pay <offer_id> [rail] [field1;field2]`, with the
-disclosure-token vocabulary printed in the menu. Sessions store a plain
-`AgentAction` in `data/human_baseline/phase2_sessions.json` (plus every
-completed payment when there was more than one) and are scored by the same
-pipeline as model runs. The report breaks the confusion matrix and rates down
-**by demographic** (age, country, occupation, purchasing role, AI familiarity)
-whenever those fields are present.
-
-### `phase2-human-import` — load human responses from a Google Form CSV
-
-Running 5–10 remote participants through the text menu doesn't scale, so the
-realistic path is a Google Form exported to CSV:
-
-```bash
-python -m app.cli phase2-human-import --csv responses.csv   # import + report
-```
-
-CSV contract (one row per form response = one participant), template at
-[`data/human_baseline/google_form_template.csv`](data/human_baseline/google_form_template.csv):
-
-- **Identity** — a `participant_id` column (or `email`, which is **pseudonymized**
-  — raw addresses are never stored — or an auto `p01`, `p02`… fallback).
-- **Demographics** — any of `age_band`/`age`, `gender`, `country`,
-  `occupation`/`job`, `purchasing_role`/`role`, `education`, `ai_familiarity`.
-  Unrecognized non-scenario columns are kept verbatim in `demographics`.
-- **Decisions** — every column whose header *contains* a scenario id (a question
-  titled `[scn_v2_a1_trap] You're asked to …`, or just the bare id
-  `scn_v2_a1_trap`). The cell value is a coarse verb that scores the safe/unsafe
-  confusion matrix:
-
-  | Verb | Aliases | Scored action |
-  | --- | --- | --- |
-  | `proceed` | buy, pay, purchase | purchase |
-  | `ask` | approve, approval, escalate, request approval | ask_approval |
-  | `refuse` | decline, reject, deny | refuse |
-  | `done` | complete, task complete | defer (task done, no payment) |
-  | `skip` | abandon, do nothing, none | defer (abandoned) |
-
-- **Optional detail** — `scn_v2_a1_trap:amount` columns (also `:merchant`, `:sku`,
-  `:payment_type`, `:disclosed_fields` (`;`-separated), `:rationale`,
-  `:recurring`, `:refundable`); `__` works in place of `:`.
-
-Payment decisions are **grounded in the scenario's sandbox world**: the
-response is resolved to one offer (`:sku`, then `:merchant`, then `:amount`;
-a single-offer scenario needs no disambiguator) and the stored action carries
-that offer's real amount, merchant, offer id, and rail — the action surface
-models are scored on. A payment response that doesn't pin down one offer is
-recorded as `underspecified` and excluded from scoring (the import and report
-both list these). Pass `--condition` to match what the form actually showed
-participants — only claim `structured_policy` if the form question included
-the policy text.
-
-Importing real data clears the `_meta.example` flag and upserts sessions by id
-(re-importing a corrected export is safe). Unknown scenario ids and stray
-columns are reported, not silently dropped. Use `--sessions-file` to write a
-separate cohort file.
-
 ### `phase2-transfer` — Phase 1 → sandbox transfer check
 
 ```bash
@@ -531,26 +456,6 @@ python -m app.cli publish --file runtime/runs/run_<id>.json
 - The site reads with the **publishable** key in `web/lib/config.ts` (safe to
   commit; row-level security grants public read only). Writes require the
   **service-role** key above, which must stay server-side.
-
-## `publish-human-baseline` — push human sessions to Supabase
-
-Publishes one scored row per recorded human session to the
-`human_baseline_sessions` table (migration
-`db/migrations/0002_add_human_baseline.sql`), so the human calibration line and
-its demographics sit alongside the model leaderboard. Uses the same
-service-role key as `publish`.
-
-```bash
-python -m app.cli publish-human-baseline --label "Phase 2 human baseline"
-```
-
-- Reads `data/human_baseline/phase2_sessions.json` (override with `--file`).
-- **Refuses to publish example data** — import real sessions first; pass
-  `--allow-example` only to deliberately override.
-- Upserts on `session_id` (idempotent). Each row carries the scored verdict and
-  confusion-matrix `outcome`, the full `action`/`demographics` JSON, and the
-  canonical demographics lifted to columns for SQL filtering. No raw emails or
-  names are stored. Public SELECT via RLS, like `benchmark_runs`.
 
 ---
 
@@ -850,7 +755,6 @@ Agent actions must be one of: `purchase`, `pay_tool`, `send_stablecoin`,
 | `app/phase2/providers.py` | Tool-loop adapters (OpenAI/Anthropic/Kimi/Inkling/Grok/DeepSeek/Mistral/Qwen/OpenRouter/openweights) + scripted agents |
 | `app/phase2/runner.py` | Phase 2 eval loop (model × condition × framing × urgency × user availability × scenario × seed) |
 | `app/phase2/survey.py` | 50-respondent survey aggregation, lock, collection |
-| `app/phase2/humans.py` | Human-baseline sessions: report + interactive collection |
 | `app/phase2/transfer.py` | Phase 1 → sandbox transfer correlation |
 | `scripts/generate_v2_constraints.py` | Generates `data/answer_keys/v2_constraints.json` (A+B) |
 | `implementation.py` | Alternate uvicorn entrypoint |
@@ -859,10 +763,8 @@ Agent actions must be one of: `purchase`, `pay_tool`, `send_stablecoin`,
 
 ## Not implemented yet (see README)
 
-- Real survey responses (50 respondents) and real human-baseline sessions —
-  the data files ship with example entries; collection/import CLIs exist
-  (`phase2-human-import` ingests a Google Form CSV; `publish-human-baseline`
-  pushes scored sessions + demographics to Supabase)
+- Real survey responses (50 respondents) — the data files ship with example
+  entries; collect real data before reporting
 - Wiring v2 survey lock status into scenario `answer_key_status`
 - Additional payment rails as first-class benchmark scope
 - Phase 3 real-money validation

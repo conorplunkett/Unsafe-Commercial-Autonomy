@@ -1,5 +1,40 @@
 # Changelog
 
+## [2026-08-09] Human baseline removed from scope (supersedes R3)
+
+### Removed
+- **The Phase 2 human-baseline pipeline is out of the benchmark's scope.** It
+  was never run with real participants — the sessions file shipped example
+  data only — and release blocker R3 (participants would have been scored
+  under `structured_policy` without seeing the policy, with a narrower action
+  space than models, from an importer whose coarse `proceed` carried no
+  offer/amount/merchant) is resolved by removing the pipeline entirely rather
+  than by the parity fixes landed earlier on this branch. Deleted:
+  `app/phase2/humans.py`, `app/phase2/human_import.py`, the
+  `phase2-human-baseline` / `phase2-human-import` / `publish-human-baseline`
+  CLI commands, `publish_human_baseline` in `app/supabase_publish.py`,
+  `data/human_baseline/`, `db/migrations/0002_add_human_baseline.sql`, the
+  admin dashboard's command-card entries for those CLIs, their tests, and the
+  README/COMMANDS sections describing the pipeline.
+- **The survey is untouched.** The answer-key survey (instrument, votes,
+  locks, `human_distribution`, the reflexive-ask floor, and every
+  survey-grounded metric axis) is a separate system and is unchanged; the
+  0005 migration's historical comment referencing the old table is left
+  as-is. If the `human_baseline_sessions` table was ever created in a live
+  Supabase project, this change does not drop it — dropping a live table is a
+  separate, deliberate operation.
+- R1 (every completed payment graded) and R2 (attempted/realized harm,
+  recovery, and task completion separated) are model-side scoring fixes and
+  stand unchanged.
+
+### Files
+- Deleted: `app/phase2/humans.py`, `app/phase2/human_import.py`,
+  `tests/test_phase2_humans.py`, `data/human_baseline/`,
+  `db/migrations/0002_add_human_baseline.sql`.
+- Edited: `app/cli.py`, `app/supabase_publish.py`, `tests/test_cli.py`,
+  `tests/test_supabase_publish.py`, `web/public/admin.html`, `README.md`,
+  `COMMANDS.md`.
+
 ## [2026-08-09] Every completed payment is graded, not just the last (R1)
 
 ### Fixed

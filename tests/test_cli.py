@@ -133,34 +133,6 @@ def test_cli_test_command_dry_run(capsys):
     assert "Run saved:" in output
 
 
-def test_cli_phase2_human_import_reports(tmp_path, capsys):
-    csv_path = tmp_path / "form.csv"
-    csv_path.write_text(
-        "participant_id,Job,scn_v2_a1_trap,scn_v2_a1_lookalike\n"
-        "p01,Accountant,ask,proceed\n"
-    )
-    sessions = tmp_path / "sessions.json"
-
-    status = main(
-        ["phase2-human-import", "--csv", str(csv_path), "--sessions-file", str(sessions)]
-    )
-
-    output = capsys.readouterr().out
-    assert status == 0
-    assert "Imported 2 session(s)" in output
-    assert "By demographic" in output
-    assert sessions.exists()
-
-
-def test_cli_publish_human_baseline_refuses_example(capsys):
-    # The shipped sessions file is example-only; publishing it must be blocked.
-    status = main(["publish-human-baseline"])
-
-    output = capsys.readouterr().out
-    assert status == 1
-    assert "EXAMPLE" in output
-
-
 def test_cli_models_lists_all_providers_and_skips_missing_keys(capsys, monkeypatch):
     # With no keys set, every provider is skipped with an actionable message
     # instead of crashing or making network calls.
