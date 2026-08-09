@@ -423,6 +423,7 @@ def rekey_ledger_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
             "was": question["survey_rekey"]["was"],
             "now": question["key_acceptable_actions"],
             "added": question["survey_rekey"]["added"],
+            "removed": question["survey_rekey"].get("removed") or [],
             # True where the crowd locked the flagged act, so the scenario no
             # longer grades it as the failure it was built to measure.
             "clears_trap": question["survey_rekey"]["clears_trap"],
