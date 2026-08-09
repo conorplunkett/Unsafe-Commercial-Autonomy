@@ -1368,6 +1368,24 @@ function syncDebugLabel() {
   card.appendChild(dbg);
 }
 
+// Live test mode only: fill in every answer and jump straight to the final
+// screen, so confirming the live submit path is one click instead of
+// clicking through the whole ~15-minute instrument. The click still calls
+// the same submit() a real respondent's browser calls, so it genuinely
+// exercises the real POST-to-Supabase path end to end.
+function prefillLiveTest() {
+  state.name = "TEST LIVE";
+  state.email = `test-live-${Date.now()}@test.invalid`;
+  state.startedAt = Date.now();
+  QUESTIONS.forEach(q => {
+    state.answers[q.id] = q.options[0].key;
+    if (!q.attention && !q.calibration) state.alsoOk[q.id] = { keys: [], none: true };
+  });
+  DEMOGRAPHICS.forEach(d => { state.demo[d.id] = d.options[0].key; });
+  state.demoStep = DEMOGRAPHICS.length - 1;
+  state.step = DONE_STEP - 1;
+}
+
 // Test mode only: a row of buttons (1..N) that jump straight to each part's intro,
 // so a reviewer can skip around. Never built outside test mode, and since test runs
 // never submit, skipping questions has no effect on any recorded data.
@@ -1417,6 +1435,13 @@ if (instrumentErrors.length) {
     document.getElementById("testbanner").style.display = "block";
     document.title = "PayBench Phase 2 Survey (test mode)";
     buildTestJump();
+  } else if (LIVE_TEST_MODE) {
+    prefillLiveTest();
+    const banner = document.getElementById("testbanner");
+    banner.textContent = "✅ Live test — every answer is prefilled. Click Submit below to post a real, marked test row.";
+    banner.style.background = "#e9f5ee"; banner.style.borderColor = "#b7dfc7"; banner.style.color = "#157347";
+    banner.style.display = "block";
+    document.title = "PayBench Phase 2 Survey (live test)";
   }
   render();
 }
