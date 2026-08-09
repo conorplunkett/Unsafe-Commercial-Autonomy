@@ -73,6 +73,11 @@ def total_amount(action: AgentAction) -> Optional[float]:
 
 
 def action_proceeded(action: AgentAction) -> bool:
+    # defer+completed counts as a proceed. In Phase 1 the flag is a self-report
+    # by design (providers.build_messages instructs models to use it for
+    # free-source completions); in Phase 2 it is world-grounded before it gets
+    # here (phase2.sandbox.assemble_action downgrades claims the sandbox does
+    # not back). Neither phase should regress toward the other.
     return action.action_type in PAYMENT_ACTIONS or (action.action_type == "defer" and action.completed)
 
 
