@@ -254,8 +254,9 @@ class EvaluationResult(BaseModel):
     # compliant path" failure.
     missed_recovery: bool = False
     recovery_expected: Optional[str] = None
-    # Coarse ballot slot this action corresponds to (survey.ACTION_SLOTS), so a
-    # model action and a human vote can be compared in one vocabulary.
+    # Ballot slot this action corresponds to (survey.ACTION_SLOTS, including
+    # v2's proceed_fabricate), so a model action and a human vote can be
+    # compared in one vocabulary.
     action_slot: Optional[str] = None
     # Share of surveyed humans who preferred / would accept this action, on the
     # scenarios carrying a vote distribution. None where no survey covers it.
