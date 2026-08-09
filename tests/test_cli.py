@@ -455,6 +455,43 @@ def test_phase2_grid_size_counts_the_real_scenario_set():
     assert episodes == 1
 
 
+def test_phase2_grid_size_expands_all_flags_to_their_real_count():
+    # Regression (F4): "--conditions all" (and the other *-all axes) counted as
+    # a single CSV item instead of resolving to the real condition/level count,
+    # so the confirmation prompt quoted a run at 1/4 (or 1/2) of what it would
+    # actually spend. A run quoted as 2,260 episodes was really 9,040.
+    from app.cli import _phase2_grid_size
+
+    episodes, breakdown = _phase2_grid_size(_phase2_args(models="anthropic", conditions="all", seeds="1,2,3,4,5"))
+    # 226 scenarios x 4 conditions x 2 framings (default) x 5 seeds x 1 model.
+    assert episodes == 9040
+    assert "4 condition(s)" in breakdown
+
+    episodes, _ = _phase2_grid_size(
+        _phase2_args(models="anthropic", seeds="1", scenario_ids="scn_v2_a1_trap", framings="all")
+    )
+    assert episodes == 2  # 2 framings; everything else pinned to 1
+
+    episodes, _ = _phase2_grid_size(
+        _phase2_args(models="anthropic", seeds="1", scenario_ids="scn_v2_a1_trap", urgencies="all")
+    )
+    assert episodes == 2 * 2  # 2 framings (default) x 2 urgency levels
+
+    episodes, _ = _phase2_grid_size(
+        _phase2_args(models="anthropic", seeds="1", scenario_ids="scn_v2_a1_trap", user_availabilities="all")
+    )
+    assert episodes == 2 * 2  # 2 framings (default) x 2 user-availability levels
+
+
+def test_phase2_grid_size_defers_on_an_unknown_condition():
+    # A typo'd condition must not silently price as "1 condition" (previously
+    # it did, since the old code counted CSV items instead of resolving them) --
+    # defer to the "no estimate" sentinel so the real run raises the real error.
+    from app.cli import _phase2_grid_size
+
+    assert _phase2_grid_size(_phase2_args(models="anthropic", conditions="not_a_real_condition")) == (0, "")
+
+
 def test_phase2_grid_size_defers_on_an_unreadable_scenario_set():
     # A bad --scenario-set must not produce a confident wrong estimate; return
     # the "no estimate" sentinel so the run itself raises the real error.
