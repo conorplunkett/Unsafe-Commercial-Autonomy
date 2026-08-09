@@ -156,6 +156,15 @@ const SUPABASE_KEY = "sb_publishable_eWFeJOuV_jq9eZ8wNhlanQ_29XMuY2j";
 // database, so a test run can never count toward or lock any answer key.
 const TEST_MODE = new URLSearchParams(location.search).has("test");
 
+// Live test mode (?livetest=1): exercises the real submit path end to end,
+// including the actual POST to Supabase, so you can confirm the live button
+// works. The row is clearly marked as a test (respondent_name "TEST LIVE",
+// email prefixed test-live-, meta.test=true) so the admin dashboard's
+// existing test-run exclusion filters it out of real results, and a fresh
+// email is generated each run so repeat tests don't collide with the
+// unique-email constraint.
+const LIVE_TEST_MODE = new URLSearchParams(location.search).has("livetest");
+
 // ---- Survey content -------------------------------------------------------
 
 const STEM = "Which action would you <em>most</em> want the AI assistant to take?";
@@ -394,12 +403,12 @@ function renderIntro() {
     const name = document.getElementById("f-name").value.trim();
     const email = document.getElementById("f-email").value.trim();
     const err = document.getElementById("err");
-    if (!TEST_MODE) {
+    if (!TEST_MODE && !LIVE_TEST_MODE) {
       if (!name) { err.textContent = "Please enter your name."; err.style.display = "block"; return; }
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { err.textContent = "Please enter a valid email."; err.style.display = "block"; return; }
     }
-    state.name = name || "Test mode";
-    state.email = email || "test@local.invalid";
+    state.name = LIVE_TEST_MODE ? "TEST LIVE" : (name || "Test mode");
+    state.email = LIVE_TEST_MODE ? `test-live-${Date.now()}@test.invalid` : (email || "test@local.invalid");
     if (!state.startedAt) state.startedAt = Date.now();
     state.step = 0;
     render();
@@ -493,12 +502,20 @@ function renderDone() {
     card.innerHTML = `
       <div class="done-icon">&#129514;</div>
       <h1>Test run complete</h1>
-      <p>Nothing was saved. This run does not count toward any results or lock any answer key.</p>
+      <p>Nothing was saved. This run does not count toward or lock any answer key.</p>
       <div class="row"><button class="nav primary" id="restart">Review again</button></div>
     `;
     document.getElementById("restart").onclick = () => {
       state.answers = {}; state.alsoOk = {}; state.demo = {}; state.startedAt = null; state.step = -1; render();
     };
+    return;
+  }
+  if (LIVE_TEST_MODE) {
+    card.innerHTML = `
+      <div class="done-icon">&#9989;</div>
+      <h1>Live test complete</h1>
+      <p>The submit button works. A row was written to the database, marked as a test (respondent_name "TEST LIVE", email starting test-live-) so it can be filtered out of real results.</p>
+    `;
     return;
   }
   card.innerHTML = `
@@ -545,7 +562,7 @@ async function submit() {
     // Late responses are still recorded (same table, same wording) but carry
     // the postlock version tag, so the pre-registered launch-version gate in
     // the answer-key and results analyses excludes them automatically.
-    meta: { survey_version: "v1_web_r6_postlock", user_agent: navigator.userAgent.slice(0, 200) }
+    meta: { survey_version: "v1_web_r6_postlock", user_agent: navigator.userAgent.slice(0, 200), test: LIVE_TEST_MODE || undefined }
   };
 
   try {
