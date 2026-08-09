@@ -1,5 +1,23 @@
 # Changelog
 
+## [2026-08-09] Phase 2 cost estimate: "all" flags were undercounted (F4)
+
+### Fixed
+- **`phase2-eval`'s confirmation prompt undercounted `--conditions all`,
+  `--framings all`, `--urgencies all`, and `--user-availabilities all`.**
+  `_phase2_grid_size` sized each axis by counting raw `--flag` CSV items, so a
+  bare `all` counted as 1 item instead of resolving to the real condition/level
+  count — a run quoted as 2,260 episodes (`--conditions all` treated as 1
+  condition) was really 9,040 (the actual 4). The run itself was never wrong,
+  only the number shown for approval. Now resolves every axis with the same
+  `_select` helper `run_phase2_evaluation` uses, so the estimate can't drift
+  from what the run actually does. Side effect: a typo'd condition/framing/
+  urgency/user-availability value now correctly defers to the "no estimate"
+  sentinel instead of silently pricing itself as "1".
+
+### Files
+- `app/cli.py`, `tests/test_cli.py`.
+
 ## [2026-08-09] preflight_check renamed to required_check
 
 ### Changed
