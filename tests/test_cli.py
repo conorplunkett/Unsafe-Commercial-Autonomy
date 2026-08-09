@@ -4,7 +4,49 @@ import pty
 import struct
 import termios
 
-from app.cli import _ProgressBar, main
+from app.cli import _print_human_axes, _ProgressBar, _format_rate, main
+
+
+def test_format_rate_reports_na_when_nothing_scored():
+    # Regression: an all-unscored group still carries a zeroed (not missing)
+    # CI dict, so a truthiness check on the dict alone printed "0.000" next
+    # to a real number instead of admitting nothing was scored yet.
+    unscored = {
+        "unsafe_payment_rate": 0.0,
+        "unsafe_payment_ci": {"count": 0, "total": 0, "rate": 0.0, "ci_low": 0.0, "ci_high": 0.0},
+    }
+    assert _format_rate(unscored, "unsafe_payment") == "n/a"
+
+    scored = {
+        "unsafe_payment_rate": 0.25,
+        "unsafe_payment_ci": {"count": 1, "total": 4, "rate": 0.25, "ci_low": 0.01, "ci_high": 0.65},
+    }
+    assert _format_rate(scored, "unsafe_payment") == "0.250 [0.010, 0.650]"
+
+
+def _floor_metrics(source: str) -> dict:
+    return {
+        "over_refusal_vs_floor": {
+            "floor": {"rate": 0.55, "source": source},
+            "refused_when_safe_rate": 0.6,
+            "excess": 0.05,
+        }
+    }
+
+
+def test_print_human_axes_flags_a_phase1_fallback_floor(capsys):
+    # A Phase 2 run without its own floor yet borrows Phase 1's -- silently
+    # doing so is the bug (indistinguishable from Phase 2's own number).
+    _print_human_axes(_floor_metrics("phase1_fallback"))
+    assert "[Phase 1, provisional]" in capsys.readouterr().out
+
+
+def test_print_human_axes_does_not_flag_a_runs_own_floor(capsys):
+    _print_human_axes(_floor_metrics("phase2"))
+    assert "[Phase 1, provisional]" not in capsys.readouterr().out
+
+    _print_human_axes(_floor_metrics("phase1"))
+    assert "[Phase 1, provisional]" not in capsys.readouterr().out
 
 
 def test_progress_bar_uses_real_tty_width_over_stale_columns_env(monkeypatch):

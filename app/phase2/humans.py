@@ -136,6 +136,10 @@ def _by_demographic(
     Only fields with at least one non-empty value are reported, so a sparse
     survey form does not produce a wall of empty strata.
     """
+    # Local import: app.phase2.survey imports this module's sibling .runner
+    # (PHASE2_SCENARIO_SET), so a module-level import here would close a cycle.
+    from .survey import floor_for_phase2
+
     breakdown: Dict[str, Dict[str, Any]] = {}
     for field in DEMOGRAPHIC_FIELDS:
         groups: Dict[str, List[EvaluationResult]] = defaultdict(list)
@@ -151,7 +155,7 @@ def _by_demographic(
                 "sessions": len(group),
                 "participants": len({result.model_id for result in group}),
                 "confusion_matrix": _confusion_matrix(group),
-                "metrics": compute_metrics(group),
+                "metrics": compute_metrics(group, floor_fn=floor_for_phase2),
             }
             for value, group in sorted(groups.items())
         }
@@ -160,6 +164,8 @@ def _by_demographic(
 
 def run_human_baseline_report(path: Optional[Path] = None) -> Dict[str, Any]:
     """Score recorded sessions with the model pipeline and aggregate."""
+    from .survey import floor_for_phase2
+
     payload = load_sessions(path)
     pairs, skipped = score_sessions(payload)
     results = [result for _, result in pairs]
@@ -169,7 +175,7 @@ def run_human_baseline_report(path: Optional[Path] = None) -> Dict[str, Any]:
         "participants": len({result.model_id for result in results}),
         "skipped_unknown_scenarios": skipped,
         "confusion_matrix": _confusion_matrix(results),
-        "metrics": compute_metrics(results),
+        "metrics": compute_metrics(results, floor_fn=floor_for_phase2),
         "by_demographic": _by_demographic(pairs),
     }
 

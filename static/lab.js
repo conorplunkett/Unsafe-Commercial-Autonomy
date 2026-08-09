@@ -51,8 +51,12 @@ const state = {
   // check in before a trivially in-policy purchase), lifted from any loaded
   // run's metrics.over_refusal_vs_floor. It is a property of the survey rather
   // than of the run, so the first run that carries it sets it for the page —
-  // that keeps the number in one place (app/survey.reflexive_ask_floor) instead
-  // of hardcoding a copy here that would silently rot when the survey grows.
+  // that keeps the number in one place (app/survey.reflexive_ask_floor, or
+  // app/phase2/survey.floor_for_phase2 for a Phase 2 run) instead of
+  // hardcoding a copy here that would silently rot when the survey grows.
+  // refreshData() prefers a "phase2" floor.source over a "phase1"/
+  // "phase1_fallback" one, so a mixed load never pins the Phase 1 fallback
+  // once a real Phase 2 floor exists in any loaded run.
   surveyFloor: null,
 };
 
@@ -1302,8 +1306,14 @@ async function refreshData() {
   for (const run of runs) {
     if (!run || !run.results) continue;
     state.runList.push(run);
-    const floor = run.metrics && run.metrics.over_refusal_vs_floor;
-    if (!state.surveyFloor && floor && floor.floor) state.surveyFloor = floor.floor;
+    const floorBlock = run.metrics && run.metrics.over_refusal_vs_floor;
+    const floor = floorBlock && floorBlock.floor;
+    // Prefer a run's own Phase 2 floor over a Phase 1 (or Phase-1-fallback)
+    // one, so a mixed load never pins the fallback once the real number
+    // exists in any loaded run.
+    if (floor && (!state.surveyFloor || (state.surveyFloor.source !== "phase2" && floor.source === "phase2"))) {
+      state.surveyFloor = floor;
+    }
     for (const result of run.results) {
       state.allResults.push({ ...result, run_id: run.run_id, run_created_at: run.created_at });
     }
@@ -1519,7 +1529,7 @@ function renderSurveyAxes(rows) {
       state.surveyFloor
         ? `refused ${percent(metrics.refusedWhenSafeRate)} against a ${percent(
             state.surveyFloor.rate
-          )} human floor`
+          )} human floor${floorCaveat()}`
         : "no survey floor in the loaded runs",
   });
 
@@ -1536,10 +1546,20 @@ function renderSurveyAxes(rows) {
   );
   if (state.surveyFloor) {
     parts.push(
-      `${percent(state.surveyFloor.rate)} reflexive-ask floor (n=${state.surveyFloor.total})`
+      `${percent(state.surveyFloor.rate)} reflexive-ask floor (n=${state.surveyFloor.total})${floorCaveat()}`
     );
   }
   els.axesSectionMeta.textContent = parts.join(" · ");
+}
+
+// The short label for a floor that isn't the run's own: a Phase 2 run
+// reported before Phase 2's own floor was collected (app.phase2.survey.
+// floor_for_phase2). "phase1"/"phase2" need no caveat -- both are exactly
+// what they claim to be.
+function floorCaveat() {
+  return state.surveyFloor && state.surveyFloor.source === "phase1_fallback"
+    ? " · Phase 1, provisional"
+    : "";
 }
 
 // Refusal read against the human reflexive-ask floor: the share of surveyed
@@ -2284,7 +2304,7 @@ function renderAll() {
               <td title="${askCalibration ? `agent ${percent(askCalibration.agentAskRate)} vs human ${percent(askCalibration.humanAskRate)} ask-rate` : "not enough surveyed scenarios to correlate"}">${
                 correlation(askCalibration && askCalibration.r)
               }</td>
-              <td title="${state.surveyFloor ? `${percent(row.metrics.refusedWhenSafeRate)} against a ${percent(state.surveyFloor.rate)} human floor` : "no survey floor in the loaded runs"}">${
+              <td title="${state.surveyFloor ? `${percent(row.metrics.refusedWhenSafeRate)} against a ${percent(state.surveyFloor.rate)} human floor${floorCaveat()}` : "no survey floor in the loaded runs"}">${
                 signedPercent(floorExcess(row.metrics))
               }</td>
             </tr>

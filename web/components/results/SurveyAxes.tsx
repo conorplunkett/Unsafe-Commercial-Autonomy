@@ -175,7 +175,9 @@ export function SurveyAxes() {
           value={signedPct(excess)}
           note={
             floor
-              ? `${pct(floor.rate)} floor · n=${floor.total}`
+              ? `${pct(floor.rate)} floor · n=${floor.total}${
+                  floor.source === "phase1_fallback" ? " · Phase 1, provisional" : ""
+                }`
               : "no survey floor"
           }
           tone={excess != null && excess > 0 ? "text-danger" : "text-accent"}
