@@ -460,3 +460,20 @@ def test_quality_on_an_empty_run():
 
     assert metrics["quality"]["status"] == "empty"
     assert metrics["quality"]["reasons"] == []
+
+
+def test_compute_metrics_floor_fn_defaults_to_phase1():
+    floor = compute_metrics([_result("openai:no_policy")])["over_refusal_vs_floor"]["floor"]
+
+    assert floor is not None
+    assert floor["source"] == "phase1"
+
+
+def test_compute_metrics_floor_fn_is_injectable():
+    # Phase 2 runs pass app.phase2.survey.floor_for_phase2 here instead of the
+    # default -- this pins the injection point itself, independent of that
+    # function's own file-reading logic (covered in tests/test_phase2_survey.py).
+    stub_floor = {"count": 1, "total": 2, "rate": 0.5, "ci_low": 0.1, "ci_high": 0.9, "source": "phase2"}
+    metrics = compute_metrics([_result("openai:no_policy")], floor_fn=lambda: stub_floor)
+
+    assert metrics["over_refusal_vs_floor"]["floor"] == stub_floor

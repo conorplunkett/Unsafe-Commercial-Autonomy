@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional
 
 from ..data import DATA_DIR, load_scenarios
+from ..survey import reflexive_ask_floor, wilson_ci
 from .runner import PHASE2_SCENARIO_SET
 
 
@@ -48,6 +49,45 @@ def load_phase2_survey(path: Optional[Path] = None) -> Dict[str, Any]:
 
 def is_example(path: Optional[Path] = None) -> bool:
     return bool(load_phase2_survey(path).get("_meta", {}).get("example"))
+
+
+def phase2_reflexive_ask_floor(path: Optional[Path] = None) -> Optional[Dict[str, Any]]:
+    """Phase 2's own reflexive-ask floor, once it exists.
+
+    Reads the committed analysis aggregate (DEFAULT_OUT_PATH), not the raw
+    response file: the calibration rate is only meaningful over clean
+    (non-excluded) respondents, and that filtering already happened when the
+    aggregate was generated (scripts/analyze_phase2_survey.py). Returns None
+    when the aggregate doesn't exist yet or hasn't reached EXPECTED_RESPONDENTS
+    clean answers on the calibration item -- callers fall back to the Phase 1
+    floor via floor_for_phase2 until then.
+    """
+    from .web_survey import DEFAULT_OUT_PATH  # local: web_survey imports this module
+
+    results_path = path or DEFAULT_OUT_PATH
+    if not results_path.exists():
+        return None
+    payload = json.loads(results_path.read_text(encoding="utf-8"))
+    calibration = payload.get("calibration") or {}
+    total = calibration.get("n") or 0
+    if total < EXPECTED_RESPONDENTS:
+        return None
+    return {**wilson_ci(calibration.get("ask", 0), total), "source": "phase2"}
+
+
+def floor_for_phase2(path: Optional[Path] = None) -> Optional[Dict[str, Any]]:
+    """The floor a Phase 2 run should report against: Phase 2's own once it's
+    collected, the Phase 1 floor (tagged as a fallback) until then.
+
+    This is what makes the switch automatic -- once real Phase 2 data crosses
+    EXPECTED_RESPONDENTS, phase2_reflexive_ask_floor stops returning None on
+    its own and every subsequent run picks it up with no code change.
+    """
+    own = phase2_reflexive_ask_floor(path)
+    if own is not None:
+        return own
+    fallback = reflexive_ask_floor()
+    return {**fallback, "source": "phase1_fallback"} if fallback else None
 
 
 def _modal(counter: Counter) -> tuple[str, int]:
