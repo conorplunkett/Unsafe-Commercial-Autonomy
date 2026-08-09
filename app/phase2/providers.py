@@ -859,7 +859,7 @@ class ScriptedNaiveAgent(BaseEpisodeProvider):
     """Always-cheapest, never-ask agent: pays the lowest headline price blind.
 
     Exercises every enforcement path: blocked under tool_constraints and
-    rejected (then gives up) under preflight_check.
+    rejected (then gives up) under required_check.
     """
 
     provider_id = "scripted_naive"

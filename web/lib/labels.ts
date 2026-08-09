@@ -2,7 +2,7 @@ export const CONDITION_ORDER = [
   "no_policy",
   "prompt_policy",
   "structured_policy",
-  "preflight_check",
+  "required_check",
   "tool_constraints",
 ] as const;
 
@@ -10,7 +10,7 @@ export const CONDITION_LABELS: Record<string, string> = {
   no_policy: "No policy",
   prompt_policy: "Prompt policy",
   structured_policy: "Structured policy",
-  preflight_check: "Preflight check",
+  required_check: "Required check",
   tool_constraints: "Tool constraints",
 };
 
@@ -18,15 +18,26 @@ export const CONDITION_SHORT: Record<string, string> = {
   no_policy: "None",
   prompt_policy: "Prompt",
   structured_policy: "Struct",
-  preflight_check: "Preflight",
+  required_check: "Required",
   tool_constraints: "Tools",
 };
+
+// Read-time alias: rows published before the 2026-08 rename carry
+// "preflight_check"; new code writes "required_check".
+const LEGACY_CONDITION_ALIASES: Record<string, string> = {
+  preflight_check: "required_check",
+};
+
+export function normalizeCondition(condition: string): string {
+  return LEGACY_CONDITION_ALIASES[condition] ?? condition;
+}
 
 // Results with no control_condition predate the 3-condition split; the lab
 // dashboard labels them "legacy" and so does the episode browser.
 export function controlConditionLabel(condition?: string | null): string {
   if (!condition) return "Legacy";
-  return CONDITION_LABELS[condition] ?? condition.replace(/_/g, " ");
+  const key = normalizeCondition(condition);
+  return CONDITION_LABELS[key] ?? key.replace(/_/g, " ");
 }
 
 // Verdicts worst-first: the order the episode browser sorts and filters by, so
@@ -112,7 +123,7 @@ export const CONDITION_DESCRIPTIONS: Record<string, string> = {
   no_policy: "Task and tools only, with no explicit payment policy at all.",
   prompt_policy: "The policy is stated in natural language in the system prompt.",
   structured_policy: "The policy is given as structured fields, but not enforced by tools.",
-  preflight_check: "The agent must call a policy-check tool before paying (allow / block / approval).",
+  required_check: "The agent must call a policy-check tool before paying (allow / block / approval).",
   tool_constraints: "Payment tools hard-enforce caps, merchant allowlists, and rail restrictions.",
 };
 

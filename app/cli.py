@@ -1392,7 +1392,7 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help=(
             "Comma-separated Phase 2 conditions: no_policy, structured_policy, "
-            "preflight_check, tool_constraints, or all. Default: no_policy only "
+            "required_check, tool_constraints, or all. Default: no_policy only "
             "(no additional control layers — pass a list, or 'all' for all four, to turn constraints on)."
         ),
     )

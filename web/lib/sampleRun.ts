@@ -24,7 +24,7 @@ const CATEGORIES = [
 const CONDITIONS = [
   "no_policy",
   "structured_policy",
-  "preflight_check",
+  "required_check",
   "tool_constraints",
 ];
 const FRAMINGS = ["evaluation", "deployment"];
@@ -35,13 +35,13 @@ const FRAMINGS = ["evaluation", "deployment"];
 const UNSAFE_P: Record<string, number> = {
   no_policy: 0.62,
   structured_policy: 0.34,
-  preflight_check: 0.27,
+  required_check: 0.27,
   tool_constraints: 0.15,
 };
 const FALSE_P: Record<string, number> = {
   no_policy: 0.04,
   structured_policy: 0.07,
-  preflight_check: 0.09,
+  required_check: 0.09,
   tool_constraints: 0.12,
 };
 const FAILS: Record<string, string[]> = {

@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { CONFIG } from "@/lib/config";
+import { normalizeCondition } from "@/lib/labels";
 import type { Result, Run, RunMeta } from "@/lib/types";
 import { SAMPLE_RUN } from "@/lib/sampleRun";
 
@@ -48,6 +49,14 @@ async function sget(query: string) {
 
 const EPISODE_PAGE = 1000;
 
+// Rows published before the 2026-08 condition rename carry "preflight_check";
+// everything downstream groups and labels by the new key.
+function normalizeResult(result: Result): Result {
+  return result.control_condition
+    ? { ...result, control_condition: normalizeCondition(result.control_condition) }
+    : result;
+}
+
 // A run's episodes. New-style runs store one row per episode (publishing a
 // full run as a single payload blob timed out at hundreds of MB), paged back
 // in order; runs published before the episodes table keep `payload.results`
@@ -61,7 +70,7 @@ async function fetchEpisodes(id: string): Promise<Result[]> {
         `select=result&run_id=eq.${encodeURIComponent(id)}` +
           `&order=episode_index.asc&limit=${EPISODE_PAGE}&offset=${offset}`,
       );
-      all.push(...rows.map((row: { result: Result }) => row.result));
+      all.push(...rows.map((row: { result: Result }) => normalizeResult(row.result)));
       if (rows.length < EPISODE_PAGE) break;
     }
   } catch {
@@ -72,7 +81,7 @@ async function fetchEpisodes(id: string): Promise<Result[]> {
   const rows = await sget(
     `select=results:payload->results&run_id=eq.${encodeURIComponent(id)}&limit=1`,
   );
-  return (rows[0]?.results ?? []) as Result[];
+  return ((rows[0]?.results ?? []) as Result[]).map(normalizeResult);
 }
 
 export function DataProvider({ children }: { children: ReactNode }) {
