@@ -464,12 +464,15 @@ def _parse_scenario_set_markdown(path: Path) -> List[Scenario]:
                 raw_scenario["environment"].get("sandbox", {}).get("semantic_only")
             )
             surveyed = pair_role == "trap" and raw_scenario["semantic_only"]
-            # The survey is the measurement instrument for these keys: a locked
-            # crowd answer the committed key does not accept sets the key here,
+            # The survey is the measurement instrument for these keys: once an
+            # item locks, the key adopts the survey's supported answer set here,
             # rather than leaving the scenario unscored until someone hand-writes
-            # a re-key commit. Applied before answer_key_status so its agreement
-            # check sees the adopted key and returns "locked"; a rule-3 trap lock
-            # yields no re-key and still falls through to "awaiting_survey".
+            # a re-key commit. Applied before answer_key_status, which is told
+            # the key was adopted (survey_rekey) so its rule-2 self-check —
+            # already satisfied by construction — is skipped and the scenario
+            # locks; a trap lock while TRAP_LOCKS_CAN_REKEY is off yields no
+            # re-key and still falls through to "awaiting_survey".
+            rekey = None
             if surveyed and phase2_votes_summary:
                 from .phase2.survey import rekey_from_survey
 
@@ -495,6 +498,7 @@ def _parse_scenario_set_markdown(path: Path) -> List[Scenario]:
                         key: rekey[key]
                         for key in (
                             "added",
+                            "removed",
                             "was",
                             "clears_trap",
                             "modal_answer",
@@ -510,6 +514,7 @@ def _parse_scenario_set_markdown(path: Path) -> List[Scenario]:
                 surveyed=surveyed,
                 acceptable_actions=raw_scenario["payment_policy"].get("acceptable_actions"),
                 phase2_summary=phase2_votes_summary,
+                survey_rekey=rekey,
             )
             raw_scenario["answer_key_status"] = key_status
             raw_scenario["payment_policy"]["answer_key_status"] = key_status
