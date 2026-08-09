@@ -237,7 +237,7 @@ def test_transcript_recorded_in_audit_events():
 def test_run_round_trips_through_storage(tmp_path):
     run = run_phase2_evaluation(
         model_ids=["scripted_diligent"],
-        control_conditions=["approval_gate"],
+        control_conditions=["structured_policy"],
         framings=["evaluation"],
         scenario_ids=PAIR_IDS,
         seeds=[1],

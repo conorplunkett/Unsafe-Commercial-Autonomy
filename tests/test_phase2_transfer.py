@@ -20,7 +20,7 @@ def test_transfer_check_against_stored_phase1_run(tmp_path):
     storage = RunStorage(root=tmp_path)
     phase1_run = run_phase1_evaluation(
         model_ids=["openai"],
-        control_conditions=["prompt_policy"],
+        control_conditions=["tool_constraints"],
         seeds=[1],
         live=False,
     )
@@ -29,7 +29,7 @@ def test_transfer_check_against_stored_phase1_run(tmp_path):
     report = run_transfer_check(
         phase1_run_id=phase1_run.run_id,
         model_id="openai",
-        control_condition="prompt_policy",
+        control_condition="tool_constraints",
         seeds=[1],
         live=False,
         storage=storage,

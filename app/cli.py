@@ -238,6 +238,14 @@ def _format_rate(summary: dict, key: str) -> str:
     return f"{rate:.3f}"
 
 
+def _format_acted(summary: dict) -> str:
+    """`acted/keyed` counts for a table cell; "-" when the group has no key."""
+    ci = summary.get("acted_ci") or {}
+    if not ci.get("total"):
+        return "-"
+    return f"{ci['count']}/{ci['total']}"
+
+
 # How many per-result rows the detail table prints before collapsing into a
 # pointer to the saved JSON, so a 250-scenario sweep doesn't flood the terminal
 # while a handful of debug scenarios still print in full.
@@ -418,6 +426,21 @@ def _print_summary(run_payload: dict, saved_path=None) -> None:
             f"vs objective: "
             f"{_format_rate(objective_summary, 'unsafe_payment') if objective_summary else 'n/a'}"
         )
+    # The unsafe rate is bottom-censored for an agent that stops on everything
+    # (it never faces a trap), so print how often the agent proceeded at all and
+    # how those proceeds went next to it.
+    acted_ci = metrics.get("acted_ci") or {}
+    if acted_ci.get("total"):
+        unsafe_when_acted = metrics.get("unsafe_when_acted_ci") or {}
+        conditional = (
+            f"{unsafe_when_acted.get('count', 0)}/{unsafe_when_acted.get('total', 0)}"
+            if acted_ci["count"]
+            else "n/a (never acted)"
+        )
+        print(
+            f"Acted autonomously: {acted_ci['count']}/{acted_ci['total']} keyed episodes "
+            f"({acted_ci.get('rate', 0.0):.1%}) · unsafe when acted: {conditional}"
+        )
     quality = metrics.get("quality") or {}
     if quality.get("status") in ("degraded", "incomplete"):
         # Print this before the numbers, not after: the rates below are computed
@@ -434,12 +457,13 @@ def _print_summary(run_payload: dict, saved_path=None) -> None:
     print("")
     _print_verdicts_and_failures(metrics)
     print("")
-    print("Model/control                         Results  Unsafe payment CI      Refused when safe CI")
-    print("-" * 88)
+    print("Model/control                         Results      Acted  Unsafe payment CI      Refused when safe CI")
+    print("-" * 99)
     for agent_id, summary in sorted(metrics.get("by_agent", {}).items()):
         print(
             f"{agent_id[:36]:36} "
             f"{summary['total_results']:7}  "
+            f"{_format_acted(summary):>9}  "
             f"{_format_rate(summary, 'unsafe_payment'):22} "
             f"{_format_rate(summary, 'refused_when_safe')}"
         )
@@ -877,12 +901,13 @@ def phase2_eval_command(args: argparse.Namespace) -> int:
     phase2_metrics = payload["metrics"]["phase2"]
 
     def _print_split(title: str, group_key: str) -> None:
-        print(f"\n{title} (unsafe payment CI / refused-when-safe CI):")
-        print("-" * 88)
+        print(f"\n{title} (acted / unsafe payment CI / refused-when-safe CI):")
+        print("-" * 99)
         for key, summary in sorted(phase2_metrics[group_key].items()):
             print(
                 f"{key[:36]:36} "
                 f"{summary['total_results']:7}  "
+                f"{_format_acted(summary):>9}  "
                 f"{_format_rate(summary, 'unsafe_payment'):22} "
                 f"{_format_rate(summary, 'refused_when_safe')}"
             )
@@ -1351,9 +1376,9 @@ def build_parser() -> argparse.ArgumentParser:
         "--conditions",
         default=None,
         help=(
-            "Comma-separated Phase 2 conditions: no_policy, prompt_policy, structured_policy, "
-            "preflight_check, tool_constraints, approval_gate, or all. Default: no_policy only "
-            "(no additional control layers — pass a list, or 'all' for all six, to turn constraints on)."
+            "Comma-separated Phase 2 conditions: no_policy, structured_policy, "
+            "preflight_check, tool_constraints, or all. Default: no_policy only "
+            "(no additional control layers — pass a list, or 'all' for all four, to turn constraints on)."
         ),
     )
     phase2_eval_parser.add_argument(

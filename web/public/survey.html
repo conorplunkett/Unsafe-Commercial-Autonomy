@@ -111,6 +111,14 @@ const SUPABASE_KEY = "sb_publishable_eWFeJOuV_jq9eZ8wNhlanQ_29XMuY2j";
 // database, so a test run can never count toward or lock any answer key.
 const TEST_MODE = new URLSearchParams(location.search).has("test");
 
+// Live test mode (?livetest=1): exercises the real submit path end to end,
+// including the actual POST to Supabase, so you can confirm the live button
+// works. The row is clearly marked as a test (respondent_name "TEST LIVE",
+// email prefixed test-live-) so it can be filtered out of real results, and
+// a fresh email is generated each run so repeat tests don't collide with the
+// unique-email constraint.
+const LIVE_TEST_MODE = new URLSearchParams(location.search).has("livetest");
+
 const STEM = "Which action would you <em>most</em> want the AI agent to take?";
 
 // Instrument v2_web_r3. Each situation is a decision point (never a completed
@@ -1110,12 +1118,12 @@ function renderIntro() {
     const name = document.getElementById("f-name").value.trim();
     const email = document.getElementById("f-email").value.trim();
     const err = document.getElementById("err");
-    if (!TEST_MODE) {
+    if (!TEST_MODE && !LIVE_TEST_MODE) {
       if (!name) { err.textContent = "Please enter your name."; err.style.display = "block"; return; }
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { err.textContent = "Please enter a valid email."; err.style.display = "block"; return; }
     }
-    state.name = name || "Test mode";
-    state.email = email || "test@local.invalid";
+    state.name = LIVE_TEST_MODE ? "TEST LIVE" : (name || "Test mode");
+    state.email = LIVE_TEST_MODE ? `test-live-${Date.now()}@test.invalid` : (email || "test@local.invalid");
     if (!state.startedAt) state.startedAt = Date.now();
     state.step = 1;
     render();
@@ -1223,9 +1231,9 @@ function renderDemographics() {
     if (state.demoStep > 0) { state.demoStep -= 1; renderDemographics(); }
     else { state.step -= 1; render(); }
   };
-  document.getElementById("next").onclick = () => {
+  document.getElementById("next").onclick = event => {
     if (!selected) return;
-    if (isLast) submit();
+    if (isLast) submit(event.currentTarget);
     else { state.demoStep += 1; renderDemographics(); }
   };
   syncDebugLabel();
@@ -1246,6 +1254,15 @@ function renderDone() {
     syncDebugLabel();
     return;
   }
+  if (LIVE_TEST_MODE) {
+    card.innerHTML = `
+      <div class="done-icon">&#9989;</div>
+      <h1>Live test complete</h1>
+      <p>The submit button works. A row was written to the database, marked as a test (respondent_name "TEST LIVE", email starting test-live-) so it can be filtered out of real results.</p>
+    `;
+    syncDebugLabel();
+    return;
+  }
   card.innerHTML = `
     <div class="done-icon">&#10003;</div>
     <h1>Thank you</h1>
@@ -1254,7 +1271,7 @@ function renderDone() {
   syncDebugLabel();
 }
 
-async function submit() {
+async function submit(btn) {
   const err = document.getElementById("err");
   const missingDemo = DEMOGRAPHICS.some(d => !state.demo[d.id]);
   if (missingDemo) { err.textContent = "Please answer all of the questions."; err.style.display = "block"; return; }
@@ -1291,7 +1308,8 @@ async function submit() {
       survey_version: "v2_web_r3",
       user_agent: navigator.userAgent.slice(0, 200),
       calibration,
-      batches: BATCHES.map((b, bi) => ({ id: b.id, question_ids: batchOrders[bi] }))
+      batches: BATCHES.map((b, bi) => ({ id: b.id, question_ids: batchOrders[bi] })),
+      test: LIVE_TEST_MODE || undefined
     }
   };
 
@@ -1303,7 +1321,6 @@ async function submit() {
     render();
     return;
   }
-  const btn = document.getElementById("submit");
   btn.disabled = true;
   btn.textContent = "Submitting…";
 
