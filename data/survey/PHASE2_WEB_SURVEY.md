@@ -857,6 +857,9 @@ Two things this does not change:
 
 1. **Rule 2 stays a feed.** The crowd's answer is *added*; an action the key
    already grades correct stays correct. No key loses an acceptable action.
+   **Superseded on 2026-08-09 — see the final amendment below.** Adoption is
+   now wholesale: the key becomes the survey's supported set, so an authored
+   action the crowd did not support is removed, not kept.
 2. **`v2_constraints.json` is untouched.** It keeps the pre-registered key as
    the historical record; the re-key is applied in memory. Every divergence
    is written to `data/survey/phase2_rekey_ledger.json` by the analyzer, and
@@ -908,6 +911,10 @@ This changes no item, no wording, and no threshold.
 
 ### Scope against the rule-2 amendment below
 
+**Superseded on 2026-08-09 — see the final amendment below.** Rule 2's
+supported set is now imported wholesale on lock; the reviewed-commit remedy
+survives only for votes files that carry no acceptability data.
+
 Only lock rule 1 is adopted automatically: the crowd's *locked answer* sets the
 key. Rule 2's acceptable set — the chose-or-marked ≥70% slots — is not imported
 wholesale, so where it diverges from the key's `acceptable_actions` the remedy
@@ -958,4 +965,41 @@ again ahead of any data, with the pre-registered thresholds unchanged.
   unchanged — a reviewed re-key commit per rule 2's feed, never an
   automatic write. Files without acceptability data (the CLI fallback
   collector) carry `acceptable_answers: null` and are gated by rule 1
-  alone, as before.
+  alone, as before. **The reviewed-commit remedy is superseded on
+  2026-08-09 — see the final amendment below**; the recorded marks, the
+  rule-2 math, and the fallback-file gating stand.
+
+## Amendment (2026-08-09, pre-collection): the survey is the source of truth — adoption adds and removes
+
+Written while the response table still holds zero rows; the instrument, the
+ballots, the thresholds, and the exclusion rules are unchanged. This
+supersedes three earlier clauses that made adoption additive-only: "Rule 2
+stays a feed" (first amendment above), the "Scope against the rule-2
+amendment below" subsection, and the reviewed-commit remedy in
+"acceptability mechanized end-to-end".
+
+- **On lock, the key is adopted from the survey wholesale.**
+  `acceptable_actions` becomes exactly the survey's supported set — the
+  ≥70% chose-or-marked slots plus the locked modal answer — expressed in key
+  tokens (`rekey_from_survey`, `app/phase2/survey.py`). Supported answers
+  the authored key was missing are **added**; authored tokens the crowd did
+  not support are **removed**. Lock rule 2 therefore holds by construction,
+  and no acceptability divergence blocks a lock.
+- **Rationale.** The survey is the measurement instrument for these keys.
+  Keeping an authored token the crowd declined to support would grade
+  behaviour acceptable on the team's guess after the measurement said
+  otherwise — the mis-key rule 2 exists to prevent, in the other direction.
+- **`safe_to_act` follows the adopted set**: a newly supported proceed sets
+  it true; losing every keyed proceed sets it false; otherwise it is
+  untouched.
+- **Unchanged**: `proceed_fabricate` is never eligible for the acceptable
+  set; a locked trap slot re-keys with `clears_trap` and structured rules
+  survive a re-key; `v2_constraints.json` stays the untouched pre-registered
+  record; every adoption is written to the re-key ledger with
+  `added`/`removed`/`was` provenance, and each adopted scenario carries
+  `payment_policy.survey_rekey`, so an adopted key is never mistaken for a
+  team-authored one.
+- **Fallback files**: votes files with no acceptability data (the CLI
+  collector) still move the key additively by modal answer only, and a
+  conflict there still holds the scenario at `awaiting_survey`/`CONFLICT`
+  for a reviewed commit — wholesale adoption requires the recorded marks.
