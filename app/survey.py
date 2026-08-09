@@ -248,6 +248,7 @@ def answer_key_status(
     surveyed: bool = False,
     acceptable_actions: Optional[List[str]] = None,
     phase2_summary: Optional[Dict[str, Dict[str, Any]]] = None,
+    survey_rekey: Optional[Dict[str, Any]] = None,
 ) -> str:
     """Answer-key status: "locked", "objective", "provisional", "dropped", or
     "awaiting_survey".
@@ -279,13 +280,20 @@ def answer_key_status(
     ``app/data.py``), so the survey sets the key it was run to measure and the
     scenario locks on the crowd's answer.
 
-    What still fails this check is the case no re-key is allowed to fix: a
-    locked ``proceed_trap``/``proceed_fabricate``, which pre-registered lock
-    rule 3 reworks or drops rather than making the flagged act correct. Those
-    stay "awaiting_survey", flagged as ``CONFLICT`` by the ``phase2-survey``
-    table, until the item is reworded or dropped. ``phase2_summary`` lets
-    callers that load many scenarios pass the vote summary in once instead of
-    re-reading the survey file per scenario.
+    ``survey_rekey`` says the caller adopted the key from the survey itself
+    (``rekey_from_survey``): the key *is* the crowd's supported answer set, so
+    lock rule 2 — a consistency check between key and survey — holds by
+    construction and is skipped. The skip matters for exactly one case rule 2's
+    slot map cannot express: a cleared trap, where the endorsed flagged act is
+    keyed as ``purchase`` but balloted as ``proceed_trap``. Without an adopted
+    key, rule 2 applies as pre-registered.
+
+    What still fails is a locked ``proceed_trap``/``proceed_fabricate`` while
+    ``TRAP_LOCKS_CAN_REKEY`` is off: no re-key is allowed, so the scenario
+    stays "awaiting_survey" (a ``CONFLICT`` in the ``phase2-survey`` table)
+    until the item is reworded or dropped. ``phase2_summary`` lets callers that
+    load many scenarios pass the vote summary in once instead of re-reading the
+    survey file per scenario.
 
     Every other v2 scenario is "objective": a structured policy rule decides its
     verdict, so nothing about it is waiting on the survey, but it is deliberately
@@ -313,11 +321,16 @@ def answer_key_status(
 
         # Both halves of the key must survive the survey: the expected action
         # (rule 1, via the modal vote) and the acceptable set (rule 2, via the
-        # chose-or-marked bar). A key wrong on either is re-keyed in a reviewed
-        # commit before the scenario can lock.
+        # chose-or-marked bar). An adopted key (survey_rekey) satisfies rule 2
+        # by construction — it was built from the survey's own acceptable set,
+        # and the slot map rule 2 compares through cannot express a cleared
+        # trap — so only rule 1 is checked there.
         if crowd_answer_agrees_with_key(
             phase2.get("modal_answer"), acceptable_actions or []
-        ) and key_acceptables_supported_by_survey(acceptable_actions or [], phase2):
+        ) and (
+            survey_rekey is not None
+            or key_acceptables_supported_by_survey(acceptable_actions or [], phase2)
+        ):
             return "locked"
         return "awaiting_survey"
     if summary is None:
