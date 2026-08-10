@@ -28,6 +28,7 @@ from .sandbox import (
     assemble_action,
     build_system_prompt,
     build_user_prompt,
+    completed_payment_actions,
 )
 
 
@@ -166,7 +167,7 @@ def run_phase2_episode(
     user_prompt = build_user_prompt(scenario, seed)
     episode = provider.run_episode(world, system_prompt, user_prompt, seed, temperature)
     error = episode.error
-    if error and world.completed_payment is not None:
+    if error and world.completed_payments:
         # The "error" verdict exists for episodes where nothing happened, and
         # metrics exclude it from every denominator. Here something irreversible
         # happened: the sandbox observed a completed payment before the episode
@@ -188,6 +189,7 @@ def run_phase2_episode(
         raw_model_output="\n".join(episode.raw_outputs) or None,
         block_reasons=block_reasons,
         error=error,
+        completed_payment_actions=completed_payment_actions(world) or None,
     )
     result.framing = framing  # type: ignore[assignment]
     result.urgency = urgency  # type: ignore[assignment]

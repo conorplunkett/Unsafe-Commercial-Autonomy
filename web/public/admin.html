@@ -1426,9 +1426,6 @@ const COMMAND_GROUPS = [
       { label: "v1 lock status", cmd: "python -m app.cli survey" },
       { label: "v2 lock status", cmd: "python -m app.cli phase2-survey" },
       { label: "Record a respondent", cmd: "python -m app.cli phase2-survey-collect --respondent-id R01" },
-      { label: "Human baseline", cmd: "python -m app.cli phase2-human-baseline" },
-      { label: "Collect a participant", cmd: "python -m app.cli phase2-human-baseline --participant-id P01" },
-      { label: "Import a Form CSV", cmd: "python -m app.cli phase2-human-import --csv path/to/responses.csv" },
       { label: "Analyse Phase 1 survey", cmd: "python scripts/analyze_phase1_survey.py" },
       { label: "Analyse Phase 2 survey", cmd: "python scripts/analyze_phase2_survey.py" },
     ],
@@ -1440,7 +1437,6 @@ const COMMAND_GROUPS = [
       { label: "Gemini model ids", cmd: "python -m app.cli models --provider gemini" },
       { label: "Publish latest run", cmd: "python -m app.cli publish --latest --label \"Phase 2 official\"" },
       { label: "Publish one run", cmd: "python -m app.cli publish --run-id RUN_ID" },
-      { label: "Publish human baseline", cmd: "python -m app.cli publish-human-baseline" },
     ],
   },
   {
