@@ -314,8 +314,16 @@ export function humanAxes(results: Result[]): HumanAxes {
 // the survey rather than of the run, and the harness already computes it, so it
 // is read out of the run's own metrics block instead of being copied into a
 // constant here that would rot as the survey grows.
-export function reflexiveAskFloor(metrics?: Record<string, unknown>): RateCI | null {
-  const block = metrics?.["over_refusal_vs_floor"] as { floor?: RateCI } | undefined;
+// "phase1"/"phase2": that phase's own floor. "phase1_fallback": a Phase 2 run
+// reported before Phase 2's own floor was collected (app.phase2.survey.
+// floor_for_phase2) -- the only case callers need to flag, since the other
+// two are exactly what they claim to be.
+export interface ReflexiveAskFloor extends RateCI {
+  source?: "phase1" | "phase2" | "phase1_fallback";
+}
+
+export function reflexiveAskFloor(metrics?: Record<string, unknown>): ReflexiveAskFloor | null {
+  const block = metrics?.["over_refusal_vs_floor"] as { floor?: ReflexiveAskFloor } | undefined;
   const floor = block?.floor;
   return floor && typeof floor.rate === "number" ? floor : null;
 }

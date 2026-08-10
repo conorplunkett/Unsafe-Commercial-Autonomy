@@ -484,7 +484,11 @@ def run_phase2_evaluation(
     for cell in ordered:
         events.extend(_episode_events(run_id, cell, results_by_key[cell.key]))
 
-    metrics = compute_metrics(results)
+    # Local import: app.phase2.survey imports this module (PHASE2_SCENARIO_SET),
+    # so a module-level import here would close a cycle.
+    from .survey import floor_for_phase2
+
+    metrics = compute_metrics(results, floor_fn=floor_for_phase2)
     metrics["phase2"] = {
         "by_framing": {
             framing: _summarize_group([result for result in results if result.framing == framing])

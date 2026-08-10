@@ -454,6 +454,25 @@ def test_verify_refuses_a_live_dry_mismatch_and_tolerates_legacy_headers(tmp_pat
     )
 
 
+def test_verify_refuses_a_checkpoint_with_no_grid_header_at_all(tmp_path):
+    # A checkpoint written before grid fingerprinting existed has no "grid"
+    # key in its header -- not an empty dict. header.get("grid") or {} used to
+    # treat that absence the same as an intentionally-empty (matches-anything)
+    # grid, so a legacy checkpoint would silently "verify" against ANY current
+    # grid, risking a stale-result key collision on resume instead of the
+    # refusal every other mismatch in this function raises.
+    store = CheckpointStore("run_ck_legacy", root=tmp_path)
+    store.open({"run_id": "run_ck_legacy", "live": True, "temperature": 0.7, "reasoning_effort": None})
+    store.close()
+
+    with pytest.raises(CheckpointMismatch) as excinfo:
+        CheckpointStore("run_ck_legacy", root=tmp_path).verify(
+            {"model_ids": ["openai"]},
+            settings={"live": True, "temperature": 0.7, "reasoning_effort": None},
+        )
+    assert "predates grid fingerprinting" in str(excinfo.value)
+
+
 def test_auto_stop_halts_queued_episodes_in_the_same_wave(tmp_path):
     # The 8-cell grid is one wave at concurrency 2. When the breaker trips at
     # 2 consecutive errors, episodes already queued in the wave must not start:

@@ -10,9 +10,11 @@ from app.phase2.survey import (
     EXPECTED_RESPONDENTS,
     LOCK_THRESHOLD,
     collect_survey_responses,
+    floor_for_phase2,
     is_example,
     key_acceptables_supported_by_survey,
     load_phase2_survey,
+    phase2_reflexive_ask_floor,
     phase2_survey_summary,
     summarize_scenario_votes,
 )
@@ -206,3 +208,51 @@ def test_collect_survey_responses_writes_votes(tmp_path):
     assert recorded_again == 0
     loaded = load_phase2_survey(path)
     assert loaded["responses"]["scn_v2_a1_trap"]["r_test"] == "ask_approval"
+
+
+# --- reflexive-ask floor: auto-switch from Phase 1 to Phase 2 -------------
+
+
+def test_phase2_reflexive_ask_floor_is_none_before_the_file_exists(tmp_path):
+    assert phase2_reflexive_ask_floor(tmp_path / "missing.json") is None
+
+
+def test_phase2_reflexive_ask_floor_is_none_below_expected_respondents(tmp_path):
+    path = tmp_path / "phase2_results.json"
+    path.write_text(json.dumps({"calibration": {"n": EXPECTED_RESPONDENTS - 1, "ask": 10}}))
+
+    assert phase2_reflexive_ask_floor(path) is None
+
+
+def test_phase2_reflexive_ask_floor_once_expected_respondents_reached(tmp_path):
+    path = tmp_path / "phase2_results.json"
+    path.write_text(json.dumps({"calibration": {"n": EXPECTED_RESPONDENTS, "ask": 30}}))
+
+    floor = phase2_reflexive_ask_floor(path)
+
+    assert floor is not None
+    assert floor["source"] == "phase2"
+    assert floor["count"] == 30
+    assert floor["total"] == EXPECTED_RESPONDENTS
+    assert floor["rate"] == 0.6
+
+
+def test_floor_for_phase2_falls_back_to_phase1_before_its_own_data_exists(tmp_path):
+    # This is the bug: without a fallback tag, a Phase 2 run silently shows
+    # Phase 1's floor with nothing distinguishing it from the real thing.
+    floor = floor_for_phase2(tmp_path / "missing.json")
+
+    assert floor is not None
+    assert floor["source"] == "phase1_fallback"
+
+
+def test_floor_for_phase2_prefers_its_own_floor_once_ready(tmp_path):
+    # This is the auto-switch: once Phase 2 crosses EXPECTED_RESPONDENTS, no
+    # code change is needed for it to stop borrowing Phase 1's floor.
+    path = tmp_path / "phase2_results.json"
+    path.write_text(json.dumps({"calibration": {"n": EXPECTED_RESPONDENTS, "ask": 30}}))
+
+    floor = floor_for_phase2(path)
+
+    assert floor["source"] == "phase2"
+    assert floor["rate"] == 0.6

@@ -233,9 +233,9 @@ class _ProgressBar:
 def _format_rate(summary: dict, key: str) -> str:
     ci = summary.get(f"{key}_ci", {})
     rate = summary.get(f"{key}_rate", 0.0)
-    if ci:
-        return f"{rate:.3f} [{ci.get('ci_low', 0.0):.3f}, {ci.get('ci_high', 0.0):.3f}]"
-    return f"{rate:.3f}"
+    if not ci.get("total"):
+        return "n/a"
+    return f"{rate:.3f} [{ci.get('ci_low', 0.0):.3f}, {ci.get('ci_high', 0.0):.3f}]"
 
 
 def _format_acted(summary: dict) -> str:
@@ -390,10 +390,14 @@ def _print_human_axes(metrics: dict) -> None:
     floor_block = metrics.get("over_refusal_vs_floor") or {}
     if floor_block.get("excess") is not None:
         floor = floor_block["floor"]
+        # Phase 2 runs fall back to the Phase 1 floor until Phase 2's own is
+        # collected (app.phase2.survey.floor_for_phase2); flag it so that
+        # number is never mistaken for Phase 2's own.
+        caveat = " [Phase 1, provisional]" if floor.get("source") == "phase1_fallback" else ""
         lines.append(
             f"Vs reflexive floor: {floor_block['excess']:+.1%} "
             f"(refused {floor_block['refused_when_safe_rate']:.1%} against a "
-            f"{floor['rate']:.1%} human floor)"
+            f"{floor['rate']:.1%} human floor){caveat}"
         )
     if not lines:
         return

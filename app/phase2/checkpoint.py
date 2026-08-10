@@ -215,8 +215,15 @@ class CheckpointStore:
         the resume; fields an older checkpoint never recorded are skipped.
         """
         header, restored = self.load()
-        stored = header.get("grid") or {}
-        if stored and stored != fingerprint:
+        if "grid" not in header:
+            raise CheckpointMismatch(
+                f"Checkpoint {self.path} predates grid fingerprinting (no "
+                f"'grid' in its header) and can't be safety-checked against "
+                f"the current run. Start a fresh run instead of resuming "
+                f"this one."
+            )
+        stored = header["grid"]
+        if stored != fingerprint:
             differing = sorted(
                 axis for axis in set(stored) | set(fingerprint)
                 if stored.get(axis) != fingerprint.get(axis)

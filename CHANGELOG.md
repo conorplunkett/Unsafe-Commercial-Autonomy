@@ -124,6 +124,83 @@
 - `app/phase2/humans.py`, `app/phase2/human_import.py`, `app/cli.py`,
   `tests/test_phase2_humans.py`.
 
+## [2026-08-09] Phase 2's own reflexive-ask floor, once collected
+
+### Added
+- **`over_refusal_vs_floor` reads against Phase 2's own reflexive-ask floor
+  once Phase 2 has collected `EXPECTED_RESPONDENTS` (50) clean responses,
+  instead of silently reusing Phase 1's floor forever.** `compute_metrics`
+  now takes an injectable `floor_fn` (default: Phase 1's
+  `reflexive_ask_floor`, unchanged for every existing caller); Phase 2 runs
+  (`run_phase2_evaluation`, `run_human_baseline_report`, `_by_demographic`)
+  pass the new `app.phase2.survey.floor_for_phase2`, which prefers Phase 2's
+  own floor (`phase2_reflexive_ask_floor`, read from the committed
+  `phase2_results_v2_web_r3.json` aggregate) and falls back to Phase 1's,
+  tagged `source: "phase1_fallback"`, until then. The switch is automatic —
+  no code change or redeploy needed once real Phase 2 data crosses the
+  threshold. Every floor dict now carries `source` (`"phase1"`, `"phase2"`,
+  or `"phase1_fallback"`); the CLI, the results site, and the internal lab
+  dashboard all print a short "Phase 1, provisional" tag only on the
+  fallback case, so a Phase 2 run's floor is never mistaken for Phase 2's
+  own. The Wilson-CI computation both floors share was pulled out of
+  `app.survey.reflexive_ask_floor` into `app.survey.wilson_ci`.
+
+### Files
+- `app/survey.py`, `app/phase2/survey.py`, `app/metrics.py`,
+  `app/phase2/runner.py`, `app/phase2/humans.py`, `app/cli.py`,
+  `web/lib/metrics.ts`, `web/components/results/SurveyAxes.tsx`,
+  `static/lab.js`, `tests/test_survey.py`, `tests/test_phase2_survey.py`,
+  `tests/test_metrics.py`, `tests/test_phase2_runner.py`.
+
+## [2026-08-09] Old checkpoints without a grid header fail resume instead of skipping the safety check
+
+### Fixed
+- **`CheckpointStore.verify()` now refuses to resume a checkpoint written
+  before grid fingerprinting existed, instead of silently treating it as a
+  match.** `header.get("grid") or {}` made an absent `"grid"` key
+  indistinguishable from a present-but-empty one, which the mismatch check
+  already treats as "matches anything" — so a legacy checkpoint would
+  verify successfully against *any* current grid. Restored episodes are
+  matched back into a run purely by `EpisodeKey`, with no grid filter, so a
+  reused scenario_id/seed pair could have silently backfilled a cell with a
+  stale result from an unrelated run. A missing `"grid"` key now raises
+  `CheckpointMismatch` directly, the same way every other recorded-field
+  mismatch in this function already does.
+
+### Files
+- `app/phase2/checkpoint.py`, `tests/test_phase2_checkpoint.py`.
+
+## [2026-08-09] ask_when_supposed_to counts a stall as not asking
+
+### Fixed
+- **The ask-calibration axis (`ask_when_supposed_to`) no longer drops
+  episodes where the model stalled without asking or refusing.** Its
+  per-scenario filter required a truthy `action_slot`, a check copied from
+  the two ballot-match axes above it that need a real ballot slot to
+  compare against. Ask-calibration only needs a binary asked-vs-didn't, and
+  `_action_slot()` returns `None` for a non-completed `defer` (a quiet
+  stall — the model stops emitting tool calls with no exception, so it
+  isn't excluded as an error either) — so the old filter dropped exactly
+  the freeze failure mode this axis exists to catch, undercounting the
+  denominator instead of counting the stall as "didn't ask."
+
+### Files
+- `app/metrics.py`, `tests/test_recovery_and_human_axes.py`.
+
+## [2026-08-09] CLI prints "n/a" instead of "0.000" for an unscored split
+
+### Fixed
+- **The CLI's semantic-only-vs-objective unsafe-rate line no longer prints
+  `0.000` for a group nothing has scored yet.** `_format_rate` checked
+  whether the CI dict was present, not whether it had a real denominator —
+  and an all-unscored group still carries a zeroed-but-present CI dict, so
+  it read as a clean 0% next to the objective half's real number. It now
+  checks `ci.get("total")` (mirroring `_format_acted`, and the site, which
+  already showed "n/a" for the same case) and prints `"n/a"`.
+
+### Files
+- `app/cli.py`, `tests/test_cli.py`.
+
 ## [2026-08-09] Phase 2 cost estimate: "all" flags were undercounted (F4)
 
 ### Fixed
