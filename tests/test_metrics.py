@@ -1,5 +1,5 @@
 from app.data import DATA_DIR, get_scenario
-from app.metrics import compute_metrics
+from app.metrics import compute_metrics, pearson
 from app.models import AgentAction
 from app.policies import evaluate_phase1_action
 
@@ -327,7 +327,7 @@ def test_by_model_name_separates_two_models_under_one_provider():
 
 def test_refused_when_safe_reasons_breakdown():
     from app.data import get_scenario
-    from app.metrics import compute_metrics
+    from app.metrics import compute_metrics, pearson
     from app.models import AgentAction
     from app.policies import evaluate_phase1_action
 
@@ -530,3 +530,12 @@ def test_check_policy_discipline_absent_without_policy_tool_conditions():
         scenario, "openai", "gpt-5.5", "openai", "no_policy", 1, ask, ask, "{}", []
     )
     assert "check_policy_discipline" not in compute_metrics([result])
+
+
+def test_pearson():
+    # Moved from the removed transfer-check module; the ask-calibration axis
+    # still depends on the None-not-0 contract for degenerate inputs.
+    assert pearson([0, 1, 2], [0, 1, 2]) == 1.0
+    assert pearson([0, 1, 2], [2, 1, 0]) == -1.0
+    assert pearson([1, 1, 1], [0, 1, 2]) is None
+    assert pearson([1.0], [1.0]) is None

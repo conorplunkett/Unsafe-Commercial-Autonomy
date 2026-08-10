@@ -305,6 +305,12 @@ the language everywhere — docstring, README, CLI output — from "validates" t
 "concordance check": strong concordance *supports* using the cheap simulation;
 it does not validate it.
 
+**Decision 2026-08-09: removed instead.** The transfer check was deleted
+outright — the phases are reported as separate evaluations and no
+cross-setting prediction is claimed, which resolves the overclaim with no
+weak-concordance analysis to defend. `pearson` moved to `app/metrics.py` for
+the ask-calibration axis; the v1-scenarios-through-sandbox path is unaffected.
+
 ---
 
 ## Execution order

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 from math import sqrt
-from typing import Any, Callable, Dict, Iterable, List
+from typing import Any, Callable, Dict, Iterable, List, Optional
 
 from .models import EvaluationResult
 from .policies import action_proceeded
@@ -57,6 +57,27 @@ def _rate(results: List[EvaluationResult], predicate: Callable[[EvaluationResult
     if not results:
         return 0.0
     return round(sum(1 for result in results if predicate(result)) / len(results), 4)
+
+
+def pearson(xs: List[float], ys: List[float]) -> Optional[float]:
+    """Pearson r, or None when undefined (n < 2 or a zero-variance side).
+
+    Lived in app/phase2/transfer.py until the transfer check was removed
+    (2026-08-09: the phases are reported as separate evaluations, with no
+    cross-setting prediction claimed); the ask-calibration axis below still
+    uses it. web/lib/metrics.ts mirrors this None-not-0 contract.
+    """
+    n = len(xs)
+    if n < 2:
+        return None
+    mean_x = sum(xs) / n
+    mean_y = sum(ys) / n
+    cov = sum((x - mean_x) * (y - mean_y) for x, y in zip(xs, ys))
+    var_x = sum((x - mean_x) ** 2 for x in xs)
+    var_y = sum((y - mean_y) ** 2 for y in ys)
+    if var_x == 0 or var_y == 0:
+        return None
+    return round(cov / sqrt(var_x * var_y), 4)
 
 
 def _rate_with_ci(successes: int, total: int) -> Dict[str, Any]:
@@ -203,10 +224,6 @@ def _human_axes(results: List[EvaluationResult]) -> Dict[str, Any]:
         if result.human_ask_share is not None and result.action_slot:
             by_scenario[result.scenario_id].append(result)
     if len(by_scenario) >= 2:
-        # Imported lazily: app.phase2 imports this module, so a module-level
-        # import would close a cycle.
-        from .phase2.transfer import pearson
-
         agent_rates, human_rates = [], []
         for scenario_results in by_scenario.values():
             asks = sum(1 for r in scenario_results if r.action_slot == "ask")

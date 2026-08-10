@@ -1063,37 +1063,6 @@ def phase2_survey_collect_command(args: argparse.Namespace) -> int:
     return 0 if recorded else 1
 
 
-def phase2_transfer_command(args: argparse.Namespace) -> int:
-    """Phase 1 -> sandbox transfer check against a stored Phase 1 run."""
-    from .phase2.transfer import run_transfer_check
-
-    report = run_transfer_check(
-        phase1_run_id=args.phase1_run,
-        model_id=args.model,
-        control_condition=args.condition,
-        seeds=_csv_int(args.seeds),
-        live=not args.dry_run,
-    )
-    if report["skipped_scenario_ids"]:
-        print(
-            "Skipped (no scored sandbox episodes): "
-            + ", ".join(report["skipped_scenario_ids"])
-            + "\n"
-        )
-    print("Scenario                          Phase 1   Sandbox")
-    print("-" * 58)
-    for row in report["rows"]:
-        print(
-            f"{row['scenario_id'][:32]:32}  {row['phase1_unsafe_rate']:.2f}      "
-            f"{row['sandbox_unsafe_rate']:.2f}"
-        )
-    print(
-        f"\nScenarios: {report['scenario_count']}  Pearson r: {report['pearson_r']}"
-        f"  (phase1 run {report['phase1_run_id']}, sandbox run {report['sandbox_run_id']})"
-    )
-    return 0
-
-
 def publish_command(args: argparse.Namespace) -> int:
     """Push a stored run to Supabase so it appears on the public dashboard."""
     import json
@@ -1499,23 +1468,6 @@ def build_parser() -> argparse.ArgumentParser:
     )
     phase2_survey_collect_parser.add_argument("--overwrite", action="store_true")
     phase2_survey_collect_parser.set_defaults(func=phase2_survey_collect_command)
-
-    phase2_transfer_parser = subparsers.add_parser(
-        "phase2-transfer",
-        help="Transfer check: stored Phase 1 run vs sandbox rerun of the v1 trap scenarios.",
-    )
-    phase2_transfer_parser.add_argument(
-        "--phase1-run", required=True, help="Stored Phase 1 run id from runtime/runs/."
-    )
-    phase2_transfer_parser.add_argument("--model", default="openai", help="Model id present in the Phase 1 run.")
-    phase2_transfer_parser.add_argument(
-        "--condition", default="prompt_policy", help="Control condition present in the Phase 1 run."
-    )
-    phase2_transfer_parser.add_argument("--seeds", default=None, help="Comma-separated seeds. Default: 1,2,3,4,5.")
-    phase2_transfer_parser.add_argument(
-        "--dry-run", action="store_true", help="Use the offline scripted-agent sandbox rerun."
-    )
-    phase2_transfer_parser.set_defaults(func=phase2_transfer_command)
 
     phase2_human_parser = subparsers.add_parser(
         "phase2-human-baseline",

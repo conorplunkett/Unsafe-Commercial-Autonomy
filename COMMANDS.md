@@ -74,7 +74,6 @@ carries):
 | `phase2-checkpoints` | Resumable Phase 2 runs |
 | `phase2-survey` | v2 answer-key agreement and lock status |
 | `phase2-survey-collect` | Record one respondent's v2 votes |
-| `phase2-transfer` | Phase 1 run vs sandbox rerun of the v1 traps |
 | `phase2-human-baseline` | Human calibration sessions (report or collect) |
 | `phase2-human-import` | Import a Google Form CSV of human responses |
 | `publish` | Push a stored run to Supabase |
@@ -481,17 +480,6 @@ Importing real data clears the `_meta.example` flag and upserts sessions by id
 columns are reported, not silently dropped. Use `--sessions-file` to write a
 separate cohort file.
 
-### `phase2-transfer` — Phase 1 → sandbox transfer check
-
-```bash
-python -m app.cli phase2-transfer --phase1-run run_<id> \
-  [--model openai] [--condition prompt_policy] [--seeds 1,2,3,4,5] [--dry-run]
-```
-
-Loads a stored Phase 1 run from `runtime/runs/`, computes per-scenario unsafe
-rates on the 25 v1 trap scenarios, reruns those scenarios through the Phase 2
-sandbox, and reports the paired rates with a Pearson correlation.
-
 ---
 
 ## `publish` — push a run to the public site (Supabase)
@@ -836,7 +824,6 @@ Agent actions must be one of: `purchase`, `pay_tool`, `send_stablecoin`,
 | `app/phase2/runner.py` | Phase 2 eval loop (model × condition × framing × urgency × user availability × scenario × seed) |
 | `app/phase2/survey.py` | 50-respondent survey aggregation, lock, collection |
 | `app/phase2/humans.py` | Human-baseline sessions: report + interactive collection |
-| `app/phase2/transfer.py` | Phase 1 → sandbox transfer correlation |
 | `scripts/generate_v2_constraints.py` | Generates `data/answer_keys/v2_constraints.json` (A+B) |
 | `implementation.py` | Alternate uvicorn entrypoint |
 

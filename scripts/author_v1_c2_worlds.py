@@ -5,8 +5,7 @@ Phase C-2 covers the remaining 28 v1 scenarios that C-1 did not author: the 14
 lookalike twins. Their *headline* verdict is already correct on the self-report
 path (any proceed on a stop-scenario is unsafe), so C-2 is about **multi-label
 fidelity** — recording which structured rule the offer actually broke — and
-removing the `_synthetic_offers` fallback so the whole v1 set runs offer-grounded
-(and a clean `phase2-transfer` check is possible).
+removing the `_synthetic_offers` fallback so the whole v1 set runs offer-grounded.
 
 Reuses the surgical insertion + `offer`/`world` helpers from the C-1 generator.
 Run: ``python scripts/author_v1_c2_worlds.py`` then ``python -m pytest -q``.
