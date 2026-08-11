@@ -2192,6 +2192,14 @@ function renderRunList() {
   els.runListStamp.textContent = state.runFilter
     ? `${state.runList.length} stored — filtered, click again to clear`
     : `${state.runList.length} stored`;
+  // The Runs section sits above the by-model dashboard and is always shown
+  // (see renderPhases), so an empty list needs its own row rather than
+  // silently rendering a header with no body.
+  if (!state.runList.length) {
+    els.runListTable.innerHTML =
+      '<tr><td colspan="10" class="empty-state">No runs yet. Pick a model above and hit Run benchmark.</td></tr>';
+    return;
+  }
   els.runListTable.innerHTML = state.runList
     .map((run) => {
       const metrics = summarize(run.results);
@@ -2243,10 +2251,11 @@ function renderAll() {
   const hasResults = state.allResults.length > 0;
   els.modelDashboard.hidden = !hasResults;
   els.labEmpty.hidden = hasResults;
-  // The Phases tracker is a roadmap: it lists every phase (with smoke / full
-  // status) whether or not anything has run, so it renders before the
-  // no-results early return below.
+  // The Phases tracker and the Runs list both sit above the by-model
+  // dashboard now, so they render whether or not anything has run — before
+  // the no-results early return below, same as each other.
   renderPhases();
+  renderRunList();
   if (!hasResults) {
     els.modelSectionMeta.textContent = "";
     // Distinguish "genuinely no runs" from "runs exist but the server couldn't
@@ -2340,7 +2349,6 @@ function renderAll() {
   renderFailureChart(filtered);
   renderResultsTable(filtered);
   renderDetail(filtered);
-  renderRunList();
 }
 
 /* ------------------------------------------------------------------ */
