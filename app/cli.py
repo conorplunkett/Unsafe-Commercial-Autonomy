@@ -9,6 +9,7 @@ from typing import Iterable, List, Optional, TextIO
 from uuid import uuid4
 
 from .env import load_env_file
+from .metrics import UNKEYED_STATUSES
 from .models import ControlCondition
 from .providers import ProviderError
 from .runner import (
@@ -287,7 +288,24 @@ def _result_notes(result: dict) -> str:
 
 def _print_verdicts_and_failures(metrics: dict) -> None:
     verdict_counts = metrics.get("verdict_counts") or {}
-    if verdict_counts:
+    unkeyed_counts = metrics.get("verdict_counts_unkeyed") or {}
+    if unkeyed_counts:
+        # Some of the raw tally rests on awaiting_survey/dropped scenarios that
+        # never feed the headline rates (see UNKEYED_STATUSES) -- split it so a
+        # reader scanning "unsafe=N" here can't mistake it for the scored count,
+        # which can be roughly half of N or less.
+        keyed_counts = metrics.get("verdict_counts_keyed") or {}
+        ordered_keyed = sorted(keyed_counts.items(), key=lambda item: (-item[1], item[0]))
+        print(
+            "Verdicts (keyed):     "
+            + "  ".join(f"{verdict}={count}" for verdict, count in ordered_keyed)
+        )
+        ordered_unkeyed = sorted(unkeyed_counts.items(), key=lambda item: (-item[1], item[0]))
+        print(
+            "Verdicts (awaiting_survey/dropped, not scored): "
+            + "  ".join(f"{verdict}={count}" for verdict, count in ordered_unkeyed)
+        )
+    elif verdict_counts:
         ordered = sorted(verdict_counts.items(), key=lambda item: (-item[1], item[0]))
         print("Verdicts:     " + "  ".join(f"{verdict}={count}" for verdict, count in ordered))
     failure_counts = metrics.get("failure_counts") or {}
@@ -309,22 +327,29 @@ def _print_result_details(results: List[dict]) -> None:
         return (problem_rank, result.get("scenario_id", ""), result.get("seed") or 0)
 
     ordered = sorted(results, key=sort_key)
+    printed = ordered[:_DETAIL_ROW_CAP]
     print("")
     print("Per-result detail (problems first):")
-    header = f"{'Scenario':26} {'Condition':16} {'Sd':>2} {'Verdict':13} {'Action':32} Notes"
+    header = f"{'Scenario':26} {'Condition':16} {'Sd':>2} {'K':1} {'Verdict':13} {'Action':32} Notes"
     print(header)
     print("-" * max(len(header), 96))
-    for result in ordered[:_DETAIL_ROW_CAP]:
+    any_unkeyed = False
+    for result in printed:
+        unkeyed = result.get("answer_key_status") in UNKEYED_STATUSES
+        any_unkeyed = any_unkeyed or unkeyed
         print(
             f"{(result.get('scenario_id') or '-')[:26]:26} "
             f"{(result.get('control_condition') or '-')[:16]:16} "
             f"{(str(result.get('seed')) if result.get('seed') is not None else '-'):>2} "
+            f"{'*' if unkeyed else ' '} "
             f"{(result.get('verdict') or '-')[:13]:13} "
             f"{_format_action(result.get('action'))[:32]:32} "
             f"{_result_notes(result)}"
         )
     if len(ordered) > _DETAIL_ROW_CAP:
         print(f"... {len(ordered) - _DETAIL_ROW_CAP} more (see the saved run JSON).")
+    if any_unkeyed:
+        print("* = awaiting_survey/dropped scenario: not scored in the headline rates.")
 
     # Rationales are the most useful debugging signal for non-safe verdicts, so
     # print them in full(ish) instead of cramming them into the table.
