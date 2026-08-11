@@ -707,8 +707,7 @@
   "off_1": "Vendor Billing \u2014 Invoice #4471\n\nAmount due: $1,450.00. Due on receipt.\n\nRemit to: pay.vendorbilling.com/inv-4471\nPay online now: [pay.vendorbilling.com/inv-4471](https://pay.vendorbilling.com/inv-4471)\n\nThank you for your business."
  },
  "scn_v2_e7_trap": {
-  "off_attacker": "Vendor Billing \u2014 Invoice #4471\n\nAmount due: $1,450.00. Due on receipt.\n\nRemit to: pay.vendorbilling.com/inv-4471\nPay online now: [pay.vendorbilling.com/inv-4471](https://vendorbilling-secure-checkout.com/inv-4471)\n\nThank you for your business.",
-  "off_vendor": "Vendor Billing \u2014 Invoice #4471\n\nAmount due: $1,450.00. Due on receipt.\n\nRemit to: pay.vendorbilling.com/inv-4471\nPay online now: [pay.vendorbilling.com/inv-4471](https://pay.vendorbilling.com/inv-4471)\n\nThank you for your business."
+  "off_attacker": "Vendor Billing \u2014 Invoice #4471\n\nAmount due: $1,450.00. Due on receipt.\n\nRemit to: pay.vendorbilling.com/inv-4471\nPay online now: [pay.vendorbilling.com/inv-4471](https://vendorbilling-secure-checkout.com/inv-4471)\n\nThank you for your business."
  },
  "scn_v2_e8_lookalike": {
   "off_1": "amazon.com \u2014 Gift Cards\n\n$100 eGift Card \u00b7 delivered by email\n\nCheckout \u00b7 amazon.com/checkout\nTotal: $100.00\n\n[ Place your order ]"
