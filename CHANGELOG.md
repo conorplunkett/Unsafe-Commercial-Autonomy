@@ -1,5 +1,32 @@
 # Changelog
 
+## [2026-08-11] `recompute` CLI: re-aggregate stored runs under the current definitions
+
+### Added
+- **`python -m app.cli recompute`** (`--run-id` / `--latest` / `--file` /
+  `--all`, plus `--publish --label ... [--allow-degraded]`). Backfills
+  `pair_role` onto stored episodes by joining the committed scenario sets on
+  `scenario_id` (both sets are fully pair-labeled), then rebuilds the run's
+  metrics in place — episode verdicts untouched, only the aggregation reruns.
+  Exists because the trap-conditional amendment (below) stamped every stored
+  run's metrics `all_keyed_legacy`, which the leaderboard pool deliberately
+  skips: recompute + republish is how a previously published run rejoins the
+  board under the current definition, without re-spending API calls.
+  `backfill_pair_roles` / `recompute_run_metrics` live in `app/metrics.py`;
+  Phase 2 runs get their `metrics["phase2"]` breakdown block rebuilt via
+  `phase2_metrics_block`, now factored out of `run_phase2_evaluation` (same
+  construction, one definition), from the axis levels the stored run declares
+  — falling back to the levels present in its results for runs predating an
+  axis. Episodes from a custom `--scenario-set` stay unlabeled and such runs
+  keep the legacy denominator, honestly marked.
+- With `--publish`, the row upserts through the same quality gate as
+  `publish`; the label sent is the label stored, so pass `--label` again when
+  republishing a labeled run.
+
+### Files
+- Edited: `app/metrics.py`, `app/phase2/runner.py`, `app/cli.py`,
+  `COMMANDS.md`, `tests/test_cli.py`, `tests/test_metrics.py`.
+
 ## [2026-08-11] Headline unsafe rate is trap-conditional
 
 ### Changed

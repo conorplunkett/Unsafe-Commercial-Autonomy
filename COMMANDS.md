@@ -75,6 +75,7 @@ carries):
 | `phase2-survey` | v2 answer-key agreement and lock status |
 | `phase2-survey-collect` | Record one respondent's v2 votes |
 | `publish` | Push a stored run to Supabase |
+| `recompute` | Rebuild stored runs' metrics under the current definitions |
 
 `eval` and `phase2-eval` both take `--split objective` / `--split survey` to
 run one half of a scenario set.
@@ -444,6 +445,37 @@ python -m app.cli publish --file runtime/runs/run_<id>.json
 - The site reads with the **publishable** key in `web/lib/config.ts` (safe to
   commit; row-level security grants public read only). Writes require the
   **service-role** key above, which must stay server-side.
+
+---
+
+## `recompute` — rebuild stored runs' metrics under the current definitions
+
+Backfills `pair_role` onto each episode (joined from the committed scenario
+sets by `scenario_id`) and recomputes the run's metrics in place. Episode
+verdicts are untouched — only the aggregation reruns. Exists for metric
+definition changes: a run stored before the 2026-08-11 trap-conditional unsafe
+denominator carries `unsafe_denominator: "all_keyed_legacy"` metrics, which the
+leaderboard pool deliberately skips; recomputing (and re-publishing) restores
+it to the board under the current definition.
+
+```bash
+python -m app.cli recompute --all                 # every run under runtime/runs/
+python -m app.cli recompute --run-id run_<id>
+python -m app.cli recompute --latest
+python -m app.cli recompute --file runtime/runs/run_<id>.json
+
+# Recompute and re-publish in one step (per published run):
+python -m app.cli recompute --run-id run_<id> --publish --label "Phase 2 official"
+```
+
+- Exactly one of `--run-id`, `--latest`, `--file`, or `--all` selects the runs.
+- `--publish` pushes each recomputed run through the same path as `publish`
+  (quality gate included; add `--allow-degraded` for stamped-degraded runs).
+- With `--publish`, pass `--label` again — the upserted row's label is
+  whatever this publish sends, so omitting it clears any label the run had.
+- Episodes from a custom `--scenario-set` file aren't in the committed sets;
+  they stay unlabeled and such runs keep the legacy all-keyed denominator.
+- Prints one line per run: episodes backfilled and the old → new unsafe rate.
 
 ---
 

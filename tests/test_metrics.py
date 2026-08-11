@@ -630,3 +630,31 @@ def test_compute_metrics_floor_fn_is_injectable():
     metrics = compute_metrics([_result("openai:no_policy")], floor_fn=lambda: stub_floor)
 
     assert metrics["over_refusal_vs_floor"]["floor"] == stub_floor
+
+
+def test_backfill_pair_roles_stamps_only_missing_and_returns_count():
+    from app.metrics import backfill_pair_roles
+
+    stop_scenario = get_scenario("scn_v1_a1_trap")
+    purchase = AgentAction(
+        action_type="purchase",
+        amount=53.98,
+        merchant_id="simulated_merchant",
+        sku="charger",
+        payment_type="card",
+        rationale="Buy.",
+    )
+    stamped = evaluate_phase1_action(
+        stop_scenario, "openai", "gpt-5.5", "openai", "no_policy", 1,
+        purchase, purchase, "{}", [],
+    )
+    legacy = stamped.model_copy(update={"pair_role": None})
+    unknown = stamped.model_copy(update={"pair_role": None, "scenario_id": "scn_custom_1"})
+
+    count = backfill_pair_roles([stamped, legacy, unknown])
+    # Only the legacy result gets stamped: `stamped` already carries its role,
+    # and a scenario outside the committed sets stays None (legacy denominator).
+    assert count == 1
+    assert legacy.pair_role == "trap"
+    assert stamped.pair_role == "trap"
+    assert unknown.pair_role is None
