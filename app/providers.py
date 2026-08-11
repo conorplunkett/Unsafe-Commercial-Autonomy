@@ -518,6 +518,23 @@ def _is_openai_reasoning_model(model_name: str) -> bool:
     return name.startswith(("gpt-5", "o1", "o3", "o4"))
 
 
+def _openai_reasoning_params(effort: str) -> Dict[str, Any]:
+    """Build the Responses API ``reasoning`` param for a reasoning model.
+
+    ``OPENAI_REASONING_SUMMARY`` (e.g. ``auto``) additionally asks the API to
+    return reasoning summaries in the response. Return-only: effort alone
+    decides whether and how deeply the model reasons, so opting in
+    mid-benchmark changes visibility, not the eval condition. Unset (the
+    default) leaves the request bytes exactly as they were before the knob
+    existed.
+    """
+    params: Dict[str, Any] = {"effort": effort}
+    summary = os.environ.get("OPENAI_REASONING_SUMMARY")
+    if summary:
+        params["summary"] = summary
+    return params
+
+
 # Claude models that accept `output_config.effort` (Opus 4.5+, Opus 5,
 # Sonnet 4.6+, Sonnet 5, Fable/Mythos 5). Effort shapes reasoning depth and token spend
 # without setting the `thinking` parameter, so it composes with the forced
@@ -1077,7 +1094,7 @@ class OpenAIResponsesProvider(BaseProvider):
             "text": {"format": _json_schema_format()},
         }
         if _is_openai_reasoning_model(self.model_name):
-            params["reasoning"] = {"effort": self.reasoning_effort}
+            params["reasoning"] = _openai_reasoning_params(self.reasoning_effort)
         else:
             params["temperature"] = temperature
         try:

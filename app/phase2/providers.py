@@ -31,6 +31,7 @@ from ..providers import (
     _anthropic_rejects_temperature,
     _anthropic_supports_effort,
     _is_openai_reasoning_model,
+    _openai_reasoning_params,
     available_gemini_models,
     extract_chat_reasoning,
 )
@@ -285,7 +286,7 @@ class OpenAIToolProvider(ToolLoopProvider):
         if self._previous_response_id:
             params["previous_response_id"] = self._previous_response_id
         if _is_openai_reasoning_model(self.model_name):
-            params["reasoning"] = {"effort": self.reasoning_effort}
+            params["reasoning"] = _openai_reasoning_params(self.reasoning_effort)
         else:
             params["temperature"] = self._temperature
         try:

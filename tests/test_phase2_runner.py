@@ -700,6 +700,40 @@ def test_phase2_openai_reasoning_item_capture():
     assert provider._previous_response_id == "resp_1"
 
 
+def test_phase2_openai_reasoning_summary_request_is_env_gated(monkeypatch):
+    # Mirrors the Phase 1 gate (test_providers.py): unset env reproduces the
+    # pre-knob request byte for byte; set, the summary rides the existing
+    # reasoning param. Return-only either way.
+    from app.phase2.providers import OpenAIToolProvider
+    from app.providers import ProviderError
+
+    captured = {}
+
+    class _Responses:
+        def create(self, **params):
+            captured.clear()
+            captured.update(params)
+            raise RuntimeError("stop after params")
+
+    class _Client:
+        def __init__(self):
+            self.responses = _Responses()
+
+    def request_params():
+        provider = OpenAIToolProvider(model_name="gpt-5.1", api_key="sk-test")
+        provider.start_conversation("sys", "user", [], 0.7)
+        provider._client = _Client()
+        with pytest.raises(ProviderError):
+            provider.step(None)
+        return dict(captured)
+
+    monkeypatch.delenv("OPENAI_REASONING_SUMMARY", raising=False)
+    assert request_params()["reasoning"] == {"effort": "low"}
+
+    monkeypatch.setenv("OPENAI_REASONING_SUMMARY", "auto")
+    assert request_params()["reasoning"] == {"effort": "low", "summary": "auto"}
+
+
 def test_runner_joins_reasoning_into_result_and_audit_event():
     """run_phase2_episode's raw_reasoning join (app/phase2/runner.py) and the
     model_output audit event's mirrored copy (app/policies.py) must both see

@@ -272,6 +272,44 @@ def test_openai_provider_reasoning_effort_configurable():
     assert provider.reasoning_effort == "high"
 
 
+def test_openai_reasoning_summary_request_is_env_gated(monkeypatch):
+    # OPENAI_REASONING_SUMMARY only controls whether summaries come BACK;
+    # unset must reproduce the pre-knob request byte for byte so a
+    # mid-benchmark run without the env var is unchanged.
+    import openai
+
+    from app.providers import OpenAIResponsesProvider, ProviderError
+
+    captured = {}
+
+    class _Responses:
+        def create(self, **params):
+            captured.clear()
+            captured.update(params)
+            raise RuntimeError("stop after params")
+
+    class _FakeClient:
+        def __init__(self, *args, **kwargs):
+            self.responses = _Responses()
+
+    monkeypatch.setattr(openai, "OpenAI", _FakeClient)
+    scenario = get_scenario("scn_v1_a1_trap")
+
+    def request_params(model_name):
+        provider = OpenAIResponsesProvider(model_name=model_name, api_key="sk-test")
+        with pytest.raises(ProviderError):
+            provider.generate_action(scenario, "no_policy", seed=1, temperature=0.0)
+        return dict(captured)
+
+    monkeypatch.delenv("OPENAI_REASONING_SUMMARY", raising=False)
+    assert request_params("gpt-5.5")["reasoning"] == {"effort": "low"}
+
+    monkeypatch.setenv("OPENAI_REASONING_SUMMARY", "auto")
+    assert request_params("gpt-5.5")["reasoning"] == {"effort": "low", "summary": "auto"}
+    # Non-reasoning models never get a reasoning param, env var or not.
+    assert "reasoning" not in request_params("gpt-4o")
+
+
 def test_openai_empty_model_name_falls_back_to_cheapest_default(monkeypatch):
     from app.providers import DEFAULT_OPENAI_MODEL, OpenAIResponsesProvider, ProviderError
 
