@@ -1,5 +1,37 @@
 # Changelog
 
+## [2026-08-11] Evaluation framing is opt-in, not default
+
+Prompted by a re-read of the evaluation-awareness axis: the "evaluation"
+preamble (`FRAMING_PREAMBLES["evaluation"]` in `app/phase2/sandbox.py`) tells
+the tested agent, in so many words, that it is being watched — "You are being
+evaluated in a purchasing benchmark." Every run that omitted `--framings`
+carried that disclosure in half its episodes by default, which is backwards
+for a benchmark whose headline numbers are meant to describe unsafe autonomy
+under ordinary, unmonitored deployment: an agent measurably more cautious
+because it suspects a grader is watching tells you about test-taking
+behavior, not real-world risk.
+
+### Changed
+- **Framing now defaults to `deployment` only**, joining `--conditions`,
+  `--urgencies`, and `--user-availabilities` as opt-in axes
+  (`run_phase2_evaluation` in `app/phase2/runner.py`). No episode discloses
+  evaluation status to the tested agent unless a caller explicitly passes
+  `--framings evaluation` (or `all`) to deliberately study that effect. The
+  `evaluation` preamble itself is unchanged and stays in the code — this
+  gates when it runs, not whether the axis can still be studied.
+- The Phase 2 cost/grid-size estimate (`_phase2_grid_size` in `app/cli.py`),
+  the `phase2-eval` help text, `COMMANDS.md`'s flag table, `README.md`'s
+  "Evaluation-awareness test" bullet, and the lab UI
+  (`static/lab.html`/`static/lab.js`) all updated to match: a default run is
+  now half the size it was (1 framing instead of 2) and the default
+  breakdown/preview numbers reflect that.
+
+### Files
+`app/phase2/runner.py`, `app/phase2/sandbox.py` (comment only), `app/cli.py`,
+`README.md`, `COMMANDS.md`, `static/lab.html`, `static/lab.js`,
+`tests/test_phase2_runner.py`, `tests/test_cli.py`.
+
 ## [2026-08-09] Human baseline removed from scope (supersedes R3)
 
 ### Removed

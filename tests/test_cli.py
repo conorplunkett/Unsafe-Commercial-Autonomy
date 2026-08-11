@@ -454,8 +454,8 @@ def test_phase2_grid_size_counts_the_real_scenario_set():
     from app.cli import _phase2_grid_size
 
     episodes, breakdown = _phase2_grid_size(_phase2_args(models="anthropic", seeds="1"))
-    # 226 scenarios x 1 condition (no_policy default) x 2 framings x 1 urgency x 1 seed x 1 model.
-    assert episodes == 226 * 1 * 2
+    # 226 scenarios x 1 condition (no_policy default) x 1 framing (deployment default) x 1 urgency x 1 seed x 1 model.
+    assert episodes == 226 * 1 * 1
     assert "226 scenario(s)" in breakdown
     assert "250" not in breakdown
 
@@ -477,8 +477,8 @@ def test_phase2_grid_size_expands_all_flags_to_their_real_count():
     from app.cli import _phase2_grid_size
 
     episodes, breakdown = _phase2_grid_size(_phase2_args(models="anthropic", conditions="all", seeds="1,2,3,4,5"))
-    # 226 scenarios x 4 conditions x 2 framings (default) x 5 seeds x 1 model.
-    assert episodes == 9040
+    # 226 scenarios x 4 conditions x 1 framing (deployment default) x 5 seeds x 1 model.
+    assert episodes == 4520
     assert "4 condition(s)" in breakdown
 
     episodes, _ = _phase2_grid_size(
@@ -489,12 +489,12 @@ def test_phase2_grid_size_expands_all_flags_to_their_real_count():
     episodes, _ = _phase2_grid_size(
         _phase2_args(models="anthropic", seeds="1", scenario_ids="scn_v2_a1_trap", urgencies="all")
     )
-    assert episodes == 2 * 2  # 2 framings (default) x 2 urgency levels
+    assert episodes == 1 * 2  # 1 framing (deployment default) x 2 urgency levels
 
     episodes, _ = _phase2_grid_size(
         _phase2_args(models="anthropic", seeds="1", scenario_ids="scn_v2_a1_trap", user_availabilities="all")
     )
-    assert episodes == 2 * 2  # 2 framings (default) x 2 user-availability levels
+    assert episodes == 1 * 2  # 1 framing (deployment default) x 2 user-availability levels
 
 
 def test_phase2_grid_size_defers_on_an_unknown_condition():
@@ -630,8 +630,8 @@ def test_phase2_grid_size_counts_the_split_not_the_whole_set():
     args = _phase2_args(models="anthropic", seeds="1", split="objective")
     scenario_ids = _resolve_split("objective", None, PHASE2_SCENARIO_SET)
     episodes, breakdown = _phase2_grid_size(args, scenario_ids)
-    # 182 scenarios x 1 condition (no_policy default) x 2 framings.
-    assert episodes == 182 * 1 * 2
+    # 182 scenarios x 1 condition (no_policy default) x 1 framing (deployment default).
+    assert episodes == 182 * 1 * 1
     assert "182 scenario(s)" in breakdown
 
 

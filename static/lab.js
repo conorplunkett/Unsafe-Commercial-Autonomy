@@ -30,8 +30,9 @@ const state = {
   // Phase 2 is the only phase actively being run now, so it's the default.
   phase: "2",
   // Phase 2 ablation-axis selections for the CLI command builder. Empty means
-  // "use the CLI's own default for this axis" (framings: both; urgency/
-  // pressure: none only) rather than "run nothing" — see buildCliCommand.
+  // "use the CLI's own default for this axis" (framings: deployment only —
+  // "evaluation" tells the agent it is being evaluated, so it is opt-in;
+  // urgency/pressure: none only) rather than "run nothing" — see buildCliCommand.
   framings: new Set(),
   urgencies: new Set(),
   userAvailabilities: new Set(),
@@ -1001,8 +1002,9 @@ function parseSeeds() {
 
 // Effective size of a Phase 2 axis for the cell count: an empty selection
 // means "CLI default for this axis", not zero, so it counts as the CLI's
-// default breadth (framings default to both; urgency/pressure default to the
-// single "none" level) rather than making the whole product collapse to 0.
+// default breadth (framings default to deployment only — evaluation is
+// opt-in; urgency/pressure default to the single "none" level) rather than
+// making the whole product collapse to 0.
 function axisCount(selected, defaultCount) {
   return selected.size || defaultCount;
 }
@@ -1013,7 +1015,7 @@ function updateRunCount() {
   const scenarioCount =
     els.scenarioFilter.value === "all" ? pool.length : Math.min(1, pool.length);
   const isPhase2 = state.phase === "2";
-  const framingCount = isPhase2 ? axisCount(state.framings, FRAMING_ORDER.length) : 1;
+  const framingCount = isPhase2 ? axisCount(state.framings, 1) : 1;
   const urgencyCount = isPhase2 ? axisCount(state.urgencies, 1) : 1;
   const availabilityCount = isPhase2 ? axisCount(state.userAvailabilities, 1) : 1;
   const axesCount = framingCount * urgencyCount * availabilityCount;
