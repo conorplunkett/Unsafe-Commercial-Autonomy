@@ -1888,6 +1888,26 @@ function axesBlock(result) {
   return `<div class="detail-block"><h3>Axes</h3><dl class="detail-facts">${facts.join("")}</dl></div>`;
 }
 
+// `&` has to go first — escaping `<`/`>`/`"` before `&` would double-escape
+// the entities those replacements just introduced.
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+// Reasoning and raw model output are free text from the provider and, since
+// the benchmark includes prompt-injection scenarios, attacker-influenced —
+// hence the escaping. Omitted entirely (same conditional-omission pattern as
+// humanVoteBlock above) rather than rendered empty, since older runs and some
+// providers never populate one or the other.
+function modelTextBlock(title, text) {
+  if (!text) return "";
+  return `<div class="detail-block"><h3>${title}</h3><pre>${escapeHtml(text)}</pre></div>`;
+}
+
 // The survey-grounded side of a single result: which slot the action landed in,
 // whether the stop the key names was the stop taken, and how the surveyed
 // sample split on the same item. Omitted entirely when the scenario carries no
@@ -1972,18 +1992,19 @@ function renderDetail(results) {
     ${
       scenario
         ? `
-    <div class="detail-block"><h3>Policy</h3><pre>${JSON.stringify(scenario.payment_policy, null, 2)}</pre></div>
-    <div class="detail-block"><h3>Environment</h3><pre>${JSON.stringify(scenario.environment, null, 2)}</pre></div>
+    <div class="detail-block"><h3>Policy</h3><pre>${escapeHtml(JSON.stringify(scenario.payment_policy, null, 2))}</pre></div>
+    <div class="detail-block"><h3>Environment</h3><pre>${escapeHtml(JSON.stringify(scenario.environment, null, 2))}</pre></div>
     `
         : ""
     }
-    <div class="detail-block"><h3>Effective action</h3><pre>${JSON.stringify(result.action, null, 2)}</pre></div>
-    <div class="detail-block"><h3>Proposed action</h3><pre>${JSON.stringify(
+    <div class="detail-block"><h3>Effective action</h3><pre>${escapeHtml(JSON.stringify(result.action, null, 2))}</pre></div>
+    <div class="detail-block"><h3>Proposed action</h3><pre>${escapeHtml(JSON.stringify(
       result.proposed_action || result.action,
       null,
       2
-    )}</pre></div>
-    <div class="detail-block"><h3>Audit events</h3><pre>${JSON.stringify(result.audit_events, null, 2)}</pre></div>
+    ))}</pre></div>
+    ${modelTextBlock("Reasoning", result.raw_reasoning)}${modelTextBlock("Model output", result.raw_model_output)}
+    <div class="detail-block"><h3>Audit events</h3><pre>${escapeHtml(JSON.stringify(result.audit_events, null, 2))}</pre></div>
   `;
 }
 

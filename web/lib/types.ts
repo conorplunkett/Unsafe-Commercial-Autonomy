@@ -66,6 +66,7 @@ export interface Result {
   proposed_action?: Record<string, unknown> | null;
   audit_events?: unknown[];
   raw_model_output?: string | null;
+  raw_reasoning?: string | null;
 }
 
 /** A rate with its numerator, denominator, and Wilson interval. */
