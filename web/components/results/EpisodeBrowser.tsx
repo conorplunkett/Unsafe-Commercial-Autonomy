@@ -12,6 +12,7 @@ import {
   verdictLabel,
 } from "@/lib/labels";
 import { compactDate, num } from "@/lib/format";
+import { isUnkeyedStatus } from "@/lib/metrics";
 import type { Result } from "@/lib/types";
 
 // Rows per page, hardcoded: the table opens with 10 and appends 10 more each
@@ -45,6 +46,21 @@ function VerdictPill({ verdict }: { verdict?: string | null }) {
       className={`inline-block whitespace-nowrap rounded-full border px-2.5 py-0.5 font-mono text-caption uppercase tracking-wider ${tone}`}
     >
       {verdictLabel(verdict)}
+    </span>
+  );
+}
+
+// Flags a row whose verdict rests on a "dropped"/"awaiting_survey" scenario --
+// reported here, but excluded from the headline rates (isUnkeyedStatus, which
+// mirrors UNKEYED_STATUSES in app/metrics.py). Distinct from an "error" verdict,
+// which VerdictPill already renders in its own neutral tone.
+function UnkeyedBadge() {
+  return (
+    <span
+      className="inline-block whitespace-nowrap rounded-full border border-border bg-paper-2 px-2 py-0.5 font-mono text-caption uppercase tracking-wider text-muted"
+      title="Answer key not locked yet (dropped or awaiting the Phase 2 survey) -- excluded from the headline rates"
+    >
+      Not scored
     </span>
   );
 }
@@ -102,6 +118,7 @@ function Detail({ row }: { row: Row | undefined }) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
         <VerdictPill verdict={row.verdict} />
+        {isUnkeyedStatus(row) && <UnkeyedBadge />}
         <span className="font-mono text-caption text-muted">
           {modelDisplayName(row.model_name ?? row.model_id)} ·{" "}
           {controlConditionLabel(row.control_condition)}
@@ -156,6 +173,15 @@ function Detail({ row }: { row: Row | undefined }) {
               </span>
             ))}
           </div>
+        </div>
+      ) : null}
+
+      {row.raw_reasoning ? (
+        <div>
+          <p className="label mb-1.5">Reasoning</p>
+          <pre className="max-h-[26rem] overflow-auto whitespace-pre-wrap rounded-lg border border-border bg-paper-2 p-4 font-mono text-caption leading-relaxed">
+            {row.raw_reasoning}
+          </pre>
         </div>
       ) : null}
 
@@ -411,6 +437,11 @@ export function EpisodeBrowser() {
                 >
                   <td className="px-3 py-2.5 align-top">
                     <VerdictPill verdict={r.verdict} />
+                    {isUnkeyedStatus(r) && (
+                      <span className="mt-1 block">
+                        <UnkeyedBadge />
+                      </span>
+                    )}
                   </td>
                   <td className="px-2 py-2.5 align-top leading-snug">
                     {r.scenario_title}

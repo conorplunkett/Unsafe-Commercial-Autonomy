@@ -12,6 +12,7 @@ from app.providers import (
     RateLimitGate,
     TransientRetryPolicy,
     build_messages,
+    extract_chat_reasoning,
     is_rate_limit_error,
     is_retryable_provider_error,
     parse_action_json,
@@ -138,6 +139,75 @@ def test_parse_action_json_keeps_real_merchant_id():
     assert action.merchant_id == "Staples"
 
 
+@pytest.mark.parametrize(
+    "message, expected",
+    [
+        pytest.param(
+            {"reasoning_content": "because X", "content": "answer"},
+            ("because X", "answer"),
+            id="reasoning_content_field",
+        ),
+        pytest.param(
+            {"reasoning": "why", "content": "answer"},
+            ("why", "answer"),
+            id="reasoning_field",
+        ),
+        pytest.param(
+            {"reasoning_content": "dup text", "reasoning": "dup text", "content": "answer"},
+            ("dup text", "answer"),
+            id="both_fields_identical_text_not_duplicated",
+        ),
+        pytest.param(
+            {
+                "reasoning": [
+                    {"type": "text", "text": "step1"},
+                    {"type": "text", "text": "step2"},
+                ],
+                "content": "answer",
+            },
+            ("step1\nstep2", "answer"),
+            id="reasoning_field_as_list_of_text_dicts",
+        ),
+        pytest.param(
+            {"content": "<think>hidden</think>visible"},
+            ("hidden", "visible"),
+            id="single_closed_think_block",
+        ),
+        pytest.param(
+            {"content": "<think>one</think>ANSWER<think>two</think>"},
+            ("one\n\ntwo", "ANSWER"),
+            id="multiple_closed_think_blocks",
+        ),
+        pytest.param(
+            {"content": "ANSWER<think>trailing thoughts"},
+            ("trailing thoughts", "ANSWER"),
+            id="unclosed_trailing_think",
+        ),
+        pytest.param(
+            {"content": 'analysis...</think>{"a": 1}'},
+            ("analysis...", '{"a": 1}'),
+            id="closer_only_content_prefilled_opener",
+        ),
+        pytest.param(
+            {"content": "  padded content  \n"},
+            (None, "  padded content  \n"),
+            id="passthrough_no_sources_byte_identical",
+        ),
+        pytest.param(
+            {"content": None},
+            (None, ""),
+            id="content_none",
+        ),
+    ],
+)
+def test_extract_chat_reasoning(message, expected):
+    # reasoning_content/reasoning are OpenRouter's sibling-field shape;
+    # <think> markup is DeepSeek/Qwen-style inline shape (closed, unclosed
+    # trailing, and closer-only where the chat template pre-filled the
+    # opener). See extract_chat_reasoning's docstring for the precedence.
+    assert extract_chat_reasoning(message) == expected
+
+
 def test_dry_run_provider_returns_agent_action():
     scenario = get_scenario("scn_v1_a1_lookalike")
     result = DryRunProvider("openai").generate_action(
@@ -170,6 +240,21 @@ def test_create_provider_returns_naive_baseline_even_when_live():
     assert isinstance(create_provider("baseline_naive", live=False), NaiveBaselineProvider)
 
 
+def test_synthetic_providers_carry_static_reasoning():
+    # Neither provider calls a model, but a static reasoning string still lets
+    # offline dry runs exercise the full reasoning path end to end.
+    from app.providers import NaiveBaselineProvider
+
+    scenario = get_scenario("scn_v1_a1_lookalike")
+    dry_run_result = DryRunProvider("openai").generate_action(scenario, "no_policy", seed=1, temperature=0.7)
+    assert dry_run_result.reasoning
+    assert isinstance(dry_run_result.reasoning, str)
+
+    naive_result = NaiveBaselineProvider().generate_action(scenario, "no_policy", seed=1, temperature=0.7)
+    assert naive_result.reasoning
+    assert isinstance(naive_result.reasoning, str)
+
+
 def test_openai_provider_param_selection_by_model_family():
     from app.providers import _is_openai_reasoning_model
 
@@ -185,6 +270,74 @@ def test_openai_provider_reasoning_effort_configurable():
     assert OpenAIResponsesProvider(model_name="gpt-5.5").reasoning_effort == "low"
     provider = OpenAIResponsesProvider(model_name="gpt-5.5", reasoning_effort="high")
     assert provider.reasoning_effort == "high"
+
+
+def test_openai_reasoning_summary_request_is_env_gated(monkeypatch):
+    # OPENAI_REASONING_SUMMARY only controls whether summaries come BACK;
+    # unset must reproduce the pre-knob request byte for byte so a
+    # mid-benchmark run without the env var is unchanged.
+    import openai
+
+    from app.providers import OpenAIResponsesProvider, ProviderError
+
+    captured = {}
+
+    class _Responses:
+        def create(self, **params):
+            captured.clear()
+            captured.update(params)
+            raise RuntimeError("stop after params")
+
+    class _FakeClient:
+        def __init__(self, *args, **kwargs):
+            self.responses = _Responses()
+
+    monkeypatch.setattr(openai, "OpenAI", _FakeClient)
+    scenario = get_scenario("scn_v1_a1_trap")
+
+    def request_params(model_name):
+        provider = OpenAIResponsesProvider(model_name=model_name, api_key="sk-test")
+        with pytest.raises(ProviderError):
+            provider.generate_action(scenario, "no_policy", seed=1, temperature=0.0)
+        return dict(captured)
+
+    monkeypatch.delenv("OPENAI_REASONING_SUMMARY", raising=False)
+    assert request_params("gpt-5.5")["reasoning"] == {"effort": "low"}
+
+    monkeypatch.setenv("OPENAI_REASONING_SUMMARY", "auto")
+    assert request_params("gpt-5.5")["reasoning"] == {"effort": "low", "summary": "auto"}
+    # Non-reasoning models never get a reasoning param, env var or not.
+    assert "reasoning" not in request_params("gpt-4o")
+
+
+def test_gemini_include_thoughts_request_is_env_gated(monkeypatch):
+    # GEMINI_INCLUDE_THOUGHTS only asks for thought summaries back; unset
+    # must reproduce the pre-knob request byte for byte.
+    from app.providers import GeminiProvider, ProviderError
+
+    captured = {}
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        captured.clear()
+        captured.update(json)
+        raise RuntimeError("stop after params")
+
+    monkeypatch.setattr("app.providers.httpx.post", fake_post)
+    scenario = get_scenario("scn_v1_a1_trap")
+
+    def request_body():
+        provider = GeminiProvider(model_name="gemini-3.1-flash-lite", api_key="k")
+        with pytest.raises(ProviderError):
+            provider.generate_action(scenario, "no_policy", seed=1, temperature=0.0)
+        return dict(captured)
+
+    monkeypatch.delenv("GEMINI_INCLUDE_THOUGHTS", raising=False)
+    assert "extra_body" not in request_body()
+
+    monkeypatch.setenv("GEMINI_INCLUDE_THOUGHTS", "1")
+    assert request_body()["extra_body"] == {
+        "google": {"thinking_config": {"include_thoughts": True}}
+    }
 
 
 def test_openai_empty_model_name_falls_back_to_cheapest_default(monkeypatch):
@@ -250,6 +403,89 @@ def test_openai_preflight_accepts_known_model(monkeypatch):
     provider.preflight()  # does not raise
 
 
+def test_openai_provider_captures_reasoning_summaries(monkeypatch):
+    # Reasoning-model summaries arrive as separate "reasoning" output items,
+    # each carrying its own list of summary blocks, alongside the normal
+    # message item raw_output already depends on.
+    import openai
+
+    from app.providers import OpenAIResponsesProvider
+
+    action_json = json.dumps(
+        {
+            "action_type": "purchase",
+            "amount": 45.98,
+            "merchant_id": "costco_business",
+            "sku": "charger",
+            "payment_type": "card",
+            "approval_requested": False,
+            "disclosed_fields": ["shipping_address"],
+            "rationale": "Within policy.",
+            "payment_attempts": [],
+            "recurring": False,
+            "refundable": None,
+            "category": None,
+            "unclear_ingredients": False,
+            "followed_external_instruction": False,
+            "completed": False,
+        }
+    )
+
+    class _SummaryBlock:
+        def __init__(self, text):
+            self.text = text
+
+    class _ReasoningItem:
+        type = "reasoning"
+
+        def __init__(self, summary):
+            self.summary = summary
+
+    class _ContentBlock:
+        def __init__(self, text):
+            self.text = text
+
+    class _MessageItem:
+        type = "message"
+
+        def __init__(self, text):
+            self.content = [_ContentBlock(text)]
+
+    def _fake_client_with_summary(summary_blocks):
+        # output_text is left unset (falsy) so generate_action falls through
+        # to _response_output_text, which is what actually walks `output`.
+        class _Response:
+            output_text = None
+            output = [_ReasoningItem(summary_blocks), _MessageItem(action_json)]
+
+        class _Responses:
+            def create(self, **kwargs):
+                return _Response()
+
+        class _FakeClient:
+            def __init__(self, *args, **kwargs):
+                self.responses = _Responses()
+
+        return _FakeClient
+
+    scenario = get_scenario("scn_v1_a1_trap")
+    provider = OpenAIResponsesProvider(model_name="gpt-5.5", api_key="sk-test")
+
+    monkeypatch.setattr(
+        openai, "OpenAI", _fake_client_with_summary([_SummaryBlock("step 1"), _SummaryBlock("step 2")])
+    )
+    result = provider.generate_action(scenario, "no_policy", seed=1, temperature=0.0)
+    assert result.reasoning == "step 1\n\nstep 2"
+    assert result.raw_output == action_json
+    assert result.action.action_type == "purchase"
+
+    # An empty summary list (the live, opt-out-of-summaries default) must not
+    # turn into an empty string -- reasoning stays genuinely absent.
+    monkeypatch.setattr(openai, "OpenAI", _fake_client_with_summary([]))
+    empty_result = provider.generate_action(scenario, "no_policy", seed=1, temperature=0.0)
+    assert empty_result.reasoning is None
+
+
 def test_anthropic_provider_sets_prompt_cache_breakpoints(monkeypatch):
     # The tool schema is byte-identical on every call and the system prompt has
     # only three variants, so both carry an ephemeral cache_control breakpoint;
@@ -303,6 +539,65 @@ def test_anthropic_provider_sets_prompt_cache_breakpoints(monkeypatch):
     assert captured["system"][-1]["cache_control"] == {"type": "ephemeral"}
     # The forced tool also carries a breakpoint.
     assert captured["tools"][-1]["cache_control"] == {"type": "ephemeral"}
+
+
+def test_anthropic_provider_captures_thinking_and_redacted(monkeypatch):
+    # Extended thinking blocks share response.content with the forced
+    # tool_use; capturing reasoning must not disturb the existing
+    # tool_use/text handling that raw_output/action parsing depends on.
+    import anthropic
+
+    from app.providers import AnthropicProvider
+
+    action_input = {
+        "action_type": "purchase",
+        "amount": 45.98,
+        "merchant_id": "costco_business",
+        "sku": "charger",
+        "payment_type": "card",
+        "approval_requested": False,
+        "disclosed_fields": ["shipping_address"],
+        "rationale": "Within policy.",
+        "payment_attempts": [],
+        "recurring": False,
+        "refundable": None,
+        "category": None,
+        "unclear_ingredients": False,
+        "followed_external_instruction": False,
+        "completed": False,
+    }
+
+    class _Thinking:
+        type = "thinking"
+        thinking = "Checking the cap before approving the charge."
+
+    class _RedactedThinking:
+        type = "redacted_thinking"
+
+    class _ToolUse:
+        type = "tool_use"
+        input = action_input
+
+    class _Response:
+        content = [_Thinking(), _RedactedThinking(), _ToolUse()]
+        stop_reason = "tool_use"
+
+    class _Messages:
+        def create(self, **kwargs):
+            return _Response()
+
+    class _FakeClient:
+        def __init__(self, *args, **kwargs):
+            self.messages = _Messages()
+
+    monkeypatch.setattr(anthropic, "Anthropic", _FakeClient)
+    provider = AnthropicProvider(model_name="claude-haiku-4-5", api_key="sk-test")
+    scenario = get_scenario("scn_v1_a1_trap")
+    result = provider.generate_action(scenario, "prompt_policy", seed=1, temperature=0.0)
+
+    assert result.reasoning == "Checking the cap before approving the charge.\n\n[redacted_thinking]"
+    assert json.loads(result.raw_output) == action_input
+    assert result.action.action_type == "purchase"
 
 
 def test_defaults_are_cheapest_current_models():
@@ -534,6 +829,67 @@ def test_new_provider_response_format_modes():
     assert grok_fmt["type"] == "json_schema"
     assert grok_fmt["json_schema"]["strict"] is True
     assert "strict" not in OpenRouterProvider()._response_format()["json_schema"]
+
+
+def test_compat_provider_threads_reasoning_to_provider_action(monkeypatch):
+    # OpenAICompatibleProvider (and its Grok/DeepSeek/Mistral/Qwen/OpenRouter
+    # subclasses) and the separately-implemented OpenWeightsProvider both read
+    # the same chat-completions message shape; reasoning_content and inline
+    # <think> markup must thread through both to ProviderAction.reasoning.
+    from app.providers import GrokProvider, OpenWeightsProvider
+
+    action_input = {
+        "action_type": "purchase",
+        "amount": 45.98,
+        "merchant_id": "costco_business",
+        "sku": "charger",
+        "payment_type": "card",
+        "approval_requested": False,
+        "disclosed_fields": ["shipping_address"],
+        "rationale": "Within policy.",
+        "payment_attempts": [],
+        "recurring": False,
+        "refundable": None,
+        "category": None,
+        "unclear_ingredients": False,
+        "followed_external_instruction": False,
+        "completed": False,
+    }
+    action_json = json.dumps(action_input)
+
+    class _FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {
+                "choices": [
+                    {
+                        "message": {
+                            "reasoning_content": "field reasoning",
+                            "content": f"<think>inline reasoning</think>{action_json}",
+                        }
+                    }
+                ]
+            }
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        return _FakeResponse()
+
+    monkeypatch.setattr("app.providers.httpx.post", fake_post)
+    scenario = get_scenario("scn_v1_a1_trap")
+
+    grok = GrokProvider(model_name="grok-4.3", api_key="xai-test")
+    grok_result = grok.generate_action(scenario, "no_policy", seed=1, temperature=0.0)
+    assert grok_result.reasoning == "field reasoning\n\ninline reasoning"
+    assert grok_result.raw_output == action_json
+    assert grok_result.action.action_type == "purchase"
+
+    openweights = OpenWeightsProvider(model_name="local-model", base_url="http://127.0.0.1:9")
+    ow_result = openweights.generate_action(scenario, "no_policy", seed=1, temperature=0.0)
+    assert ow_result.reasoning == "field reasoning\n\ninline reasoning"
+    assert ow_result.raw_output == action_json
+    assert ow_result.action.action_type == "purchase"
 
 
 def test_grok_preflight_requires_api_key(monkeypatch):

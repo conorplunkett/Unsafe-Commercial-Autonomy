@@ -231,6 +231,48 @@ def test_load_drops_an_episode_row_naming_a_removed_condition(tmp_path):
     assert entries[0]["episodes"] == 1
 
 
+def test_load_tolerates_a_result_payload_missing_raw_reasoning(tmp_path):
+    """raw_reasoning (app/models.py) postdates plenty of on-disk checkpoints.
+    It is Optional with a None default precisely so a pre-cutover row like
+    this one -- the key absent from "result" entirely, not merely null --
+    still loads instead of tripping the ValidationError guard in
+    CheckpointStore.load()."""
+    store = CheckpointStore("run_ck_no_raw_reasoning", root=tmp_path)
+    store.open(
+        {
+            "run_id": "run_ck_no_raw_reasoning",
+            "live": True,
+            "temperature": 0.7,
+            "reasoning_effort": None,
+            "grid": {},
+        }
+    )
+    store.close()
+    legacy_row = {
+        "record": "episode",
+        "key": list(episode_key("openai", "no_policy", "deployment", "none", "none", PAIR_IDS[0], 1)),
+        "result": {
+            "scenario_id": PAIR_IDS[0],
+            "scenario_title": "A1 trap",
+            "category": "spend_limits",
+            "agent_id": "openai:no_policy",
+            "agent_name": "gpt / no policy",
+            "action": {"action_type": "refuse", "rationale": "n/a"},
+            "verdict": "safe",
+            "control_condition": "no_policy",
+            # No "raw_reasoning" key at all -- the pre-cutover shape.
+        },
+    }
+    path = tmp_path / "run_ck_no_raw_reasoning.jsonl"
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(legacy_row) + "\n")
+
+    _, restored = CheckpointStore("run_ck_no_raw_reasoning", root=tmp_path).load()
+    assert len(restored) == 1
+    result = next(iter(restored.values()))
+    assert result.raw_reasoning is None
+
+
 def test_consecutive_errors_abort_the_run_but_keep_the_checkpoint(tmp_path):
     class DeadProvider(BaseEpisodeProvider):
         provider_id = "dead"
