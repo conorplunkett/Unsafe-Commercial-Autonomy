@@ -729,3 +729,78 @@ def test_cli_publish_passes_ok_and_unstamped_runs(tmp_path, capsys, monkeypatch)
         assert main(["publish", "--file", str(path)]) == 0
     out = capsys.readouterr().out
     assert "run_ok" in out and "run_legacy" in out
+
+
+def _legacy_phase2_run(scenario_ids):
+    """A real scripted Phase 2 run, rewound to its pre-pair_role stored shape."""
+    from app.metrics import compute_metrics
+    from app.models import BenchmarkRun, model_to_dict, parse_model
+    from app.phase2.runner import run_phase2_evaluation
+    from app.phase2.survey import floor_for_phase2
+
+    run = run_phase2_evaluation(
+        model_ids=["scripted_naive"],
+        control_conditions=["no_policy"],
+        framings=["deployment"],
+        scenario_ids=scenario_ids,
+        seeds=[1],
+        checkpoint=False,
+    )
+    payload = model_to_dict(run)
+    for result in payload["results"]:
+        result.pop("pair_role", None)
+    legacy = parse_model(BenchmarkRun, payload)
+    legacy.metrics = compute_metrics(legacy.results, floor_fn=floor_for_phase2)
+    assert legacy.metrics["unsafe_denominator"] == "all_keyed_legacy"
+    return legacy
+
+
+def test_cli_recompute_backfills_pair_role_and_flips_denominator(tmp_path, monkeypatch, capsys):
+    from app.storage import RunStorage
+
+    monkeypatch.setenv("RUN_STORAGE_DIR", str(tmp_path))
+    legacy = _legacy_phase2_run(
+        ["scn_v2_a1_trap", "scn_v2_a1_lookalike", "scn_v2_b1_trap", "scn_v2_c6_trap"]
+    )
+    RunStorage().save(legacy)
+
+    assert main(["recompute", "--all"]) == 0
+    out = capsys.readouterr().out
+    assert "pair_role backfilled on 4 episode(s)" in out
+
+    stored = RunStorage().read(legacy.run_id)
+    # scripted_naive falls for both keyed traps; the lookalike leaves the
+    # headline denominator and the awaiting_survey trap stays excluded.
+    assert stored.metrics["unsafe_denominator"] == "keyed_traps"
+    assert stored.metrics["unsafe_payment_ci"]["total"] == 2
+    assert stored.metrics["unsafe_payment_ci"]["count"] == 2
+    assert stored.metrics["unsafe_outside_traps_ci"]["total"] == 1
+    assert all(result.pair_role in ("trap", "lookalike") for result in stored.results)
+    # The phase2 breakdown block is rebuilt from the stored run's own axes.
+    assert list(stored.metrics["phase2"]["by_framing"]) == ["deployment"]
+
+
+def test_cli_recompute_publish_flag_republishes_with_label(tmp_path, monkeypatch, capsys):
+    from app.storage import RunStorage
+
+    monkeypatch.setenv("RUN_STORAGE_DIR", str(tmp_path))
+    published = []
+    monkeypatch.setattr(
+        "app.supabase_publish.publish_run",
+        lambda run, label=None, progress=None: (
+            published.append((run["run_id"], label))
+            or {
+                "run_id": run["run_id"],
+                "label": label,
+                "payload": {"episode_count": len(run.get("results") or [])},
+            }
+        ),
+    )
+    legacy = _legacy_phase2_run(["scn_v2_a1_trap", "scn_v2_a1_lookalike"])
+    RunStorage().save(legacy)
+
+    assert main(["recompute", "--run-id", legacy.run_id, "--publish", "--label", "rekeyed"]) == 0
+    assert published == [(legacy.run_id, "rekeyed")]
+    # What was published is the recomputed shape, not the stored legacy one.
+    republished = RunStorage().read(legacy.run_id)
+    assert republished.metrics["unsafe_denominator"] == "keyed_traps"

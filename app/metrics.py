@@ -709,3 +709,88 @@ def compute_metrics(
             for category, counter in sorted(taxonomy.items())
         },
     }
+
+
+# ---------------------------------------------------------------------------
+# Stored-run recompute (the `recompute` CLI command)
+# ---------------------------------------------------------------------------
+
+# scenario_id -> pair_role across the committed scenario sets, loaded once.
+# Both sets are fully pair-labeled; a result from a custom --scenario-set file
+# simply stays unlabeled and keeps the legacy all-keyed denominator.
+_PAIR_ROLE_SETS = ("v1_50_scenarios.md", "v2_250_scenarios.md")
+_pair_role_cache: Optional[Dict[str, str]] = None
+
+
+def _scenario_pair_roles() -> Dict[str, str]:
+    global _pair_role_cache
+    if _pair_role_cache is None:
+        # Local import: keeps this module importable without touching the data
+        # layer until a recompute actually needs it.
+        from .data import DATA_DIR, load_scenarios
+
+        roles: Dict[str, str] = {}
+        for name in _PAIR_ROLE_SETS:
+            for scenario in load_scenarios(DATA_DIR / "scenario_sets" / name):
+                if scenario.pair_role:
+                    roles[scenario.scenario_id] = scenario.pair_role
+        _pair_role_cache = roles
+    return _pair_role_cache
+
+
+def backfill_pair_roles(results: Iterable[EvaluationResult]) -> int:
+    """Stamp missing ``pair_role`` from the scenario sets, by scenario_id.
+
+    Results scored since 2026-08-11 already carry it; stored runs from before
+    then carry None, which locks their metrics to the legacy all-keyed unsafe
+    denominator. Returns how many results were stamped.
+    """
+    roles = _scenario_pair_roles()
+    stamped = 0
+    for result in results:
+        if result.pair_role is None:
+            role = roles.get(result.scenario_id)
+            if role is not None:
+                result.pair_role = role  # type: ignore[assignment]
+                stamped += 1
+    return stamped
+
+
+def recompute_run_metrics(run: "BenchmarkRun") -> int:
+    """Backfill pair_role and rebuild a stored run's metrics in place.
+
+    Episode verdicts are untouched — only the run-level aggregation reruns, so
+    a run published under the pre-2026-08-11 all-keyed unsafe denominator
+    re-aggregates under the current trap-conditional definition and becomes
+    poolable on the leaderboard again. Phase 2 runs get their ``phase2``
+    breakdown block rebuilt too, from the axis levels the stored run declares
+    (falling back to the levels present in the results, for runs that predate
+    an axis). Returns how many results had pair_role backfilled.
+    """
+    stamped = backfill_pair_roles(run.results)
+
+    def _levels(declared: List[str], values: Iterable[Optional[str]]) -> List[str]:
+        if declared:
+            return list(declared)
+        seen: Dict[str, None] = {}
+        for value in values:
+            if value is not None and value not in seen:
+                seen[value] = None
+        return list(seen)
+
+    if run.phase == "phase2":
+        # Local imports: phase2.runner imports this module at load time.
+        from .phase2.runner import phase2_metrics_block
+        from .phase2.survey import floor_for_phase2
+
+        run.metrics = compute_metrics(run.results, floor_fn=floor_for_phase2)
+        run.metrics["phase2"] = phase2_metrics_block(
+            run.results,
+            _levels(run.control_conditions, (r.control_condition for r in run.results)),
+            _levels(run.framings, (r.framing for r in run.results)),
+            _levels(run.urgencies, (r.urgency for r in run.results)),
+            _levels(run.user_availabilities, (r.user_availability for r in run.results)),
+        )
+    else:
+        run.metrics = compute_metrics(run.results)
+    return stamped
