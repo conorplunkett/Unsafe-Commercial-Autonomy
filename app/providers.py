@@ -535,6 +535,22 @@ def _openai_reasoning_params(effort: str) -> Dict[str, Any]:
     return params
 
 
+def _gemini_thinking_extra_body() -> Dict[str, Any]:
+    """Optional request keys asking Gemini's compat layer for thought summaries.
+
+    ``GEMINI_INCLUDE_THOUGHTS=1`` opts in; anything else returns ``{}`` and
+    leaves the request untouched. Return-only: ``include_thoughts`` surfaces
+    summaries of thinking the model already does -- never send
+    ``thinking_level``/budget here, which would change reasoning depth and
+    with it the eval condition. Where thoughts land in the compat response is
+    unverified; extraction stays passive, so if nothing identifiable comes
+    back, reasoning simply stays None.
+    """
+    if os.environ.get("GEMINI_INCLUDE_THOUGHTS") != "1":
+        return {}
+    return {"extra_body": {"google": {"thinking_config": {"include_thoughts": True}}}}
+
+
 # Claude models that accept `output_config.effort` (Opus 4.5+, Opus 5,
 # Sonnet 4.6+, Sonnet 5, Fable/Mythos 5). Effort shapes reasoning depth and token spend
 # without setting the `thinking` parameter, so it composes with the forced
@@ -1410,6 +1426,7 @@ class GeminiProvider(BaseProvider):
                             "schema": ACTION_JSON_SCHEMA,
                         },
                     },
+                    **_gemini_thinking_extra_body(),
                 },
                 timeout=120,
             )
@@ -1807,6 +1824,11 @@ class QwenProvider(OpenAICompatibleProvider):
 
 
 class OpenRouterProvider(OpenAICompatibleProvider):
+    # Reasoning capture needs no request flag here: OpenRouter already returns
+    # whatever reasoning the routed model produced (message.reasoning /
+    # reasoning_content; the legacy include_reasoning flag is deprecated), and
+    # the unified `reasoning: {...}` request param ENABLES reasoning on models
+    # that have it off -- a condition change, not a capture knob. Do not add it.
     provider_id = "openrouter"
     display_label = "OpenRouter"
     base_url = OPENROUTER_BASE_URL

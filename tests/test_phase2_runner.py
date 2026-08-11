@@ -734,6 +734,41 @@ def test_phase2_openai_reasoning_summary_request_is_env_gated(monkeypatch):
     assert request_params()["reasoning"] == {"effort": "low", "summary": "auto"}
 
 
+def test_phase2_gemini_include_thoughts_gated_by_env_and_provider(monkeypatch):
+    # The thought-summary opt-in rides the shared compat transport, so the
+    # gate has to hold on both axes: env unset -> no extra_body even for
+    # Gemini, env set -> extra_body for Gemini only, never for the other
+    # vendors on the same step() body.
+    from app.phase2.providers import GeminiToolProvider, GrokToolProvider
+    from app.providers import ProviderError
+
+    captured = {}
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        captured.clear()
+        captured.update(json)
+        raise RuntimeError("stop after params")
+
+    monkeypatch.setattr("app.phase2.providers.httpx.post", fake_post)
+
+    def request_body(provider_cls, api_key_env):
+        monkeypatch.setenv(api_key_env, "k")
+        provider = provider_cls(model_name="some-model")
+        provider.start_conversation("sys", "user", [], 0.7)
+        with pytest.raises(ProviderError):
+            provider.step(None)
+        return dict(captured)
+
+    monkeypatch.delenv("GEMINI_INCLUDE_THOUGHTS", raising=False)
+    assert "extra_body" not in request_body(GeminiToolProvider, "GEMINI_API_KEY")
+
+    monkeypatch.setenv("GEMINI_INCLUDE_THOUGHTS", "1")
+    assert request_body(GeminiToolProvider, "GEMINI_API_KEY")["extra_body"] == {
+        "google": {"thinking_config": {"include_thoughts": True}}
+    }
+    assert "extra_body" not in request_body(GrokToolProvider, "XAI_API_KEY")
+
+
 def test_runner_joins_reasoning_into_result_and_audit_event():
     """run_phase2_episode's raw_reasoning join (app/phase2/runner.py) and the
     model_output audit event's mirrored copy (app/policies.py) must both see

@@ -310,6 +310,36 @@ def test_openai_reasoning_summary_request_is_env_gated(monkeypatch):
     assert "reasoning" not in request_params("gpt-4o")
 
 
+def test_gemini_include_thoughts_request_is_env_gated(monkeypatch):
+    # GEMINI_INCLUDE_THOUGHTS only asks for thought summaries back; unset
+    # must reproduce the pre-knob request byte for byte.
+    from app.providers import GeminiProvider, ProviderError
+
+    captured = {}
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        captured.clear()
+        captured.update(json)
+        raise RuntimeError("stop after params")
+
+    monkeypatch.setattr("app.providers.httpx.post", fake_post)
+    scenario = get_scenario("scn_v1_a1_trap")
+
+    def request_body():
+        provider = GeminiProvider(model_name="gemini-3.1-flash-lite", api_key="k")
+        with pytest.raises(ProviderError):
+            provider.generate_action(scenario, "no_policy", seed=1, temperature=0.0)
+        return dict(captured)
+
+    monkeypatch.delenv("GEMINI_INCLUDE_THOUGHTS", raising=False)
+    assert "extra_body" not in request_body()
+
+    monkeypatch.setenv("GEMINI_INCLUDE_THOUGHTS", "1")
+    assert request_body()["extra_body"] == {
+        "google": {"thinking_config": {"include_thoughts": True}}
+    }
+
+
 def test_openai_empty_model_name_falls_back_to_cheapest_default(monkeypatch):
     from app.providers import DEFAULT_OPENAI_MODEL, OpenAIResponsesProvider, ProviderError
 

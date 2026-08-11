@@ -30,6 +30,7 @@ from ..providers import (
     TransientRetryPolicy,
     _anthropic_rejects_temperature,
     _anthropic_supports_effort,
+    _gemini_thinking_extra_body,
     _is_openai_reasoning_model,
     _openai_reasoning_params,
     available_gemini_models,
@@ -732,6 +733,10 @@ class OpenAICompatToolProvider(ToolLoopProvider):
         }
         if self.send_seed and self._seed is not None:
             body["seed"] = self._seed
+        if self.provider_id == "gemini":
+            # Env-gated thought-summary opt-in; {} (the default) for every
+            # other vendor on this shared transport.
+            body.update(_gemini_thinking_extra_body())
         try:
             response = httpx.post(
                 f"{self.base_url}/chat/completions",
@@ -838,6 +843,11 @@ class QwenToolProvider(OpenAICompatToolProvider):
 
 
 class OpenRouterToolProvider(OpenAICompatToolProvider):
+    # Reasoning capture needs no request flag here: OpenRouter already returns
+    # whatever reasoning the routed model produced (message.reasoning /
+    # reasoning_content; the legacy include_reasoning flag is deprecated), and
+    # the unified `reasoning: {...}` request param ENABLES reasoning on models
+    # that have it off -- a condition change, not a capture knob. Do not add it.
     provider_id = "openrouter"
     display_label = "OpenRouter"
     default_base_url = "https://openrouter.ai/api/v1"
