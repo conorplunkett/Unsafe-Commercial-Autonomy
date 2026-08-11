@@ -519,9 +519,10 @@
   font-weight: 400;
 }
 
-/* The Runs list and Phases tracker sit above the by-model dashboard and are
-   always shown. */
+/* The Runs list, Results panel, and Phases tracker sit above the by-model
+   dashboard and are always shown. */
 .lab-runs,
+.lab-results,
 .lab-phases {
   margin-bottom: 8px;
 }
@@ -768,6 +769,18 @@
 
 .failure-chart {
   padding: 8px 16px 16px;
+}
+
+.failure-pagination {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px 16px;
+}
+
+.failure-pagination .chip:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 
 .failure-mode {
