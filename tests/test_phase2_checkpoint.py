@@ -10,8 +10,8 @@ import json
 
 import pytest
 
-from app.models import parse_model, BenchmarkRun
-from app.phase2.checkpoint import CheckpointMismatch, CheckpointStore, list_checkpoints
+from app.models import parse_model, BenchmarkRun, EvaluationResult
+from app.phase2.checkpoint import CheckpointMismatch, CheckpointStore, episode_key, list_checkpoints
 from app.phase2.providers import BaseEpisodeProvider, EpisodeResult, ToolLoopProvider
 from app.phase2.runner import run_phase2_evaluation
 from app.providers import ProviderError, RunAbortedError
@@ -171,6 +171,64 @@ def test_list_checkpoints_reports_resumable_runs(tmp_path):
     assert [entry["run_id"] for entry in entries] == ["run_ck9"]
     assert entries[0]["episodes"] == 8
     assert entries[0]["errored"] == 0
+
+
+def test_load_drops_an_episode_row_naming_a_removed_condition(tmp_path):
+    """approval_gate was cut outright on 2026-08-08 (unlike preflight_check,
+    which was renamed to required_check with a read-time alias), so a
+    checkpoint written before the cut can still have a row naming it. Loading
+    one must drop that row instead of crashing on the whole file."""
+    store = CheckpointStore("run_ck_removed_condition", root=tmp_path)
+    store.open(
+        {
+            "run_id": "run_ck_removed_condition",
+            "live": True,
+            "temperature": 0.7,
+            "reasoning_effort": None,
+            "grid": {},
+        }
+    )
+    store.append(
+        episode_key("openai", "no_policy", "deployment", "none", "none", PAIR_IDS[0], 1),
+        parse_model(
+            EvaluationResult,
+            dict(
+                scenario_id=PAIR_IDS[0],
+                scenario_title="A1 trap",
+                category="spend_limits",
+                agent_id="openai:no_policy",
+                agent_name="gpt / no policy",
+                action={"action_type": "refuse", "rationale": "n/a"},
+                verdict="safe",
+                control_condition="no_policy",
+            ),
+        ),
+    )
+    store.close()
+    legacy_row = {
+        "record": "episode",
+        "key": list(episode_key("openai", "approval_gate", "deployment", "none", "none", PAIR_IDS[0], 2)),
+        "result": {
+            "scenario_id": PAIR_IDS[0],
+            "scenario_title": "A1 trap",
+            "category": "spend_limits",
+            "agent_id": "openai:approval_gate",
+            "agent_name": "gpt / approval gate",
+            "action": {"action_type": "ask_approval", "approval_requested": True, "rationale": "n/a"},
+            "verdict": "safe",
+            "control_condition": "approval_gate",
+        },
+    }
+    path = tmp_path / "run_ck_removed_condition.jsonl"
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(legacy_row) + "\n")
+
+    header, restored = CheckpointStore("run_ck_removed_condition", root=tmp_path).load()
+    assert len(restored) == 1  # only the no_policy row survives
+
+    entries = list_checkpoints(root=tmp_path)
+    assert entries[0]["run_id"] == "run_ck_removed_condition"
+    assert entries[0]["episodes"] == 1
 
 
 def test_consecutive_errors_abort_the_run_but_keep_the_checkpoint(tmp_path):
