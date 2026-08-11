@@ -32,6 +32,7 @@ from ..providers import (
     _anthropic_supports_effort,
     _is_openai_reasoning_model,
     available_gemini_models,
+    extract_chat_reasoning,
 )
 from .sandbox import MAX_TURNS, SandboxWorld, evaluate_payment_policy, tool_schemas
 
@@ -70,6 +71,9 @@ LIVE_MODEL_IDS = {
 class EpisodeResult:
     raw_outputs: List[str] = field(default_factory=list)
     error: Optional[str] = None
+    # One entry per turn that carried reasoning (thinking blocks,
+    # reasoning_content, <think> tags), mirroring raw_outputs' per-turn shape.
+    reasoning_outputs: List[str] = field(default_factory=list)
 
 
 class BaseEpisodeProvider:

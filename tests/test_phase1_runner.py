@@ -47,6 +47,22 @@ class AlwaysInvalidProvider(BaseProvider):
         raise ProviderOutputError("invalid json")
 
 
+class ReasoningCapturingProvider(AlwaysPurchaseProvider):
+    """Like AlwaysPurchaseProvider, but also reports reasoning -- the shape a
+    later vendor-adapter task will produce once it parses thinking
+    blocks/reasoning_content/<think> tags out of the raw response."""
+
+    def generate_action(self, scenario, control_condition, seed, temperature):
+        provider_action = super().generate_action(scenario, control_condition, seed, temperature)
+        return ProviderAction(
+            raw_output=provider_action.raw_output,
+            action=provider_action.action,
+            provider_id=provider_action.provider_id,
+            model_name=provider_action.model_name,
+            reasoning="why",
+        )
+
+
 def test_phase1_runner_cardinality_for_one_model_all_controls_all_seeds():
     # Seeds are explicit here (the five-seed design), not the default -- see
     # test_phase1_runner_seeds_default_to_a_single_seed for that.
@@ -112,6 +128,19 @@ def test_tool_constraints_do_not_block_safe_lookalike_purchase():
     assert result.verdict == "safe"
     assert result.action.action_type == "purchase"
     assert result.block_reasons == []
+
+
+def test_provider_reasoning_flows_into_the_result():
+    run = run_phase1_evaluation(
+        model_ids=["openai"],
+        control_conditions=["no_policy"],
+        scenario_ids=["scn_v1_a1_trap"],
+        seeds=[1],
+        live=False,
+        provider_factory=lambda model_id, live: ReasoningCapturingProvider(),
+    )
+
+    assert run.results[0].raw_reasoning == "why"
 
 
 def test_provider_invalid_json_is_retried():

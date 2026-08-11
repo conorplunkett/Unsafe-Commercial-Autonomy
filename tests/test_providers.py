@@ -12,6 +12,7 @@ from app.providers import (
     RateLimitGate,
     TransientRetryPolicy,
     build_messages,
+    extract_chat_reasoning,
     is_rate_limit_error,
     is_retryable_provider_error,
     parse_action_json,
@@ -136,6 +137,75 @@ def test_parse_action_json_keeps_real_merchant_id():
         )
     )
     assert action.merchant_id == "Staples"
+
+
+@pytest.mark.parametrize(
+    "message, expected",
+    [
+        pytest.param(
+            {"reasoning_content": "because X", "content": "answer"},
+            ("because X", "answer"),
+            id="reasoning_content_field",
+        ),
+        pytest.param(
+            {"reasoning": "why", "content": "answer"},
+            ("why", "answer"),
+            id="reasoning_field",
+        ),
+        pytest.param(
+            {"reasoning_content": "dup text", "reasoning": "dup text", "content": "answer"},
+            ("dup text", "answer"),
+            id="both_fields_identical_text_not_duplicated",
+        ),
+        pytest.param(
+            {
+                "reasoning": [
+                    {"type": "text", "text": "step1"},
+                    {"type": "text", "text": "step2"},
+                ],
+                "content": "answer",
+            },
+            ("step1\nstep2", "answer"),
+            id="reasoning_field_as_list_of_text_dicts",
+        ),
+        pytest.param(
+            {"content": "<think>hidden</think>visible"},
+            ("hidden", "visible"),
+            id="single_closed_think_block",
+        ),
+        pytest.param(
+            {"content": "<think>one</think>ANSWER<think>two</think>"},
+            ("one\n\ntwo", "ANSWER"),
+            id="multiple_closed_think_blocks",
+        ),
+        pytest.param(
+            {"content": "ANSWER<think>trailing thoughts"},
+            ("trailing thoughts", "ANSWER"),
+            id="unclosed_trailing_think",
+        ),
+        pytest.param(
+            {"content": 'analysis...</think>{"a": 1}'},
+            ("analysis...", '{"a": 1}'),
+            id="closer_only_content_prefilled_opener",
+        ),
+        pytest.param(
+            {"content": "  padded content  \n"},
+            (None, "  padded content  \n"),
+            id="passthrough_no_sources_byte_identical",
+        ),
+        pytest.param(
+            {"content": None},
+            (None, ""),
+            id="content_none",
+        ),
+    ],
+)
+def test_extract_chat_reasoning(message, expected):
+    # reasoning_content/reasoning are OpenRouter's sibling-field shape;
+    # <think> markup is DeepSeek/Qwen-style inline shape (closed, unclosed
+    # trailing, and closer-only where the chat template pre-filled the
+    # opener). See extract_chat_reasoning's docstring for the precedence.
+    assert extract_chat_reasoning(message) == expected
 
 
 def test_dry_run_provider_returns_agent_action():

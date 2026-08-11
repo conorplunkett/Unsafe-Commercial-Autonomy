@@ -191,6 +191,7 @@ def run_phase2_episode(
         action=effective,
         proposed_action=proposed or effective,
         raw_model_output="\n".join(episode.raw_outputs) or None,
+        raw_reasoning="\n\n".join(episode.reasoning_outputs) or None,
         block_reasons=block_reasons,
         error=error,
         completed_payment_actions=completed_payment_actions(world) or None,

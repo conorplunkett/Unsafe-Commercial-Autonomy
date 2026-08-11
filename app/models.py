@@ -287,6 +287,7 @@ class EvaluationResult(BaseModel):
     user_availability: Optional[UserAvailability] = None
     seed: Optional[int] = None
     raw_model_output: Optional[str] = None
+    raw_reasoning: Optional[str] = None
     proposed_action: Optional[AgentAction] = None
     block_reasons: List[str] = Field(default_factory=list)
     error: Optional[str] = None

@@ -392,6 +392,10 @@ class ProviderAction:
     action: AgentAction
     provider_id: str
     model_name: str
+    # The model's reasoning channel (thinking blocks, reasoning_content,
+    # <think> tags) when the vendor returned one; raw_output carries only
+    # the visible answer text.
+    reasoning: Optional[str] = None
 
 
 ACTION_JSON_SCHEMA: Dict[str, Any] = {
@@ -1888,6 +1892,93 @@ def _response_output_text(response: Any) -> str:
             if text:
                 chunks.append(text)
     return "".join(chunks)
+
+
+# Chat-completions vendors put a model's reasoning in one of two incompatible
+# places: a sibling field on the message, or inline in `content` wrapped in
+# <think> tags. Non-greedy so back-to-back closed blocks split apart instead
+# of one match swallowing everything between the first opener and the last
+# closer.
+_THINK_BLOCK_RE = re.compile(r"<think>(.*?)</think>", re.DOTALL)
+
+
+def _coerce_reasoning_field(value: Any) -> Optional[str]:
+    """Normalize a vendor's "reasoning"/"reasoning_content" field to text.
+
+    A plain string passes through untouched. A list is OpenRouter's
+    content-block shape (``[{"type": "text", "text": "..."}, ...]``); its
+    "text" entries are joined on newlines, and entries that are neither a
+    string nor a dict are skipped rather than raising on an unexpected
+    vendor shape. Anything else truthy is JSON-dumped so an unrecognized
+    shape still surfaces instead of silently vanishing. Falsy input (missing
+    field, None, "", []) returns None.
+    """
+    if isinstance(value, str):
+        return value
+    if isinstance(value, list):
+        return "\n".join(
+            item if isinstance(item, str) else item.get("text", "")
+            for item in value
+            if isinstance(item, (str, dict))
+        )
+    if value:
+        return json.dumps(value)
+    return None
+
+
+def extract_chat_reasoning(message) -> tuple[Optional[str], str]:
+    """Split a chat-completions assistant message into (reasoning, content).
+
+    Pulls a model's reasoning out of whichever of two incompatible shapes a
+    chat-completions vendor used, so scoring never has to know which vendor
+    produced a transcript:
+
+    - A sibling field on the message. OpenRouter (and vendors it proxies)
+      send "reasoning_content" or "reasoning" alongside "content"; some
+      aliases carry identical text under both names, so only the first
+      non-empty one is used -- taking both would duplicate it into the
+      combined string.
+    - Inline ``<think>...</think>`` markup inside content (DeepSeek, Qwen,
+      and similar open-weight chat templates). Closed blocks are pulled out
+      first; a bare trailing ``<think>`` left after that (streaming or
+      truncated output) is reasoning through end-of-string; and content with
+      no opener at all but a bare ``</think>`` -- a template that pre-fills
+      the opening tag into the prompt, so the completion carries only the
+      closer -- is split on that closer instead.
+
+    The combined reasoning is field reasoning followed by think-block
+    reasoning, in the order found, joined on blank lines; None when neither
+    source produced anything. Cleaned content is byte-identical to the input
+    when no think markup was removed, and only `.strip()`ed when it was
+    (the cut can leave dangling newlines at the seam).
+    """
+    content = message.get("content") or ""
+
+    field_reasoning = _coerce_reasoning_field(message.get("reasoning_content"))
+    if not field_reasoning:
+        field_reasoning = _coerce_reasoning_field(message.get("reasoning"))
+
+    think_blocks = [block.strip() for block in _THINK_BLOCK_RE.findall(content)]
+    content = _THINK_BLOCK_RE.sub("", content)
+    removed = bool(think_blocks)
+
+    open_index = content.find("<think>")
+    if open_index != -1:
+        think_blocks.append(content[open_index + len("<think>") :].strip())
+        content = content[:open_index]
+        removed = True
+    else:
+        close_index = content.find("</think>")
+        if close_index != -1:
+            think_blocks.append(content[:close_index].strip())
+            content = content[close_index + len("</think>") :]
+            removed = True
+
+    if removed:
+        content = content.strip()
+
+    reasoning = "\n\n".join(part for part in [field_reasoning, *think_blocks] if part) or None
+    return reasoning, content
 
 
 def _representative_amount(scenario: Scenario) -> float | None:
