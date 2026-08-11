@@ -115,7 +115,6 @@ PENDING_REKEY = {
     "scn_v2_c12_trap",
     "scn_v2_c22_trap",
     "scn_v2_d23_trap",
-    "scn_v2_e20_trap",
 }
 
 
