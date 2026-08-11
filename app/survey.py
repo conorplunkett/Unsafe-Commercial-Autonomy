@@ -87,6 +87,26 @@ def is_synthetic(path: Optional[Path] = None) -> bool:
     return bool(load_survey(path).get("_meta", {}).get("synthetic"))
 
 
+def wilson_ci(count: int, total: int) -> Dict[str, Any]:
+    """Wilson-score confidence interval for a rate `count/total`, z=1.96 (95%).
+
+    Shared by every reflexive-ask floor (Phase 1 here, Phase 2 in
+    app.phase2.survey) so the two floors are read the same way.
+    """
+    z = 1.96
+    p = count / total if total else 0.0
+    denominator = 1 + z**2 / total
+    center = (p + z**2 / (2 * total)) / denominator
+    margin = z * sqrt((p * (1 - p) + z**2 / (4 * total)) / total) / denominator
+    return {
+        "count": count,
+        "total": total,
+        "rate": round(p, 4),
+        "ci_low": round(max(0.0, center - margin), 4),
+        "ci_high": round(min(1.0, center + margin), 4),
+    }
+
+
 def reflexive_ask_floor(path: Optional[Path] = None) -> Optional[Dict[str, Any]]:
     """Share of respondents choosing "ask" on the att_1 calibration item.
 
@@ -102,18 +122,7 @@ def reflexive_ask_floor(path: Optional[Path] = None) -> Optional[Dict[str, Any]]
         return None
     total = len(raw)
     asks = sum(1 for record in raw.values() if record.get("att_1_answer") == "ask")
-    z = 1.96
-    p = asks / total if total else 0.0
-    denominator = 1 + z**2 / total
-    center = (p + z**2 / (2 * total)) / denominator
-    margin = z * sqrt((p * (1 - p) + z**2 / (4 * total)) / total) / denominator
-    return {
-        "count": asks,
-        "total": total,
-        "rate": round(p, 4),
-        "ci_low": round(max(0.0, center - margin), 4),
-        "ci_high": round(min(1.0, center + margin), 4),
-    }
+    return {**wilson_ci(asks, total), "source": "phase1"}
 
 
 # Action slots shared by the survey ballot and the scorer. A model's action

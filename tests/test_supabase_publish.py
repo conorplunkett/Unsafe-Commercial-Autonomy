@@ -7,7 +7,6 @@ from app.supabase_publish import (
     SupabasePublishError,
     episode_rows_from_run,
     model_names_from_run,
-    publish_human_baseline,
     publish_run,
     row_from_run,
     slim_run_payload,
@@ -182,103 +181,6 @@ def test_publish_run_requires_env(monkeypatch):
     monkeypatch.delenv("SUPABASE_SERVICE_ROLE_KEY", raising=False)
     with pytest.raises(SupabasePublishError):
         publish_run(SAMPLE_RUN, client=_StubClient(_StubResponse()))
-
-
-HUMAN_ROWS = [
-    {"session_id": "hb_p01_scn_x", "participant_id": "p01", "ai_familiarity": "some"},
-    {"session_id": "hb_p02_scn_x", "participant_id": "p02", "ai_familiarity": "expert"},
-]
-
-
-def test_publish_human_baseline_bulk_upserts(monkeypatch):
-    monkeypatch.setenv("SUPABASE_URL", "https://proj.supabase.co")
-    monkeypatch.setenv("SUPABASE_SERVICE_KEY", "service-secret")
-    monkeypatch.delenv("SUPABASE_HUMAN_BASELINE_TABLE", raising=False)
-    client = _StubClient(_StubResponse(status_code=201))
-
-    count = publish_human_baseline(HUMAN_ROWS, client=client)
-
-    assert count == 2
-    call = client.calls[0]
-    assert call["url"] == "https://proj.supabase.co/rest/v1/human_baseline_sessions"
-    assert "resolution=merge-duplicates" in call["headers"]["Prefer"]
-    # One POST carrying the whole batch as a JSON array.
-    body = json.loads(call["content"])
-    assert isinstance(body, list) and len(body) == 2
-
-
-def test_publish_human_baseline_empty_skips_network():
-    client = _StubClient(_StubResponse(status_code=500))
-    assert publish_human_baseline([], client=client) == 0
-    assert client.calls == []
-
-
-def test_publish_human_baseline_retries_dropping_missing_column(monkeypatch):
-    monkeypatch.setenv("SUPABASE_URL", "https://proj.supabase.co")
-    monkeypatch.setenv("SUPABASE_SERVICE_KEY", "service-secret")
-
-    class _TwoStepClient:
-        def __init__(self):
-            self.calls = []
-
-        def post(self, url, headers=None, content=None):
-            self.calls.append(json.loads(content))
-            if len(self.calls) == 1:
-                return _StubResponse(
-                    status_code=400,
-                    text='column "ai_familiarity" of relation "human_baseline_sessions" does not exist',
-                )
-            return _StubResponse(status_code=201)
-
-    client = _TwoStepClient()
-    count = publish_human_baseline(HUMAN_ROWS, client=client)
-
-    assert len(client.calls) == 2
-    assert "ai_familiarity" in client.calls[0][0]
-    # Retry drops the unknown column from every row but still writes.
-    assert all("ai_familiarity" not in row for row in client.calls[1])
-    assert count == 2
-
-
-def test_publish_human_baseline_retries_on_pgrst204_missing_column(monkeypatch):
-    # PostgREST reports an unknown column in an insert body with PGRST204's
-    # "Could not find the 'x' column of 'table' in the schema cache" shape,
-    # not Postgres's column "x" ... does not exist — both must trigger the
-    # strip-and-retry.
-    monkeypatch.setenv("SUPABASE_URL", "https://proj.supabase.co")
-    monkeypatch.setenv("SUPABASE_SERVICE_KEY", "service-secret")
-
-    class _TwoStepClient:
-        def __init__(self):
-            self.calls = []
-
-        def post(self, url, headers=None, content=None):
-            self.calls.append(json.loads(content))
-            if len(self.calls) == 1:
-                return _StubResponse(
-                    status_code=400,
-                    text="{\"code\":\"PGRST204\",\"message\":\"Could not find the "
-                    "'ai_familiarity' column of 'human_baseline_sessions' in the schema cache\"}",
-                )
-            return _StubResponse(status_code=201)
-
-    client = _TwoStepClient()
-    count = publish_human_baseline(HUMAN_ROWS, client=client)
-
-    assert len(client.calls) == 2
-    assert all("ai_familiarity" not in row for row in client.calls[1])
-    assert count == 2
-
-
-def test_publish_human_baseline_honors_custom_table(monkeypatch):
-    monkeypatch.setenv("SUPABASE_URL", "https://proj.supabase.co")
-    monkeypatch.setenv("SUPABASE_SERVICE_KEY", "service-secret")
-    monkeypatch.setenv("SUPABASE_HUMAN_BASELINE_TABLE", "hb_custom")
-    client = _StubClient(_StubResponse(status_code=201))
-
-    publish_human_baseline(HUMAN_ROWS, client=client)
-
-    assert client.calls[0]["url"].endswith("/rest/v1/hb_custom")
 
 
 def test_publish_run_batches_episodes_then_commits_the_run_row(monkeypatch):

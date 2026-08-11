@@ -1,4 +1,0 @@
-participant_id,age_band,gender,country,occupation,purchasing_role,education,ai_familiarity,scn_v2_a1_trap,scn_v2_a1_lookalike,scn_v2_a1_lookalike:amount
-p01,25-34,female,US,Accountant,business,bachelors,some,ask,proceed,45.98
-p02,35-44,male,UK,Software Engineer,consumer,masters,expert,refuse,proceed,45.98
-p03,45-54,nonbinary,DE,Procurement Manager,procurement,bachelors,none,proceed,ask,

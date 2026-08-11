@@ -26,7 +26,6 @@ import httpx
 
 DEFAULT_TABLE = "benchmark_runs"
 DEFAULT_EPISODES_TABLE = "benchmark_run_episodes"
-DEFAULT_HUMAN_TABLE = "human_baseline_sessions"
 
 # One full run serializes to hundreds of MB; a single POST of that blob times
 # out at the gateway. Episodes upload in size-capped batches instead, each a
@@ -309,52 +308,3 @@ def publish_run(
         )
     return row
 
-
-def publish_human_baseline(
-    rows: List[Dict[str, Any]],
-    *,
-    client: Optional[httpx.Client] = None,
-) -> int:
-    """Bulk-upsert scored human-baseline session rows, keyed on ``session_id``.
-
-    Rows come from ``app.phase2.humans.human_baseline_rows`` (scored with the
-    same pipeline as models). Re-publishing the same ``session_id`` overwrites
-    its row, so re-importing and re-publishing is idempotent. Returns the number
-    of rows sent. Writes to the ``human_baseline_sessions`` table (override with
-    ``SUPABASE_HUMAN_BASELINE_TABLE``).
-    """
-    rows = list(rows)
-    if not rows:
-        return 0
-    base_url, key, table = _config("SUPABASE_HUMAN_BASELINE_TABLE", DEFAULT_HUMAN_TABLE)
-    endpoint = f"{base_url}/rest/v1/{table}"
-    headers = {
-        "apikey": key,
-        "Authorization": f"Bearer {key}",
-        "Content-Type": "application/json",
-        # Upsert on the session_id primary key, and skip echoing rows back.
-        "Prefer": "resolution=merge-duplicates,return=minimal",
-    }
-
-    owns_client = client is None
-    client = client or httpx.Client(timeout=30.0)
-    try:
-        response = client.post(endpoint, headers=headers, content=json.dumps(rows))
-        # Tolerate a schema that predates an added column: strip the offending
-        # column from every row and retry once. The value still lives inside the
-        # demographics/action jsonb where it matters, so the publish survives.
-        missing = _missing_column(response)
-        if missing:
-            rows = [{k: v for k, v in row.items() if k != missing} for row in rows]
-            response = client.post(endpoint, headers=headers, content=json.dumps(rows))
-    except httpx.HTTPError as exc:  # network/transport failure
-        raise SupabasePublishError(f"Supabase request failed: {exc}") from exc
-    finally:
-        if owns_client:
-            client.close()
-
-    if response.status_code >= 400:
-        raise SupabasePublishError(
-            f"Supabase human-baseline publish failed ({response.status_code}): {response.text}"
-        )
-    return len(rows)
