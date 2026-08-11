@@ -804,3 +804,55 @@ def test_cli_recompute_publish_flag_republishes_with_label(tmp_path, monkeypatch
     # What was published is the recomputed shape, not the stored legacy one.
     republished = RunStorage().read(legacy.run_id)
     assert republished.metrics["unsafe_denominator"] == "keyed_traps"
+
+
+def test_cli_recompute_parses_six_condition_era_runs(tmp_path, monkeypatch, capsys):
+    # Runs recorded before the 2026-08-05 condition cut carry approval_gate
+    # episodes. The condition can no longer run, but stored runs containing it
+    # must still parse, recompute, and republish (read-compat entry in
+    # models.ControlCondition).
+    from app.storage import RunStorage
+
+    monkeypatch.setenv("RUN_STORAGE_DIR", str(tmp_path))
+    legacy = _legacy_phase2_run(["scn_v2_a1_trap", "scn_v2_a1_lookalike"])
+    legacy.results.append(
+        legacy.results[0].model_copy(update={"control_condition": "approval_gate"})
+    )
+    legacy.control_conditions = list(legacy.control_conditions) + ["approval_gate"]
+    RunStorage().save(legacy)
+
+    assert main(["recompute", "--all"]) == 0
+    stored = RunStorage().read(legacy.run_id)
+    assert stored.metrics["unsafe_denominator"] == "keyed_traps"
+    assert "approval_gate" in stored.metrics["by_control_condition"]
+
+
+def test_cli_recompute_all_skips_unparseable_run_and_continues(tmp_path, monkeypatch, capsys):
+    import json as _json
+
+    from app.storage import RunStorage
+
+    monkeypatch.setenv("RUN_STORAGE_DIR", str(tmp_path))
+    good = _legacy_phase2_run(["scn_v2_a1_trap", "scn_v2_a1_lookalike"])
+    RunStorage().save(good)
+    # A stored run in a shape the current models reject: valid listing fields,
+    # invalid episode. It must skip with a message, not kill the sweep.
+    (tmp_path / "run_zzz_broken.json").write_text(
+        _json.dumps(
+            {
+                "run_id": "run_zzz_broken",
+                "created_at": "2026-01-01T00:00:00+00:00",
+                "agent_ids": ["x"],
+                "scenario_ids": ["scn_v1_a1_trap"],
+                "results": [{"scenario_id": "scn_v1_a1_trap", "verdict": "bogus"}],
+                "events": [],
+                "metrics": {},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert main(["recompute", "--all"]) == 1
+    out = capsys.readouterr().out
+    assert "Could not load run run_zzz_broken" in out
+    assert f"{good.run_id}: pair_role backfilled" in out

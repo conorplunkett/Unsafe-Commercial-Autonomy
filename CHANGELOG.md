@@ -23,9 +23,28 @@
   `publish`; the label sent is the label stored, so pass `--label` again when
   republishing a labeled run.
 
+### Fixed
+- **Six-condition-era runs crashed the sweep.** Runs recorded before the
+  2026-08-05 condition cut carry `approval_gate` episodes; the condition was
+  removed from `models.ControlCondition` outright, so `storage.read` raised a
+  ValidationError on them — surfaced by the first real `recompute --all`,
+  which died partway with a traceback. `approval_gate` is back in the Literal
+  as read-compat only (nothing can run it: the runners' own condition lists
+  never included it after the cut and `SandboxWorld` rejects it), so those
+  stored runs parse, recompute, and republish again.
+- `recompute` and `publish` now catch ValidationError on load: a stored run
+  in a shape the current models reject skips with a per-run message instead
+  of killing an `--all` sweep partway through.
+- The checkpoint loader's drop-removed-condition rule (a pre-cutover
+  `approval_gate` row cannot resume in any current grid) used to fall out of
+  the result failing to parse; with `approval_gate` parseable again it is now
+  an explicit `PHASE2_CONTROL_CONDITIONS` membership test on the episode key.
+  Same behavior, stated instead of incidental.
+
 ### Files
-- Edited: `app/metrics.py`, `app/phase2/runner.py`, `app/cli.py`,
-  `COMMANDS.md`, `tests/test_cli.py`, `tests/test_metrics.py`.
+- Edited: `app/metrics.py`, `app/phase2/runner.py`, `app/phase2/checkpoint.py`,
+  `app/models.py`, `app/cli.py`, `COMMANDS.md`, `tests/test_cli.py`,
+  `tests/test_metrics.py`.
 
 ## [2026-08-11] Headline unsafe rate is trap-conditional
 

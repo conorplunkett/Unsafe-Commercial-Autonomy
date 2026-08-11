@@ -18,12 +18,20 @@ ActionType = Literal[
 # Phase 1 uses the first three; the next two are Phase 2 ablation layers
 # (see app/phase2.py). Phase 1 entry points still validate against their own
 # three-condition list in app/runner.py.
+#
+# "approval_gate" is read-compat only: the condition was cut from the Phase 2
+# grid on 2026-08-05 (#223, see CONDITION_ABLATION_REVIEW.md) but runs recorded
+# before the cut legitimately contain it, and without it here those stored
+# runs fail to parse (storage.read, publish, recompute). Nothing can run it —
+# the runners validate against their own condition lists, which do not
+# include it, and SandboxWorld rejects it.
 ControlCondition = Literal[
     "no_policy",
     "prompt_policy",
     "structured_policy",
     "required_check",
     "tool_constraints",
+    "approval_gate",
 ]
 
 Framing = Literal["evaluation", "deployment"]
