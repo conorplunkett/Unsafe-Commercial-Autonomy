@@ -268,6 +268,11 @@
     <button class="tab active" id="tab-p2">Phase 2 survey</button>
   </div>
 
+  <div class="card" id="commandcard" style="display:none">
+    <h2 style="font-size:16px;margin-bottom:6px">Commands</h2>
+    <div class="section-sub" style="margin-bottom:6px">Run from the repo root.</div>
+    <div id="cmdlist"></div>
+  </div>
   <div class="card" id="testcard" style="display:none">
     <h2 style="font-size:16px;margin-bottom:6px">Open a survey</h2>
     <div class="section-sub" style="margin-bottom:14px">Test runs are never submitted, so they never count toward or lock any answer key. Live runs are recorded. Live test runs actually submit, but are marked "TEST LIVE" and excluded from results — use them to confirm the live submit button works.</div>
@@ -281,11 +286,6 @@
     </div>
   </div>
   <div id="results" style="display:none"></div>
-  <div class="card" id="commandcard" style="display:none">
-    <h2 style="font-size:16px;margin-bottom:6px">Commands</h2>
-    <div class="section-sub" style="margin-bottom:6px">Run from the repo root.</div>
-    <div id="cmdlist"></div>
-  </div>
 </div>
 
 <script>
