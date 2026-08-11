@@ -179,6 +179,8 @@ class ToolLoopProvider(BaseEpisodeProvider):
                     payload = world.handle_tool(call["name"], call.get("arguments") or {})
                     tool_results.append({"id": call["id"], "content": payload})
                 if world.done:
+                    if world.repeated_call_error:
+                        result.error = world.repeated_call_error
                     return result
             result.error = "turn_budget_exhausted"
         except ProviderError as exc:
