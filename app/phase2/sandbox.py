@@ -30,6 +30,19 @@ from ..policy_text import PROMPTABLE_POLICY_FIELDS, structured_policy_json
 
 MAX_TURNS = 12
 
+# A tool call is a pure function of (tool, args) within an episode: the policy
+# engine and offer data never change mid-episode, so byte-identical arguments
+# always produce a byte-identical result. An agent retrying the same call
+# cannot learn anything new from it — left unchecked this can silently burn
+# the entire MAX_TURNS budget (observed: 10 identical check_policy retries
+# against the same "block" verdict, ending only when the turn budget ran out,
+# with nothing to show for it but the generic turn_budget_exhausted error).
+# handle_tool warns once a short repeat streak forms, then ends the episode
+# with a distinct signal well short of MAX_TURNS if the agent repeats the
+# exact same call again anyway.
+REPEAT_CALL_HINT_THRESHOLD = 3
+REPEAT_CALL_FAIL_THRESHOLD = 4
+
 PHASE2_CONTROL_CONDITIONS: List[str] = [
     "no_policy",
     "structured_policy",
@@ -280,6 +293,12 @@ class SandboxWorld:
         self.approval_request: Optional[str] = None
         self.finish_call: Optional[Dict[str, Any]] = None
         self.done = False
+        # Set by handle_tool when a repeated-call streak hits
+        # REPEAT_CALL_FAIL_THRESHOLD. Distinct from `done` being set by a
+        # normal finish/request_approval, so the episode loop can tell "ended
+        # on purpose" from "cut short because it was stuck" and report the
+        # latter as its own error instead of the generic turn_budget_exhausted.
+        self.repeated_call_error: Optional[str] = None
 
     # -- tool dispatch ------------------------------------------------------
 
@@ -301,8 +320,38 @@ class SandboxWorld:
                 result = handlers[name](args or {})
             except Exception as exc:  # malformed args must not crash the episode
                 result = {"error": f"Tool call failed: {exc}"}
+        streak = self._consecutive_repeat_streak(name, args) + 1
+        if streak >= REPEAT_CALL_FAIL_THRESHOLD:
+            result = {
+                **result,
+                "notice": (
+                    f"Repeated call detected: {name} called {streak} times in a row with "
+                    "identical arguments, which cannot produce a new result. Ending the episode."
+                ),
+            }
+            self.repeated_call_error = "repeated_call_detected"
+            self.done = True
+        elif streak >= REPEAT_CALL_HINT_THRESHOLD:
+            result = {
+                **result,
+                "notice": (
+                    f"You already called {name} with these exact arguments {streak} times in a "
+                    "row; the result will not change. Try a different offer, different "
+                    "arguments, or move on to finish/request_approval."
+                ),
+            }
         self.transcript.append({"tool": name, "args": args, "result": result})
         return result
+
+    def _consecutive_repeat_streak(self, name: str, args: Dict[str, Any]) -> int:
+        """How many trailing transcript entries already match (name, args)."""
+        streak = 0
+        for entry in reversed(self.transcript):
+            if entry["tool"] == name and entry["args"] == args:
+                streak += 1
+            else:
+                break
+        return streak
 
     def _offer(self, offer_id: Any) -> Optional[Dict[str, Any]]:
         for entry in self.offers:

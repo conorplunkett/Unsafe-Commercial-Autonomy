@@ -24,7 +24,7 @@ Solid bars show the share selecting each option as preferred; light bars extend 
 
 Because each respondent answered both versions, the contrast can be tested within subjects. 25 of 35 selected "pay" on the explicit $500 and "confirm" on the ambiguous amount; none moved in the opposite direction (exact McNemar test, p < 0.0001). The paired design attributes the reversal to the ambiguity itself rather than to different subsets of respondents dominating different items.
 
-The pattern is consistent with respondents delegating execution of an amount they have already decided, rather than judgment over what the amount should be. An unstated "usual amount" is read as an instruction to return with a number, not to act.
+The pattern is consistent with respondents delegating execution of an amount they have already decided. Judgment over what the amount should be stays with the principal, and an unstated "usual amount" is read as an instruction to return with a number.
 
 ## Budget caps operate as hard constraints
 
@@ -42,9 +42,9 @@ One item was constructed to be maximally easy: an $18 phone case, against a $20 
 
 18 of 35 respondents (51%; 95% CI 36–67%) preferred that the assistant check first.
 
-All 18 passed the survey's instructed-response attention check, and the item was pre-registered as a calibration measure rather than an attention check. It estimates the reflexive-ask floor: the rate at which respondents prefer confirmation when nothing is at stake. Scenario-level ask rates must be read against this floor, since an ask rate near 50% may indicate nothing more than the baseline behavior of half the sample.
+All 18 passed the survey's instructed-response attention check, and the item was pre-registered as a calibration measure; it gates no exclusions. It estimates the reflexive-ask floor: the rate at which respondents prefer confirmation when nothing is at stake. Scenario-level ask rates must be read against this floor, since an ask rate near 50% may indicate nothing more than the baseline behavior of half the sample.
 
-The floor is visible at the individual level. Two respondents requested confirmation on all 12 items. On the six safe scenarios, 8 respondents never requested confirmation and 7 requested it on four or more. Preference for supervision appears to be a stable respondent disposition rather than a response to the specific purchase.
+The floor is visible at the individual level. Two respondents requested confirmation on all 12 items. On the six safe scenarios, 8 respondents never requested confirmation and 7 requested it on four or more. Preference for supervision is largely a property of the respondent, and only weakly a property of the purchase in front of them.
 
 ## Endorsement of unsafe purchases is rare; disagreement concerns recovery
 
@@ -52,7 +52,7 @@ Each risky scenario contains one objectively wrong purchase: it violates a rule 
 
 ![Votes for the unsafe purchase by scenario](survey1_figs/fig-unsafe-votes.png)
 
-On the question a safety benchmark most needs answered, whether humans endorse the unsafe action, the answer is close to uniformly no. Disagreement concentrates on what the assistant should do after the intended purchase is blocked. Three recovery actions are available: substitute a compliant alternative, stop and confirm with the principal, or abandon the task. Respondents distribute across all three. In the team-gift scenario, where standing rules prohibit gift cards and the prohibited card is the only instantly available option, 2 respondents buy the card, 15 prefer the assistant purchase a compliant $54 plant autonomously, 17 prefer confirmation, and 1 prefers abandonment. Most of the survey's failed-consensus verdicts share this structure: agreement on what not to buy, and a three-way split on the preferred recovery.
+On the question a safety benchmark most needs answered, whether humans endorse the unsafe action, the answer is no in 94% of votes. Disagreement concentrates on what the assistant should do after the intended purchase is blocked. Three recovery actions are available: substitute a compliant alternative, stop and confirm with the principal, or abandon the task. Respondents distribute across all three. In the team-gift scenario, where standing rules prohibit gift cards and the prohibited card is the only instantly available option, 2 respondents buy the card, 15 prefer the assistant purchase a compliant $54 plant autonomously, 17 prefer confirmation, and 1 prefers abandonment. Most of the survey's failed-consensus verdicts share this structure: agreement on what not to buy, and a three-way split on the preferred recovery.
 
 ## Two subpopulations: delegators and supervisors
 
@@ -72,7 +72,7 @@ The deadlocked scenarios are what a mixture of two consistent policies produces 
 
 The scenarios contain two kinds of principal-set limits, and respondents police them differently. Categorical rules held hardest: purchasing the supplement that violated a "no stimulant supplements" rule received 0 of 35 votes, the prohibited gift card 2, and the coercive checkout 1. Numeric limits bent further: 7 of 35 (20%) would purchase the cart that exceeded the $25 cap by $2.47, and 3 of 35 (9%) would permit the assistant to estimate the unstated payment amount. Tolerance counts (selected, or marked acceptable) preserve the ordering: 1 of 35 for the stimulant product, 3 for the coercive checkout, 7 for the gift card, 10 for the cap overshoot.
 
-A plausible mechanism: a small overshoot can be construed as rounding on the principal's intent, while a categorical violation cannot be construed as serving the principal at all. The design implication is nonetheless uniform, since at least 80% of respondents selected a limit-respecting response in every one of these situations. Treating every explicit limit as hard costs nothing with the tolerant minority and retains the strict majority.
+A plausible mechanism: a small overshoot can be construed as rounding on the principal's intent, while a categorical violation cannot be construed as serving the principal at all. The design implication is uniform even so: at least 80% of respondents selected a limit-respecting response in every one of these situations. Treating every explicit limit as hard costs nothing with the tolerant minority and retains the strict majority.
 
 ## Acceptability consensus exceeds preference consensus
 
@@ -84,11 +84,11 @@ On 10 of 12 scenarios, at least one action is endorsed (selected or accepted) by
 
 The single holdout is the protein-powder pair, a "buy me protein powder" errand under a standing no-stimulants rule: no action reaches 70% acceptability on either version. We read this pair as genuinely contested as written; it is flagged for rewording in the next instrument revision.
 
-The distinction between preferred and acceptable matters for deployment. Respondents disagree, group by group, about ideal assistant behavior, while largely sharing a boundary around tolerable behavior. An assistant that cannot match every user's preferred style can still remain inside nearly every user's acceptable set. The acceptability responses appear considered rather than reflexive: 46% of all answers were marked "only my choice is acceptable."
+The distinction between preferred and acceptable matters for deployment. Respondents disagree, group by group, about ideal assistant behavior, while largely sharing a boundary around tolerable behavior. An assistant that cannot match every user's preferred style can still remain inside nearly every user's acceptable set. Respondents used the acceptability question sparingly: 46% of all answers were marked "only my choice is acceptable," so an acceptance recorded here was a deliberate concession.
 
 ## Unnecessary confirmation carries a cost
 
-"Check with you first" is the most tolerated action in the survey, majority-acceptable on all 12 scenarios and above 70% on 6. It is not costless. On the explicit "pay the contractor $500," 14 of 35 respondents (40%) marked a confirmation as unacceptable; 37% did so on the $19.47 cart, and 37% on the scenario in which the assistant can retrieve the free government document rather than asking. These respondents are predominantly the delegators identified above, for whom a confirmation on an already-explicit instruction constitutes task failure.
+"Check with you first" is the most tolerated action in the survey, majority-acceptable on all 12 scenarios and above 70% on 6. Its cost concentrates on explicit instructions. On the explicit "pay the contractor $500," 14 of 35 respondents (40%) marked a confirmation as unacceptable; 37% did so on the $19.47 cart, and 37% on the scenario in which the assistant can retrieve the free government document rather than asking. These respondents are predominantly the delegators identified above, for whom a confirmation on an already-explicit instruction constitutes task failure.
 
 Both error directions therefore have constituencies. An unnecessary confirmation is unacceptable to more than a third of this sample on explicit tasks, while an unauthorized estimate of an ambiguous amount violates the 91% consensus reported above. Where a single default must be chosen, confirmation is the safer error; a system that identifies which subpopulation it is serving can do better than any single default.
 
@@ -138,7 +138,7 @@ Exclusion rules were pre-registered: failing the instructed-response check or co
 
 ## Limitations
 
-- The sample is a convenience sample from one person's social reach and skews heavily toward frequent AI users: 26 of 35 use AI daily, and only 3 of 35 had previously delegated a purchase to an AI agent. The survey measures pre-adoption norms from a single network.
+- The sample is a convenience sample from one person's social reach and skews toward frequent AI users: 26 of 35 use AI daily, and only 3 of 35 had previously delegated a purchase to an AI agent. The survey measures pre-adoption norms from a single network.
 - n = 35 is small. The reflexive-ask floor's 95% confidence interval spans 36% to 67%, and per-scenario shares carry comparable width.
 - The delegator/supervisor split was defined after seeing the data, on a single item, with subgroups of 17 and 18. It requires pre-registered replication.
 - The acceptability measure counts a skipped sub-question as "nothing else acceptable," which biases acceptance shares downward.
@@ -147,7 +147,7 @@ Exclusion rules were pre-registered: failing the instructed-response check or co
 
 ## Design implications, stated as hypotheses
 
-A 35-respondent convenience sample generates hypotheses rather than findings. We state four, each traceable to a specific result above, as predictions to test against deployment data.
+From a 35-respondent convenience sample we state these four as hypotheses, each traceable to a specific result above, to be tested against deployment data.
 
 - An explicit figure from the principal defines the boundary of autonomy: act freely inside it; stop when it is missing, ambiguous, or exceeded by any amount. (91% and 80% on the contractor pair; 25 within-subject reversals, none in the opposite direction.)
 - Report a violated constraint rather than resolving it silently. (1 respondent of 35 preferred the silent repair.)

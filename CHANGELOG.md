@@ -1,43 +1,67 @@
 # Changelog
 
-## [2026-08-11] Repeated-tool-call loop guard for Phase 2 live episodes
+## [2026-08-11] Phase 2 episodes stop burning the turn budget on a stuck retry loop
 
 ### Fixed
-- **A stuck episode no longer silently burns the whole turn budget.**
-  `run_f5d63ba422e6` (gemini-3.1-flash-lite / required_check) had an episode
-  on `scn_v2_c16_trap` that called `search_offers` with `{}` twelve times in a
-  row — always the same call, always the same single-offer result — and never
-  progressed to `view_offer`/`check_policy`/`pay`/`finish`, ending in
-  `turn_budget_exhausted`. `ToolLoopProvider.run_episode`
-  (`app/phase2/providers.py`) now fingerprints each turn's tool calls plus
-  what the world returned; three identical turns in a row end the episode
-  immediately with a distinct `repeated_tool_call_loop` error instead of
-  spending the remaining turns. This runs in the shared live loop, so it
-  applies to every provider, not just Gemini.
-
-### Notes
-- Root cause traced to Gemini's OpenAI-compatible endpoint rather than this
-  repo's message threading: `OpenAICompatToolProvider.step` stores and
-  replays the raw response message turn-over-turn, stripping only the
-  human-readable `reasoning_content`/`reasoning` text fields (an unrelated
-  fix, landed the same day, for a DeepSeek 400 on echoed reasoning) —
-  `tool_calls` entries, where a `thought_signature` would actually live per
-  the upstream reports below, pass through untouched. The identical client
-  code runs for Grok/DeepSeek/Mistral/Qwen/OpenRouter without this symptom.
-  Gemini 3.x models (gemini-3.1-flash-lite defaults to "minimal" thinking
-  but, unlike 2.5 models, cannot disable it) tie multi-turn tool-call
-  coherence to an internal `thought_signature`; Google's OpenAI-compat
-  surface has independently reported gaps round-tripping that signature for
-  this endpoint and model generation (openai/codex#7519,
-  BerriAI/litellm#25322) — consistent with a model that loses track of a
-  tool call it already made and re-issues it identically. No client-side
-  history fix can round-trip a signature the endpoint doesn't hand back
-  through this surface; see the note on `GeminiToolProvider`. Live
-  reproduction with raw request/response logging (as opposed to this static
-  analysis) needs Gemini API credentials this environment doesn't have.
+- **A stuck agent could silently spend its entire MAX_TURNS budget retrying
+  one tool call with byte-identical arguments.** The policy engine and offer
+  data are fixed for the life of an episode, so an identical call can never
+  return a different result — a retry teaches the agent nothing, and the
+  episode teaches us nothing about its judgment either. One live run
+  (gemini-3.1-flash-lite / required_check, scn_v2_d13_trap) called
+  `check_policy` with identical arguments 10 times in a row against an
+  identical `block` verdict, ending only when the turn budget ran out and
+  landing the generic `turn_budget_exhausted` error with nothing to show for
+  it. `SandboxWorld.handle_tool` now tracks the trailing streak of identical
+  `(tool, args)` calls: at `REPEAT_CALL_HINT_THRESHOLD` (3 in a row) it adds a
+  `notice` to the tool result telling the agent the result will not change,
+  and at `REPEAT_CALL_FAIL_THRESHOLD` (4 in a row) it ends the episode via a
+  new `repeated_call_error` flag. `ToolLoopProvider.run_episode` — the shared
+  loop behind every live vendor adapter — turns that flag into a distinct
+  `repeated_call_detected` episode error instead of running the turns out in
+  silence. A different call in between resets the streak, so re-checking an
+  offer later in the episode for a genuine reason is unaffected; only a true
+  back-to-back repeat trips it.
+- `repeated_call_detected` needed no new downstream plumbing: `error` was
+  already a free-form string everywhere it is read. `evaluate_phase1_action`
+  (`app/policies.py`) grades any truthy `error` as verdict `error` and
+  excludes it from every rate denominator, and `run_phase2_episode` already
+  clears the error and grades a completed payment if one landed before an
+  error ended the episode — both behave identically for
+  `repeated_call_detected` and `turn_budget_exhausted`.
 
 ### Files
-- `app/phase2/providers.py`, `tests/test_phase2_runner.py`.
+- `app/phase2/sandbox.py`, `app/phase2/providers.py`,
+  `tests/test_phase2_sandbox.py`, `tests/test_phase2_runner.py`.
+
+## [2026-08-11] Root cause for the Phase 2 repeated-tool-call loop: Gemini's thought_signature
+
+### Notes
+- Investigated why gemini-3.1-flash-lite episodes were getting stuck
+  repeating one tool call — the failure mode the entry above now catches and
+  ends early, rather than why it happens. Traced to Gemini's OpenAI-compatible
+  endpoint rather than this repo's message threading:
+  `OpenAICompatToolProvider.step` (`app/phase2/providers.py`) stores and
+  replays the raw response message turn-over-turn, stripping only the
+  human-readable `reasoning_content`/`reasoning` text fields (the unrelated
+  DeepSeek-400 fix in the reasoning-capture work landed the same day) —
+  `tool_calls` entries, where a `thought_signature` would actually live, pass
+  through untouched. The identical client code runs for
+  Grok/DeepSeek/Mistral/Qwen/OpenRouter without this symptom. Gemini 3.x
+  models (gemini-3.1-flash-lite defaults to "minimal" thinking but, unlike
+  2.5 models, cannot disable it) tie multi-turn tool-call coherence to an
+  internal `thought_signature`; Google's OpenAI-compat surface has
+  independently reported gaps round-tripping that signature for this
+  endpoint and model generation (openai/codex#7519, BerriAI/litellm#25322)
+  — consistent with a model that loses track of a tool call it already made
+  and re-issues it identically. No client-side history fix can round-trip a
+  signature the endpoint doesn't hand back through this surface; documented
+  on `GeminiToolProvider` for whoever picks this up next. Live reproduction
+  with raw request/response logging (as opposed to this static analysis)
+  needs Gemini API credentials this environment doesn't have.
+
+### Files
+- `app/phase2/providers.py` (docstring only).
 
 ## [2026-08-11] e20 root-2 follow-ups: regime guard, a4 audit, load-time invariants
 
