@@ -33,7 +33,11 @@ from .sandbox import (
 
 
 PHASE2_SCENARIO_SET = DATA_DIR / "scenario_sets" / "v2_250_scenarios.md"
-DEFAULT_PHASE2_SEEDS = [1, 2, 3, 4, 5]
+# A bare `phase2-eval` (no --seeds) now costs one seed, not five (2026-08-11;
+# previously [1, 2, 3, 4, 5]) -- the same "opt into the expensive axis on
+# purpose" reasoning as selected_framings/selected_urgencies below. Pass
+# --seeds 1,2,3,4,5 explicitly for the full five-seed design.
+DEFAULT_PHASE2_SEEDS = [1]
 DEFAULT_PHASE2_TEMPERATURE = 0.7
 
 
@@ -210,6 +214,86 @@ def run_phase2_episode(
         for step in world.transcript
     )
     return result
+
+
+def phase2_metrics_block(
+    results: List[EvaluationResult],
+    conditions: List[str],
+    framings: List[str],
+    urgencies: List[str],
+    user_availabilities: List[str],
+) -> Dict[str, Any]:
+    """The ``metrics["phase2"]`` breakdowns, from results and the run's axes.
+
+    Factored out of run_phase2_evaluation so the ``recompute`` CLI command can
+    rebuild a stored Phase 2 run's metrics under the current definitions
+    without re-running episodes — the axis lists come from the stored run's
+    own ``framings``/``urgencies``/``user_availabilities`` fields.
+    """
+    return {
+        "by_framing": {
+            framing: _summarize_group([result for result in results if result.framing == framing])
+            for framing in framings
+        },
+        "by_condition_and_framing": {
+            f"{condition}/{framing}": _summarize_group(
+                [
+                    result
+                    for result in results
+                    if result.control_condition == condition and result.framing == framing
+                ]
+            )
+            for condition in conditions
+            for framing in framings
+        },
+        "by_urgency": {
+            urgency: _summarize_group([result for result in results if result.urgency == urgency])
+            for urgency in urgencies
+        },
+        "by_condition_and_urgency": {
+            f"{condition}/{urgency}": _summarize_group(
+                [
+                    result
+                    for result in results
+                    if result.control_condition == condition and result.urgency == urgency
+                ]
+            )
+            for condition in conditions
+            for urgency in urgencies
+        },
+        "by_user_availability": {
+            user_availability: _summarize_group(
+                [result for result in results if result.user_availability == user_availability]
+            )
+            for user_availability in user_availabilities
+        },
+        "by_condition_and_user_availability": {
+            f"{condition}/{user_availability}": _summarize_group(
+                [
+                    result
+                    for result in results
+                    if result.control_condition == condition
+                    and result.user_availability == user_availability
+                ]
+            )
+            for condition in conditions
+            for user_availability in user_availabilities
+        },
+        # The 2x2 the split exists for: separates "judgment degraded under a
+        # deadline" from "behaviour changed when nobody was watching", and shows
+        # whether the two interact rather than merely adding up.
+        "by_urgency_and_user_availability": {
+            f"{urgency}/{user_availability}": _summarize_group(
+                [
+                    result
+                    for result in results
+                    if result.urgency == urgency and result.user_availability == user_availability
+                ]
+            )
+            for urgency in urgencies
+            for user_availability in user_availabilities
+        },
+    }
 
 
 class _ProviderPool:
@@ -495,70 +579,13 @@ def run_phase2_evaluation(
     from .survey import floor_for_phase2
 
     metrics = compute_metrics(results, floor_fn=floor_for_phase2)
-    metrics["phase2"] = {
-        "by_framing": {
-            framing: _summarize_group([result for result in results if result.framing == framing])
-            for framing in selected_framings
-        },
-        "by_condition_and_framing": {
-            f"{condition}/{framing}": _summarize_group(
-                [
-                    result
-                    for result in results
-                    if result.control_condition == condition and result.framing == framing
-                ]
-            )
-            for condition in selected_conditions
-            for framing in selected_framings
-        },
-        "by_urgency": {
-            urgency: _summarize_group([result for result in results if result.urgency == urgency])
-            for urgency in selected_urgencies
-        },
-        "by_condition_and_urgency": {
-            f"{condition}/{urgency}": _summarize_group(
-                [
-                    result
-                    for result in results
-                    if result.control_condition == condition and result.urgency == urgency
-                ]
-            )
-            for condition in selected_conditions
-            for urgency in selected_urgencies
-        },
-        "by_user_availability": {
-            user_availability: _summarize_group(
-                [result for result in results if result.user_availability == user_availability]
-            )
-            for user_availability in selected_user_availabilities
-        },
-        "by_condition_and_user_availability": {
-            f"{condition}/{user_availability}": _summarize_group(
-                [
-                    result
-                    for result in results
-                    if result.control_condition == condition
-                    and result.user_availability == user_availability
-                ]
-            )
-            for condition in selected_conditions
-            for user_availability in selected_user_availabilities
-        },
-        # The 2x2 the split exists for: separates "judgment degraded under a
-        # deadline" from "behaviour changed when nobody was watching", and shows
-        # whether the two interact rather than merely adding up.
-        "by_urgency_and_user_availability": {
-            f"{urgency}/{user_availability}": _summarize_group(
-                [
-                    result
-                    for result in results
-                    if result.urgency == urgency and result.user_availability == user_availability
-                ]
-            )
-            for urgency in selected_urgencies
-            for user_availability in selected_user_availabilities
-        },
-    }
+    metrics["phase2"] = phase2_metrics_block(
+        results,
+        selected_conditions,
+        selected_framings,
+        selected_urgencies,
+        selected_user_availabilities,
+    )
 
     return BenchmarkRun(
         run_id=run_id,

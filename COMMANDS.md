@@ -75,6 +75,7 @@ carries):
 | `phase2-survey` | v2 answer-key agreement and lock status |
 | `phase2-survey-collect` | Record one respondent's v2 votes |
 | `publish` | Push a stored run to Supabase |
+| `recompute` | Rebuild stored runs' metrics under the current definitions |
 
 `eval` and `phase2-eval` both take `--split objective` / `--split survey` to
 run one half of a scenario set.
@@ -134,7 +135,7 @@ python -m app.cli eval [options]
 | `--scenario-ids` | all in set | Filter, e.g. `scn_v1_a1_trap,scn_v1_a1_lookalike` |
 | `--scenario-set` | v1 (50 scenarios) | Path to Markdown set, e.g. `data/scenario_sets/v2_250_scenarios.md` |
 | `--split` | `all` | `objective` or `survey` — run one half of the set (see [Objective vs survey split](#objective-vs-survey-split)) |
-| `--seeds` | `1,2,3,4,5` | Seeds per (model, condition, scenario) combo |
+| `--seeds` | `1` | Seeds per (model, condition, scenario) combo |
 | `--temperature` | `0.7` | Model sampling temperature |
 | `--dry-run` | off | Offline fake providers — **no real API calls** |
 | `--yes` / `-y` | off | Skip the large-live-run confirmation prompt (for scripts/CI) |
@@ -142,7 +143,7 @@ python -m app.cli eval [options]
 A **large live run** (more than 50 total model x condition x scenario x seed
 calls) asks for an interactive `yes` before spending real money. This is
 size-based, not just an `all`-models check: the default `eval --models
-openai` is already 1 x 3 x 50 x 5 = 750 calls, so it triggers the prompt too,
+openai` is already 1 x 3 x 50 x 1 = 150 calls, so it triggers the prompt too,
 same as `--models all`. Dry runs, `--yes`, and small/targeted runs (few
 scenario ids, one seed, etc.) skip the prompt; with no TTY (a pipe or CI job)
 a large live run refuses outright unless `--yes` is passed. Same guard on
@@ -196,7 +197,7 @@ python -m app.cli eval --models all
 | Run type | API calls? | Speed | Use for |
 | --- | --- | --- | --- |
 | `--dry-run` | No | Sub-second to seconds | Pipeline smoke test only |
-| `--models baseline_naive` | No | ~0.3s for 750 combos | Scorer calibration |
+| `--models baseline_naive` | No | ~0.4s for 150 combos | Scorer calibration |
 | Live `openai` / `anthropic` / `gemini` / `kimi` / `inkling` / `openweights` | Yes, one per combo | Hours at full scale | Real model results |
 
 Full v2 live run example: 226 × 3 conditions × 5 seeds = **3,390 API calls**
@@ -258,7 +259,7 @@ python -m app.cli phase2-eval --models openai --split objective --concurrency 4
 | `--user-availabilities` | `none` only | `none` vs `unreachable` (states the delegating user is away for the day; never instructs the agent to skip asking). Crosses with `--urgencies` for the pressure 2×2. Also opt-in — omitting it runs `none` only |
 | `--scenario-set` | v2 (226) | Markdown scenario-set path |
 | `--split` | `all` | `objective` or `survey` — run one half of the set (see [Objective vs survey split](#objective-vs-survey-split)) |
-| `--scenario-ids` / `--seeds` / `--temperature` / `--reasoning-effort` | all / `1,2,3,4,5` / 0.7 / unset | Same semantics as Phase 1 `eval` |
+| `--scenario-ids` / `--seeds` / `--temperature` / `--reasoning-effort` | all / `1` / 0.7 / unset | Same semantics as Phase 1 `eval` |
 | `--dry-run` | off | Offline scripted agents (live ids map to a deterministic diligent/naive mix) |
 | `--resume` | off | Resume run `RUN_ID` from its checkpoint; only the missing episodes run |
 | `--no-checkpoint` | off | Skip the per-episode checkpoint (a crash then loses the run) |
@@ -447,6 +448,37 @@ python -m app.cli publish --file runtime/runs/run_<id>.json
 
 ---
 
+## `recompute` — rebuild stored runs' metrics under the current definitions
+
+Backfills `pair_role` onto each episode (joined from the committed scenario
+sets by `scenario_id`) and recomputes the run's metrics in place. Episode
+verdicts are untouched — only the aggregation reruns. Exists for metric
+definition changes: a run stored before the 2026-08-11 trap-conditional unsafe
+denominator carries `unsafe_denominator: "all_keyed_legacy"` metrics, which the
+leaderboard pool deliberately skips; recomputing (and re-publishing) restores
+it to the board under the current definition.
+
+```bash
+python -m app.cli recompute --all                 # every run under runtime/runs/
+python -m app.cli recompute --run-id run_<id>
+python -m app.cli recompute --latest
+python -m app.cli recompute --file runtime/runs/run_<id>.json
+
+# Recompute and re-publish in one step (per published run):
+python -m app.cli recompute --run-id run_<id> --publish --label "Phase 2 official"
+```
+
+- Exactly one of `--run-id`, `--latest`, `--file`, or `--all` selects the runs.
+- `--publish` pushes each recomputed run through the same path as `publish`
+  (quality gate included; add `--allow-degraded` for stamped-degraded runs).
+- With `--publish`, pass `--label` again — the upserted row's label is
+  whatever this publish sends, so omitting it clears any label the run had.
+- Episodes from a custom `--scenario-set` file aren't in the committed sets;
+  they stay unlabeled and such runs keep the legacy all-keyed denominator.
+- Prints one line per run: episodes backfilled and the old → new unsafe rate.
+
+---
+
 ## Web server and Experiment Lab
 
 Start the server (any of these):
@@ -466,7 +498,7 @@ names per provider plus the naive baseline), a collapsible API-keys panel
 (saved in the browser's localStorage, sent to the local server per run),
 condition/category/scenario filters, seeds, temperature, reasoning effort, a
 dry-run toggle, and a progress bar. Results are charted by model across every
-stored run. Default seeds in the UI are `[1, 2, 3, 4, 5]`. The public lander
+stored run. Default seeds in the UI are `[1]`. The public lander
 is the Next.js app in `web/`, deployed separately — this server does not
 serve it.
 

@@ -30,6 +30,12 @@ export interface Result {
     | null;
   /** True for the survey-derived-preference half of a pair; see app/models.py. */
   semantic_only?: boolean;
+  /**
+   * Which half of its authored pair this scenario is. The headline unsafe rate
+   * conditions on it (unsafe verdicts / keyed traps); absent on runs stored
+   * before 2026-08-11, where readers fall back to the all-keyed denominator.
+   */
+  pair_role?: "trap" | "lookalike" | null;
   stakes?: "low" | "high" | null;
   /**
    * Survey-grounded axes (app/models.py). Additive to the two binary rates,
@@ -79,6 +85,15 @@ export interface ModelMetrics {
   refused_when_safe_rate?: number;
   user_welfare_score?: number;
   unsafe_payment_ci?: RateCI;
+  /**
+   * Which denominator unsafe_payment_ci was computed over: "keyed_traps" (the
+   * trap-conditional headline, 2026-08-11 on) or "all_keyed_legacy" (results
+   * stored before pair_role existed). Pooling reads it so the two definitions
+   * are never summed together.
+   */
+  unsafe_denominator?: "keyed_traps" | "all_keyed_legacy";
+  /** Unsafe verdicts outside the trap pile (botched execution on a benign scenario). */
+  unsafe_outside_traps_ci?: RateCI;
   refused_when_safe_ci?: RateCI;
   /**
    * Survey-grounded axes for this model's slice (app/metrics._human_axes).

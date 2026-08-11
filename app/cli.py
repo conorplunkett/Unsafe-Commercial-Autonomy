@@ -732,7 +732,7 @@ def _phase2_grid_size(
     """
     from .data import load_scenarios
     from .phase2.providers import LIVE_MODEL_IDS, resolve_phase2_model_ids
-    from .phase2.runner import PHASE2_SCENARIO_SET, _select
+    from .phase2.runner import DEFAULT_PHASE2_SEEDS, PHASE2_SCENARIO_SET, _select
     from .phase2.sandbox import FRAMINGS, PHASE2_CONTROL_CONDITIONS, URGENCY_LEVELS, USER_AVAILABILITY_LEVELS
 
     try:
@@ -769,7 +769,7 @@ def _phase2_grid_size(
             if raw_user_availabilities
             else 1
         )
-        seeds = len(_csv_int(args.seeds) or []) or 5
+        seeds = len(_csv_int(args.seeds) or []) or len(DEFAULT_PHASE2_SEEDS)
         # Scripted agents run offline; only live providers incur episode API calls.
         models = len([m for m in resolve_phase2_model_ids(_csv(args.models)) if m in LIVE_MODEL_IDS])
     except Exception:
@@ -1072,6 +1072,8 @@ def publish_command(args: argparse.Namespace) -> int:
     """Push a stored run to Supabase so it appears on the public dashboard."""
     import json
 
+    from pydantic import ValidationError
+
     from .models import model_to_dict
     from .supabase_publish import SupabasePublishError, publish_run
 
@@ -1086,7 +1088,7 @@ def publish_command(args: argparse.Namespace) -> int:
         else:
             print("Provide one of --run-id, --latest, or --file.")
             return 1
-    except (KeyError, FileNotFoundError, json.JSONDecodeError) as exc:
+    except (KeyError, FileNotFoundError, json.JSONDecodeError, ValidationError) as exc:
         print(f"Could not load run: {exc}")
         return 1
 
@@ -1120,6 +1122,79 @@ def publish_command(args: argparse.Namespace) -> int:
     return 0
 
 
+def recompute_command(args: argparse.Namespace) -> int:
+    """Backfill pair_role and rebuild stored runs' metrics under the current definitions."""
+    import json
+
+    from pydantic import ValidationError
+
+    from .metrics import recompute_run_metrics
+    from .models import BenchmarkRun, model_to_dict, parse_model
+
+    storage = RunStorage()
+    targets: List[tuple[str, Optional[Path]]] = []  # (run_id, file path override)
+    try:
+        if args.file:
+            targets.append(("", Path(args.file)))
+        elif args.latest:
+            targets.append((storage.latest().run_id, None))
+        elif args.run_id:
+            targets.append((args.run_id, None))
+        elif args.all:
+            targets.extend((entry["run_id"], None) for entry in storage.list_runs())
+            if not targets:
+                print("No stored runs found under runtime/runs/.")
+                return 1
+        else:
+            print("Provide one of --run-id, --latest, --file, or --all.")
+            return 1
+    except KeyError as exc:
+        print(f"Could not load run: {exc}")
+        return 1
+
+    failures = 0
+    for run_id, file_path in targets:
+        try:
+            if file_path is not None:
+                run = parse_model(BenchmarkRun, json.loads(file_path.read_text(encoding="utf-8")))
+            else:
+                run = storage.read(run_id)
+        # ValidationError included so one stored run in a shape the current
+        # models reject skips with a message instead of killing an --all sweep
+        # partway through.
+        except (KeyError, FileNotFoundError, json.JSONDecodeError, ValidationError) as exc:
+            print(f"Could not load run {run_id or file_path}: {exc}")
+            failures += 1
+            continue
+
+        before = (run.metrics or {}).get("unsafe_payment_rate")
+        stamped = recompute_run_metrics(run)
+        if file_path is not None:
+            file_path.write_text(
+                json.dumps(model_to_dict(run), indent=2), encoding="utf-8"
+            )
+        else:
+            storage.save(run)
+        after = run.metrics.get("unsafe_payment_rate")
+        denominator = run.metrics.get("unsafe_denominator", "n/a")
+        print(
+            f"{run.run_id}: pair_role backfilled on {stamped} episode(s); "
+            f"unsafe {before} -> {after} ({denominator})."
+        )
+
+        if args.publish:
+            publish_args = argparse.Namespace(
+                run_id=run.run_id if file_path is None else None,
+                latest=False,
+                file=str(file_path) if file_path is not None else None,
+                label=args.label,
+                allow_degraded=args.allow_degraded,
+            )
+            if publish_command(publish_args) != 0:
+                failures += 1
+    return 1 if failures else 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Unsafe Commercial Autonomy benchmark CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -1138,7 +1213,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Markdown scenario-set path, for example data/scenario_sets/v2_250_scenarios.md.",
     )
     _add_split_argument(eval_parser)
-    eval_parser.add_argument("--seeds", default=",".join(str(seed) for seed in DEFAULT_SEEDS))
+    eval_parser.add_argument(
+        "--seeds",
+        default=",".join(str(seed) for seed in DEFAULT_SEEDS),
+        help="Comma-separated seeds. Default: 1 (pass 1,2,3,4,5 for the full five-seed design).",
+    )
     eval_parser.add_argument(
         "--temperature",
         type=float,
@@ -1328,7 +1407,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Markdown scenario-set path. Default: data/scenario_sets/v2_250_scenarios.md.",
     )
     _add_split_argument(phase2_eval_parser)
-    phase2_eval_parser.add_argument("--seeds", default=None, help="Comma-separated seeds. Default: 1,2,3,4,5.")
+    phase2_eval_parser.add_argument(
+        "--seeds",
+        default=None,
+        help="Comma-separated seeds. Default: 1 (pass 1,2,3,4,5 for the full five-seed design).",
+    )
     phase2_eval_parser.add_argument("--temperature", type=float, default=None)
     phase2_eval_parser.add_argument(
         "--reasoning-effort",
@@ -1398,6 +1481,45 @@ def build_parser() -> argparse.ArgumentParser:
         help="Optional human label shown in the dashboard run selector (e.g. 'Phase 2 official').",
     )
     publish_parser.set_defaults(func=publish_command)
+
+    recompute_parser = subparsers.add_parser(
+        "recompute",
+        help=(
+            "Backfill pair_role from the scenario sets and rebuild stored runs' "
+            "metrics under the current definitions (episode verdicts untouched). "
+            "Use after a metric-definition change so old runs pool on the "
+            "leaderboard again."
+        ),
+    )
+    recompute_group = recompute_parser.add_mutually_exclusive_group()
+    recompute_group.add_argument(
+        "--run-id", default=None, help="Run id from runtime/runs/ to recompute."
+    )
+    recompute_group.add_argument(
+        "--latest", action="store_true", help="Recompute the most recent stored run."
+    )
+    recompute_group.add_argument(
+        "--file", default=None, help="Recompute a run JSON file in place (path)."
+    )
+    recompute_group.add_argument(
+        "--all", action="store_true", help="Recompute every run under runtime/runs/."
+    )
+    recompute_parser.add_argument(
+        "--publish",
+        action="store_true",
+        help="Re-publish each recomputed run to Supabase (same as the publish command).",
+    )
+    recompute_parser.add_argument(
+        "--allow-degraded",
+        action="store_true",
+        help="With --publish: publish even when the run's quality stamp is not 'ok'.",
+    )
+    recompute_parser.add_argument(
+        "--label",
+        default=None,
+        help="With --publish: label for the dashboard run selector (existing labels are overwritten).",
+    )
+    recompute_parser.set_defaults(func=recompute_command)
 
     return parser
 
