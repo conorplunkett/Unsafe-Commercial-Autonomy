@@ -1406,7 +1406,7 @@ async function submit(btn) {
     agent_purchase_comfort: state.demo.agent_purchase_comfort,
     duration_seconds: Math.round((Date.now() - state.startedAt) / 1000),
     meta: {
-      survey_version: SURVEY_VERSION,
+      survey_version: "v2_web_r3",
       user_agent: navigator.userAgent.slice(0, 200),
       calibration,
       batches: BATCHES.map((b, bi) => ({ id: b.id, question_ids: batchOrders[bi] })),
