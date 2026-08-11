@@ -392,6 +392,10 @@ class ProviderAction:
     action: AgentAction
     provider_id: str
     model_name: str
+    # The model's reasoning channel (thinking blocks, reasoning_content,
+    # <think> tags) when the vendor returned one; raw_output carries only
+    # the visible answer text.
+    reasoning: Optional[str] = None
 
 
 ACTION_JSON_SCHEMA: Dict[str, Any] = {
@@ -512,6 +516,39 @@ ACTION_JSON_SCHEMA: Dict[str, Any] = {
 def _is_openai_reasoning_model(model_name: str) -> bool:
     name = (model_name or "").lower()
     return name.startswith(("gpt-5", "o1", "o3", "o4"))
+
+
+def _openai_reasoning_params(effort: str) -> Dict[str, Any]:
+    """Build the Responses API ``reasoning`` param for a reasoning model.
+
+    ``OPENAI_REASONING_SUMMARY`` (e.g. ``auto``) additionally asks the API to
+    return reasoning summaries in the response. Return-only: effort alone
+    decides whether and how deeply the model reasons, so opting in
+    mid-benchmark changes visibility, not the eval condition. Unset (the
+    default) leaves the request bytes exactly as they were before the knob
+    existed.
+    """
+    params: Dict[str, Any] = {"effort": effort}
+    summary = os.environ.get("OPENAI_REASONING_SUMMARY")
+    if summary:
+        params["summary"] = summary
+    return params
+
+
+def _gemini_thinking_extra_body() -> Dict[str, Any]:
+    """Optional request keys asking Gemini's compat layer for thought summaries.
+
+    ``GEMINI_INCLUDE_THOUGHTS=1`` opts in; anything else returns ``{}`` and
+    leaves the request untouched. Return-only: ``include_thoughts`` surfaces
+    summaries of thinking the model already does -- never send
+    ``thinking_level``/budget here, which would change reasoning depth and
+    with it the eval condition. Where thoughts land in the compat response is
+    unverified; extraction stays passive, so if nothing identifiable comes
+    back, reasoning simply stays None.
+    """
+    if os.environ.get("GEMINI_INCLUDE_THOUGHTS") != "1":
+        return {}
+    return {"extra_body": {"google": {"thinking_config": {"include_thoughts": True}}}}
 
 
 # Claude models that accept `output_config.effort` (Opus 4.5+, Opus 5,
@@ -1073,7 +1110,7 @@ class OpenAIResponsesProvider(BaseProvider):
             "text": {"format": _json_schema_format()},
         }
         if _is_openai_reasoning_model(self.model_name):
-            params["reasoning"] = {"effort": self.reasoning_effort}
+            params["reasoning"] = _openai_reasoning_params(self.reasoning_effort)
         else:
             params["temperature"] = temperature
         try:
@@ -1081,11 +1118,26 @@ class OpenAIResponsesProvider(BaseProvider):
         except Exception as exc:
             raise ProviderError(f"OpenAI request failed: {exc}") from exc
         raw_output = getattr(response, "output_text", None) or _response_output_text(response)
+        # Reasoning-model summaries live in separate "reasoning" output items
+        # (each with its own list of summary blocks), not inline with the
+        # message text. Until the opt-in summary request flag exists, live
+        # calls return an empty summary list here, so reasoning stays None --
+        # only a caller (e.g. a test) that supplies summaries populates it.
+        reasoning_chunks: list[str] = []
+        for item in response.output or []:
+            if getattr(item, "type", None) != "reasoning":
+                continue
+            for block in getattr(item, "summary", None) or []:
+                text = getattr(block, "text", "") or ""
+                if text:
+                    reasoning_chunks.append(text)
+        reasoning = "\n\n".join(reasoning_chunks) or None
         return ProviderAction(
             raw_output=raw_output,
             action=parse_action_json(raw_output),
             provider_id=self.provider_id,
             model_name=self.model_name,
+            reasoning=reasoning,
         )
 
 
@@ -1216,11 +1268,24 @@ class AnthropicProvider(BaseProvider):
                 f"Anthropic returned no tool_use block (stop_reason={response.stop_reason}): {text[:200]}"
             )
         action_input = dict(tool_use.input)
+        # Extended thinking blocks sit alongside the tool_use in the same
+        # content list. Redacted ones (safety-filtered by Anthropic) carry no
+        # readable text, so a literal marker records that thinking happened
+        # without fabricating content for it.
+        reasoning_parts: list[str] = []
+        for block in response.content:
+            block_type = getattr(block, "type", None)
+            if block_type == "thinking":
+                reasoning_parts.append(getattr(block, "thinking", "") or "")
+            elif block_type == "redacted_thinking":
+                reasoning_parts.append("[redacted_thinking]")
+        reasoning = "\n\n".join(part for part in reasoning_parts if part) or None
         return ProviderAction(
             raw_output=json.dumps(action_input),
             action=parse_action_dict(action_input),
             provider_id=self.provider_id,
             model_name=self.model_name,
+            reasoning=reasoning,
         )
 
 
@@ -1280,12 +1345,17 @@ class OpenWeightsProvider(BaseProvider):
         except Exception as exc:
             raise ProviderError(f"Open-weights request failed: {exc}") from exc
         payload = response.json()
-        raw_output = payload["choices"][0]["message"]["content"]
+        message = payload["choices"][0]["message"]
+        # Splits vendor reasoning (sibling reasoning_content/reasoning field,
+        # or inline <think> markup) out of content; also makes the JSON parse
+        # below robust to R1-style think-wrapped output.
+        reasoning, raw_output = extract_chat_reasoning(message)
         return ProviderAction(
             raw_output=raw_output,
             action=parse_action_json(raw_output),
             provider_id=self.provider_id,
             model_name=self.model_name,
+            reasoning=reasoning,
         )
 
 
@@ -1356,6 +1426,7 @@ class GeminiProvider(BaseProvider):
                             "schema": ACTION_JSON_SCHEMA,
                         },
                     },
+                    **_gemini_thinking_extra_body(),
                 },
                 timeout=120,
             )
@@ -1370,12 +1441,17 @@ class GeminiProvider(BaseProvider):
         except Exception as exc:
             raise ProviderError(f"Gemini request failed: {exc}") from exc
         payload = response.json()
-        raw_output = payload["choices"][0]["message"]["content"]
+        message = payload["choices"][0]["message"]
+        # Splits vendor reasoning (sibling reasoning_content/reasoning field,
+        # or inline <think> markup) out of content; also makes the JSON parse
+        # below robust to R1-style think-wrapped output.
+        reasoning, raw_output = extract_chat_reasoning(message)
         return ProviderAction(
             raw_output=raw_output,
             action=parse_action_json(raw_output),
             provider_id=self.provider_id,
             model_name=self.model_name,
+            reasoning=reasoning,
         )
 
 
@@ -1457,12 +1533,17 @@ class KimiProvider(BaseProvider):
         except Exception as exc:
             raise ProviderError(f"Kimi request failed: {exc}") from exc
         payload = response.json()
-        raw_output = payload["choices"][0]["message"]["content"]
+        message = payload["choices"][0]["message"]
+        # Splits vendor reasoning (sibling reasoning_content/reasoning field,
+        # or inline <think> markup) out of content; also makes the JSON parse
+        # below robust to R1-style think-wrapped output.
+        reasoning, raw_output = extract_chat_reasoning(message)
         return ProviderAction(
             raw_output=raw_output,
             action=parse_action_json(raw_output),
             provider_id=self.provider_id,
             model_name=self.model_name,
+            reasoning=reasoning,
         )
 
 
@@ -1547,12 +1628,17 @@ class InklingProvider(BaseProvider):
         except Exception as exc:
             raise ProviderError(f"Inkling request failed: {exc}") from exc
         payload = response.json()
-        raw_output = payload["choices"][0]["message"]["content"]
+        message = payload["choices"][0]["message"]
+        # Splits vendor reasoning (sibling reasoning_content/reasoning field,
+        # or inline <think> markup) out of content; also makes the JSON parse
+        # below robust to R1-style think-wrapped output.
+        reasoning, raw_output = extract_chat_reasoning(message)
         return ProviderAction(
             raw_output=raw_output,
             action=parse_action_json(raw_output),
             provider_id=self.provider_id,
             model_name=self.model_name,
+            reasoning=reasoning,
         )
 
 
@@ -1676,12 +1762,17 @@ class OpenAICompatibleProvider(BaseProvider):
         except Exception as exc:
             raise ProviderError(f"{self.display_label} request failed: {exc}") from exc
         payload = response.json()
-        raw_output = payload["choices"][0]["message"]["content"]
+        message = payload["choices"][0]["message"]
+        # Splits vendor reasoning (sibling reasoning_content/reasoning field,
+        # or inline <think> markup) out of content; also makes the JSON parse
+        # below robust to R1-style think-wrapped output.
+        reasoning, raw_output = extract_chat_reasoning(message)
         return ProviderAction(
             raw_output=raw_output,
             action=parse_action_json(raw_output),
             provider_id=self.provider_id,
             model_name=self.model_name,
+            reasoning=reasoning,
         )
 
 
@@ -1733,6 +1824,11 @@ class QwenProvider(OpenAICompatibleProvider):
 
 
 class OpenRouterProvider(OpenAICompatibleProvider):
+    # Reasoning capture needs no request flag here: OpenRouter already returns
+    # whatever reasoning the routed model produced (message.reasoning /
+    # reasoning_content; the legacy include_reasoning flag is deprecated), and
+    # the unified `reasoning: {...}` request param ENABLES reasoning on models
+    # that have it off -- a condition change, not a capture knob. Do not add it.
     provider_id = "openrouter"
     display_label = "OpenRouter"
     base_url = OPENROUTER_BASE_URL
@@ -1794,6 +1890,9 @@ class NaiveBaselineProvider(BaseProvider):
             action=action,
             provider_id=self.provider_id,
             model_name=self.model_name,
+            # Synthetic provider, no vendor call to carry a reasoning channel;
+            # a static line still exercises the reasoning path end to end.
+            reasoning="Naive baseline reasoning: scripted heuristic, no model involved.",
         )
 
 
@@ -1834,6 +1933,9 @@ class DryRunProvider(BaseProvider):
             action=action,
             provider_id=self.provider_id,
             model_name=self.model_name,
+            # Synthetic provider, no vendor call to carry a reasoning channel;
+            # a static line still exercises the reasoning path end to end.
+            reasoning="Offline dry-run reasoning: scripted action, no model involved.",
         )
 
 
@@ -1888,6 +1990,93 @@ def _response_output_text(response: Any) -> str:
             if text:
                 chunks.append(text)
     return "".join(chunks)
+
+
+# Chat-completions vendors put a model's reasoning in one of two incompatible
+# places: a sibling field on the message, or inline in `content` wrapped in
+# <think> tags. Non-greedy so back-to-back closed blocks split apart instead
+# of one match swallowing everything between the first opener and the last
+# closer.
+_THINK_BLOCK_RE = re.compile(r"<think>(.*?)</think>", re.DOTALL)
+
+
+def _coerce_reasoning_field(value: Any) -> Optional[str]:
+    """Normalize a vendor's "reasoning"/"reasoning_content" field to text.
+
+    A plain string passes through untouched. A list is OpenRouter's
+    content-block shape (``[{"type": "text", "text": "..."}, ...]``); its
+    "text" entries are joined on newlines, and entries that are neither a
+    string nor a dict are skipped rather than raising on an unexpected
+    vendor shape. Anything else truthy is JSON-dumped so an unrecognized
+    shape still surfaces instead of silently vanishing. Falsy input (missing
+    field, None, "", []) returns None.
+    """
+    if isinstance(value, str):
+        return value
+    if isinstance(value, list):
+        return "\n".join(
+            item if isinstance(item, str) else item.get("text", "")
+            for item in value
+            if isinstance(item, (str, dict))
+        )
+    if value:
+        return json.dumps(value)
+    return None
+
+
+def extract_chat_reasoning(message) -> tuple[Optional[str], str]:
+    """Split a chat-completions assistant message into (reasoning, content).
+
+    Pulls a model's reasoning out of whichever of two incompatible shapes a
+    chat-completions vendor used, so scoring never has to know which vendor
+    produced a transcript:
+
+    - A sibling field on the message. OpenRouter (and vendors it proxies)
+      send "reasoning_content" or "reasoning" alongside "content"; some
+      aliases carry identical text under both names, so only the first
+      non-empty one is used -- taking both would duplicate it into the
+      combined string.
+    - Inline ``<think>...</think>`` markup inside content (DeepSeek, Qwen,
+      and similar open-weight chat templates). Closed blocks are pulled out
+      first; a bare trailing ``<think>`` left after that (streaming or
+      truncated output) is reasoning through end-of-string; and content with
+      no opener at all but a bare ``</think>`` -- a template that pre-fills
+      the opening tag into the prompt, so the completion carries only the
+      closer -- is split on that closer instead.
+
+    The combined reasoning is field reasoning followed by think-block
+    reasoning, in the order found, joined on blank lines; None when neither
+    source produced anything. Cleaned content is byte-identical to the input
+    when no think markup was removed, and only `.strip()`ed when it was
+    (the cut can leave dangling newlines at the seam).
+    """
+    content = message.get("content") or ""
+
+    field_reasoning = _coerce_reasoning_field(message.get("reasoning_content"))
+    if not field_reasoning:
+        field_reasoning = _coerce_reasoning_field(message.get("reasoning"))
+
+    think_blocks = [block.strip() for block in _THINK_BLOCK_RE.findall(content)]
+    content = _THINK_BLOCK_RE.sub("", content)
+    removed = bool(think_blocks)
+
+    open_index = content.find("<think>")
+    if open_index != -1:
+        think_blocks.append(content[open_index + len("<think>") :].strip())
+        content = content[:open_index]
+        removed = True
+    else:
+        close_index = content.find("</think>")
+        if close_index != -1:
+            think_blocks.append(content[:close_index].strip())
+            content = content[close_index + len("</think>") :]
+            removed = True
+
+    if removed:
+        content = content.strip()
+
+    reasoning = "\n\n".join(part for part in [field_reasoning, *think_blocks] if part) or None
+    return reasoning, content
 
 
 def _representative_amount(scenario: Scenario) -> float | None:
