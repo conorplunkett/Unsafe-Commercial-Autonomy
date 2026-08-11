@@ -4,7 +4,14 @@ import pty
 import struct
 import termios
 
-from app.cli import _print_human_axes, _ProgressBar, _format_rate, main
+from app.cli import (
+    _format_rate,
+    _print_human_axes,
+    _print_result_details,
+    _print_verdicts_and_failures,
+    _ProgressBar,
+    main,
+)
 
 
 def test_format_rate_reports_na_when_nothing_scored():
@@ -47,6 +54,96 @@ def test_print_human_axes_does_not_flag_a_runs_own_floor(capsys):
 
     _print_human_axes(_floor_metrics("phase1"))
     assert "[Phase 1, provisional]" not in capsys.readouterr().out
+
+
+def test_print_verdicts_and_failures_splits_keyed_from_unkeyed(capsys):
+    # Regression: a run mixing keyed and awaiting_survey/dropped results used
+    # to print one flat "Verdicts: unsafe=2 ..." line, indistinguishable from
+    # a run where both unsafe verdicts were actually scored -- the exact 2x
+    # overstatement this bug is about.
+    metrics = {
+        "verdict_counts": {"unsafe": 2},
+        "verdict_counts_keyed": {"unsafe": 1},
+        "verdict_counts_unkeyed": {"unsafe": 1},
+    }
+    _print_verdicts_and_failures(metrics)
+    output = capsys.readouterr().out
+    assert "Verdicts (keyed):     unsafe=1" in output
+    assert "Verdicts (awaiting_survey/dropped, not scored): unsafe=1" in output
+    # The old undifferentiated line must not also appear -- that would just
+    # restore the double-counted read alongside the new one.
+    assert "Verdicts:     unsafe=2" not in output
+
+
+def test_print_verdicts_and_failures_stays_single_line_when_fully_keyed(capsys):
+    # The common case (nothing awaiting survey/dropped in this run) keeps the
+    # original one-line format -- nothing to split.
+    metrics = {
+        "verdict_counts": {"unsafe": 2, "safe": 1},
+        "verdict_counts_keyed": {"unsafe": 2, "safe": 1},
+        "verdict_counts_unkeyed": {},
+    }
+    _print_verdicts_and_failures(metrics)
+    output = capsys.readouterr().out
+    assert "Verdicts:     unsafe=2  safe=1" in output
+    assert "keyed" not in output
+
+
+def test_print_verdicts_and_failures_handles_metrics_without_split_fields(capsys):
+    # A run's metrics saved before this fix landed carries no
+    # verdict_counts_keyed/verdict_counts_unkeyed at all -- must fall back to
+    # the flat line instead of crashing.
+    metrics = {"verdict_counts": {"safe": 3}}
+    _print_verdicts_and_failures(metrics)
+    assert "Verdicts:     safe=3" in capsys.readouterr().out
+
+
+def test_print_result_details_marks_unkeyed_rows(capsys):
+    # Regression: the per-row detail table gave no visual signal that a row's
+    # verdict rests on an awaiting_survey/dropped scenario and is excluded
+    # from the headline rates -- indistinguishable from a fully-keyed row.
+    results = [
+        {
+            "scenario_id": "scn_v2_a4_trap",
+            "control_condition": "no_policy",
+            "seed": 1,
+            "verdict": "unsafe",
+            "answer_key_status": "awaiting_survey",
+        },
+        {
+            "scenario_id": "scn_v2_a1_trap",
+            "control_condition": "no_policy",
+            "seed": 1,
+            "verdict": "unsafe",
+            "answer_key_status": "objective",
+        },
+    ]
+    _print_result_details(results)
+    output = capsys.readouterr().out
+    row_lines = {
+        line.split()[0]: line
+        for line in output.splitlines()
+        if line.split() and line.split()[0].startswith("scn_")
+    }
+    assert " * " in row_lines["scn_v2_a4_trap"]
+    assert " * " not in row_lines["scn_v2_a1_trap"]
+    assert "not scored in the headline rates" in output
+
+
+def test_print_result_details_omits_legend_when_nothing_unkeyed(capsys):
+    results = [
+        {
+            "scenario_id": "scn_v2_a1_trap",
+            "control_condition": "no_policy",
+            "seed": 1,
+            "verdict": "unsafe",
+            "answer_key_status": "objective",
+        },
+    ]
+    _print_result_details(results)
+    output = capsys.readouterr().out
+    assert "*" not in output
+    assert "not scored in the headline rates" not in output
 
 
 def test_progress_bar_uses_real_tty_width_over_stale_columns_env(monkeypatch):

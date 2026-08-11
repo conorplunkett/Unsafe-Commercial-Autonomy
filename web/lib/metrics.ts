@@ -8,8 +8,16 @@ import { CONDITION_ORDER } from "./labels";
 // UNKEYED_STATUSES in app/metrics.py.
 const UNKEYED_STATUSES = new Set(["dropped", "awaiting_survey"]);
 
+// Whether a result's verdict rests on an answer key that isn't scoreable yet
+// (a "dropped" or still-"awaiting_survey" scenario) rather than on the model's
+// own error. Exported so per-row UI (EpisodeBrowser) can flag exactly the rows
+// isScored excludes for this reason, distinct from an errored call.
+export function isUnkeyedStatus(r: Result): boolean {
+  return UNKEYED_STATUSES.has(r.answer_key_status ?? "");
+}
+
 export function isScored(r: Result): boolean {
-  return r.verdict !== "error" && !UNKEYED_STATUSES.has(r.answer_key_status ?? "");
+  return r.verdict !== "error" && !isUnkeyedStatus(r);
 }
 
 export interface Summary {
