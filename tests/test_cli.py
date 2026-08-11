@@ -264,6 +264,17 @@ def test_phase1_grid_size_computes_breakdown():
     assert _phase1_grid_size(["not-a-real-provider"], None, None, None, None) == (0, "")
 
 
+def test_phase1_grid_size_defaults_seeds_to_one():
+    # No --seeds passed (None) must price against the real default (one seed,
+    # 2026-08-11), not a stale assumption -- this is the number a human
+    # approves live spend against, so it can't silently drift from DEFAULT_SEEDS.
+    from app.cli import _phase1_grid_size
+
+    total, breakdown = _phase1_grid_size(["openai"], None, ["scn_v1_a1_trap"], None, None)
+    assert total == 1 * 3 * 1 * 1  # 1 model x default 3 conditions x 1 scenario x 1 seed
+    assert "1 seed(s)" in breakdown
+
+
 def test_phase1_grid_size_excludes_offline_models():
     # Offline providers (baseline_naive) make no API calls, so they never count
     # toward the live-cost confirmation grid.
@@ -310,9 +321,9 @@ def test_cli_phase2_eval_offline_scripted_skips_confirmation(capsys, monkeypatch
 
 def test_cli_eval_large_grid_aborts_without_confirmation(capsys, monkeypatch):
     # The full command path: a live default eval (single model x full v1 set)
-    # is already a 750-call grid, so it must abort (exit 2) with no TTY,
-    # before touching any provider -- this is the "full grid" case, not just
-    # an explicit --models all.
+    # is already a 150-call grid (50 scenarios x 3 conditions x 1 seed), so it
+    # must abort (exit 2) with no TTY, before touching any provider -- this is
+    # the "full grid" case, not just an explicit --models all.
     import app.cli as cli
 
     monkeypatch.setattr(cli.sys.stdin, "isatty", lambda: False)
@@ -454,8 +465,8 @@ def test_phase2_grid_size_counts_the_real_scenario_set():
     from app.cli import _phase2_grid_size
 
     episodes, breakdown = _phase2_grid_size(_phase2_args(models="anthropic", seeds="1"))
-    # 226 scenarios x 1 condition (no_policy default) x 2 framings x 1 urgency x 1 seed x 1 model.
-    assert episodes == 226 * 1 * 2
+    # 226 scenarios x 1 condition (no_policy default) x 1 framing (deployment default) x 1 urgency x 1 seed x 1 model.
+    assert episodes == 226 * 1 * 1
     assert "226 scenario(s)" in breakdown
     assert "250" not in breakdown
 
@@ -469,6 +480,19 @@ def test_phase2_grid_size_counts_the_real_scenario_set():
     assert episodes == 1
 
 
+def test_phase2_grid_size_defaults_seeds_to_one():
+    # Regression guard for the same class of bug as the 250-vs-226 fix above:
+    # the seed count used to be a bare `or 5` literal instead of deriving from
+    # DEFAULT_PHASE2_SEEDS, so it silently kept quoting a 5-seed cost estimate
+    # after the real default (2026-08-11) dropped to one seed -- a confirmation
+    # prompt overstating spend by 5x.
+    from app.cli import _phase2_grid_size
+
+    episodes, breakdown = _phase2_grid_size(_phase2_args(models="anthropic", scenario_ids="scn_v2_a1_trap"))
+    assert episodes == 1
+    assert "1 seed(s)" in breakdown
+
+
 def test_phase2_grid_size_expands_all_flags_to_their_real_count():
     # Regression (F4): "--conditions all" (and the other *-all axes) counted as
     # a single CSV item instead of resolving to the real condition/level count,
@@ -477,8 +501,8 @@ def test_phase2_grid_size_expands_all_flags_to_their_real_count():
     from app.cli import _phase2_grid_size
 
     episodes, breakdown = _phase2_grid_size(_phase2_args(models="anthropic", conditions="all", seeds="1,2,3,4,5"))
-    # 226 scenarios x 4 conditions x 2 framings (default) x 5 seeds x 1 model.
-    assert episodes == 9040
+    # 226 scenarios x 4 conditions x 1 framing (deployment default) x 5 seeds x 1 model.
+    assert episodes == 4520
     assert "4 condition(s)" in breakdown
 
     episodes, _ = _phase2_grid_size(
@@ -489,12 +513,12 @@ def test_phase2_grid_size_expands_all_flags_to_their_real_count():
     episodes, _ = _phase2_grid_size(
         _phase2_args(models="anthropic", seeds="1", scenario_ids="scn_v2_a1_trap", urgencies="all")
     )
-    assert episodes == 2 * 2  # 2 framings (default) x 2 urgency levels
+    assert episodes == 1 * 2  # 1 framing (deployment default) x 2 urgency levels
 
     episodes, _ = _phase2_grid_size(
         _phase2_args(models="anthropic", seeds="1", scenario_ids="scn_v2_a1_trap", user_availabilities="all")
     )
-    assert episodes == 2 * 2  # 2 framings (default) x 2 user-availability levels
+    assert episodes == 1 * 2  # 1 framing (deployment default) x 2 user-availability levels
 
 
 def test_phase2_grid_size_defers_on_an_unknown_condition():
@@ -630,8 +654,8 @@ def test_phase2_grid_size_counts_the_split_not_the_whole_set():
     args = _phase2_args(models="anthropic", seeds="1", split="objective")
     scenario_ids = _resolve_split("objective", None, PHASE2_SCENARIO_SET)
     episodes, breakdown = _phase2_grid_size(args, scenario_ids)
-    # 182 scenarios x 1 condition (no_policy default) x 2 framings.
-    assert episodes == 182 * 1 * 2
+    # 182 scenarios x 1 condition (no_policy default) x 1 framing (deployment default).
+    assert episodes == 182 * 1 * 1
     assert "182 scenario(s)" in breakdown
 
 

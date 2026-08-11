@@ -72,13 +72,13 @@
               </div>
             </div>
             <p class="runner-hint">
-              None checked on an axis uses the CLI default for it (framings: both; urgency/pressure: none only).
+              None checked on an axis uses the CLI default for it (framings: deployment only — evaluation is opt-in; urgency/pressure: none only).
               Crossing every level multiplies the run further — see the Cost ladder below.
             </p>
           </div>
           <div>
             <label class="runner-label" for="seedsInput" title="Comma-separated random seeds. Each seed repeats every scenario/condition pair for variance.">Seeds</label>
-            <input id="seedsInput" class="runner-field" type="text" value="1,2,3,4,5" spellcheck="false">
+            <input id="seedsInput" class="runner-field" type="text" value="1" spellcheck="false">
             <p class="runner-hint">A random seed for the episode. Every seed listed re-runs each scenario/condition pair from scratch, so seeds measure how consistent a model is on the same setup rather than testing anything new — the more seeds, the less one lucky (or unlucky) rollout can look like the model's real rate.</p>
           </div>
           <div>

@@ -47,6 +47,114 @@
   `web/components/results/README.md`, `static/lab.js`, `static/lab.html`,
   `README.md`, `tests/test_metrics.py`.
 
+## [2026-08-11] A bare eval run costs one seed, not five
+
+A default `eval`/`phase2-eval` invocation (no `--seeds`) silently ran the
+full five-seed design every time — 50 x 3 x 5 = 750 live calls for Phase 1,
+226 multi-turn episodes x 5 for Phase 2 — which is exactly the kind of
+expensive-by-omission default the framing/urgency/user-availability axes
+below were already fixed to avoid. Five seeds at nonzero temperature is the
+statistically-powered design the published results use, but that is a
+real-money multiplier a caller should choose on purpose, not pay for by
+forgetting a flag.
+
+### Changed
+- **Seeds now default to `[1]`**, both for `run_phase1_evaluation`
+  (`DEFAULT_SEEDS` in `app/runner.py`) and `run_phase2_evaluation`
+  (`DEFAULT_PHASE2_SEEDS` in `app/phase2/runner.py`). Pass
+  `--seeds 1,2,3,4,5` explicitly to run the full five-seed design — every
+  documented example of "the real run" already does this.
+- The Phase 2 cost/grid-size estimate (`_phase2_grid_size` in `app/cli.py`)
+  no longer hardcodes a bare `or 5` fallback for the unset-seeds case, which
+  would otherwise have kept quoting a 5-seed confirmation prompt after the
+  real default dropped to one — the same "stale constant is a cost lie"
+  bug class as the 2026-07-24 scenario-count fix. It now derives the
+  fallback from `DEFAULT_PHASE2_SEEDS`.
+- `phase2-eval`'s `--seeds` help text, `COMMANDS.md`'s flag tables and
+  worked examples, and the Experiment Lab UI (`static/lab.html`'s seeds
+  field, `static/lab.js`'s `DEFAULT_SEEDS_LIST`) all updated to match.
+  `README.md`'s and the lander's "five seeds per scenario" methodology text
+  is unchanged — that describes the published research design, which still
+  runs with `--seeds 1,2,3,4,5` passed explicitly, not the CLI's ergonomic
+  default.
+
+### Files
+`app/runner.py`, `app/phase2/runner.py`, `app/cli.py`, `COMMANDS.md`,
+`static/lab.html`, `static/lab.js`, `tests/test_phase1_runner.py`,
+`tests/test_phase2_runner.py`, `tests/test_cli.py`.
+
+## [2026-08-11] Evaluation framing is opt-in, not default
+
+Prompted by a re-read of the evaluation-awareness axis: the "evaluation"
+preamble (`FRAMING_PREAMBLES["evaluation"]` in `app/phase2/sandbox.py`) tells
+the tested agent, in so many words, that it is being watched — "You are being
+evaluated in a purchasing benchmark." Every run that omitted `--framings`
+carried that disclosure in half its episodes by default, which is backwards
+for a benchmark whose headline numbers are meant to describe unsafe autonomy
+under ordinary, unmonitored deployment: an agent measurably more cautious
+because it suspects a grader is watching tells you about test-taking
+behavior, not real-world risk.
+
+### Changed
+- **Framing now defaults to `deployment` only**, joining `--conditions`,
+  `--urgencies`, and `--user-availabilities` as opt-in axes
+  (`run_phase2_evaluation` in `app/phase2/runner.py`). No episode discloses
+  evaluation status to the tested agent unless a caller explicitly passes
+  `--framings evaluation` (or `all`) to deliberately study that effect. The
+  `evaluation` preamble itself is unchanged and stays in the code — this
+  gates when it runs, not whether the axis can still be studied.
+- The Phase 2 cost/grid-size estimate (`_phase2_grid_size` in `app/cli.py`),
+  the `phase2-eval` help text, `COMMANDS.md`'s flag table, `README.md`'s
+  "Evaluation-awareness test" bullet, and the lab UI
+  (`static/lab.html`/`static/lab.js`) all updated to match: a default run is
+  now half the size it was (1 framing instead of 2) and the default
+  breakdown/preview numbers reflect that.
+
+### Files
+`app/phase2/runner.py`, `app/phase2/sandbox.py` (comment only), `app/cli.py`,
+`README.md`, `COMMANDS.md`, `static/lab.html`, `static/lab.js`,
+`tests/test_phase2_runner.py`, `tests/test_cli.py`.
+
+## [2026-08-11] Phase 2 four-condition cutover: checkpoint crash and leftover doc drift
+
+### Fixed
+- **A checkpoint with an episode row from a removed condition crashed
+  `phase2-checkpoints` and any `--resume`.** `approval_gate` was cut outright
+  on 2026-08-08, not renamed like `preflight_check` -> `required_check`, so it
+  carries no entry in `app/models._LEGACY_CONDITION_ALIASES` — loading a row
+  written before the cut raised an uncaught pydantic `ValidationError` out of
+  `CheckpointStore.load()`, which `list_checkpoints()` only excepted
+  `(CheckpointMissing, OSError)` around, so one stale `.jsonl` on disk took
+  down the whole listing. `load()` now drops an episode row that fails to
+  validate, the same way it already drops a truncated JSON line — such a row
+  can never satisfy a current grid fingerprint anyway, so it was never
+  resumable, only listable.
+
+### Changed
+- **Fixed leftover "six-condition" wording from the 2026-08-08 cut to four
+  conditions.** `COMMANDS.md`'s own CLI summary table still called
+  `phase2-eval` "six-condition" while its detailed section below correctly
+  said "four-condition"; the same stale count was live in `app/cli.py`'s
+  `phase2-eval --help` text and docstring, `app/phase2/__init__.py`'s module
+  docstring, and a `static/lab.js` comment.
+- **Public site copy described a Phase 2 that no longer exists.**
+  `web/components/Conditions.tsx` called the top control rung "a human
+  approval gate" (that condition was cut 2026-08-08, and per
+  `CONDITION_ABLATION_REVIEW.md` was never actually a human-in-the-loop
+  mechanism even while it existed) and called the Phase 2 grid
+  "six-condition"; `web/components/Roadmap.tsx` still advertised "a human
+  baseline" (removed from scope 2026-08-09) and "a transfer check against
+  Phase 1" (removed 2026-08-09) as upcoming Phase 2 work.
+- **Removed a dead command from the admin dashboard's Commands tab.**
+  `web/public/admin.html` still listed a "Transfer check" tile running
+  `phase2-transfer`, a CLI command that no longer exists.
+
+### Files
+- `app/phase2/checkpoint.py`, `tests/test_phase2_checkpoint.py`,
+  `COMMANDS.md`, `app/cli.py`, `app/phase2/__init__.py`, `static/lab.js`,
+  `web/components/Conditions.tsx`, `web/components/Roadmap.tsx`,
+  `web/public/admin.html`.
+
 ## [2026-08-09] Human baseline removed from scope (supersedes R3)
 
 ### Removed

@@ -121,12 +121,12 @@ def test_urgency_crosses_user_availability_into_a_2x2():
 
 
 @pytest.mark.parametrize("axis", ["urgencies", "user_availabilities"])
-def test_pressure_axes_default_to_none_only_unlike_framing(axis):
-    # Omitting --urgencies/--user-availabilities must NOT expand to every level the
-    # way omitting --framings does: every pre-existing caller (this whole test
-    # file among them) calls run_phase2_evaluation without them, so defaulting
-    # to "all" would silently multiply their episode counts and live-API cost.
-    # This is the cost guard — it is load-bearing, not incidental.
+def test_pressure_axes_default_to_none_only(axis):
+    # Omitting --urgencies/--user-availabilities must NOT expand to every level:
+    # every pre-existing caller (this whole test file among them) calls
+    # run_phase2_evaluation without them, so defaulting to "all" would silently
+    # multiply their episode counts and live-API cost. This is the cost guard —
+    # it is load-bearing, not incidental.
     run = run_phase2_evaluation(
         model_ids=["scripted_diligent"],
         control_conditions=["no_policy"],
@@ -138,6 +138,38 @@ def test_pressure_axes_default_to_none_only_unlike_framing(axis):
     field = {"urgencies": "urgency", "user_availabilities": "user_availability"}[axis]
     assert {getattr(result, field) for result in run.results} == {"none"}
     assert getattr(run, axis) == ["none"]
+
+
+def test_framing_defaults_to_deployment_only_and_never_discloses_evaluation():
+    # 2026-08-11: framing joined the opt-in axes above. The "evaluation"
+    # preamble tells the tested agent it is being evaluated (FRAMING_PREAMBLES
+    # in sandbox.py), so a caller that omits framings entirely — every
+    # pre-existing caller, this whole test file included — must never see that
+    # disclosure. Opt in explicitly with framings=["evaluation"] / ["all"] to
+    # study evaluation-awareness on purpose.
+    run = run_phase2_evaluation(
+        model_ids=["scripted_diligent"],
+        control_conditions=["no_policy"],
+        scenario_ids=PAIR_IDS,
+        seeds=[1],
+    )
+    assert {result.framing for result in run.results} == {"deployment"}
+    assert run.framings == ["deployment"]
+
+
+def test_seeds_default_to_a_single_seed():
+    # 2026-08-11: a bare run (no --seeds) now costs one seed, not five --
+    # same "opt into the expensive axis on purpose" reasoning as the framing
+    # default above. Pass seeds=[1, 2, 3, 4, 5] explicitly for the full
+    # five-seed design.
+    run = run_phase2_evaluation(
+        model_ids=["scripted_diligent"],
+        control_conditions=["no_policy"],
+        scenario_ids=PAIR_IDS,
+    )
+    assert run.seeds == [1]
+    assert len(run.results) == len(PAIR_IDS)
+    assert {result.seed for result in run.results} == {1}
 
 
 def test_unflagged_run_prompt_is_identical_to_the_pre_axis_prompt():

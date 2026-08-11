@@ -732,7 +732,7 @@ def _phase2_grid_size(
     """
     from .data import load_scenarios
     from .phase2.providers import LIVE_MODEL_IDS, resolve_phase2_model_ids
-    from .phase2.runner import PHASE2_SCENARIO_SET, _select
+    from .phase2.runner import DEFAULT_PHASE2_SEEDS, PHASE2_SCENARIO_SET, _select
     from .phase2.sandbox import FRAMINGS, PHASE2_CONTROL_CONDITIONS, URGENCY_LEVELS, USER_AVAILABILITY_LEVELS
 
     try:
@@ -756,10 +756,11 @@ def _phase2_grid_size(
         conditions = (
             len(_select(raw_conditions, PHASE2_CONTROL_CONDITIONS, "conditions")) if raw_conditions else 1
         )
-        framings = len(_select(_csv(args.framings), FRAMINGS, "framings"))
-        # Unlike framings, omitting --urgencies/--user-availabilities runs a single
-        # level ("none"), not both — see run_phase2_evaluation. Only an explicit
-        # flag multiplies these; both together quadruple the grid.
+        raw_framings = _csv(args.framings)
+        framings = len(_select(raw_framings, FRAMINGS, "framings")) if raw_framings else 1
+        # Omitting --urgencies/--user-availabilities runs a single level
+        # ("none"), same as framings above — see run_phase2_evaluation. Only an
+        # explicit flag multiplies these; both together quadruple the grid.
         raw_urgencies = _csv(args.urgencies)
         urgencies = len(_select(raw_urgencies, URGENCY_LEVELS, "urgency levels")) if raw_urgencies else 1
         raw_user_availabilities = _csv(args.user_availabilities)
@@ -768,7 +769,7 @@ def _phase2_grid_size(
             if raw_user_availabilities
             else 1
         )
-        seeds = len(_csv_int(args.seeds) or []) or 5
+        seeds = len(_csv_int(args.seeds) or []) or len(DEFAULT_PHASE2_SEEDS)
         # Scripted agents run offline; only live providers incur episode API calls.
         models = len([m for m in resolve_phase2_model_ids(_csv(args.models)) if m in LIVE_MODEL_IDS])
     except Exception:
@@ -815,7 +816,7 @@ def _resume_command_line(args: argparse.Namespace, run_id: str) -> str:
 
 
 def phase2_eval_command(args: argparse.Namespace) -> int:
-    """Phase 2 six-condition sandbox ablation with framing variation."""
+    """Phase 2 four-condition sandbox ablation with framing variation."""
     from .phase2 import CheckpointMismatch, CheckpointMissing, CheckpointStore, run_phase2_evaluation
     from .phase2.runner import PHASE2_SCENARIO_SET
 
@@ -1137,7 +1138,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Markdown scenario-set path, for example data/scenario_sets/v2_250_scenarios.md.",
     )
     _add_split_argument(eval_parser)
-    eval_parser.add_argument("--seeds", default=",".join(str(seed) for seed in DEFAULT_SEEDS))
+    eval_parser.add_argument(
+        "--seeds",
+        default=",".join(str(seed) for seed in DEFAULT_SEEDS),
+        help="Comma-separated seeds. Default: 1 (pass 1,2,3,4,5 for the full five-seed design).",
+    )
     eval_parser.add_argument(
         "--temperature",
         type=float,
@@ -1242,7 +1247,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     phase2_eval_parser = subparsers.add_parser(
         "phase2-eval",
-        help="Phase 2 sandbox eval: six-condition ablation with evaluation/deployment framing.",
+        help="Phase 2 sandbox eval: four-condition ablation with evaluation/deployment framing.",
     )
     phase2_eval_parser.add_argument(
         "--models",
@@ -1265,15 +1270,20 @@ def build_parser() -> argparse.ArgumentParser:
     phase2_eval_parser.add_argument(
         "--framings",
         default=None,
-        help="Comma-separated framings: evaluation, deployment. Default: both.",
+        help=(
+            "Comma-separated framings: evaluation, deployment, or all. Default: "
+            "deployment only — the 'evaluation' preamble tells the model it is "
+            "being evaluated, so it never runs unless you opt in with "
+            "--framings=evaluation (or all) to deliberately study that effect."
+        ),
     )
     phase2_eval_parser.add_argument(
         "--urgencies",
         default=None,
         help=(
             "Comma-separated urgency levels: none, time_pressure, or all. Default: "
-            "none only (opt in to add the time-pressure ablation; unlike --framings, "
-            "omitting this does not run both levels)."
+            "none only (opt in to add the time-pressure ablation; like --framings, "
+            "omitting this does not run every level)."
         ),
     )
     phase2_eval_parser.add_argument(
@@ -1281,8 +1291,8 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help=(
             "Comma-separated user-availability levels: none, unreachable, or all. Default: "
-            "none only (opt in to add the absent-user ablation; unlike --framings, "
-            "omitting this does not run both levels). Crosses with --urgencies, so "
+            "none only (opt in to add the absent-user ablation; like --framings, "
+            "omitting this does not run every level). Crosses with --urgencies, so "
             "setting both to all quadruples the grid."
         ),
     )
@@ -1322,7 +1332,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Markdown scenario-set path. Default: data/scenario_sets/v2_250_scenarios.md.",
     )
     _add_split_argument(phase2_eval_parser)
-    phase2_eval_parser.add_argument("--seeds", default=None, help="Comma-separated seeds. Default: 1,2,3,4,5.")
+    phase2_eval_parser.add_argument(
+        "--seeds",
+        default=None,
+        help="Comma-separated seeds. Default: 1 (pass 1,2,3,4,5 for the full five-seed design).",
+    )
     phase2_eval_parser.add_argument("--temperature", type=float, default=None)
     phase2_eval_parser.add_argument(
         "--reasoning-effort",

@@ -21,6 +21,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
+from pydantic import ValidationError
+
 from ..data import ROOT_DIR
 from ..models import EvaluationResult, model_to_dict, parse_model
 
@@ -179,6 +181,13 @@ class CheckpointStore:
         partial record, and refusing to resume because of it would defeat the
         purpose. Later records for the same key win, so a re-run episode
         replaces its earlier errored attempt.
+
+        Also tolerates an episode row naming a control condition since removed
+        outright rather than renamed (e.g. "approval_gate", cut 2026-08-08 with
+        no entry in models._LEGACY_CONDITION_ALIASES, unlike the
+        preflight_check -> required_check rename). Such a row can no longer be
+        resumed under any current grid, so it is dropped like a truncated line
+        instead of crashing the whole read.
         """
         if not self.path.exists():
             raise CheckpointMissing(f"No checkpoint for run {self.run_id} at {self.path}")
@@ -197,7 +206,10 @@ class CheckpointStore:
                     header = payload
                 elif payload.get("record") == "episode":
                     key = payload["key"]
-                    restored[episode_key(*key)] = parse_model(EvaluationResult, payload["result"])
+                    try:
+                        restored[episode_key(*key)] = parse_model(EvaluationResult, payload["result"])
+                    except ValidationError:
+                        continue  # pre-cutover episode using a condition since removed
         return header, restored
 
     def verify(
