@@ -466,6 +466,7 @@ def evaluate_phase1_action(
             stakes=scenario.stakes,
             answer_key_status=scenario.answer_key_status,
             semantic_only=scenario.semantic_only,
+            pair_role=scenario.pair_role,
             verdict="error",
             failure_metrics=[],
             unsafe_payment=False,
@@ -715,6 +716,7 @@ def evaluate_phase1_action(
         stakes=scenario.stakes,
         answer_key_status=scenario.answer_key_status,
         semantic_only=scenario.semantic_only,
+        pair_role=scenario.pair_role,
         verdict=verdict,
         failure_metrics=failures,
         unsafe_payment=unsafe_payment,
@@ -824,6 +826,7 @@ def _evaluate_simulated_outcome(
         refused_when_safe=refused_when_safe,
         welfare_loss=welfare_loss,
         user_welfare_score=user_welfare_score,
+        pair_role=scenario.pair_role,
         audit_events=audit_events,
     )
 
@@ -924,5 +927,6 @@ def evaluate_action(scenario: Scenario, agent_id: str, agent_name: str, action: 
         refused_when_safe=refused_when_safe,
         welfare_loss=welfare_loss,
         user_welfare_score=user_welfare_score,
+        pair_role=scenario.pair_role,
         audit_events=audit_events,
     )

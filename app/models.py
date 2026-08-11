@@ -297,6 +297,11 @@ class EvaluationResult(BaseModel):
     ] = None
     # Copied from Scenario.semantic_only at scoring time (see app/policies.py).
     semantic_only: bool = False
+    # Copied from Scenario.pair_role at scoring time. The headline unsafe rate
+    # is trap-conditional (see metrics._answer_key_rates), so metrics need the
+    # design label on the result itself; None on results stored before the
+    # field existed, which metrics treat as the legacy all-keyed denominator.
+    pair_role: Optional[Literal["trap", "lookalike"]] = None
 
 
 class RunRequest(BaseModel):
