@@ -60,6 +60,12 @@ const state = {
   // "phase1_fallback" one, so a mixed load never pins the Phase 1 fallback
   // once a real Phase 2 floor exists in any loaded run.
   surveyFloor: null,
+  // Failure modes panel is closed by default and expensive to build (groups
+  // every scored result by failure code), so renderFailureChart only caches
+  // the current result set here — the actual chart is painted lazily, on
+  // open, from paintFailureChart. failurePage is 1-indexed.
+  failureResults: [],
+  failurePage: 1,
 };
 
 const els = {};
@@ -114,8 +120,13 @@ for (const id of [
   "phasesContent",
   "modelSummaryTable",
   "modelSummaryStamp",
+  "failurePanel",
   "failureChart",
   "failureStamp",
+  "failurePagination",
+  "failurePrevPage",
+  "failureNextPage",
+  "failurePageLabel",
   "resultRunFilter",
   "resultVerdictFilter",
   "resultConditionFilter",
@@ -1666,8 +1677,21 @@ function failureBreakdown(results) {
   return { modes, columns, denominators, scoredTotal: scored.length };
 }
 
+const FAILURE_MODES_PER_PAGE = 10;
+
+// Failure modes is closed by default and its breakdown groups every scored
+// result by failure code — real work when a run has hundreds of results — so
+// this only caches the current result set. The DOM is built lazily by
+// paintFailureChart, on open, rather than on every filter/run change while
+// the panel is collapsed and nobody is looking at it.
 function renderFailureChart(results) {
-  const { modes, columns, denominators, scoredTotal } = failureBreakdown(results);
+  state.failureResults = results;
+  state.failurePage = 1;
+  if (els.failurePanel.open) paintFailureChart();
+}
+
+function paintFailureChart() {
+  const { modes, columns, denominators, scoredTotal } = failureBreakdown(state.failureResults);
   els.failureStamp.textContent = modes.length
     ? `${modes.length} mode${modes.length === 1 ? "" : "s"} · ${scoredTotal} scored`
     : `${scoredTotal} scored`;
@@ -1676,10 +1700,16 @@ function renderFailureChart(results) {
     els.failureChart.innerHTML = scoredTotal
       ? '<p class="failure-empty">No failure modes in this selection — every scored result was clean.</p>'
       : '<p class="failure-empty">No scored results in this selection.</p>';
+    els.failurePagination.hidden = true;
     return;
   }
 
-  els.failureChart.innerHTML = modes
+  const totalPages = Math.max(1, Math.ceil(modes.length / FAILURE_MODES_PER_PAGE));
+  state.failurePage = Math.min(Math.max(state.failurePage, 1), totalPages);
+  const start = (state.failurePage - 1) * FAILURE_MODES_PER_PAGE;
+  const pageModes = modes.slice(start, start + FAILURE_MODES_PER_PAGE);
+
+  els.failureChart.innerHTML = pageModes
     .map((mode) => {
       const rows = columns
         .map((column) => {
@@ -1710,6 +1740,11 @@ function renderFailureChart(results) {
       `;
     })
     .join("");
+
+  els.failurePagination.hidden = modes.length <= FAILURE_MODES_PER_PAGE;
+  els.failurePageLabel.textContent = `Page ${state.failurePage} of ${totalPages}`;
+  els.failurePrevPage.disabled = state.failurePage <= 1;
+  els.failureNextPage.disabled = state.failurePage >= totalPages;
 }
 
 // Rebuilds the three Results-panel filter dropdowns from whatever's actually
@@ -2294,11 +2329,45 @@ function renderAll() {
   const hasResults = state.allResults.length > 0;
   els.modelDashboard.hidden = !hasResults;
   els.labEmpty.hidden = hasResults;
-  // The Phases tracker and the Runs list both sit above the by-model
-  // dashboard now, so they render whether or not anything has run — before
-  // the no-results early return below, same as each other.
+  // The Phases tracker, Runs list, and Results panel all sit above the
+  // by-model dashboard now, so they render whether or not anything has run —
+  // before the no-results early return below, same as each other.
   renderPhases();
   renderRunList();
+
+  // The headline charts and Models table are a verified leaderboard, not a
+  // progress tracker — a model with only a partial run has an unreliable,
+  // non-comparable rate (small/skewed sample), so it's excluded here rather
+  // than shown next to finished models with a caveat easy to miss. Partial
+  // models are still fully visible in the Phases section above. Computed
+  // unconditionally (safe on an empty result set) so the modelFilter reset
+  // below runs before Results is built from it.
+  const allRows = modelGroups();
+  const rows = allRows.filter((row) => row.display && row.display.complete);
+  const incompleteCount = allRows.length - rows.length;
+  if (state.modelFilter && !rows.some((row) => row.label === state.modelFilter)) {
+    state.modelFilter = null;
+  }
+
+  renderResultsFilterOptions();
+  const filtered = applyResultFilters(state.allResults);
+  const stampParts = [state.modelFilter || "All models"];
+  if (state.runFilter) {
+    const run = state.runList.find((item) => item.run_id === state.runFilter);
+    stampParts.push(run ? runOptionLabel(run) : "1 run");
+  }
+  if (state.verdictFilter !== "all") stampParts.push(verdictLabel(state.verdictFilter));
+  if (state.conditionFilter !== "all") {
+    stampParts.push(controlConditionLabel(state.conditionFilter === "legacy" ? null : state.conditionFilter));
+  }
+  if (state.framingFilter !== "all") stampParts.push(framingLabel(state.framingFilter));
+  if (state.urgencyFilter !== "all") stampParts.push(urgencyLabel(state.urgencyFilter));
+  if (state.userAvailabilityFilter !== "all")
+    stampParts.push(userAvailabilityLabel(state.userAvailabilityFilter));
+  els.modelResultsStamp.textContent = `${stampParts.join(" · ")} · ${filtered.length} results`;
+  renderResultsTable(filtered);
+  renderDetail(filtered);
+
   if (!hasResults) {
     els.modelSectionMeta.textContent = "";
     // Distinguish "genuinely no runs" from "runs exist but the server couldn't
@@ -2314,17 +2383,6 @@ function renderAll() {
     return;
   }
 
-  const allRows = modelGroups();
-  // The headline charts and Models table are a verified leaderboard, not a
-  // progress tracker — a model with only a partial run has an unreliable,
-  // non-comparable rate (small/skewed sample), so it's excluded here rather
-  // than shown next to finished models with a caveat easy to miss. Partial
-  // models are still fully visible in the Phases section above.
-  const rows = allRows.filter((row) => row.display && row.display.complete);
-  const incompleteCount = allRows.length - rows.length;
-  if (state.modelFilter && !rows.some((row) => row.label === state.modelFilter)) {
-    state.modelFilter = null;
-  }
   els.modelSectionMeta.textContent =
     `${state.allResults.length} results · ${state.runList.length} run${
       state.runList.length === 1 ? "" : "s"
@@ -2373,25 +2431,7 @@ function renderAll() {
     : `<tr><td colspan="12" class="empty-state">No model has a complete Phase 1/2 run yet — see Phases above for progress.</td></tr>`;
   els.modelSummaryStamp.textContent = state.modelFilter ? "Filtered — click again to clear" : "";
 
-  renderResultsFilterOptions();
-  const filtered = applyResultFilters(state.allResults);
-  const stampParts = [state.modelFilter || "All models"];
-  if (state.runFilter) {
-    const run = state.runList.find((item) => item.run_id === state.runFilter);
-    stampParts.push(run ? runOptionLabel(run) : "1 run");
-  }
-  if (state.verdictFilter !== "all") stampParts.push(verdictLabel(state.verdictFilter));
-  if (state.conditionFilter !== "all") {
-    stampParts.push(controlConditionLabel(state.conditionFilter === "legacy" ? null : state.conditionFilter));
-  }
-  if (state.framingFilter !== "all") stampParts.push(framingLabel(state.framingFilter));
-  if (state.urgencyFilter !== "all") stampParts.push(urgencyLabel(state.urgencyFilter));
-  if (state.userAvailabilityFilter !== "all")
-    stampParts.push(userAvailabilityLabel(state.userAvailabilityFilter));
-  els.modelResultsStamp.textContent = `${stampParts.join(" · ")} · ${filtered.length} results`;
   renderFailureChart(filtered);
-  renderResultsTable(filtered);
-  renderDetail(filtered);
 }
 
 /* ------------------------------------------------------------------ */
@@ -2527,6 +2567,21 @@ function bindEvents() {
     renderAll();
   });
   els.resultsFilterReset.addEventListener("click", resetResultFilters);
+  // Failure modes is closed by default and its chart is only built lazily
+  // (see renderFailureChart/paintFailureChart) — paint it the moment it's
+  // opened, whether that's the first time or a re-open after filters changed
+  // while it was collapsed.
+  els.failurePanel.addEventListener("toggle", () => {
+    if (els.failurePanel.open) paintFailureChart();
+  });
+  els.failurePrevPage.addEventListener("click", () => {
+    state.failurePage = Math.max(1, state.failurePage - 1);
+    paintFailureChart();
+  });
+  els.failureNextPage.addEventListener("click", () => {
+    state.failurePage += 1;
+    paintFailureChart();
+  });
 }
 
 async function init() {
