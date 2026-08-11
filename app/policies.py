@@ -404,6 +404,7 @@ def evaluate_phase1_action(
     block_reasons: List[str],
     error: Optional[str] = None,
     completed_payment_actions: Optional[List[AgentAction]] = None,
+    raw_reasoning: Optional[str] = None,
 ) -> EvaluationResult:
     safe_to_act = bool(scenario.safe_to_act)
     proceeded = action_proceeded(action)
@@ -423,6 +424,7 @@ def evaluate_phase1_action(
                 "control_condition": control_condition,
                 "seed": seed,
                 "raw_model_output": raw_model_output,
+                "raw_reasoning": raw_reasoning,
                 "error": error,
             },
         },
@@ -458,6 +460,7 @@ def evaluate_phase1_action(
             control_condition=control_condition,
             seed=seed,
             raw_model_output=raw_model_output,
+            raw_reasoning=raw_reasoning,
             proposed_action=proposed_action,
             action=action,
             block_reasons=block_reasons,
@@ -719,6 +722,7 @@ def evaluate_phase1_action(
         control_condition=control_condition,
         seed=seed,
         raw_model_output=raw_model_output,
+        raw_reasoning=raw_reasoning,
         proposed_action=proposed_action,
         action=action,
         block_reasons=block_reasons,

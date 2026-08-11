@@ -1,3 +1,4 @@
+import copy
 import json
 
 import pytest
@@ -79,6 +80,78 @@ def test_episode_rows_carry_canonical_order_and_lifted_fields():
     assert rows[0]["model_name"] == "gpt-5.4-mini"
     assert rows[0]["result"]["verdict"] == "safe"
     assert slim_run_payload(_episode_run(3))["episode_count"] == 3
+
+
+def test_cap_reasoning_truncates_over_cap_text_and_its_audit_mirror():
+    cap = supabase_publish.REASONING_PUBLISH_MAX_CHARS
+    long_text = "a" * (cap + 500)
+    result = {
+        "scenario_id": "scn_0",
+        "raw_reasoning": long_text,
+        "audit_events": [
+            {
+                "event_type": "model_output",
+                "code": "raw_output",
+                "detail": {"raw_model_output": "{}", "raw_reasoning": long_text},
+            },
+            {"event_type": "verdict", "code": "safe", "detail": {}},
+        ],
+    }
+    original = copy.deepcopy(result)
+
+    capped = supabase_publish._cap_reasoning(result)
+
+    assert capped["raw_reasoning"].startswith("a" * cap)
+    assert capped["raw_reasoning"] == (
+        "a" * cap + "\n… [truncated 500 chars for publish]"
+    )
+    # The mirrored copy inside the model_output event's detail gets the same
+    # truncation; the unrelated verdict event is left alone.
+    assert capped["audit_events"][0]["detail"]["raw_reasoning"] == capped["raw_reasoning"]
+    assert capped["audit_events"][1] == {"event_type": "verdict", "code": "safe", "detail": {}}
+    # The caller's dict — top level and nested audit events — is untouched.
+    assert result == original
+
+
+def test_cap_reasoning_leaves_under_cap_result_unchanged():
+    result = {
+        "scenario_id": "scn_1",
+        "raw_reasoning": "short reasoning",
+        "audit_events": [{"event_type": "model_output", "detail": {"raw_reasoning": "short reasoning"}}],
+    }
+    assert supabase_publish._cap_reasoning(result) is result
+
+
+def test_cap_reasoning_leaves_result_without_raw_reasoning_untouched():
+    result = {"scenario_id": "scn_2", "verdict": "safe"}
+    assert supabase_publish._cap_reasoning(result) is result
+
+
+def test_episode_rows_from_run_caps_oversized_reasoning():
+    cap = supabase_publish.REASONING_PUBLISH_MAX_CHARS
+    long_text = "b" * (cap + 10)
+    run = {
+        **SAMPLE_RUN,
+        "results": [
+            {
+                "scenario_id": "scn_0",
+                "model_name": "gpt-5.4-mini",
+                "raw_reasoning": long_text,
+                "audit_events": [
+                    {"event_type": "model_output", "detail": {"raw_reasoning": long_text}}
+                ],
+            }
+        ],
+    }
+
+    rows = episode_rows_from_run(run)
+
+    capped_text = rows[0]["result"]["raw_reasoning"]
+    assert capped_text == "b" * cap + "\n… [truncated 10 chars for publish]"
+    assert capped_text != long_text
+    assert rows[0]["result"]["audit_events"][0]["detail"]["raw_reasoning"] == capped_text
+    # The run passed in is unaffected.
+    assert len(run["results"][0]["raw_reasoning"]) == cap + 10
 
 
 def test_row_from_run_requires_run_id():

@@ -227,6 +227,7 @@ interface CellResult {
     amount?: number | null;
     rationale?: string | null;
   } | null;
+  raw_reasoning?: string | null;
 }
 
 const VERDICT_META: Record<
@@ -790,6 +791,11 @@ export function Runner() {
                 {r.action?.rationale && (
                   <p className="mt-2 text-small leading-snug text-ink/80">
                     “{r.action.rationale}”
+                  </p>
+                )}
+                {r.raw_reasoning && (
+                  <p className="mt-2 whitespace-pre-wrap font-mono text-caption text-muted">
+                    reasoning: {r.raw_reasoning}
                   </p>
                 )}
                 {r.block_reasons && r.block_reasons.length > 0 && (

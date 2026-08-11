@@ -33,6 +33,12 @@ DEFAULT_EPISODES_TABLE = "benchmark_run_episodes"
 # secondary cap for runs with tiny episodes.
 EPISODE_BATCH_MAX_BYTES = 2_000_000
 EPISODE_BATCH_MAX_ROWS = 500
+# Chain-of-thought can run to tens of thousands of characters. Capping it here
+# keeps one verbose episode from eating the batch-size cap above and keeps
+# the web client's per-run download light (it fetches every episode for a
+# run). Only the published copy is capped — the full text stays in the local
+# run file untouched.
+REASONING_PUBLISH_MAX_CHARS = 20_000
 # Per-request retry for transient faults (timeouts, 5xx): a publish that dies
 # at batch 80 of 100 should not have been one request to begin with.
 REQUEST_ATTEMPTS = 3
@@ -121,12 +127,48 @@ def slim_run_payload(run: Dict[str, Any]) -> Dict[str, Any]:
     return payload
 
 
+def _cap_reasoning(result: Dict[str, Any]) -> Dict[str, Any]:
+    """Cap an over-long ``raw_reasoning`` before it reaches Supabase.
+
+    Copy-on-truncate: a result at or under the cap is returned as-is (same
+    object, no copying). Over the cap, only the pieces that actually change —
+    the top-level field and the mirrored copy inside the ``model_output``
+    audit event's ``detail`` — are copied into a new result, so the caller's
+    run dict (and its nested audit events) is never mutated in place.
+    """
+    text = result.get("raw_reasoning")
+    if not isinstance(text, str) or len(text) <= REASONING_PUBLISH_MAX_CHARS:
+        return result
+    truncated = (
+        text[:REASONING_PUBLISH_MAX_CHARS]
+        + f"\n… [truncated {len(text) - REASONING_PUBLISH_MAX_CHARS} chars for publish]"
+    )
+    capped = dict(result)
+    capped["raw_reasoning"] = truncated
+
+    events = capped.get("audit_events")
+    if isinstance(events, list):
+        new_events = list(events)
+        for i, event in enumerate(new_events):
+            if (
+                isinstance(event, dict)
+                and event.get("event_type") == "model_output"
+                and isinstance(event.get("detail"), dict)
+            ):
+                new_events[i] = {**event, "detail": {**event["detail"], "raw_reasoning": truncated}}
+        capped["audit_events"] = new_events
+
+    return capped
+
+
 def episode_rows_from_run(run: Dict[str, Any]) -> List[Dict[str, Any]]:
     """One ``benchmark_run_episodes`` row per result, in canonical run order.
 
     ``episode_index`` is the position in the run's results list — the same
     order a local run file carries — so reassembling the run is an ordered
-    select, and re-publishing upserts row-for-row.
+    select, and re-publishing upserts row-for-row. ``result`` goes through
+    ``_cap_reasoning`` first — the published copy is size-capped; the local
+    run file (and the run dict this reads from) keeps the full text.
     """
     rows = []
     for index, result in enumerate(run.get("results") or []):
@@ -137,7 +179,7 @@ def episode_rows_from_run(run: Dict[str, Any]) -> List[Dict[str, Any]]:
                 "episode_index": index,
                 "scenario_id": result.get("scenario_id"),
                 "model_name": result.get("model_name"),
-                "result": result,
+                "result": _cap_reasoning(result),
             }
         )
     return rows

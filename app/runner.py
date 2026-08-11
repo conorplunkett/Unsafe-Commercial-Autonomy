@@ -273,6 +273,7 @@ def run_phase1_evaluation(
                         action=effective_action,
                         proposed_action=provider_action.action,
                         raw_model_output=provider_action.raw_output,
+                        raw_reasoning=provider_action.reasoning,
                         block_reasons=block_reasons,
                         error=error,
                     )

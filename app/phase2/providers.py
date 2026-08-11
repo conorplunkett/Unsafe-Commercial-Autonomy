@@ -30,8 +30,11 @@ from ..providers import (
     TransientRetryPolicy,
     _anthropic_rejects_temperature,
     _anthropic_supports_effort,
+    _gemini_thinking_extra_body,
     _is_openai_reasoning_model,
+    _openai_reasoning_params,
     available_gemini_models,
+    extract_chat_reasoning,
 )
 from .sandbox import MAX_TURNS, SandboxWorld, evaluate_payment_policy, tool_schemas
 
@@ -70,6 +73,9 @@ LIVE_MODEL_IDS = {
 class EpisodeResult:
     raw_outputs: List[str] = field(default_factory=list)
     error: Optional[str] = None
+    # One entry per turn that carried reasoning (thinking blocks,
+    # reasoning_content, <think> tags), mirroring raw_outputs' per-turn shape.
+    reasoning_outputs: List[str] = field(default_factory=list)
 
 
 class BaseEpisodeProvider:
@@ -132,6 +138,16 @@ class ToolLoopProvider(BaseEpisodeProvider):
         """
         raise NotImplementedError
 
+    def _record_reasoning(self, text: Optional[str]) -> None:
+        # Vendor step() bodies push captured reasoning here; run_episode drains
+        # it after each turn. Lazy init so bare stubs that never record still work.
+        if not text:
+            return
+        buf = getattr(self, "_reasoning_buffer", None)
+        if buf is None:
+            buf = self._reasoning_buffer = []
+        buf.append(text)
+
     def _step_with_retry(self, tool_results: Optional[List[Dict[str, Any]]]):
         """One turn, retrying transient transport failures with backoff.
 
@@ -165,6 +181,12 @@ class ToolLoopProvider(BaseEpisodeProvider):
         result = EpisodeResult()
         tools = tool_schemas(world.control_condition)
         self._seed = seed  # transports that support a sampler seed pick it up
+        # Provider instances are pooled and reused across episodes (see
+        # _ProviderPool in runner.py): a turn whose step() raised after
+        # recording reasoning but before this loop's drain point ran would
+        # otherwise leave that reasoning sitting in the buffer for the NEXT
+        # episode to inherit. Reset fresh every episode.
+        self._reasoning_buffer = []
         try:
             self.start_conversation(system_prompt, user_prompt, tools, temperature)
             tool_results: Optional[List[Dict[str, Any]]] = None
@@ -172,6 +194,13 @@ class ToolLoopProvider(BaseEpisodeProvider):
                 text, tool_calls = self._step_with_retry(tool_results)
                 if text:
                     result.raw_outputs.append(text)
+                # Drain whatever this turn's vendor step() captured via
+                # _record_reasoning before either early return below, so the
+                # turn that ends the episode still keeps its reasoning.
+                buf = getattr(self, "_reasoning_buffer", None)
+                if buf:
+                    result.reasoning_outputs.extend(buf)
+                    buf.clear()
                 if not tool_calls:
                     return result  # model stopped talking; assemble from world state
                 tool_results = []
@@ -258,7 +287,7 @@ class OpenAIToolProvider(ToolLoopProvider):
         if self._previous_response_id:
             params["previous_response_id"] = self._previous_response_id
         if _is_openai_reasoning_model(self.model_name):
-            params["reasoning"] = {"effort": self.reasoning_effort}
+            params["reasoning"] = _openai_reasoning_params(self.reasoning_effort)
         else:
             params["temperature"] = self._temperature
         try:
@@ -282,6 +311,11 @@ class OpenAIToolProvider(ToolLoopProvider):
                     text = getattr(block, "text", None)
                     if text:
                         text_chunks.append(text)
+            elif item_type == "reasoning":
+                summary = getattr(item, "summary", None) or []
+                self._record_reasoning(
+                    "\n\n".join(t for t in ((getattr(b, "text", "") or "") for b in summary) if t)
+                )
         return "".join(text_chunks), tool_calls
 
 
@@ -382,6 +416,10 @@ class AnthropicToolProvider(ToolLoopProvider):
                 text_chunks.append(block.text)
             elif block_type == "tool_use":
                 tool_calls.append({"id": block.id, "name": block.name, "arguments": dict(block.input or {})})
+            elif block_type == "thinking":
+                self._record_reasoning(getattr(block, "thinking", "") or "")
+            elif block_type == "redacted_thinking":
+                self._record_reasoning("[redacted_thinking]")
         return "".join(text_chunks), tool_calls
 
 
@@ -441,7 +479,14 @@ class OpenWeightsToolProvider(ToolLoopProvider):
         except Exception as exc:
             raise ProviderError(f"Open-weights request failed: {exc}") from exc
         message = response.json()["choices"][0]["message"]
-        self._messages.append(message)
+        reasoning, content = extract_chat_reasoning(message)
+        self._record_reasoning(reasoning)
+        # Replay keeps content verbatim but drops vendor reasoning fields: no
+        # chat-completions request schema accepts them, and DeepSeek's reasoner
+        # 400s when reasoning_content is echoed back in messages.
+        self._messages.append(
+            {k: v for k, v in message.items() if k not in ("reasoning_content", "reasoning")}
+        )
         tool_calls = [
             {
                 "id": call["id"],
@@ -450,7 +495,7 @@ class OpenWeightsToolProvider(ToolLoopProvider):
             }
             for call in message.get("tool_calls") or []
         ]
-        return message.get("content") or "", tool_calls
+        return content, tool_calls
 
 
 class KimiToolProvider(ToolLoopProvider):
@@ -517,7 +562,14 @@ class KimiToolProvider(ToolLoopProvider):
         except Exception as exc:
             raise ProviderError(f"Kimi request failed: {exc}") from exc
         message = response.json()["choices"][0]["message"]
-        self._messages.append(message)
+        reasoning, content = extract_chat_reasoning(message)
+        self._record_reasoning(reasoning)
+        # Replay keeps content verbatim but drops vendor reasoning fields: no
+        # chat-completions request schema accepts them, and DeepSeek's reasoner
+        # 400s when reasoning_content is echoed back in messages.
+        self._messages.append(
+            {k: v for k, v in message.items() if k not in ("reasoning_content", "reasoning")}
+        )
         tool_calls = [
             {
                 "id": call["id"],
@@ -526,7 +578,7 @@ class KimiToolProvider(ToolLoopProvider):
             }
             for call in message.get("tool_calls") or []
         ]
-        return message.get("content") or "", tool_calls
+        return content, tool_calls
 
 
 class InklingToolProvider(ToolLoopProvider):
@@ -593,7 +645,14 @@ class InklingToolProvider(ToolLoopProvider):
         except Exception as exc:
             raise ProviderError(f"Inkling request failed: {exc}") from exc
         message = response.json()["choices"][0]["message"]
-        self._messages.append(message)
+        reasoning, content = extract_chat_reasoning(message)
+        self._record_reasoning(reasoning)
+        # Replay keeps content verbatim but drops vendor reasoning fields: no
+        # chat-completions request schema accepts them, and DeepSeek's reasoner
+        # 400s when reasoning_content is echoed back in messages.
+        self._messages.append(
+            {k: v for k, v in message.items() if k not in ("reasoning_content", "reasoning")}
+        )
         tool_calls = [
             {
                 "id": call["id"],
@@ -602,7 +661,7 @@ class InklingToolProvider(ToolLoopProvider):
             }
             for call in message.get("tool_calls") or []
         ]
-        return message.get("content") or "", tool_calls
+        return content, tool_calls
 
 
 class OpenAICompatToolProvider(ToolLoopProvider):
@@ -674,6 +733,10 @@ class OpenAICompatToolProvider(ToolLoopProvider):
         }
         if self.send_seed and self._seed is not None:
             body["seed"] = self._seed
+        if self.provider_id == "gemini":
+            # Env-gated thought-summary opt-in; {} (the default) for every
+            # other vendor on this shared transport.
+            body.update(_gemini_thinking_extra_body())
         try:
             response = httpx.post(
                 f"{self.base_url}/chat/completions",
@@ -689,7 +752,14 @@ class OpenAICompatToolProvider(ToolLoopProvider):
         except Exception as exc:
             raise ProviderError(f"{self.display_label} request failed: {exc}") from exc
         message = response.json()["choices"][0]["message"]
-        self._messages.append(message)
+        reasoning, content = extract_chat_reasoning(message)
+        self._record_reasoning(reasoning)
+        # Replay keeps content verbatim but drops vendor reasoning fields: no
+        # chat-completions request schema accepts them, and DeepSeek's reasoner
+        # 400s when reasoning_content is echoed back in messages.
+        self._messages.append(
+            {k: v for k, v in message.items() if k not in ("reasoning_content", "reasoning")}
+        )
         tool_calls = [
             {
                 "id": call["id"],
@@ -698,7 +768,7 @@ class OpenAICompatToolProvider(ToolLoopProvider):
             }
             for call in message.get("tool_calls") or []
         ]
-        return message.get("content") or "", tool_calls
+        return content, tool_calls
 
 
 class GeminiToolProvider(OpenAICompatToolProvider):
@@ -773,6 +843,11 @@ class QwenToolProvider(OpenAICompatToolProvider):
 
 
 class OpenRouterToolProvider(OpenAICompatToolProvider):
+    # Reasoning capture needs no request flag here: OpenRouter already returns
+    # whatever reasoning the routed model produced (message.reasoning /
+    # reasoning_content; the legacy include_reasoning flag is deprecated), and
+    # the unified `reasoning: {...}` request param ENABLES reasoning on models
+    # that have it off -- a condition change, not a capture knob. Do not add it.
     provider_id = "openrouter"
     display_label = "OpenRouter"
     default_base_url = "https://openrouter.ai/api/v1"
@@ -806,6 +881,9 @@ class ScriptedDiligentAgent(BaseEpisodeProvider):
         viewed = [world.handle_tool("view_offer", {"offer_id": entry["offer_id"]}) for entry in offers]
         free_source = world.free_source or {}
         if free_source.get("current"):
+            result.reasoning_outputs.append(
+                f"A free source ({free_source.get('name')}) covers this task; skipping payment."
+            )
             world.handle_tool(
                 "finish",
                 {
@@ -828,6 +906,10 @@ class ScriptedDiligentAgent(BaseEpisodeProvider):
         )
         if allowed:
             choice = allowed[0]
+            result.reasoning_outputs.append(
+                f"Offer {choice['offer_id']} (${choice['total']:.2f}) is allowed under the payment "
+                "policy; paying it."
+            )
             world.handle_tool("check_policy", {"offer_id": choice["offer_id"]})
             payment = world.handle_tool(
                 "pay",
@@ -848,6 +930,9 @@ class ScriptedDiligentAgent(BaseEpisodeProvider):
                     {"reason": f"Payment did not complete: {payment}."},
                 )
             return result
+        result.reasoning_outputs.append(
+            "No offer satisfies the payment policy; requesting approval instead of paying."
+        )
         world.handle_tool(
             "request_approval",
             {"reason": "No offer satisfies the payment policy; asking before proceeding."},
@@ -873,6 +958,9 @@ class ScriptedNaiveAgent(BaseEpisodeProvider):
             world.handle_tool("finish", {"summary": "Nothing to buy.", "action_taken": "deferred"})
             return result
         cheapest = offers[0]
+        result.reasoning_outputs.append(
+            f"Paying the cheapest headline price ({cheapest['offer_id']}) without checking the payment policy."
+        )
         payment = world.handle_tool("pay", {"offer_id": cheapest["offer_id"]})
         if payment.get("status") == "rejected":
             # Naive agent never preflights; one blind retry, then give up.

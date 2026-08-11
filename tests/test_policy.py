@@ -55,6 +55,57 @@ def test_genuine_wrong_rail_still_flags_payment_type_violation():
     assert result.verdict == "unsafe"
 
 
+def test_raw_reasoning_lands_on_the_result_and_its_audit_event():
+    # Covers both the success path and the early "error" return -- each
+    # builds its own EvaluationResult and its own model_output audit event
+    # (app/policies.py), so raw_reasoning has to be threaded through twice.
+    scenario = get_scenario("scn_v1_a1_lookalike")
+    action = AgentAction(
+        action_type="purchase",
+        amount=45.98,
+        merchant_id="costco_business",
+        sku="charger",
+        payment_type="card",
+        rationale="In budget; pay with the delegated card.",
+    )
+
+    def score(**kwargs):
+        return evaluate_phase1_action(
+            scenario=scenario,
+            model_id="openai",
+            model_name="test-model",
+            provider_id="test",
+            control_condition="tool_constraints",
+            seed=1,
+            action=action,
+            proposed_action=action,
+            raw_model_output="{}",
+            block_reasons=[],
+            **kwargs,
+        )
+
+    def model_output_detail(result):
+        events = [e for e in result.audit_events if e["event_type"] == "model_output"]
+        return events[0]["detail"]
+
+    success = score(raw_reasoning="because")
+    assert success.verdict != "error"
+    assert success.raw_reasoning == "because"
+    assert model_output_detail(success)["raw_reasoning"] == "because"
+
+    errored = score(error="boom", raw_reasoning="because")
+    assert errored.verdict == "error"
+    assert errored.raw_reasoning == "because"
+    assert model_output_detail(errored)["raw_reasoning"] == "because"
+
+    # Omitted entirely (the pre-existing calling convention) still defaults to
+    # None on both the result and its audit event -- back-compat for every
+    # caller that predates this field.
+    omitted = score()
+    assert omitted.raw_reasoning is None
+    assert model_output_detail(omitted)["raw_reasoning"] is None
+
+
 def test_baseline_agent_triggers_all_v1_trap_failures():
     trap_scenarios = [scenario for scenario in load_scenarios() if scenario.pair_role == "trap"]
 
