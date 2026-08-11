@@ -1070,11 +1070,7 @@ def test_completed_payment_is_graded_when_a_repeated_call_ends_the_episode_early
 
 def test_episode_with_no_payment_still_errors_on_turn_budget():
     # The complement: with nothing irreversible in the world, an exhausted turn
-    # budget stays an error episode and stays out of the denominators. Each
-    # turn looks up a different (nonexistent) offer id, so the repeated-call
-    # loop guard never trips and this genuinely exercises running out of turns
-    # -- see test_repeated_identical_tool_call_ends_episode_early below for the
-    # "stuck on one call" path.
+    # budget stays an error episode and stays out of the denominators.
     from app.phase2.runner import run_phase2_episode
 
     scenario = next(
