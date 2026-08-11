@@ -781,6 +781,30 @@ class GeminiToolProvider(OpenAICompatToolProvider):
     here. Gemini's OpenAI-compat layer rejects ``seed`` (400 "Unknown name
     seed"), which is why ``send_seed`` stays off; the seed still perturbs the
     episode through the prompt.
+
+    Live Phase 2 runs have twice shown gemini-3.1-flash-lite episodes stuck
+    calling one tool with identical arguments turn after turn, never
+    progressing (search_offers on scn_v2_c16_trap; check_policy on
+    scn_v2_d13_trap, against an unchanging "block" verdict) -- until
+    SandboxWorld's repeated-call guard (REPEAT_CALL_FAIL_THRESHOLD in
+    sandbox.py) started ending those episodes early with
+    repeated_call_detected instead of letting them run out the clock. That
+    guard is provider-agnostic and treats the symptom; this is the likely
+    cause, upstream of anything in this file. ``OpenAICompatToolProvider
+    .step`` stores and replays the raw response ``message``, stripping only
+    the human-readable reasoning_content/reasoning text fields (a separate,
+    unrelated fix for a DeepSeek 400 on echoed reasoning) -- tool_calls
+    entries, where a thought_signature would actually live, pass through
+    untouched. Gemini 3.x models keep some thinking on for every turn
+    (Flash-Lite defaults to "minimal" but, unlike 2.5 models, cannot disable
+    it via reasoning_effort) and tie multi-turn tool-call coherence to that
+    internal thought_signature; Google's OpenAI-compat surface has
+    independently reported gaps round-tripping it for this endpoint and model
+    generation (https://github.com/openai/codex/issues/7519,
+    https://github.com/BerriAI/litellm/issues/25322) -- consistent with a
+    model that loses track of a tool call it already made and re-issues it
+    identically. No fix on this side of the wire can round-trip a signature
+    the endpoint doesn't hand back.
     """
 
     provider_id = "gemini"
