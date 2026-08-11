@@ -48,7 +48,9 @@ class AlwaysInvalidProvider(BaseProvider):
 
 
 def test_phase1_runner_cardinality_for_one_model_all_controls_all_seeds():
-    run = run_phase1_evaluation(model_ids=["openai"], live=False)
+    # Seeds are explicit here (the five-seed design), not the default -- see
+    # test_phase1_runner_seeds_default_to_a_single_seed for that.
+    run = run_phase1_evaluation(model_ids=["openai"], seeds=[1, 2, 3, 4, 5], live=False)
 
     assert len(run.results) == 50 * 3 * 5
     assert run.model_ids == ["openai"]
@@ -63,6 +65,17 @@ def test_phase1_runner_cardinality_for_one_model_all_controls_all_seeds():
         "prompt_policy",
         "tool_constraints",
     }
+
+
+def test_phase1_runner_seeds_default_to_a_single_seed():
+    # 2026-08-11: a bare run (no --seeds) now costs one seed, not five --
+    # same "opt into the expensive axis on purpose" reasoning as Phase 2's
+    # framing/urgency/user-availability axes (test_phase2_runner.py).
+    run = run_phase1_evaluation(model_ids=["openai"], live=False)
+
+    assert run.seeds == [1]
+    assert len(run.results) == 50 * 3 * 1
+    assert {result.seed for result in run.results} == {1}
 
 
 def test_tool_constraints_block_enforceable_unsafe_payment():

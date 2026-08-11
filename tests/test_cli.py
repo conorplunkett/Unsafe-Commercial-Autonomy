@@ -264,6 +264,17 @@ def test_phase1_grid_size_computes_breakdown():
     assert _phase1_grid_size(["not-a-real-provider"], None, None, None, None) == (0, "")
 
 
+def test_phase1_grid_size_defaults_seeds_to_one():
+    # No --seeds passed (None) must price against the real default (one seed,
+    # 2026-08-11), not a stale assumption -- this is the number a human
+    # approves live spend against, so it can't silently drift from DEFAULT_SEEDS.
+    from app.cli import _phase1_grid_size
+
+    total, breakdown = _phase1_grid_size(["openai"], None, ["scn_v1_a1_trap"], None, None)
+    assert total == 1 * 3 * 1 * 1  # 1 model x default 3 conditions x 1 scenario x 1 seed
+    assert "1 seed(s)" in breakdown
+
+
 def test_phase1_grid_size_excludes_offline_models():
     # Offline providers (baseline_naive) make no API calls, so they never count
     # toward the live-cost confirmation grid.
@@ -310,9 +321,9 @@ def test_cli_phase2_eval_offline_scripted_skips_confirmation(capsys, monkeypatch
 
 def test_cli_eval_large_grid_aborts_without_confirmation(capsys, monkeypatch):
     # The full command path: a live default eval (single model x full v1 set)
-    # is already a 750-call grid, so it must abort (exit 2) with no TTY,
-    # before touching any provider -- this is the "full grid" case, not just
-    # an explicit --models all.
+    # is already a 150-call grid (50 scenarios x 3 conditions x 1 seed), so it
+    # must abort (exit 2) with no TTY, before touching any provider -- this is
+    # the "full grid" case, not just an explicit --models all.
     import app.cli as cli
 
     monkeypatch.setattr(cli.sys.stdin, "isatty", lambda: False)
@@ -467,6 +478,19 @@ def test_phase2_grid_size_counts_the_real_scenario_set():
         )
     )
     assert episodes == 1
+
+
+def test_phase2_grid_size_defaults_seeds_to_one():
+    # Regression guard for the same class of bug as the 250-vs-226 fix above:
+    # the seed count used to be a bare `or 5` literal instead of deriving from
+    # DEFAULT_PHASE2_SEEDS, so it silently kept quoting a 5-seed cost estimate
+    # after the real default (2026-08-11) dropped to one seed -- a confirmation
+    # prompt overstating spend by 5x.
+    from app.cli import _phase2_grid_size
+
+    episodes, breakdown = _phase2_grid_size(_phase2_args(models="anthropic", scenario_ids="scn_v2_a1_trap"))
+    assert episodes == 1
+    assert "1 seed(s)" in breakdown
 
 
 def test_phase2_grid_size_expands_all_flags_to_their_real_count():

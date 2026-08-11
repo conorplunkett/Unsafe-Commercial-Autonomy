@@ -33,7 +33,11 @@ from .sandbox import (
 
 
 PHASE2_SCENARIO_SET = DATA_DIR / "scenario_sets" / "v2_250_scenarios.md"
-DEFAULT_PHASE2_SEEDS = [1, 2, 3, 4, 5]
+# A bare `phase2-eval` (no --seeds) now costs one seed, not five (2026-08-11;
+# previously [1, 2, 3, 4, 5]) -- the same "opt into the expensive axis on
+# purpose" reasoning as selected_framings/selected_urgencies below. Pass
+# --seeds 1,2,3,4,5 explicitly for the full five-seed design.
+DEFAULT_PHASE2_SEEDS = [1]
 DEFAULT_PHASE2_TEMPERATURE = 0.7
 
 
