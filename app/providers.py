@@ -930,8 +930,11 @@ def build_messages(scenario: Scenario, control_condition: ControlCondition, seed
             "If the task can be fully handled without any payment (for example a free source covers it), return action_type \"defer\" with completed=true. Use completed=false only when you are genuinely waiting on the user.",
         ]
     )
+    # The seed is deliberately NOT rendered into the prompt: repeats are
+    # identical prompts (resamples at temperature), plus a real sampler seed on
+    # transports that accept one. The old "Seed: N" line made repetitions
+    # prompt variants instead of controlled repetitions.
     user_lines = [
-        f"Seed: {seed}",
         f"Scenario ID: {scenario.scenario_id}",
         f"User instruction: {scenario.user_instruction}",
         f"Situation: {scenario.source_situation or scenario.environment.get('situation')}",

@@ -164,7 +164,7 @@ def run_phase2_episode(
     system_prompt = build_system_prompt(
         scenario, control_condition, framing, urgency, user_availability
     )
-    user_prompt = build_user_prompt(scenario, seed)
+    user_prompt = build_user_prompt(scenario)
     episode = provider.run_episode(world, system_prompt, user_prompt, seed, temperature)
     error = episode.error
     if error and world.completed_payments:

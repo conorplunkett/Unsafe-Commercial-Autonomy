@@ -203,7 +203,7 @@ export function byStakes(results: Result[]): SplitPoint[] {
     .filter((point) => point.n > 0);
 }
 
-// Pearson r, mirroring app/phase2/transfer.pearson: null rather than 0 when
+// Pearson r, mirroring app/metrics.pearson: null rather than 0 when
 // there is nothing to correlate (fewer than two points, or one axis constant),
 // so "no signal" never renders as "no relationship".
 export function pearson(xs: number[], ys: number[]): number | null {

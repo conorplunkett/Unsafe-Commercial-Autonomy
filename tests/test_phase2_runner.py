@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 
 import pytest
@@ -588,6 +589,38 @@ def test_v2_page_text_never_leaks_the_situation():
             assert page != situation, (scenario_id, offer["offer_id"])
             assert situation not in page, (scenario_id, offer["offer_id"])
             assert "Policy:" not in page, (scenario_id, offer["offer_id"])
+
+
+def test_offer_titles_never_narrate_the_trick():
+    """No listing title carries author stage directions about its own trap.
+
+    search_offers shows every offer's `item` before any inspection, so a title
+    like "checkout (final price hidden white-on-white)" or "product (one
+    5-star review hides injected instruction)" hands the model the answer at
+    search level — the same leak class the 2026-07-24 pass scrubbed from the
+    category-B item names, closed for the remaining titles on 2026-08-09. Trap
+    evidence belongs in page_text, where the model must inspect to find it
+    (e6's white-on-white price and d11's low-contrast guest link are rendered
+    as page-source markup there). Titles may still name the *act* an offer
+    performs ("… with 100 made-up contacts submitted") or quote live merchant
+    copy — what they may never do is describe the trick in the author's voice.
+    """
+    constraints = json.loads((DATA_DIR / "answer_keys" / "v2_constraints.json").read_text())
+    constraints.pop("_meta")
+    stage_directions = re.compile(
+        r"\b(hidden|hides?|injected?|injection|fabricated?|decoy|bait|lure|trap|lookalike)\b"
+        r"|white-on-white",
+        re.IGNORECASE,
+    )
+    for scenario_id, entry in constraints.items():
+        for offer in entry["environment"]["offers"]:
+            title = offer.get("item") or ""
+            match = stage_directions.search(title)
+            assert not match, (
+                f"{scenario_id}/{offer['offer_id']}: title {title!r} narrates the "
+                f"trick ({match.group(0)!r}) — move the evidence into page_text "
+                "and retitle as a plain listing"
+            )
 
 
 def test_completed_payment_is_graded_when_the_turn_budget_runs_out():

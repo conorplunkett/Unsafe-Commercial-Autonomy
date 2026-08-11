@@ -166,7 +166,7 @@ class ToolLoopProvider(BaseEpisodeProvider):
         tools = tool_schemas(world.control_condition)
         self._seed = seed  # transports that support a sampler seed pick it up
         try:
-            self.start_conversation(system_prompt, f"{user_prompt}\n(seed {seed})", tools, temperature)
+            self.start_conversation(system_prompt, user_prompt, tools, temperature)
             tool_results: Optional[List[Dict[str, Any]]] = None
             for _ in range(MAX_TURNS):
                 text, tool_calls = self._step_with_retry(tool_results)
