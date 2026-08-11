@@ -519,7 +519,9 @@
   font-weight: 400;
 }
 
-/* The Phases tracker sits above the by-model dashboard and is always shown. */
+/* The Runs list and Phases tracker sit above the by-model dashboard and are
+   always shown. */
+.lab-runs,
 .lab-phases {
   margin-bottom: 8px;
 }
