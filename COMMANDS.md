@@ -70,7 +70,7 @@ carries):
 | `smoketest-openai-5` | Same, across 5 scenarios |
 | `models` | Model ids each provider's key can use |
 | `survey` | v1 answer-key agreement and lock status |
-| `phase2-eval` | Phase 2 six-condition sandbox ablation |
+| `phase2-eval` | Phase 2 four-condition sandbox ablation |
 | `phase2-checkpoints` | Resumable Phase 2 runs |
 | `phase2-survey` | v2 answer-key agreement and lock status |
 | `phase2-survey-collect` | Record one respondent's v2 votes |
