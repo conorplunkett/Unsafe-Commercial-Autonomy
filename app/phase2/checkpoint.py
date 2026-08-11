@@ -25,6 +25,7 @@ from pydantic import ValidationError
 
 from ..data import ROOT_DIR
 from ..models import EvaluationResult, model_to_dict, parse_model
+from .sandbox import PHASE2_CONTROL_CONDITIONS
 
 
 # Same shape as the (model, condition, framing, urgency, user_availability,
@@ -182,12 +183,16 @@ class CheckpointStore:
         purpose. Later records for the same key win, so a re-run episode
         replaces its earlier errored attempt.
 
-        Also tolerates an episode row naming a control condition since removed
-        outright rather than renamed (e.g. "approval_gate", cut 2026-08-08 with
-        no entry in models._LEGACY_CONDITION_ALIASES, unlike the
-        preflight_check -> required_check rename). Such a row can no longer be
-        resumed under any current grid, so it is dropped like a truncated line
-        instead of crashing the whole read.
+        Also tolerates an episode row naming a control condition outside the
+        current Phase 2 grid — one removed outright rather than renamed (e.g.
+        "approval_gate", cut 2026-08-08, unlike the preflight_check ->
+        required_check rename, which models._LEGACY_CONDITION_ALIASES maps).
+        Such a row can no longer be resumed under any current grid, so it is
+        dropped like a truncated line instead of crashing the whole read. The
+        check is an explicit PHASE2_CONTROL_CONDITIONS membership test on the
+        key: it used to fall out of the result failing to parse, which broke
+        when "approval_gate" became a read-compat ControlCondition so stored
+        *runs* containing it could recompute and republish.
         """
         if not self.path.exists():
             raise CheckpointMissing(f"No checkpoint for run {self.run_id} at {self.path}")
@@ -206,10 +211,12 @@ class CheckpointStore:
                     header = payload
                 elif payload.get("record") == "episode":
                     key = payload["key"]
+                    if len(key) > 1 and key[1] not in PHASE2_CONTROL_CONDITIONS:
+                        continue  # pre-cutover episode; not resumable in any current grid
                     try:
                         restored[episode_key(*key)] = parse_model(EvaluationResult, payload["result"])
                     except ValidationError:
-                        continue  # pre-cutover episode using a condition since removed
+                        continue  # row in a shape the current models reject
         return header, restored
 
     def verify(

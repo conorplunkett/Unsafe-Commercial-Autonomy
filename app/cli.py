@@ -1072,6 +1072,8 @@ def publish_command(args: argparse.Namespace) -> int:
     """Push a stored run to Supabase so it appears on the public dashboard."""
     import json
 
+    from pydantic import ValidationError
+
     from .models import model_to_dict
     from .supabase_publish import SupabasePublishError, publish_run
 
@@ -1086,7 +1088,7 @@ def publish_command(args: argparse.Namespace) -> int:
         else:
             print("Provide one of --run-id, --latest, or --file.")
             return 1
-    except (KeyError, FileNotFoundError, json.JSONDecodeError) as exc:
+    except (KeyError, FileNotFoundError, json.JSONDecodeError, ValidationError) as exc:
         print(f"Could not load run: {exc}")
         return 1
 
@@ -1124,6 +1126,8 @@ def recompute_command(args: argparse.Namespace) -> int:
     """Backfill pair_role and rebuild stored runs' metrics under the current definitions."""
     import json
 
+    from pydantic import ValidationError
+
     from .metrics import recompute_run_metrics
     from .models import BenchmarkRun, model_to_dict, parse_model
 
@@ -1155,7 +1159,10 @@ def recompute_command(args: argparse.Namespace) -> int:
                 run = parse_model(BenchmarkRun, json.loads(file_path.read_text(encoding="utf-8")))
             else:
                 run = storage.read(run_id)
-        except (KeyError, FileNotFoundError, json.JSONDecodeError) as exc:
+        # ValidationError included so one stored run in a shape the current
+        # models reject skips with a message instead of killing an --all sweep
+        # partway through.
+        except (KeyError, FileNotFoundError, json.JSONDecodeError, ValidationError) as exc:
             print(f"Could not load run {run_id or file_path}: {exc}")
             failures += 1
             continue
