@@ -266,6 +266,7 @@
   <div id="tabs" class="tabs" style="display:none">
     <button class="tab" id="tab-p1">Phase 1 survey</button>
     <button class="tab active" id="tab-p2">Phase 2 survey</button>
+    <button class="tab" id="tab-cmds">Commands</button>
   </div>
 
   <div class="card" id="commandcard" style="display:none">
@@ -1420,9 +1421,10 @@ const testcardEl = document.getElementById("testcard");
 const commandcardEl = document.getElementById("commandcard");
 const tabP1 = document.getElementById("tab-p1");
 const tabP2 = document.getElementById("tab-p2");
+const tabCmds = document.getElementById("tab-cmds");
 
 let adminKey = null;
-let activeTab = location.hash === "#p1" ? "1" : "2";
+let activeTab = location.hash === "#p1" ? "1" : location.hash === "#cmds" ? "cmds" : "2";
 const cacheRows = { "1": null, "2": null };
 
 function showGate() {
@@ -1442,8 +1444,6 @@ function showSignedIn() {
   sessionBar.style.display = "inline";
   tabsEl.style.display = "flex";
   testcardEl.style.display = "block";
-  commandcardEl.style.display = "block";
-  renderCommands();
 }
 
 // Every CLI command the repo can run, mirroring COMMANDS.md and
@@ -1550,7 +1550,16 @@ async function renderTab(phase) {
   activeTab = phase;
   tabP1.classList.toggle("active", phase === "1");
   tabP2.classList.toggle("active", phase === "2");
-  try { history.replaceState(null, "", phase === "1" ? "#p1" : "#p2"); } catch (e) {}
+  tabCmds.classList.toggle("active", phase === "cmds");
+  try { history.replaceState(null, "", phase === "1" ? "#p1" : phase === "cmds" ? "#cmds" : "#p2"); } catch (e) {}
+
+  if (phase === "cmds") {
+    resultsEl.style.display = "none";
+    commandcardEl.style.display = "block";
+    renderCommands();
+    return;
+  }
+  commandcardEl.style.display = "none";
   resultsEl.style.display = "block";
   try {
     if (!cacheRows[phase]) {
@@ -1571,7 +1580,9 @@ async function doLoad() {
   loadBtn.textContent = "Loading…";
   loadingEl.style.display = "block";
   try {
-    cacheRows[activeTab] = await loadResponses(key, activeTab);  // also the auth check
+    // "cmds" isn't a fetchable phase — use it for the auth check too.
+    const fetchPhase = activeTab === "cmds" ? "2" : activeTab;
+    cacheRows[fetchPhase] = await loadResponses(key, fetchPhase);  // also the auth check
     adminKey = key;
     // Saved on this device on purpose: the owner signs in once and results
     // load automatically on every later visit.
@@ -1594,6 +1605,7 @@ loadBtn.onclick = doLoad;
 keyInput.addEventListener("keydown", e => { if (e.key === "Enter") doLoad(); });
 tabP1.onclick = () => renderTab("1");
 tabP2.onclick = () => renderTab("2");
+tabCmds.onclick = () => renderTab("cmds");
 document.getElementById("signout").onclick = (e) => {
   e.preventDefault();
   localStorage.removeItem("pb_admin_key");
