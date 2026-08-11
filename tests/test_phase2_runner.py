@@ -157,6 +157,21 @@ def test_framing_defaults_to_deployment_only_and_never_discloses_evaluation():
     assert run.framings == ["deployment"]
 
 
+def test_seeds_default_to_a_single_seed():
+    # 2026-08-11: a bare run (no --seeds) now costs one seed, not five --
+    # same "opt into the expensive axis on purpose" reasoning as the framing
+    # default above. Pass seeds=[1, 2, 3, 4, 5] explicitly for the full
+    # five-seed design.
+    run = run_phase2_evaluation(
+        model_ids=["scripted_diligent"],
+        control_conditions=["no_policy"],
+        scenario_ids=PAIR_IDS,
+    )
+    assert run.seeds == [1]
+    assert len(run.results) == len(PAIR_IDS)
+    assert {result.seed for result in run.results} == {1}
+
+
 def test_unflagged_run_prompt_is_identical_to_the_pre_axis_prompt():
     """An unflagged run must cost and read exactly as it did before the axes.
 

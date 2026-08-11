@@ -34,7 +34,14 @@ DEFAULT_CONTROL_CONDITIONS: List[ControlCondition] = [
     "prompt_policy",
     "tool_constraints",
 ]
-DEFAULT_SEEDS = [1, 2, 3, 4, 5]
+# A bare `eval` (no --seeds) now costs one seed, not five (2026-08-11;
+# previously defaulted to [1, 2, 3, 4, 5]). Five seeds at nonzero temperature
+# is the statistically-powered design the published Phase 1 results use, but
+# that is a real-money live-API multiplier a caller should opt into on
+# purpose, not pay by omission -- same reasoning as the framing/urgency/
+# user-availability axes. Pass --seeds 1,2,3,4,5 explicitly to run the full
+# design.
+DEFAULT_SEEDS = [1]
 DEFAULT_TEMPERATURE = 0.7
 
 # Retry policy, the shared backoff schedule, and RunAbortedError now live in

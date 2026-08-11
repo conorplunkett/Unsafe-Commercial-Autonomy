@@ -134,7 +134,7 @@ python -m app.cli eval [options]
 | `--scenario-ids` | all in set | Filter, e.g. `scn_v1_a1_trap,scn_v1_a1_lookalike` |
 | `--scenario-set` | v1 (50 scenarios) | Path to Markdown set, e.g. `data/scenario_sets/v2_250_scenarios.md` |
 | `--split` | `all` | `objective` or `survey` — run one half of the set (see [Objective vs survey split](#objective-vs-survey-split)) |
-| `--seeds` | `1,2,3,4,5` | Seeds per (model, condition, scenario) combo |
+| `--seeds` | `1` | Seeds per (model, condition, scenario) combo |
 | `--temperature` | `0.7` | Model sampling temperature |
 | `--dry-run` | off | Offline fake providers — **no real API calls** |
 | `--yes` / `-y` | off | Skip the large-live-run confirmation prompt (for scripts/CI) |
@@ -142,7 +142,7 @@ python -m app.cli eval [options]
 A **large live run** (more than 50 total model x condition x scenario x seed
 calls) asks for an interactive `yes` before spending real money. This is
 size-based, not just an `all`-models check: the default `eval --models
-openai` is already 1 x 3 x 50 x 5 = 750 calls, so it triggers the prompt too,
+openai` is already 1 x 3 x 50 x 1 = 150 calls, so it triggers the prompt too,
 same as `--models all`. Dry runs, `--yes`, and small/targeted runs (few
 scenario ids, one seed, etc.) skip the prompt; with no TTY (a pipe or CI job)
 a large live run refuses outright unless `--yes` is passed. Same guard on
@@ -196,7 +196,7 @@ python -m app.cli eval --models all
 | Run type | API calls? | Speed | Use for |
 | --- | --- | --- | --- |
 | `--dry-run` | No | Sub-second to seconds | Pipeline smoke test only |
-| `--models baseline_naive` | No | ~0.3s for 750 combos | Scorer calibration |
+| `--models baseline_naive` | No | ~0.4s for 150 combos | Scorer calibration |
 | Live `openai` / `anthropic` / `gemini` / `kimi` / `inkling` / `openweights` | Yes, one per combo | Hours at full scale | Real model results |
 
 Full v2 live run example: 226 × 3 conditions × 5 seeds = **3,390 API calls**
@@ -258,7 +258,7 @@ python -m app.cli phase2-eval --models openai --split objective --concurrency 4
 | `--user-availabilities` | `none` only | `none` vs `unreachable` (states the delegating user is away for the day; never instructs the agent to skip asking). Crosses with `--urgencies` for the pressure 2×2. Also opt-in — omitting it runs `none` only |
 | `--scenario-set` | v2 (226) | Markdown scenario-set path |
 | `--split` | `all` | `objective` or `survey` — run one half of the set (see [Objective vs survey split](#objective-vs-survey-split)) |
-| `--scenario-ids` / `--seeds` / `--temperature` / `--reasoning-effort` | all / `1,2,3,4,5` / 0.7 / unset | Same semantics as Phase 1 `eval` |
+| `--scenario-ids` / `--seeds` / `--temperature` / `--reasoning-effort` | all / `1` / 0.7 / unset | Same semantics as Phase 1 `eval` |
 | `--dry-run` | off | Offline scripted agents (live ids map to a deterministic diligent/naive mix) |
 | `--resume` | off | Resume run `RUN_ID` from its checkpoint; only the missing episodes run |
 | `--no-checkpoint` | off | Skip the per-episode checkpoint (a crash then loses the run) |
@@ -466,7 +466,7 @@ names per provider plus the naive baseline), a collapsible API-keys panel
 (saved in the browser's localStorage, sent to the local server per run),
 condition/category/scenario filters, seeds, temperature, reasoning effort, a
 dry-run toggle, and a progress bar. Results are charted by model across every
-stored run. Default seeds in the UI are `[1, 2, 3, 4, 5]`. The public lander
+stored run. Default seeds in the UI are `[1]`. The public lander
 is the Next.js app in `web/`, deployed separately — this server does not
 serve it.
 
