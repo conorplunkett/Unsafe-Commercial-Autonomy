@@ -1085,11 +1085,26 @@ class OpenAIResponsesProvider(BaseProvider):
         except Exception as exc:
             raise ProviderError(f"OpenAI request failed: {exc}") from exc
         raw_output = getattr(response, "output_text", None) or _response_output_text(response)
+        # Reasoning-model summaries live in separate "reasoning" output items
+        # (each with its own list of summary blocks), not inline with the
+        # message text. Until the opt-in summary request flag exists, live
+        # calls return an empty summary list here, so reasoning stays None --
+        # only a caller (e.g. a test) that supplies summaries populates it.
+        reasoning_chunks: list[str] = []
+        for item in response.output or []:
+            if getattr(item, "type", None) != "reasoning":
+                continue
+            for block in getattr(item, "summary", None) or []:
+                text = getattr(block, "text", "") or ""
+                if text:
+                    reasoning_chunks.append(text)
+        reasoning = "\n\n".join(reasoning_chunks) or None
         return ProviderAction(
             raw_output=raw_output,
             action=parse_action_json(raw_output),
             provider_id=self.provider_id,
             model_name=self.model_name,
+            reasoning=reasoning,
         )
 
 
@@ -1220,11 +1235,24 @@ class AnthropicProvider(BaseProvider):
                 f"Anthropic returned no tool_use block (stop_reason={response.stop_reason}): {text[:200]}"
             )
         action_input = dict(tool_use.input)
+        # Extended thinking blocks sit alongside the tool_use in the same
+        # content list. Redacted ones (safety-filtered by Anthropic) carry no
+        # readable text, so a literal marker records that thinking happened
+        # without fabricating content for it.
+        reasoning_parts: list[str] = []
+        for block in response.content:
+            block_type = getattr(block, "type", None)
+            if block_type == "thinking":
+                reasoning_parts.append(getattr(block, "thinking", "") or "")
+            elif block_type == "redacted_thinking":
+                reasoning_parts.append("[redacted_thinking]")
+        reasoning = "\n\n".join(part for part in reasoning_parts if part) or None
         return ProviderAction(
             raw_output=json.dumps(action_input),
             action=parse_action_dict(action_input),
             provider_id=self.provider_id,
             model_name=self.model_name,
+            reasoning=reasoning,
         )
 
 
@@ -1284,12 +1312,17 @@ class OpenWeightsProvider(BaseProvider):
         except Exception as exc:
             raise ProviderError(f"Open-weights request failed: {exc}") from exc
         payload = response.json()
-        raw_output = payload["choices"][0]["message"]["content"]
+        message = payload["choices"][0]["message"]
+        # Splits vendor reasoning (sibling reasoning_content/reasoning field,
+        # or inline <think> markup) out of content; also makes the JSON parse
+        # below robust to R1-style think-wrapped output.
+        reasoning, raw_output = extract_chat_reasoning(message)
         return ProviderAction(
             raw_output=raw_output,
             action=parse_action_json(raw_output),
             provider_id=self.provider_id,
             model_name=self.model_name,
+            reasoning=reasoning,
         )
 
 
@@ -1374,12 +1407,17 @@ class GeminiProvider(BaseProvider):
         except Exception as exc:
             raise ProviderError(f"Gemini request failed: {exc}") from exc
         payload = response.json()
-        raw_output = payload["choices"][0]["message"]["content"]
+        message = payload["choices"][0]["message"]
+        # Splits vendor reasoning (sibling reasoning_content/reasoning field,
+        # or inline <think> markup) out of content; also makes the JSON parse
+        # below robust to R1-style think-wrapped output.
+        reasoning, raw_output = extract_chat_reasoning(message)
         return ProviderAction(
             raw_output=raw_output,
             action=parse_action_json(raw_output),
             provider_id=self.provider_id,
             model_name=self.model_name,
+            reasoning=reasoning,
         )
 
 
@@ -1461,12 +1499,17 @@ class KimiProvider(BaseProvider):
         except Exception as exc:
             raise ProviderError(f"Kimi request failed: {exc}") from exc
         payload = response.json()
-        raw_output = payload["choices"][0]["message"]["content"]
+        message = payload["choices"][0]["message"]
+        # Splits vendor reasoning (sibling reasoning_content/reasoning field,
+        # or inline <think> markup) out of content; also makes the JSON parse
+        # below robust to R1-style think-wrapped output.
+        reasoning, raw_output = extract_chat_reasoning(message)
         return ProviderAction(
             raw_output=raw_output,
             action=parse_action_json(raw_output),
             provider_id=self.provider_id,
             model_name=self.model_name,
+            reasoning=reasoning,
         )
 
 
@@ -1551,12 +1594,17 @@ class InklingProvider(BaseProvider):
         except Exception as exc:
             raise ProviderError(f"Inkling request failed: {exc}") from exc
         payload = response.json()
-        raw_output = payload["choices"][0]["message"]["content"]
+        message = payload["choices"][0]["message"]
+        # Splits vendor reasoning (sibling reasoning_content/reasoning field,
+        # or inline <think> markup) out of content; also makes the JSON parse
+        # below robust to R1-style think-wrapped output.
+        reasoning, raw_output = extract_chat_reasoning(message)
         return ProviderAction(
             raw_output=raw_output,
             action=parse_action_json(raw_output),
             provider_id=self.provider_id,
             model_name=self.model_name,
+            reasoning=reasoning,
         )
 
 
@@ -1680,12 +1728,17 @@ class OpenAICompatibleProvider(BaseProvider):
         except Exception as exc:
             raise ProviderError(f"{self.display_label} request failed: {exc}") from exc
         payload = response.json()
-        raw_output = payload["choices"][0]["message"]["content"]
+        message = payload["choices"][0]["message"]
+        # Splits vendor reasoning (sibling reasoning_content/reasoning field,
+        # or inline <think> markup) out of content; also makes the JSON parse
+        # below robust to R1-style think-wrapped output.
+        reasoning, raw_output = extract_chat_reasoning(message)
         return ProviderAction(
             raw_output=raw_output,
             action=parse_action_json(raw_output),
             provider_id=self.provider_id,
             model_name=self.model_name,
+            reasoning=reasoning,
         )
 
 
@@ -1798,6 +1851,9 @@ class NaiveBaselineProvider(BaseProvider):
             action=action,
             provider_id=self.provider_id,
             model_name=self.model_name,
+            # Synthetic provider, no vendor call to carry a reasoning channel;
+            # a static line still exercises the reasoning path end to end.
+            reasoning="Naive baseline reasoning: scripted heuristic, no model involved.",
         )
 
 
@@ -1838,6 +1894,9 @@ class DryRunProvider(BaseProvider):
             action=action,
             provider_id=self.provider_id,
             model_name=self.model_name,
+            # Synthetic provider, no vendor call to carry a reasoning channel;
+            # a static line still exercises the reasoning path end to end.
+            reasoning="Offline dry-run reasoning: scripted action, no model involved.",
         )
 
 
