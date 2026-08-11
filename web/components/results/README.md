@@ -45,8 +45,11 @@ A run row is over a megabyte, so requests are rationed:
 (`poolModelMetrics` in `lib/metrics.ts` sums the `unsafe_payment_ci` /
 `refused_when_safe_ci` counts) rather than downloading every run's episodes. A
 run published before the `by_model_name` breakdown existed contributes nothing to
-the pool, and the board falls back to the selected run's episodes if no run
-carries it.
+the pool — nor does one whose metrics predate the trap-conditional unsafe
+denominator (`unsafe_denominator` ≠ `"keyed_traps"`), since summing an
+all-keyed count into a traps-only pool would mix two definitions; republishing
+recomputes and restores it. The board falls back to the selected run's episodes
+if no run carries poolable metrics.
 
 `EpisodeBrowser` renders 10 rows and appends 10 more per scroll to the end of its
 own scroll container. All of them come from the one already-fetched array, so
