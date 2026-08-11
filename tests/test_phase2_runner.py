@@ -702,7 +702,11 @@ def test_completed_payment_is_graded_when_the_turn_budget_runs_out():
 
 def test_episode_with_no_payment_still_errors_on_turn_budget():
     # The complement: with nothing irreversible in the world, an exhausted turn
-    # budget stays an error episode and stays out of the denominators.
+    # budget stays an error episode and stays out of the denominators. Each
+    # turn looks up a different (nonexistent) offer id, so the repeated-call
+    # loop guard never trips and this genuinely exercises running out of turns
+    # -- see test_repeated_identical_tool_call_ends_episode_early below for the
+    # "stuck on one call" path.
     from app.phase2.runner import run_phase2_episode
 
     scenario = next(
@@ -718,10 +722,87 @@ def test_episode_with_no_payment_still_errors_on_turn_budget():
 
         def step(self, tool_results):
             self._turn += 1
-            return "", [{"id": f"c{self._turn}", "name": "search_offers", "arguments": {}}]
+            return "", [
+                {
+                    "id": f"c{self._turn}",
+                    "name": "view_offer",
+                    "arguments": {"offer_id": f"off_missing_{self._turn}"},
+                }
+            ]
 
     result = run_phase2_episode(
         Chatterer(), scenario, "no_policy", "deployment", 1, 0.7, "test"
     )
     assert result.error == "turn_budget_exhausted"
     assert result.verdict == "error"
+
+
+def test_repeated_identical_tool_call_ends_episode_early():
+    # Reproduces a live Phase 2 failure: a provider (observed on Gemini) that
+    # calls the same tool with identical arguments every turn, never looking
+    # past the (identical) result. Left unguarded this burns the whole
+    # MAX_TURNS budget before erroring; the loop guard in
+    # ToolLoopProvider.run_episode must catch it well before then, with an
+    # error distinct from plain turn_budget_exhausted.
+    from app.phase2.runner import run_phase2_episode
+    from app.phase2.providers import REPEATED_TOOL_CALL_LIMIT
+    from app.phase2.sandbox import MAX_TURNS
+
+    scenario = next(
+        s for s in load_scenarios(V2_SET) if s.scenario_id == "scn_v2_a1_lookalike"
+    )
+
+    class StuckSearcher(ToolLoopProvider):
+        provider_id = "test_stuck"
+        model_name = "test-stuck"
+
+        def start_conversation(self, *args, **kwargs):
+            self.turns_taken = 0
+
+        def step(self, tool_results):
+            self.turns_taken += 1
+            return "", [{"id": f"c{self.turns_taken}", "name": "search_offers", "arguments": {}}]
+
+    provider = StuckSearcher()
+    result = run_phase2_episode(provider, scenario, "no_policy", "deployment", 1, 0.7, "test")
+
+    assert result.error is not None
+    assert result.error.startswith("repeated_tool_call_loop")
+    assert "search_offers" in result.error
+    assert result.verdict == "error"
+    # The whole point: caught in a handful of turns, not all MAX_TURNS.
+    assert provider.turns_taken == REPEATED_TOOL_CALL_LIMIT
+    assert provider.turns_taken < MAX_TURNS
+
+
+def test_two_identical_repeats_then_progress_does_not_trip_the_loop_guard():
+    # One-below-threshold boundary: repeating a call twice (not three times)
+    # before moving on is normal agent behavior -- e.g. re-reading an offer --
+    # and must not be mistaken for a stuck loop.
+    from app.phase2.runner import run_phase2_episode
+
+    scenario = next(
+        s for s in load_scenarios(V2_SET) if s.scenario_id == "scn_v2_a1_lookalike"
+    )
+
+    class TwoRepeatsThenDone(ToolLoopProvider):
+        provider_id = "test_two_repeats"
+        model_name = "test-two-repeats"
+
+        def start_conversation(self, *args, **kwargs):
+            self.turns_taken = 0
+
+        def step(self, tool_results):
+            self.turns_taken += 1
+            if self.turns_taken <= 2:
+                return "", [{"id": f"c{self.turns_taken}", "name": "search_offers", "arguments": {}}]
+            return "", [
+                {"id": "c3", "name": "finish", "arguments": {"summary": "nothing fit", "action_taken": "refused"}}
+            ]
+
+    provider = TwoRepeatsThenDone()
+    result = run_phase2_episode(provider, scenario, "no_policy", "deployment", 1, 0.7, "test")
+
+    assert result.error is None
+    assert result.action.action_type == "refuse"
+    assert provider.turns_taken == 3

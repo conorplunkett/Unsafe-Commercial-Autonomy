@@ -103,6 +103,29 @@ class BaseEpisodeProvider:
 # Shared live loop
 # ---------------------------------------------------------------------------
 
+# A provider that keeps re-issuing the exact same tool call and getting the
+# exact same result back is stuck, not making slow progress. Three strikes
+# (not one) so a single legitimate repeat -- e.g. checking the same offer
+# again right before paying it -- never trips this.
+REPEATED_TOOL_CALL_LIMIT = 3
+
+
+def _turn_signature(tool_calls: List[Dict[str, Any]], tool_results: List[Dict[str, Any]]) -> str:
+    """Id-independent fingerprint of one turn's calls plus what the world returned.
+
+    Provider-assigned call ids are fresh every turn even when the call itself
+    repeats verbatim, so only tool name, arguments, and the world's response
+    feed the fingerprint. Sorted so a turn with several parallel calls compares
+    equal regardless of the order the provider returned them in.
+    """
+    calls = sorted(
+        (call["name"], json.dumps(call.get("arguments") or {}, sort_keys=True))
+        for call in tool_calls
+    )
+    results = sorted(json.dumps(item["content"], sort_keys=True) for item in tool_results)
+    return json.dumps({"calls": calls, "results": results}, sort_keys=True)
+
+
 class ToolLoopProvider(BaseEpisodeProvider):
     """Drives the generic tool loop; subclasses implement vendor transport."""
 
@@ -168,6 +191,8 @@ class ToolLoopProvider(BaseEpisodeProvider):
         try:
             self.start_conversation(system_prompt, user_prompt, tools, temperature)
             tool_results: Optional[List[Dict[str, Any]]] = None
+            previous_turn_signature: Optional[str] = None
+            repeat_count = 0
             for _ in range(MAX_TURNS):
                 text, tool_calls = self._step_with_retry(tool_results)
                 if text:
@@ -180,6 +205,24 @@ class ToolLoopProvider(BaseEpisodeProvider):
                     tool_results.append({"id": call["id"], "content": payload})
                 if world.done:
                     return result
+                # Loop guard: a provider can lose track of a tool call it already
+                # made (observed live on Gemini's OpenAI-compat endpoint -- see
+                # the note on GeminiToolProvider) and re-issue it identically
+                # forever, never looking past the result. Fail fast and clearly
+                # instead of silently spending the rest of the turn budget.
+                turn_signature = _turn_signature(tool_calls, tool_results)
+                if turn_signature == previous_turn_signature:
+                    repeat_count += 1
+                    if repeat_count >= REPEATED_TOOL_CALL_LIMIT:
+                        names = ", ".join(sorted({call["name"] for call in tool_calls}))
+                        result.error = (
+                            f"repeated_tool_call_loop: {names} returned the same result "
+                            f"{repeat_count} turns in a row with no new information"
+                        )
+                        return result
+                else:
+                    previous_turn_signature = turn_signature
+                    repeat_count = 1
             result.error = "turn_budget_exhausted"
         except ProviderError as exc:
             result.error = str(exc)
@@ -709,6 +752,23 @@ class GeminiToolProvider(OpenAICompatToolProvider):
     here. Gemini's OpenAI-compat layer rejects ``seed`` (400 "Unknown name
     seed"), which is why ``send_seed`` stays off; the seed still perturbs the
     episode through the prompt.
+
+    Live Phase 2 runs have shown gemini-3.1-flash-lite episodes stuck calling
+    the same tool (e.g. search_offers) with identical arguments turn after
+    turn until MAX_TURNS, never progressing to view_offer/pay/finish. This
+    file already threads history the safe way -- the raw response ``message``
+    is stored and replayed verbatim (see ``OpenAICompatToolProvider.step``),
+    so nothing here strips state between turns. The likely cause is upstream:
+    Gemini 3.x models keep some thinking on for every turn (Flash-Lite
+    defaults to "minimal" but, unlike 2.5 models, cannot disable it via
+    reasoning_effort) and tie multi-turn tool-call coherence to an internal
+    thought_signature; Google's OpenAI-compat surface has independently
+    reported gaps round-tripping that signature for this endpoint and model
+    generation (https://github.com/openai/codex/issues/7519,
+    https://github.com/BerriAI/litellm/issues/25322). The
+    REPEATED_TOOL_CALL_LIMIT guard in ToolLoopProvider.run_episode is the
+    mitigation: it ends a stuck episode with a clear error in a few turns
+    instead of burning the whole budget, for this or any other provider.
     """
 
     provider_id = "gemini"
