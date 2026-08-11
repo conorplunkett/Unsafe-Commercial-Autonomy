@@ -119,6 +119,26 @@ const TEST_MODE = new URLSearchParams(location.search).has("test");
 // unique-email constraint.
 const LIVE_TEST_MODE = new URLSearchParams(location.search).has("livetest");
 
+const SURVEY_VERSION = "v2_web_r3";
+
+// A saved run lives in this browser's localStorage, tied to this device, so a
+// reload or a return visit resumes instead of restarting the ~15-minute
+// instrument. Never touched in TEST_MODE or LIVE_TEST_MODE — those stay
+// exactly as inert as they are today. Storage can be unavailable (private
+// browsing, disabled, full); every read/write against it fails silently back
+// to today's no-persistence behavior.
+const PROGRESS_KEY = "paybench_survey_progress_v1";
+const LS = (() => {
+  try {
+    const probe = "__paybench_probe__";
+    window.localStorage.setItem(probe, "1");
+    window.localStorage.removeItem(probe);
+    return window.localStorage;
+  } catch (e) {
+    return null;
+  }
+})();
+
 const STEM = "Which action would you <em>most</em> want the AI agent to take?";
 
 // Instrument v2_web_r3. Each situation is a decision point (never a completed
@@ -1043,13 +1063,89 @@ function shuffle(arr) {
 const QUESTIONS_BY_ID = {};
 QUESTIONS.forEach(q => { QUESTIONS_BY_ID[q.id] = q; });
 
+// Shuffle-independent total step count (intro + one context screen per part +
+// one step per question + demographics + done). Used below to sanity-check a
+// saved step index before the shuffle (which determines STEPS) exists yet.
+const TOTAL_STEPS = 1 + BATCHES.length + BATCHES.reduce((n, b) => n + b.question_ids.length, 0) + 2;
+
+// ---- Persistence -------------------------------------------------------
+// Ties survey progress to this browser/device via localStorage, so a reload,
+// a closed tab, or time away resumes exactly where the respondent left off.
+
+function loadPersistedState() {
+  if (TEST_MODE || LIVE_TEST_MODE || !LS) return null;
+  try {
+    const raw = LS.getItem(PROGRESS_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || parsed.instrumentVersion !== SURVEY_VERSION) return null;
+    if (typeof parsed.step !== "number" || parsed.step < 0 || parsed.step >= TOTAL_STEPS - 1) return null;
+    if (typeof parsed.demoStep !== "number" || parsed.demoStep < 0 || parsed.demoStep >= DEMOGRAPHICS.length) return null;
+    if (!parsed.answers || typeof parsed.answers !== "object") return null;
+    if (!parsed.alsoOk || typeof parsed.alsoOk !== "object") return null;
+    if (!parsed.demo || typeof parsed.demo !== "object") return null;
+    // The saved shuffle must cover exactly today's question ids, per batch —
+    // otherwise a mid-collection instrument edit could hand back stale or
+    // mismatched questions. Reject the whole save rather than patch it.
+    if (!Array.isArray(parsed.batchOrders) || parsed.batchOrders.length !== BATCHES.length) return null;
+    const batchOrdersValid = BATCHES.every((b, bi) => {
+      const saved = parsed.batchOrders[bi];
+      return Array.isArray(saved) && saved.length === b.question_ids.length &&
+        new Set(saved).size === saved.length &&
+        saved.every(id => b.question_ids.includes(id));
+    });
+    if (!batchOrdersValid) return null;
+    const optionOrdersValid = parsed.batchOrders.every(ids => ids.every(id => {
+      const saved = parsed.optionOrders && parsed.optionOrders[id];
+      const real = QUESTIONS_BY_ID[id].options;
+      if (!Array.isArray(saved) || saved.length !== real.length) return false;
+      const savedKeys = saved.map(o => o && o.key).sort();
+      const realKeys = real.map(o => o.key).sort();
+      return savedKeys.every((k, i) => k === realKeys[i]);
+    }));
+    if (!optionOrdersValid) return null;
+    return parsed;
+  } catch (e) {
+    return null;
+  }
+}
+
+function persistState() {
+  if (TEST_MODE || LIVE_TEST_MODE || !LS) return;
+  try {
+    LS.setItem(PROGRESS_KEY, JSON.stringify({
+      instrumentVersion: SURVEY_VERSION,
+      batchOrders: batchOrders,
+      optionOrders: optionOrders,
+      step: state.step,
+      name: state.name,
+      email: state.email,
+      answers: state.answers,
+      alsoOk: state.alsoOk,
+      demo: state.demo,
+      demoStep: state.demoStep,
+      startedAt: state.startedAt
+    }));
+  } catch (e) { /* quota or storage failure — resume silently unavailable */ }
+}
+
+function clearPersistedState() {
+  if (TEST_MODE || LIVE_TEST_MODE || !LS) return;
+  try { LS.removeItem(PROGRESS_KEY); } catch (e) {}
+}
+
+const savedProgress = loadPersistedState();
+
 // Shuffle questions within each part (parts stay in fixed order), and shuffle
-// options per question once per respondent (stable across Back/Next).
-const batchOrders = BATCHES.map(b => shuffle(b.question_ids));
+// options per question once per respondent (stable across Back/Next) — or,
+// when resuming a saved run, reuse its exact order so nothing reshuffles.
+const batchOrders = savedProgress ? savedProgress.batchOrders : BATCHES.map(b => shuffle(b.question_ids));
 const order = [];
 batchOrders.forEach(ids => ids.forEach(id => order.push(id)));
 const optionOrders = {};
-order.forEach(id => { optionOrders[id] = shuffle(QUESTIONS_BY_ID[id].options); });
+order.forEach(id => {
+  optionOrders[id] = savedProgress ? savedProgress.optionOrders[id] : shuffle(QUESTIONS_BY_ID[id].options);
+});
 
 // Typed step list: intro, then per part a context screen followed by its
 // questions, then demographics, then done. All navigation is step +/- 1.
@@ -1070,14 +1166,14 @@ const DONE_STEP = STEPS.length - 1;
 const CONTEXT_STEPS = STEPS.map((s, i) => (s.type === "context" ? i : -1)).filter(i => i >= 0);
 
 const state = {
-  step: 0,
-  name: "",
-  email: "",
-  answers: {},      // question id -> option key (preferred action)
-  alsoOk: {},       // question id -> { keys: [option keys], none: bool }
-  demo: {},
-  demoStep: 0,      // one demographic question shown at a time
-  startedAt: null
+  step: savedProgress ? savedProgress.step : 0,
+  name: savedProgress ? savedProgress.name : "",
+  email: savedProgress ? savedProgress.email : "",
+  answers: savedProgress ? savedProgress.answers : {},      // question id -> option key (preferred action)
+  alsoOk: savedProgress ? savedProgress.alsoOk : {},        // question id -> { keys: [option keys], none: bool }
+  demo: savedProgress ? savedProgress.demo : {},
+  demoStep: savedProgress ? savedProgress.demoStep : 0,     // one demographic question shown at a time
+  startedAt: savedProgress ? savedProgress.startedAt : null
 };
 
 const card = document.getElementById("card");
@@ -1090,6 +1186,7 @@ function setProgress() {
 // ---- Views -----------------------------------------------------------------
 
 function renderIntro() {
+  persistState();
   card.innerHTML = `
     <h1>Help build an AI safety benchmark</h1>
     <p><b>Imagine this:</b> you&rsquo;re using your preferred AI agent to do various tasks in your life that involve paying for things.</p>
@@ -1132,6 +1229,7 @@ function renderIntro() {
 }
 
 function renderContext(s) {
+  persistState();
   const b = BATCHES[s.batch];
   card.innerHTML = `
     <div class="step-label">Part ${s.batch + 1} of ${BATCHES.length}</div>
@@ -1148,6 +1246,7 @@ function renderContext(s) {
 }
 
 function renderQuestion(s) {
+  persistState();
   const q = QUESTIONS_BY_ID[s.id];
   const opts = optionOrders[q.id];
   const selected = state.answers[q.id];
@@ -1209,6 +1308,7 @@ function renderQuestion(s) {
 }
 
 function renderDemographics() {
+  persistState();
   const d = DEMOGRAPHICS[state.demoStep];
   const selected = state.demo[d.id];
   const isLast = state.demoStep === DEMOGRAPHICS.length - 1;
@@ -1240,6 +1340,7 @@ function renderDemographics() {
 }
 
 function renderDone() {
+  clearPersistedState();
   bar.style.width = "100%";
   if (TEST_MODE) {
     card.innerHTML = `
