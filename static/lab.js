@@ -946,7 +946,7 @@ function renderPhase2AxesChips() {
 }
 
 // Switches the runner card between Phase 1 (live-runnable, 3 conditions) and
-// Phase 2 (CLI-only, 6 conditions plus the framing/urgency/pressure axes).
+// Phase 2 (CLI-only, 4 conditions plus the framing/urgency/pressure axes).
 // Resets the condition selection to "every condition this phase defines" so
 // switching phases never leaves a Phase 1 condition checked that Phase 2's
 // chip row doesn't even render (and vice versa).
@@ -1480,9 +1480,10 @@ function renderCostLadder() {
   els.ladderEveryScenario.textContent = episodes(scenarios);
   // --conditions no_policy,tool_constraints (2) x --seeds 1,2,3,4,5 (5).
   els.ladderEverySeeds.textContent = episodes(scenarios * 2 * 5);
+  const conditionCount = PHASE2_CONDITION_ORDER.length;
   els.ladderFullGrid.textContent =
-    "Full grid (6 conditions × 2 framings × 2 urgency levels × 2 user availability levels " +
-    `× 5 seeds) = ${(scenarios * 6 * 2 * 2 * 2 * 5).toLocaleString()} episodes per model.`;
+    `Full grid (${conditionCount} conditions × 2 framings × 2 urgency levels × 2 user availability levels ` +
+    `× 5 seeds) = ${(scenarios * conditionCount * 2 * 2 * 2 * 5).toLocaleString()} episodes per model.`;
 }
 
 function renderSurveyAxes(rows) {
@@ -2190,6 +2191,45 @@ function runOptionLabel(run) {
   return `${compactTime(run.created_at)} · ${models}`;
 }
 
+function sameConditionSet(conditions, order) {
+  return conditions.length === order.length && conditions.every((condition) => order.includes(condition));
+}
+
+// Which condition(s) — and, for Phase 2, which framing/urgency/user-availability
+// axis levels — a run's results actually used. A single run can bundle
+// anywhere from one condition to a full cross product, so this reads the
+// results rather than assuming a shape. Stays a short clause rather than an
+// exhaustive axis-by-axis breakdown: urgency/user-availability only get
+// called out when the run actually crosses that ablation (their "none" level
+// is the default every other run sits at, so it would just be noise here).
+function runConditionsSummary(results) {
+  const conditionSortOrder = Object.keys(CONDITION_LABELS);
+  const conditions = [...new Set(results.map((result) => result.control_condition).filter(Boolean))].sort(
+    (a, b) => conditionSortOrder.indexOf(a) - conditionSortOrder.indexOf(b)
+  );
+  const conditionsText = !conditions.length
+    ? "legacy"
+    : sameConditionSet(conditions, CONDITION_ORDER) || sameConditionSet(conditions, PHASE2_CONDITION_ORDER)
+      ? "All conditions"
+      : conditions.map(controlConditionLabel).join(", ");
+
+  const parts = [conditionsText];
+  const framings = [...new Set(results.map((result) => result.framing).filter(Boolean))];
+  if (framings.length) parts.push(framings.map(framingLabel).join("/"));
+  const urgencies = [
+    ...new Set(results.map((result) => result.urgency).filter((urgency) => urgency && urgency !== "none")),
+  ];
+  if (urgencies.length) parts.push(urgencies.map(urgencyLabel).join("/"));
+  const availabilities = [
+    ...new Set(
+      results.map((result) => result.user_availability).filter((availability) => availability && availability !== "none")
+    ),
+  ];
+  if (availabilities.length) parts.push(availabilities.map(userAvailabilityLabel).join("/"));
+
+  return parts.join(" · ");
+}
+
 function renderRunList() {
   els.runListStamp.textContent = state.runFilter
     ? `${state.runList.length} stored — filtered, click again to clear`
@@ -2199,7 +2239,7 @@ function renderRunList() {
   // silently rendering a header with no body.
   if (!state.runList.length) {
     els.runListTable.innerHTML =
-      '<tr><td colspan="10" class="empty-state">No runs yet. Pick a model above and hit Run benchmark.</td></tr>';
+      '<tr><td colspan="11" class="empty-state">No runs yet. Pick a model above and hit Run benchmark.</td></tr>';
     return;
   }
   els.runListTable.innerHTML = state.runList
@@ -2219,6 +2259,7 @@ function renderRunList() {
           <td>${compactTime(run.created_at)}</td>
           <td>${models}</td>
           <td>${phaseChecklist(run.results)}</td>
+          <td>${runConditionsSummary(run.results)}</td>
           <td>${metrics.total}</td>
           <td>${percent(metrics.unsafePaymentRate)}</td>
           <td>${percent(metrics.refusedWhenSafeRate)}</td>
