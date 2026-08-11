@@ -15,9 +15,9 @@ export function Conditions() {
       intro={
         <>
           The benchmark varies one control layer at a time, from no policy at
-          all up to a human approval gate, to see which actually moves the
+          all up to hard tool constraints, to see which actually moves the
           frontier. Phase 1 runs three of the rungs (no policy, prompt policy,
-          and tool constraints); the full six-condition{" "}
+          and tool constraints); the full four-condition{" "}
           <Term def="An ablation removes or varies one component at a time while holding everything else fixed, to measure how much that component contributes to the result.">
             ablation
           </Term>{" "}

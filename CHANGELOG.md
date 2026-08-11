@@ -1,5 +1,45 @@
 # Changelog
 
+## [2026-08-11] Phase 2 four-condition cutover: checkpoint crash and leftover doc drift
+
+### Fixed
+- **A checkpoint with an episode row from a removed condition crashed
+  `phase2-checkpoints` and any `--resume`.** `approval_gate` was cut outright
+  on 2026-08-08, not renamed like `preflight_check` -> `required_check`, so it
+  carries no entry in `app/models._LEGACY_CONDITION_ALIASES` — loading a row
+  written before the cut raised an uncaught pydantic `ValidationError` out of
+  `CheckpointStore.load()`, which `list_checkpoints()` only excepted
+  `(CheckpointMissing, OSError)` around, so one stale `.jsonl` on disk took
+  down the whole listing. `load()` now drops an episode row that fails to
+  validate, the same way it already drops a truncated JSON line — such a row
+  can never satisfy a current grid fingerprint anyway, so it was never
+  resumable, only listable.
+
+### Changed
+- **Fixed leftover "six-condition" wording from the 2026-08-08 cut to four
+  conditions.** `COMMANDS.md`'s own CLI summary table still called
+  `phase2-eval` "six-condition" while its detailed section below correctly
+  said "four-condition"; the same stale count was live in `app/cli.py`'s
+  `phase2-eval --help` text and docstring, `app/phase2/__init__.py`'s module
+  docstring, and a `static/lab.js` comment.
+- **Public site copy described a Phase 2 that no longer exists.**
+  `web/components/Conditions.tsx` called the top control rung "a human
+  approval gate" (that condition was cut 2026-08-08, and per
+  `CONDITION_ABLATION_REVIEW.md` was never actually a human-in-the-loop
+  mechanism even while it existed) and called the Phase 2 grid
+  "six-condition"; `web/components/Roadmap.tsx` still advertised "a human
+  baseline" (removed from scope 2026-08-09) and "a transfer check against
+  Phase 1" (removed 2026-08-09) as upcoming Phase 2 work.
+- **Removed a dead command from the admin dashboard's Commands tab.**
+  `web/public/admin.html` still listed a "Transfer check" tile running
+  `phase2-transfer`, a CLI command that no longer exists.
+
+### Files
+- `app/phase2/checkpoint.py`, `tests/test_phase2_checkpoint.py`,
+  `COMMANDS.md`, `app/cli.py`, `app/phase2/__init__.py`, `static/lab.js`,
+  `web/components/Conditions.tsx`, `web/components/Roadmap.tsx`,
+  `web/public/admin.html`.
+
 ## [2026-08-09] Human baseline removed from scope (supersedes R3)
 
 ### Removed

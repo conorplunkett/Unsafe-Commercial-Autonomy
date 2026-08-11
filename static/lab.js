@@ -1140,7 +1140,7 @@ function buildPhase1CliCommand() {
 }
 
 // The `python -m app.cli phase2-eval` invocation for the current Phase 2 run
-// form, covering the six-condition ablation plus the framing/urgency/pressure
+// form, covering the four-condition ablation plus the framing/urgency/pressure
 // axes (app/models.py Framing / Urgency / UserAvailability). Phase 2 has no
 // live endpoint, so unlike Phase 1 this command is the only way to launch the
 // selection — every axis flag is emitted explicitly (never left to the CLI's
