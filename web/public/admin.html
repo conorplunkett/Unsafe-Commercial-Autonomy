@@ -121,6 +121,9 @@
   pre { font-size: 11px; background: var(--bg); padding: 8px; border-radius: 6px; overflow-x: auto; margin-top: 6px; }
   .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
   .toolbar .sub { margin-bottom: 0; }
+  .pager { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
+  .pager button { margin-top: 0; padding: 6px 14px; }
+  .pager .pager-count { font-size: 12px; color: var(--muted); }
 
   /* ---- New "what people chose" visualizations ---- */
   h2 { font-size: 16px; margin-bottom: 4px; }
@@ -277,12 +280,12 @@
       <a href="/survey" target="_blank" rel="noopener" style="text-decoration:none"><button class="secondary live">Phase 2 live &#8599;</button></a>
     </div>
   </div>
+  <div id="results" style="display:none"></div>
   <div class="card" id="commandcard" style="display:none">
     <h2 style="font-size:16px;margin-bottom:6px">Commands</h2>
     <div class="section-sub" style="margin-bottom:6px">Run from the repo root.</div>
     <div id="cmdlist"></div>
   </div>
-  <div id="results" style="display:none"></div>
 </div>
 
 <script>
@@ -293,6 +296,7 @@ const LAUNCH_VERSION = "v1_web_r6";
 const LOCK_THRESHOLD = 0.70;
 const LOCK_MIN_RESPONDENTS = 15;
 const MIN_DURATION_SECONDS = 120;
+const RESPONDENTS_PER_PAGE = 25;
 // The answer key locked on this date; responses on or after it are post-lock
 // and excluded regardless of survey_version (the version tag misses the window
 // between the lock and the survey-close deploy). Kept in sync with
@@ -489,6 +493,20 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
+// Shared pager markup for any respondent-table id prefix (e.g. "p1", "p2").
+// Caller wires up the prev/next buttons by the same ids after inserting this.
+function renderPager(totalRows, page, idPrefix) {
+  const pageCount = Math.max(1, Math.ceil(totalRows / RESPONDENTS_PER_PAGE));
+  if (pageCount <= 1) return "";
+  const start = page * RESPONDENTS_PER_PAGE + 1;
+  const end = Math.min(start + RESPONDENTS_PER_PAGE - 1, totalRows);
+  return `<div class="pager">
+    <button class="secondary" id="pager-${idPrefix}-prev" ${page <= 0 ? "disabled" : ""}>&larr; Prev</button>
+    <span class="pager-count">${start}–${end} of ${totalRows}</span>
+    <button class="secondary" id="pager-${idPrefix}-next" ${page >= pageCount - 1 ? "disabled" : ""}>Next &rarr;</button>
+  </div>`;
+}
+
 async function loadResponses(passphrase, phase) {
   const suffix = phase && phase !== "1" ? `?phase=${phase}` : "";
   const res = await fetch(ADMIN_FUNCTION_URL + suffix, {
@@ -570,6 +588,7 @@ function renderResults(rows) {
   const floorPct = clean.length > 0 ? Math.round((att1Ask / clean.length) * 100) : 0;
 
   latestRows = rows;
+  respondentPageP1 = 0;
 
   // Precompute stats once, reused by every view below.
   const stats = QUESTIONS.map(q => ({ q, s: questionStats(q, clean) }));
@@ -719,12 +738,33 @@ function renderResults(rows) {
   });
   html += `</div>`;
 
-  html += `<div class="card"><h2 style="font-size:16px;margin-bottom:16px">Respondents (${total})</h2>
+  html += `<div class="card" id="respondents-p1"></div>`;
+
+  el.innerHTML = html;
+  renderRespondentTableP1(rows);
+
+  const jb = document.getElementById("exp-json");
+  const cb = document.getElementById("exp-csv");
+  const sb = document.getElementById("exp-summary");
+  if (jb) jb.onclick = exportJSON;
+  if (cb) cb.onclick = exportAnswersCSV;
+  if (sb) sb.onclick = exportSummaryCSV;
+}
+
+function renderRespondentTableP1(rows) {
+  const host = document.getElementById("respondents-p1");
+  if (!host) return;
+  const pageCount = Math.max(1, Math.ceil(rows.length / RESPONDENTS_PER_PAGE));
+  respondentPageP1 = Math.min(Math.max(respondentPageP1, 0), pageCount - 1);
+  const start = respondentPageP1 * RESPONDENTS_PER_PAGE;
+  const pageRows = rows.slice(start, start + RESPONDENTS_PER_PAGE);
+
+  let html = `<h2 style="font-size:16px;margin-bottom:16px">Respondents (${rows.length})</h2>
     <div class="legend" style="margin-bottom:12px">Attention = att_2 instructed-response check (the only one that gates inclusion). att_1 is the baseline calibration item (reflexive-ask floor), shown for info only, never excludes.</div>
     <table><thead><tr>
     <th>Name</th><th>Email</th><th>When</th><th>Duration</th><th>Version</th><th>Attention (att_2)</th><th>att_1 (baseline)</th><th>Status</th><th></th>
   </tr></thead><tbody>`;
-  rows.forEach((r, i) => {
+  pageRows.forEach((r) => {
     const att1 = r.attention && r.attention.att_1 && r.attention.att_1.passed;
     const att2 = r.attention && r.attention.att_2 && r.attention.att_2.passed;
     const excl = !isClean(r);
@@ -741,20 +781,19 @@ function renderResults(rows) {
       <td><details><summary>raw</summary><pre>${escapeHtml(JSON.stringify({ answers: r.answers, also_acceptable: r.also_acceptable, ai_familiarity: r.ai_familiarity, used_agent_purchases: r.used_agent_purchases }, null, 1))}</pre></details></td>
     </tr>`;
   });
-  html += `</tbody></table></div>`;
+  html += `</tbody></table>`;
+  html += renderPager(rows.length, respondentPageP1, "p1");
+  host.innerHTML = html;
 
-  el.innerHTML = html;
-
-  const jb = document.getElementById("exp-json");
-  const cb = document.getElementById("exp-csv");
-  const sb = document.getElementById("exp-summary");
-  if (jb) jb.onclick = exportJSON;
-  if (cb) cb.onclick = exportAnswersCSV;
-  if (sb) sb.onclick = exportSummaryCSV;
+  const prev = document.getElementById("pager-p1-prev");
+  const next = document.getElementById("pager-p1-next");
+  if (prev) prev.onclick = () => { respondentPageP1--; renderRespondentTableP1(rows); };
+  if (next) next.onclick = () => { respondentPageP1++; renderRespondentTableP1(rows); };
 }
 
 // ---- Data export ----------------------------------------------------------
 let latestRows = [];
+let respondentPageP1 = 0;
 
 function stamp() {
   // Local date/time slug without Date.now(): e.g. 2026-07-14T1532
@@ -885,6 +924,7 @@ const QUESTIONS_P2 = [
 
 // ---- Phase 2 survey view --------------------------------------------------
 let latestRowsP2 = [];
+let respondentPageP2 = 0;
 const LAUNCH_VERSION_P2 = "v2_web_r3";
 const LOCK_MIN_RESPONDENTS_P2 = 50;
 // Pre-registered duration floor for the 49-item r3 instrument (PHASE2_WEB_SURVEY.md).
@@ -1029,10 +1069,17 @@ function mixBarP2(counts, total) {
   return `<span class="mix-bar">${segs}</span>`;
 }
 
-function respondentTableP2(rows) {
-  let html = `<div class="card"><h2 style="font-size:16px;margin-bottom:12px">Respondents (${rows.length})</h2>
+function renderRespondentTableP2(rows) {
+  const host = document.getElementById("respondents-p2");
+  if (!host) return;
+  const pageCount = Math.max(1, Math.ceil(rows.length / RESPONDENTS_PER_PAGE));
+  respondentPageP2 = Math.min(Math.max(respondentPageP2, 0), pageCount - 1);
+  const start = respondentPageP2 * RESPONDENTS_PER_PAGE;
+  const pageRows = rows.slice(start, start + RESPONDENTS_PER_PAGE);
+
+  let html = `<h2 style="font-size:16px;margin-bottom:12px">Respondents (${rows.length})</h2>
     <table><thead><tr><th>Name</th><th>Email</th><th>When</th><th>Duration</th><th>Version</th><th>Attention</th><th>Sex</th><th>Status</th></tr></thead><tbody>`;
-  rows.forEach(r => {
+  pageRows.forEach(r => {
     const fails = attFailsP2(r);
     const excl = isExcludedP2(r);
     const mins = r.duration_seconds ? (r.duration_seconds / 60).toFixed(1) + "m" : "-";
@@ -1043,11 +1090,19 @@ function respondentTableP2(rows) {
       <td>${escapeHtml(r.sex || "")}</td>
       <td>${excl ? `<span class="pill excluded">excluded${exclusionReasonP2(r) ? ': ' + escapeHtml(exclusionReasonP2(r)) : ''}</span>` : `<span class="pill pass">clean</span>`}</td></tr>`;
   });
-  return html + `</tbody></table></div>`;
+  html += `</tbody></table>`;
+  html += renderPager(rows.length, respondentPageP2, "p2");
+  host.innerHTML = html;
+
+  const prev = document.getElementById("pager-p2-prev");
+  const next = document.getElementById("pager-p2-next");
+  if (prev) prev.onclick = () => { respondentPageP2--; renderRespondentTableP2(rows); };
+  if (next) next.onclick = () => { respondentPageP2++; renderRespondentTableP2(rows); };
 }
 
 function renderResultsP2(rows) {
   latestRowsP2 = rows;
+  respondentPageP2 = 0;
   const el = document.getElementById("results");
   el.style.display = "block";
   const total = rows.length;
@@ -1083,7 +1138,9 @@ function renderResultsP2(rows) {
 
   if (clean.length === 0) {
     html += `<div class="card"><div class="section-sub" style="margin:0">No clean Phase 2 responses yet. Share <b>/survey</b> to collect them. Lock needs ≥${LOCK_MIN_RESPONDENTS_P2} respondents at ≥${Math.round(LOCK_THRESHOLD * 100)}% agreement.</div></div>`;
-    el.innerHTML = html + respondentTableP2(rows);
+    html += `<div class="card" id="respondents-p2"></div>`;
+    el.innerHTML = html;
+    renderRespondentTableP2(rows);
     wireP2Exports();
     return;
   }
@@ -1301,7 +1358,9 @@ function renderResultsP2(rows) {
   });
   html += `</div>`;
 
-  el.innerHTML = html + respondentTableP2(rows);
+  html += `<div class="card" id="respondents-p2"></div>`;
+  el.innerHTML = html;
+  renderRespondentTableP2(rows);
   wireP2Exports();
 }
 
