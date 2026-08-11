@@ -21,13 +21,14 @@ const state = {
   providerProfiles: {},
   provider: null,
   dryRun: false,
-  conditions: new Set(["no_policy", "prompt_policy", "tool_constraints"]),
+  conditions: new Set(["no_policy", "structured_policy", "required_check", "tool_constraints"]),
   // Runner-card phase toggle. "1" builds a `python -m app.cli eval` command
   // and can also be launched live via the Run benchmark button (/api/jobs).
   // "2" builds a `python -m app.cli phase2-eval` command with the framing/
   // urgency/pressure axes below — Phase 2 has no live endpoint, so it is
   // CLI-only (the copyable command is the only way to run it from this page).
-  phase: "1",
+  // Phase 2 is the only phase actively being run now, so it's the default.
+  phase: "2",
   // Phase 2 ablation-axis selections for the CLI command builder. Empty means
   // "use the CLI's own default for this axis" (framings: both; urgency/
   // pressure: none only) rather than "run nothing" — see buildCliCommand.
@@ -2074,6 +2075,13 @@ function renderPhases() {
   const breakdown = phasesBreakdown();
   const started = breakdown.filter((entry) => entry.smoke).length;
   els.phasesStamp.textContent = `${started} of ${breakdown.length} started`;
+  // Phase 2 is the phase actively being run, so its panel opens by default;
+  // other phases start collapsed. Falls back to the first entry if Phase 2
+  // isn't in the breakdown at all (e.g. its scenario set failed to load).
+  const defaultOpenIndex = Math.max(
+    breakdown.findIndex((entry) => entry.phase === "2"),
+    0
+  );
   els.phasesContent.innerHTML = breakdown
     .map((entry, index) => {
       const heading = entry.phase === "?" ? "Custom scenarios" : `Phase ${entry.phase}`;
@@ -2126,9 +2134,8 @@ function renderPhases() {
             </table>
           </div>`
         : `<p class="phase-empty">No runs yet for this phase.</p>`;
-      // Phase 1 opens by default; deeper phases start collapsed.
       return `
-        <details class="phase-detail" ${index === 0 ? "open" : ""}>
+        <details class="phase-detail" ${index === defaultOpenIndex ? "open" : ""}>
           <summary>
             <span class="phase-detail-title">${heading}</span>
             <span class="phase-detail-badges">${phaseStatusBadges(entry)}</span>
@@ -2493,7 +2500,7 @@ async function init() {
     for (const scenario of [...state.scenarios, ...state.phase2Scenarios]) {
       state.scenarioIndex.set(scenario.scenario_id, scenario);
     }
-    renderScenarioFilters();
+    pickPhase(state.phase);
     renderCostLadder();
     updateRunCount();
     await refreshData();
