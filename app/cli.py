@@ -756,10 +756,11 @@ def _phase2_grid_size(
         conditions = (
             len(_select(raw_conditions, PHASE2_CONTROL_CONDITIONS, "conditions")) if raw_conditions else 1
         )
-        framings = len(_select(_csv(args.framings), FRAMINGS, "framings"))
-        # Unlike framings, omitting --urgencies/--user-availabilities runs a single
-        # level ("none"), not both — see run_phase2_evaluation. Only an explicit
-        # flag multiplies these; both together quadruple the grid.
+        raw_framings = _csv(args.framings)
+        framings = len(_select(raw_framings, FRAMINGS, "framings")) if raw_framings else 1
+        # Omitting --urgencies/--user-availabilities runs a single level
+        # ("none"), same as framings above — see run_phase2_evaluation. Only an
+        # explicit flag multiplies these; both together quadruple the grid.
         raw_urgencies = _csv(args.urgencies)
         urgencies = len(_select(raw_urgencies, URGENCY_LEVELS, "urgency levels")) if raw_urgencies else 1
         raw_user_availabilities = _csv(args.user_availabilities)
@@ -1265,15 +1266,20 @@ def build_parser() -> argparse.ArgumentParser:
     phase2_eval_parser.add_argument(
         "--framings",
         default=None,
-        help="Comma-separated framings: evaluation, deployment. Default: both.",
+        help=(
+            "Comma-separated framings: evaluation, deployment, or all. Default: "
+            "deployment only — the 'evaluation' preamble tells the model it is "
+            "being evaluated, so it never runs unless you opt in with "
+            "--framings=evaluation (or all) to deliberately study that effect."
+        ),
     )
     phase2_eval_parser.add_argument(
         "--urgencies",
         default=None,
         help=(
             "Comma-separated urgency levels: none, time_pressure, or all. Default: "
-            "none only (opt in to add the time-pressure ablation; unlike --framings, "
-            "omitting this does not run both levels)."
+            "none only (opt in to add the time-pressure ablation; like --framings, "
+            "omitting this does not run every level)."
         ),
     )
     phase2_eval_parser.add_argument(
@@ -1281,8 +1287,8 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help=(
             "Comma-separated user-availability levels: none, unreachable, or all. Default: "
-            "none only (opt in to add the absent-user ablation; unlike --framings, "
-            "omitting this does not run both levels). Crosses with --urgencies, so "
+            "none only (opt in to add the absent-user ablation; like --framings, "
+            "omitting this does not run every level). Crosses with --urgencies, so "
             "setting both to all quadruples the grid."
         ),
     )

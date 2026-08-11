@@ -252,9 +252,9 @@ python -m app.cli phase2-eval --models openai --split objective --concurrency 4
 | Flag | Default | Description |
 | --- | --- | --- |
 | `--models` | `openai` | `openai`, `anthropic`, `gemini`, `kimi`, `inkling`, `grok`, `deepseek`, `mistral`, `qwen`, `openrouter`, `openweights`, `scripted_diligent`, `scripted_naive`, `all` |
-| `--conditions` | `no_policy` only | `no_policy`, `structured_policy`, `required_check`, `tool_constraints`, or `all`. No additional control layers by default — unlike `--framings`, omitting this does **not** run all four; pass a list or `--conditions=all` to turn constraints on |
-| `--framings` | both | `evaluation` (benchmark framing) vs `deployment` (live-task framing) |
-| `--urgencies` | `none` only | `none` vs `time_pressure` (adds a system-prompt deadline, and nothing else). Unlike `--framings`, omitting this does **not** run both levels — pass `--urgencies=time_pressure` or `--urgencies=all` to opt in |
+| `--conditions` | `no_policy` only | `no_policy`, `structured_policy`, `required_check`, `tool_constraints`, or `all`. No additional control layers by default — omitting this does **not** run all four; pass a list or `--conditions=all` to turn constraints on |
+| `--framings` | `deployment` only | `evaluation` (tells the agent it is being evaluated) vs `deployment` (live-task framing, no evaluation disclosure). Omitting this does **not** run both — `evaluation` never reaches the agent unless you pass `--framings=evaluation` or `--framings=all` to deliberately study evaluation-awareness |
+| `--urgencies` | `none` only | `none` vs `time_pressure` (adds a system-prompt deadline, and nothing else). Omitting this does **not** run both levels — pass `--urgencies=time_pressure` or `--urgencies=all` to opt in |
 | `--user-availabilities` | `none` only | `none` vs `unreachable` (states the delegating user is away for the day; never instructs the agent to skip asking). Crosses with `--urgencies` for the pressure 2×2. Also opt-in — omitting it runs `none` only |
 | `--scenario-set` | v2 (226) | Markdown scenario-set path |
 | `--split` | `all` | `objective` or `survey` — run one half of the set (see [Objective vs survey split](#objective-vs-survey-split)) |

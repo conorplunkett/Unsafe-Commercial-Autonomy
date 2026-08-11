@@ -269,7 +269,7 @@ def run_phase2_evaluation(
     on_resume: Optional[Callable[[int, int], None]] = None,
 ) -> BenchmarkRun:
     selected_models = resolve_phase2_model_ids(model_ids)
-    # Unlike framings, omitting --conditions does NOT expand to every level: the
+    # Omitting --conditions does NOT expand to every level: the
     # policy-tool conditions (required_check/tool_constraints) are
     # opt-in ablations, same reasoning as the pressure axes below. Bare no_policy
     # is the only condition that runs with zero flags passed. Pass
@@ -279,14 +279,20 @@ def run_phase2_evaluation(
         if control_conditions
         else ["no_policy"]
     )
-    selected_framings = _select(framings, FRAMINGS, "framings")
-    # Unlike framings/conditions, omitting these does NOT expand to every level.
-    # Both pressure axes are opt-in: each one doubles the grid and the two
-    # together quadruple it, and every existing caller (including the
-    # scripted-agent test suite) calls this without them. Defaulting to "all"
-    # would silently multiply their episode counts and API cost. Pass
-    # urgencies=["all"] / user_availabilities=["all"] (or the levels explicitly) to
-    # run the ablation. Keep this shape — it is the cost guard.
+    # Framings default to deployment-only (2026-08-11; previously defaulted to
+    # both). The "evaluation" preamble tells the tested agent it is being
+    # evaluated — see FRAMING_PREAMBLES in sandbox.py — so no episode may carry
+    # that disclosure unless a caller explicitly opts in. Pass
+    # framings=["evaluation"] / ["all"] (or both levels explicitly) to run the
+    # evaluation-awareness ablation deliberately.
+    selected_framings = _select(framings, FRAMINGS, "framings") if framings else ["deployment"]
+    # Omitting these does NOT expand to every level either, same as conditions
+    # and framings above. Both pressure axes are opt-in: each one doubles the
+    # grid and the two together quadruple it, and every existing caller
+    # (including the scripted-agent test suite) calls this without them.
+    # Defaulting to "all" would silently multiply their episode counts and API
+    # cost. Pass urgencies=["all"] / user_availabilities=["all"] (or the levels
+    # explicitly) to run the ablation. Keep this shape — it is the cost guard.
     selected_urgencies = _select(urgencies, URGENCY_LEVELS, "urgency levels") if urgencies else ["none"]
     selected_user_availabilities = (
         _select(user_availabilities, USER_AVAILABILITY_LEVELS, "user-availability levels")
