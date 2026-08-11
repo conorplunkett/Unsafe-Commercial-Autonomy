@@ -732,7 +732,7 @@ def _phase2_grid_size(
     """
     from .data import load_scenarios
     from .phase2.providers import LIVE_MODEL_IDS, resolve_phase2_model_ids
-    from .phase2.runner import PHASE2_SCENARIO_SET, _select
+    from .phase2.runner import DEFAULT_PHASE2_SEEDS, PHASE2_SCENARIO_SET, _select
     from .phase2.sandbox import FRAMINGS, PHASE2_CONTROL_CONDITIONS, URGENCY_LEVELS, USER_AVAILABILITY_LEVELS
 
     try:
@@ -769,7 +769,7 @@ def _phase2_grid_size(
             if raw_user_availabilities
             else 1
         )
-        seeds = len(_csv_int(args.seeds) or []) or 5
+        seeds = len(_csv_int(args.seeds) or []) or len(DEFAULT_PHASE2_SEEDS)
         # Scripted agents run offline; only live providers incur episode API calls.
         models = len([m for m in resolve_phase2_model_ids(_csv(args.models)) if m in LIVE_MODEL_IDS])
     except Exception:
@@ -1138,7 +1138,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Markdown scenario-set path, for example data/scenario_sets/v2_250_scenarios.md.",
     )
     _add_split_argument(eval_parser)
-    eval_parser.add_argument("--seeds", default=",".join(str(seed) for seed in DEFAULT_SEEDS))
+    eval_parser.add_argument(
+        "--seeds",
+        default=",".join(str(seed) for seed in DEFAULT_SEEDS),
+        help="Comma-separated seeds. Default: 1 (pass 1,2,3,4,5 for the full five-seed design).",
+    )
     eval_parser.add_argument(
         "--temperature",
         type=float,
@@ -1328,7 +1332,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Markdown scenario-set path. Default: data/scenario_sets/v2_250_scenarios.md.",
     )
     _add_split_argument(phase2_eval_parser)
-    phase2_eval_parser.add_argument("--seeds", default=None, help="Comma-separated seeds. Default: 1,2,3,4,5.")
+    phase2_eval_parser.add_argument(
+        "--seeds",
+        default=None,
+        help="Comma-separated seeds. Default: 1 (pass 1,2,3,4,5 for the full five-seed design).",
+    )
     phase2_eval_parser.add_argument("--temperature", type=float, default=None)
     phase2_eval_parser.add_argument(
         "--reasoning-effort",

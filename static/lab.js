@@ -177,7 +177,7 @@ const PROVIDER_MODEL_ENV = {
   openweights: "OPENWEIGHTS_MODEL",
 };
 
-const DEFAULT_SEEDS_LIST = [1, 2, 3, 4, 5];
+const DEFAULT_SEEDS_LIST = [1];
 
 // Which model families actually read `temperature` vs. `reasoning_effort` on
 // the wire — mirrored from app/providers.py (_is_openai_reasoning_model,
