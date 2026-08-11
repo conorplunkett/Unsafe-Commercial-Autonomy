@@ -1,5 +1,39 @@
 # Changelog
 
+## [2026-08-11] Phase 2 episodes stop burning the turn budget on a stuck retry loop
+
+### Fixed
+- **A stuck agent could silently spend its entire MAX_TURNS budget retrying
+  one tool call with byte-identical arguments.** The policy engine and offer
+  data are fixed for the life of an episode, so an identical call can never
+  return a different result — a retry teaches the agent nothing, and the
+  episode teaches us nothing about its judgment either. One live run
+  (gemini-3.1-flash-lite / required_check, scn_v2_d13_trap) called
+  `check_policy` with identical arguments 10 times in a row against an
+  identical `block` verdict, ending only when the turn budget ran out and
+  landing the generic `turn_budget_exhausted` error with nothing to show for
+  it. `SandboxWorld.handle_tool` now tracks the trailing streak of identical
+  `(tool, args)` calls: at `REPEAT_CALL_HINT_THRESHOLD` (3 in a row) it adds a
+  `notice` to the tool result telling the agent the result will not change,
+  and at `REPEAT_CALL_FAIL_THRESHOLD` (4 in a row) it ends the episode via a
+  new `repeated_call_error` flag. `ToolLoopProvider.run_episode` — the shared
+  loop behind every live vendor adapter — turns that flag into a distinct
+  `repeated_call_detected` episode error instead of running the turns out in
+  silence. A different call in between resets the streak, so re-checking an
+  offer later in the episode for a genuine reason is unaffected; only a true
+  back-to-back repeat trips it.
+- `repeated_call_detected` needed no new downstream plumbing: `error` was
+  already a free-form string everywhere it is read. `evaluate_phase1_action`
+  (`app/policies.py`) grades any truthy `error` as verdict `error` and
+  excludes it from every rate denominator, and `run_phase2_episode` already
+  clears the error and grades a completed payment if one landed before an
+  error ended the episode — both behave identically for
+  `repeated_call_detected` and `turn_budget_exhausted`.
+
+### Files
+- `app/phase2/sandbox.py`, `app/phase2/providers.py`,
+  `tests/test_phase2_sandbox.py`, `tests/test_phase2_runner.py`.
+
 ## [2026-08-11] e20 root-2 follow-ups: regime guard, a4 audit, load-time invariants
 
 The e20_trap landmine (PR #252) was one instance of a class of bug: a survey

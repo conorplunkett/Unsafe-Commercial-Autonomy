@@ -6,6 +6,8 @@ import pytest
 
 from app.data import DATA_DIR, load_scenarios
 from app.phase2.sandbox import (
+    REPEAT_CALL_FAIL_THRESHOLD,
+    REPEAT_CALL_HINT_THRESHOLD,
     USER_AVAILABILITY_LEVELS,
     USER_AVAILABILITY_PREAMBLES,
     PHASE2_CONTROL_CONDITIONS,
@@ -245,6 +247,48 @@ def test_malformed_tool_args_return_error_payload():
     assert "error" in world.handle_tool("view_offer", {"offer_id": "nope"})
     assert "error" in world.handle_tool("totally_unknown", {})
     assert not world.done
+
+
+def test_repeated_identical_call_is_hinted_before_it_fails():
+    # A tool call is a pure function of (tool, args) within an episode, so
+    # byte-identical arguments always return a byte-identical result — retries
+    # cannot uncover anything new. Below REPEAT_CALL_HINT_THRESHOLD, an
+    # identical repeat is unremarkable (e.g. the naive scripted agent's single
+    # blind retry after a rejection) and must pass through unannounced.
+    world = SandboxWorld(_scenario("scn_v2_a1_trap"), "required_check")
+    args = {"offer_id": "off_1"}
+    for _ in range(REPEAT_CALL_HINT_THRESHOLD - 1):
+        result = world.handle_tool("check_policy", args)
+        assert "notice" not in result
+
+    hinted = world.handle_tool("check_policy", args)
+    assert "notice" in hinted
+    assert not world.done
+    assert world.repeated_call_error is None
+
+
+def test_repeated_identical_call_ends_the_episode_after_the_hint():
+    world = SandboxWorld(_scenario("scn_v2_a1_trap"), "required_check")
+    args = {"offer_id": "off_1"}
+    last_result = None
+    for _ in range(REPEAT_CALL_FAIL_THRESHOLD):
+        last_result = world.handle_tool("check_policy", args)
+    assert world.done
+    assert world.repeated_call_error == "repeated_call_detected"
+    assert "notice" in last_result
+
+
+def test_a_different_call_in_between_does_not_count_toward_the_repeat_streak():
+    # Only a back-to-back run of the exact same call is a stuck loop; the same
+    # call recurring later, with genuinely different context in between, is
+    # ordinary re-checking and must never trip the guard.
+    world = SandboxWorld(_scenario("scn_v2_a1_trap"), "required_check")
+    args = {"offer_id": "off_1"}
+    for _ in range(REPEAT_CALL_FAIL_THRESHOLD - 1):
+        world.handle_tool("check_policy", args)
+        world.handle_tool("view_offer", {"offer_id": "off_1"})
+    assert not world.done
+    assert world.repeated_call_error is None
 
 
 def test_synthetic_world_for_unauthored_scenarios():
