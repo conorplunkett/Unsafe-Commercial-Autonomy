@@ -495,6 +495,258 @@ def test_gemini_is_offline_under_dry_run():
     assert isinstance(create_phase2_provider("gemini", live=False), DryRunMixAgent)
 
 
+# ---------------------------------------------------------------------------
+# Phase 2 tool-loop vendor reasoning capture
+# ---------------------------------------------------------------------------
+
+def test_tool_loop_drains_reasoning_buffer_per_turn():
+    """_record_reasoning + run_episode's per-turn drain, pinned end to end:
+    each turn's captured reasoning lands in that turn's episode, and a second
+    episode run on the SAME pooled provider instance must not inherit
+    anything the first episode already drained (_ProviderPool reuses one
+    instance across episodes, so a stale buffer would otherwise leak turns).
+    """
+    from app.phase2.runner import run_phase2_episode
+
+    class ReasoningStubProvider(ToolLoopProvider):
+        provider_id = "stub_reasoning"
+        model_name = "stub-reasoning"
+
+        def __init__(self):
+            self.turn = 0  # provider-lifetime counter, deliberately not reset per episode
+
+        def start_conversation(self, system_prompt, user_prompt, tools, temperature):
+            pass
+
+        def step(self, tool_results):
+            self.turn += 1
+            self._record_reasoning(f"turn {self.turn} thoughts")
+            if self.turn % 2 == 1:
+                return "", [{"id": f"c{self.turn}", "name": "search_offers", "arguments": {}}]
+            return "", [{"id": f"c{self.turn}", "name": "request_approval", "arguments": {"reason": "checking"}}]
+
+    scenario = next(s for s in load_scenarios(V2_SET) if s.scenario_id == "scn_v2_a1_lookalike")
+    provider = ReasoningStubProvider()
+
+    first = run_phase2_episode(provider, scenario, "no_policy", "deployment", 1, 0.7, "stub_reasoning")
+    assert first.raw_reasoning == "turn 1 thoughts\n\nturn 2 thoughts"
+
+    # Same instance, second episode. The turn counter keeps climbing (3, 4)
+    # instead of resetting, so if run_episode failed to reset the buffer at
+    # episode start, this result would also carry turns 1-2 -- it must not.
+    second = run_phase2_episode(provider, scenario, "no_policy", "deployment", 1, 0.7, "stub_reasoning")
+    assert second.raw_reasoning == "turn 3 thoughts\n\nturn 4 thoughts"
+    assert "turn 1" not in second.raw_reasoning
+    assert "turn 2" not in second.raw_reasoning
+
+
+def test_openweights_step_extracts_reasoning_and_strips_think_tags(monkeypatch):
+    """extract_chat_reasoning's two reasoning sources (a sibling field and
+    inline <think> markup) both reach the buffer, and the assistant message
+    replayed into self._messages keeps content byte-identical -- think tags
+    included -- while dropping the reasoning_content/reasoning keys no
+    chat-completions request schema accepts back.
+    """
+
+    class FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {
+                "choices": [
+                    {
+                        "message": {
+                            "role": "assistant",
+                            "reasoning_content": "chain of thought here",
+                            "content": "<think>hidden</think>ok",
+                        }
+                    }
+                ]
+            }
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        return FakeResponse()
+
+    monkeypatch.setattr("app.phase2.providers.httpx.post", fake_post)
+    provider = OpenWeightsToolProvider(model_name="local-model", base_url="http://127.0.0.1:9")
+    provider.start_conversation("sys", "user", [], 0.5)
+
+    text, tool_calls = provider.step(None)
+
+    assert text == "ok"
+    assert tool_calls == []
+    assert provider._reasoning_buffer == ["chain of thought here\n\nhidden"]
+    replayed = provider._messages[-1]
+    assert "reasoning_content" not in replayed
+    assert "reasoning" not in replayed
+    assert replayed["content"] == "<think>hidden</think>ok"
+
+
+def test_phase2_anthropic_thinking_capture_preserves_replay():
+    """Regression guard: thinking blocks are captured into the reasoning
+    buffer for scoring AND replayed verbatim into the next turn's messages --
+    Anthropic's extended-thinking-with-tool-use API requires the exact block
+    list back unmodified, so step() must record the thinking text without
+    touching self._last_assistant_content (see the CRITICAL comment there).
+    """
+    from app.phase2.providers import AnthropicToolProvider
+
+    class _Block:
+        def __init__(self, type_, **fields):
+            self.type = type_
+            for key, value in fields.items():
+                setattr(self, key, value)
+
+    class _Response:
+        def __init__(self, content):
+            self.content = content
+
+    class _Messages:
+        def __init__(self, responses):
+            self._responses = list(responses)
+            self.requests = []
+
+        def create(self, **params):
+            self.requests.append(params)
+            return self._responses.pop(0)
+
+    class _Client:
+        def __init__(self, responses):
+            self.messages = _Messages(responses)
+
+    first_content = [
+        _Block("thinking", thinking="working it out"),
+        _Block("text", text="here is the answer"),
+        _Block("tool_use", id="tu_1", name="search_offers", input={}),
+    ]
+    second_content = [_Block("text", text="all done")]
+    client = _Client([_Response(first_content), _Response(second_content)])
+
+    provider = AnthropicToolProvider(model_name="claude-opus-5", api_key="sk-test")
+    provider.start_conversation("sys", "user prompt", [], 0.7)
+    provider._client = client
+
+    text, tool_calls = provider.step(None)
+    assert text == "here is the answer"
+    assert tool_calls == [{"id": "tu_1", "name": "search_offers", "arguments": {}}]
+    assert provider._reasoning_buffer == ["working it out"]
+
+    text2, tool_calls2 = provider.step([{"id": "tu_1", "content": {"offers": []}}])
+    assert text2 == "all done"
+    assert tool_calls2 == []
+
+    # The assistant turn replayed into the SECOND request's messages must be
+    # the exact block list from the first response, thinking block included.
+    second_request = client.messages.requests[1]
+    replayed_assistant = next(m for m in second_request["messages"] if m["role"] == "assistant")
+    assert replayed_assistant["content"] is first_content
+
+
+def test_phase2_openai_reasoning_item_capture():
+    """A Responses API `reasoning` item's summary text reaches the buffer via
+    _record_reasoning, with function_call parsing and previous_response_id
+    chaining left exactly as they were.
+    """
+    from app.phase2.providers import OpenAIToolProvider
+
+    class _Item:
+        def __init__(self, type_, **fields):
+            self.type = type_
+            for key, value in fields.items():
+                setattr(self, key, value)
+
+    class _Response:
+        def __init__(self, output, response_id="resp_1"):
+            self.output = output
+            self.id = response_id
+
+    class _Responses:
+        def __init__(self, response):
+            self._response = response
+            self.requests = []
+
+        def create(self, **params):
+            self.requests.append(params)
+            return self._response
+
+    class _Client:
+        def __init__(self, response):
+            self.responses = _Responses(response)
+
+    output = [
+        _Item(
+            "reasoning",
+            summary=[_Item("summary_text", text="thinking step one"), _Item("summary_text", text="thinking step two")],
+        ),
+        _Item("message", content=[_Item("output_text", text="final answer text")]),
+        _Item("function_call", call_id="call_1", name="search_offers", arguments="{}"),
+    ]
+    client = _Client(_Response(output))
+
+    provider = OpenAIToolProvider(model_name="gpt-5.1", api_key="sk-test")
+    provider.start_conversation(
+        "sys", "user",
+        [{"name": "search_offers", "description": "d", "parameters": {"type": "object", "properties": {}}}],
+        0.7,
+    )
+    provider._client = client
+
+    text, tool_calls = provider.step(None)
+
+    assert text == "final answer text"
+    assert tool_calls == [{"id": "call_1", "name": "search_offers", "arguments": {}}]
+    assert provider._reasoning_buffer == ["thinking step one\n\nthinking step two"]
+    assert provider._previous_response_id == "resp_1"
+
+
+def test_runner_joins_reasoning_into_result_and_audit_event():
+    """run_phase2_episode's raw_reasoning join (app/phase2/runner.py) and the
+    model_output audit event's mirrored copy (app/policies.py) must both see
+    whatever an episode accumulated in reasoning_outputs, regardless of which
+    provider produced it.
+    """
+
+    class CannedReasoningProvider(BaseEpisodeProvider):
+        provider_id = "canned_reasoning"
+        model_name = "canned-reasoning"
+
+        def run_episode(self, world, system_prompt, user_prompt, seed, temperature):
+            return EpisodeResult(reasoning_outputs=["a", "b"])
+
+    run = run_phase2_evaluation(
+        model_ids=["openai"],
+        control_conditions=["no_policy"],
+        framings=["deployment"],
+        scenario_ids=["scn_v2_a1_trap"],
+        seeds=[1],
+        provider_factory=lambda model_id, live: CannedReasoningProvider(),
+    )
+    result = run.results[0]
+    assert result.raw_reasoning == "a\n\nb"
+    model_output_events = [e for e in result.audit_events if e["event_type"] == "model_output"]
+    assert model_output_events[0]["detail"]["raw_reasoning"] == "a\n\nb"
+
+
+def test_scripted_agents_emit_synthetic_reasoning():
+    """Scripted agents never call a model, but Phase 2's raw_reasoning column
+    must not be blank for them either: each decision branch now appends a
+    one-line synthetic rationale, so every result -- diligent's free-source,
+    allowed-offer, and no-allowed-offer branches, and naive's single path --
+    carries something.
+    """
+    run = run_phase2_evaluation(
+        model_ids=["scripted_diligent", "scripted_naive"],
+        control_conditions=["no_policy"],
+        framings=["deployment"],
+        scenario_ids=["scn_v2_a1_trap", "scn_v2_a1_lookalike", "scn_v2_a4_trap"],
+        seeds=[1],
+    )
+    assert len(run.results) == 2 * 3
+    for result in run.results:
+        assert result.raw_reasoning, (result.model_id, result.scenario_id)
+
+
 def test_phase1_cli_does_not_import_phase2(tmp_path):
     import subprocess
 
