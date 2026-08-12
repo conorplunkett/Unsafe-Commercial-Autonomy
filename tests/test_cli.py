@@ -953,3 +953,170 @@ def test_cli_recompute_all_skips_unparseable_run_and_continues(tmp_path, monkeyp
     out = capsys.readouterr().out
     assert "Could not load run run_zzz_broken" in out
     assert f"{good.run_id}: pair_role backfilled" in out
+
+
+def _merge_source_runs(tmp_path):
+    """Two stored Phase 1 runs of one gauntlet, differing only by condition."""
+    from app.storage import RunStorage
+    from tests.test_merge import _run
+
+    storage = RunStorage()
+    runs = [
+        _run("run_a", "no_policy", created_at="2026-07-01T10:00:00+00:00"),
+        _run("run_b", "structured_policy", created_at="2026-07-20T10:00:00+00:00"),
+    ]
+    for run in runs:
+        storage.save(run)
+    return runs
+
+
+def test_cli_merge_dry_run_writes_nothing(tmp_path, monkeypatch, capsys):
+    from app.storage import RunStorage
+
+    monkeypatch.setenv("RUN_STORAGE_DIR", str(tmp_path))
+    _merge_source_runs(tmp_path)
+
+    assert main(["merge", "--run-ids", "run_a,run_b", "--out-run-id", "merged_1", "--dry-run"]) == 0
+    out = capsys.readouterr().out
+    assert "4 episodes" in out
+    assert "Dry run" in out
+    assert not RunStorage().exists("merged_1")
+
+
+def test_cli_merge_writes_a_pooled_run_and_keeps_the_sources(tmp_path, monkeypatch, capsys):
+    from app.storage import RunStorage
+
+    monkeypatch.setenv("RUN_STORAGE_DIR", str(tmp_path))
+    _merge_source_runs(tmp_path)
+
+    assert (
+        main(["merge", "--run-ids", "run_a,run_b", "--out-run-id", "merged_1", "--yes"]) == 0
+    )
+    storage = RunStorage()
+    merged = storage.read("merged_1")
+    assert len(merged.results) == 4
+    assert [source.run_id for source in merged.merged_from] == ["run_a", "run_b"]
+    assert set(merged.metrics["by_control_condition"]) == {"no_policy", "structured_policy"}
+    # Sources are a record, not scratch space.
+    assert storage.exists("run_a") and storage.exists("run_b")
+
+
+def test_cli_merge_refuses_incompatible_runs_before_asking(tmp_path, monkeypatch, capsys):
+    from app.storage import RunStorage
+
+    monkeypatch.setenv("RUN_STORAGE_DIR", str(tmp_path))
+    runs = _merge_source_runs(tmp_path)
+    runs[1].scenario_ids = runs[1].scenario_ids[:1]
+    RunStorage().save(runs[1])
+
+    assert main(["merge", "--run-ids", "run_a,run_b", "--out-run-id", "merged_1", "--yes"]) == 1
+    out = capsys.readouterr().out
+    assert "not one experiment" in out
+    assert "different scenario sets" in out
+    assert not RunStorage().exists("merged_1")
+
+
+def test_cli_merge_will_not_overwrite_an_existing_run(tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("RUN_STORAGE_DIR", str(tmp_path))
+    _merge_source_runs(tmp_path)
+
+    assert main(["merge", "--run-ids", "run_a,run_b", "--out-run-id", "run_a", "--yes"]) == 1
+    assert "already exists" in capsys.readouterr().out
+
+
+def test_cli_merge_publish_marks_the_sources_superseded(tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("RUN_STORAGE_DIR", str(tmp_path))
+    _merge_source_runs(tmp_path)
+    marked = {}
+    monkeypatch.setattr(
+        "app.supabase_publish.publish_run",
+        lambda run, label=None, progress=None: {
+            "run_id": run["run_id"],
+            "label": label,
+            "payload": {"episode_count": len(run.get("results") or [])},
+        },
+    )
+    monkeypatch.setattr(
+        "app.supabase_publish.mark_superseded",
+        lambda run_ids, superseded_by=None: marked.update(
+            {"ids": list(run_ids), "by": superseded_by}
+        )
+        or list(run_ids),
+    )
+
+    assert (
+        main(
+            [
+                "merge",
+                "--run-ids",
+                "run_a,run_b",
+                "--out-run-id",
+                "merged_1",
+                "--yes",
+                "--publish",
+                "--label",
+                "stitched",
+            ]
+        )
+        == 0
+    )
+    assert marked == {"ids": ["run_a", "run_b"], "by": "merged_1"}
+    assert "Marked 2 source run(s) superseded" in capsys.readouterr().out
+
+
+def test_cli_merge_publish_can_leave_the_sources_alone(tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("RUN_STORAGE_DIR", str(tmp_path))
+    _merge_source_runs(tmp_path)
+    calls = []
+    monkeypatch.setattr(
+        "app.supabase_publish.publish_run",
+        lambda run, label=None, progress=None: {
+            "run_id": run["run_id"],
+            "label": label,
+            "payload": {"episode_count": 0},
+        },
+    )
+    monkeypatch.setattr(
+        "app.supabase_publish.mark_superseded",
+        lambda run_ids, superseded_by=None: calls.append(run_ids) or list(run_ids),
+    )
+
+    assert (
+        main(
+            [
+                "merge",
+                "--run-ids",
+                "run_a,run_b",
+                "--out-run-id",
+                "merged_1",
+                "--yes",
+                "--publish",
+                "--no-supersede",
+            ]
+        )
+        == 0
+    )
+    assert calls == []
+
+
+def test_cli_publish_of_an_unmerged_run_never_supersedes(tmp_path, monkeypatch, capsys):
+    import json as _json
+
+    calls = []
+    monkeypatch.setattr(
+        "app.supabase_publish.publish_run",
+        lambda run, label=None, progress=None: {
+            "run_id": run["run_id"],
+            "label": label,
+            "payload": {"episode_count": 0},
+        },
+    )
+    monkeypatch.setattr(
+        "app.supabase_publish.mark_superseded",
+        lambda run_ids, superseded_by=None: calls.append(run_ids) or list(run_ids),
+    )
+    path = tmp_path / "run.json"
+    path.write_text(_json.dumps({"run_id": "run_plain", "metrics": {}, "results": []}), encoding="utf-8")
+
+    assert main(["publish", "--file", str(path)]) == 0
+    assert calls == []

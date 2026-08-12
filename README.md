@@ -308,6 +308,34 @@ Publishing still works before the migration is applied — it falls back to
 writing the model names inside `payload` — but top-level `model_names` filters
 (`?model_names=cs.{gpt-5.5}`) need the column.
 
+### Runs split across several sittings
+
+A grid is often not run in one go — the four control conditions get run on
+different days, or an axis is added later. Those run files are one experiment
+split across four sittings, and no per-condition breakdown in `metrics` can span
+them, because each is computed within a single run.
+
+`python -m app.cli merge --run-ids a,b,c,d` pools the sittings' episodes into one
+new run and recomputes the metrics from the pooled episodes, so the breakdowns
+have every cell. It refuses unless the sources really are one experiment (same
+model, same scenario set, same sampling config, no episode covered twice), the
+sources are never modified, and the merged run records every source it came from
+in `merged_from`. See `COMMANDS.md` for the flags; merging never happens on its
+own.
+
+Because the leaderboard pools every published run by model name, publishing a
+merged run also stamps `superseded_by` on its sources' rows so their episodes
+are not counted a second time. Stamped runs stay listed, selectable, and
+readable — they just leave the pooled board. That column needs a migration:
+
+```bash
+# Supabase dashboard > SQL editor, or psql, run:
+db/migrations/0010_add_superseded_by.sql
+```
+
+The site tolerates its absence (it retries the run list without the column), and
+a project that has never merged runs needs nothing.
+
 ## Summary
 
 This project benchmarks whether AI agents with delegated payment authority preserve user intent while obeying spend limits, merchant restrictions, approval thresholds, and privacy constraints during realistic commercial tasks.

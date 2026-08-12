@@ -49,6 +49,23 @@ async function sget(query: string) {
 
 const EPISODE_PAGE = 1000;
 
+const RUN_LIST_COLUMNS = "run_id,created_at,published_at,phase,label,model_names,metrics";
+
+// The run list, with `superseded_by` when the project has it. That column
+// arrived with db/migrations/0010; a project that hasn't run the migration
+// rejects the whole select, which would empty the dashboard rather than lose
+// one field. Retry without it — the same fallback the publisher uses for
+// `model_names`. Nothing is then marked superseded, which is the truth for a
+// project that has never merged runs.
+async function fetchRunList(): Promise<RunMeta[]> {
+  const order = "&order=published_at.desc";
+  try {
+    return await sget(`select=${RUN_LIST_COLUMNS},superseded_by${order}`);
+  } catch {
+    return sget(`select=${RUN_LIST_COLUMNS}${order}`);
+  }
+}
+
 // Rows published before the 2026-08 condition rename carry "preflight_check";
 // everything downstream groups and labels by the new key.
 function normalizeResult(result: Result): Result {
@@ -105,9 +122,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     let active = true;
     (async () => {
       try {
-        const list: RunMeta[] = await sget(
-          "select=run_id,created_at,published_at,phase,label,model_names,metrics&order=published_at.desc",
-        );
+        const list: RunMeta[] = await fetchRunList();
         if (!active) return;
         if (list.length) {
           setRuns(list);

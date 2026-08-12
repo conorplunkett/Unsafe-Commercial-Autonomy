@@ -450,6 +450,11 @@ export function poolModelMetrics(runs: RunMeta[]): ModelPoint[] {
     }
   >();
   for (const run of runs) {
+    // A superseded run's episodes were pooled into a merged run that is itself
+    // published (app/merge.py), so counting both would count every one of those
+    // episodes twice. The run stays listed and selectable; it just doesn't
+    // contribute here.
+    if (run.superseded_by) continue;
     const byName = run.metrics?.by_model_name;
     if (!byName) continue;
     for (const [name, m] of Object.entries(byName)) {

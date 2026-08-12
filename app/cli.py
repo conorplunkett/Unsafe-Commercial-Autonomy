@@ -9,6 +9,7 @@ from typing import Iterable, List, Optional, TextIO
 from uuid import uuid4
 
 from .env import load_env_file
+from .merge import OVERLAP_POLICIES
 from .metrics import UNKEYED_STATUSES
 from .models import ControlCondition
 from .providers import ProviderError
@@ -1100,7 +1101,7 @@ def publish_command(args: argparse.Namespace) -> int:
     from pydantic import ValidationError
 
     from .models import model_to_dict
-    from .supabase_publish import SupabasePublishError, publish_run
+    from .supabase_publish import SupabasePublishError, mark_superseded, publish_run
 
     storage = RunStorage()
     try:
@@ -1144,6 +1145,26 @@ def publish_command(args: argparse.Namespace) -> int:
     label = row.get("label") or "no label"
     episodes = (row.get("payload") or {}).get("episode_count", 0)
     print(f"Published run {row['run_id']} to Supabase ({label}; {episodes} episodes).")
+
+    # A merged run's sources are already published in most cases, and the
+    # leaderboard pools by model name across every published run — so leaving
+    # them unmarked counts each pooled episode twice. Marking is the default;
+    # --no-supersede opts out. Nothing is deleted either way.
+    source_ids = [
+        source.get("run_id")
+        for source in (run.get("merged_from") or [])
+        if isinstance(source, dict) and source.get("run_id")
+    ]
+    if source_ids and not getattr(args, "no_supersede", False):
+        try:
+            marked = mark_superseded(source_ids, superseded_by=run["run_id"])
+        except SupabasePublishError as exc:
+            print(f"Published, but could not mark sources superseded: {exc}")
+            return 1
+        if marked:
+            print(f"Marked {len(marked)} source run(s) superseded: {', '.join(marked)}.")
+        else:
+            print("No published rows found for this run's sources; nothing to supersede.")
     return 0
 
 
@@ -1218,6 +1239,111 @@ def recompute_command(args: argparse.Namespace) -> int:
             if publish_command(publish_args) != 0:
                 failures += 1
     return 1 if failures else 0
+
+
+def merge_command(args: argparse.Namespace) -> int:
+    """Stitch several sittings of one gauntlet into a single new run."""
+    import json
+
+    from pydantic import ValidationError
+
+    from .merge import MergeIncompatible, compatibility_report, merge_runs
+    from .models import BenchmarkRun, parse_model
+
+    storage = RunStorage()
+    run_ids = _csv(args.run_ids) or []
+    if len(run_ids) < 2:
+        print("Provide at least two run ids: --run-ids a,b,c")
+        return 1
+
+    runs = []
+    for run_id in run_ids:
+        try:
+            runs.append(storage.read(run_id))
+        except (KeyError, FileNotFoundError, json.JSONDecodeError, ValidationError) as exc:
+            print(f"Could not load run {run_id}: {exc}")
+            return 1
+
+    try:
+        report = compatibility_report(runs, on_overlap=args.on_overlap)
+    except ValueError as exc:
+        print(str(exc))
+        return 1
+
+    if report["blocking"]:
+        print("Refusing to merge — these runs are not one experiment:")
+        for reason in report["blocking"]:
+            print(f"  - {reason}")
+        return 1
+
+    out_run_id = args.out_run_id or f"merged_{uuid4().hex[:12]}"
+    if storage.exists(out_run_id):
+        print(
+            f"A run named {out_run_id} already exists. Pass a different "
+            "--out-run-id, or delete the existing one first."
+        )
+        return 1
+
+    episodes = sum(len(run.results) for run in runs)
+    created_at = args.created_at or max(run.created_at for run in runs)
+    print(f"Merging {len(runs)} runs into {out_run_id}:")
+    for run in sorted(runs, key=lambda item: (item.created_at, item.run_id)):
+        conditions = ",".join(run.control_conditions) or "-"
+        print(f"  {run.run_id}  {run.created_at}  {len(run.results)} episodes  {conditions}")
+    print(f"  = {episodes} episodes · created_at {created_at}")
+    for warning in report["warnings"]:
+        print(f"  ! {warning}")
+
+    if args.dry_run:
+        print("Dry run — nothing written.")
+        return 0
+
+    if not args.yes:
+        if not sys.stdin.isatty():
+            print("Refusing to write without confirmation. Re-run with --yes.")
+            return 1
+        try:
+            answer = input("Write this merged run? Type 'yes' to continue: ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            print("\nAborted.")
+            return 1
+        if answer not in ("yes", "y"):
+            print("Aborted.")
+            return 1
+
+    try:
+        merged = merge_runs(
+            runs,
+            run_id=out_run_id,
+            created_at=created_at,
+            on_overlap=args.on_overlap,
+        )
+    except MergeIncompatible as exc:
+        print("Refusing to merge — these runs are not one experiment:")
+        for reason in exc.reasons:
+            print(f"  - {reason}")
+        return 1
+
+    storage.save(merged)
+    quality = (merged.metrics or {}).get("quality", {}).get("status", "unknown")
+    print(
+        f"Wrote {out_run_id}: {len(merged.results)} episodes, "
+        f"unsafe {merged.metrics.get('unsafe_payment_rate')} "
+        f"({merged.metrics.get('unsafe_denominator', 'n/a')}), quality {quality}."
+    )
+    print(f"Sources kept on disk: {', '.join(run_ids)}.")
+
+    if args.publish:
+        publish_args = argparse.Namespace(
+            run_id=out_run_id,
+            latest=False,
+            file=None,
+            label=args.label,
+            allow_degraded=args.allow_degraded,
+            no_supersede=args.no_supersede,
+        )
+        return publish_command(publish_args)
+    return 0
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -1505,7 +1631,86 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Optional human label shown in the dashboard run selector (e.g. 'Phase 2 official').",
     )
+    publish_parser.add_argument(
+        "--no-supersede",
+        action="store_true",
+        help=(
+            "For a merged run: leave its source runs' published rows alone. They "
+            "then pool alongside it on the leaderboard, double-counting every episode."
+        ),
+    )
     publish_parser.set_defaults(func=publish_command)
+
+    merge_parser = subparsers.add_parser(
+        "merge",
+        help=(
+            "Stitch several stored runs of the same gauntlet (same model, same "
+            "scenarios, different conditions or sittings) into one new run."
+        ),
+    )
+    merge_parser.add_argument(
+        "--run-ids",
+        required=True,
+        help="Comma-separated run ids from runtime/runs/ to pool. Sources are never modified.",
+    )
+    merge_parser.add_argument(
+        "--out-run-id",
+        default=None,
+        help="Run id for the merged run. Default: merged_<random>.",
+    )
+    merge_parser.add_argument(
+        "--created-at",
+        default=None,
+        help=(
+            "created_at for the merged run (ISO 8601). Default: the newest "
+            "source's, since pooled data is no fresher than its newest episode."
+        ),
+    )
+    merge_parser.add_argument(
+        "--on-overlap",
+        choices=list(OVERLAP_POLICIES),
+        default="error",
+        help=(
+            "What to do when two sources cover the same episode. Default: error "
+            "— pooling them would count the cell twice."
+        ),
+    )
+    merge_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print the compatibility report and the merged shape, write nothing.",
+    )
+    merge_parser.add_argument(
+        "--yes",
+        "-y",
+        action="store_true",
+        help="Skip the confirmation prompt (for scripts/CI).",
+    )
+    merge_parser.add_argument(
+        "--publish",
+        action="store_true",
+        help="Publish the merged run to Supabase, marking its sources superseded.",
+    )
+    merge_parser.add_argument(
+        "--allow-degraded",
+        action="store_true",
+        help="With --publish: publish even when the merged run's quality stamp is not 'ok'.",
+    )
+    merge_parser.add_argument(
+        "--label",
+        default=None,
+        help="With --publish: label for the dashboard run selector.",
+    )
+    merge_parser.add_argument(
+        "--no-supersede",
+        action="store_true",
+        help=(
+            "With --publish: leave the source runs' published rows alone. They "
+            "then pool alongside the merged run on the leaderboard, double-counting "
+            "every episode."
+        ),
+    )
+    merge_parser.set_defaults(func=merge_command)
 
     recompute_parser = subparsers.add_parser(
         "recompute",

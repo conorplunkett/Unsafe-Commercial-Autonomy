@@ -12,6 +12,10 @@ const state = {
   scenarioIndex: new Map(),
   allResults: [],
   runList: [],
+  // run_id -> run_id of the merged run that pooled it (app/merge.py). Every
+  // episode of a superseded run also lives inside that merged run, so the
+  // stored file is a duplicate copy the Runs table flags for deletion.
+  superseded: new Map(),
   // Fetched from GET /api/models: {provider_id: {name, description,
   // default_model, needs_key, configured}}. The provider chips, model
   // dropdown, and key fields all render from this instead of a hardcoded
@@ -137,6 +141,7 @@ for (const id of [
   "modelDetailContent",
   "runListTable",
   "runListStamp",
+  "runSupersededAction",
   "labEmpty",
 ]) {
   els[id] = document.querySelector(`#${id}`);
@@ -1338,11 +1343,32 @@ async function refreshData() {
       state.allResults.push({ ...result, run_id: run.run_id, run_created_at: run.created_at });
     }
   }
+  state.superseded = supersededMap(state.runList);
   // Track runs the server listed but couldn't return, so an empty By-model
   // section can say *why* ("N runs failed to load") instead of looking
   // identical to having no runs at all.
   state.runsListed = runList.length;
   state.runsFailed = runList.length - state.runList.length;
+}
+
+// Which stored runs have been pooled into a merged run, and by which one.
+// Mirrors superseded_run_ids() in app/merge.py: a run listed by two merged
+// runs reports the newest. Computed from the loaded run files rather than
+// asked of the server, so the Lab flags a merge the moment it lands on disk.
+function supersededMap(runs) {
+  const map = new Map();
+  const stamps = new Map();
+  for (const run of runs) {
+    for (const source of run.merged_from || []) {
+      if (!source || !source.run_id) continue;
+      const seen = stamps.get(source.run_id);
+      if (seen === undefined || seen <= run.created_at) {
+        map.set(source.run_id, run.run_id);
+        stamps.set(source.run_id, run.created_at);
+      }
+    }
+  }
+  return map;
 }
 
 // Best single complete run for a model: a run only counts as "full" if that
@@ -2296,6 +2322,14 @@ function renderRunList() {
   els.runListStamp.textContent = state.runFilter
     ? `${state.runList.length} stored — filtered, click again to clear`
     : `${state.runList.length} stored`;
+  // Superseded runs are safe to delete — their episodes are inside the merged
+  // run — so the count doubles as the button that clears them all.
+  const supersededIds = state.runList
+    .map((run) => run.run_id)
+    .filter((runId) => state.superseded.has(runId));
+  els.runSupersededAction.hidden = supersededIds.length === 0;
+  els.runSupersededAction.textContent = `Delete ${supersededIds.length} superseded`;
+  els.runSupersededAction.title = supersededIds.join(", ");
   // The Runs section sits above the by-model dashboard and is always shown
   // (see renderPhases), so an empty list needs its own row rather than
   // silently rendering a header with no body.
@@ -2316,9 +2350,18 @@ function renderRunList() {
       const errorCell = errorCount
         ? `<span class="run-error-flag" title="${errorCount} of ${metrics.total} results errored">${percent(metrics.errorRate)}</span>`
         : percent(metrics.errorRate);
+      const mergedInto = state.superseded.get(run.run_id);
+      const supersededFlag = mergedInto
+        ? `<span class="run-superseded-flag" title="Every episode in this run is also in ${mergedInto}. Safe to delete.">superseded</span>`
+        : "";
+      const mergedFlag = run.merged_from && run.merged_from.length
+        ? `<span class="run-merged-flag" title="Stitched from ${run.merged_from
+            .map((source) => `${source.run_id} (${source.episode_count})`)
+            .join(", ")}">merged ×${run.merged_from.length}</span>`
+        : "";
       return `
         <tr class="${selected}" data-run-id="${run.run_id}" title="Click to filter Results to this run">
-          <td>${compactTime(run.created_at)}</td>
+          <td>${compactTime(run.created_at)}${supersededFlag}${mergedFlag}</td>
           <td>${models}</td>
           <td>${phaseChecklist(run.results)}</td>
           <td>${runConditionsSummary(run.results)}</td>
@@ -2339,7 +2382,16 @@ function renderRunList() {
 }
 
 async function deleteRun(runId, label) {
-  if (!window.confirm(`Delete this run${label ? ` (${label})` : ""}? This removes its file from runtime/runs and cannot be undone.`)) {
+  const mergedInto = state.superseded.get(runId);
+  const note = mergedInto
+    ? ` Its episodes are already inside ${mergedInto}, so nothing is lost.`
+    : "";
+  if (
+    !window.confirm(
+      `Delete this run${label ? ` (${label})` : ""}? This removes its file from ` +
+        `runtime/runs and cannot be undone.${note}`
+    )
+  ) {
     return;
   }
   try {
@@ -2349,6 +2401,42 @@ async function deleteRun(runId, label) {
     renderAll();
   } catch (error) {
     window.alert(`Could not delete run: ${error.message}`);
+  }
+}
+
+// Delete every run whose episodes now live in a merged run. Confirmed once for
+// the batch, and each deletion is reported by run id if it fails, so a partial
+// sweep never looks like a clean one.
+async function deleteSupersededRuns() {
+  const targets = state.runList
+    .map((run) => run.run_id)
+    .filter((runId) => state.superseded.has(runId));
+  if (!targets.length) return;
+  const listed = targets
+    .map((runId) => `  ${runId} → ${state.superseded.get(runId)}`)
+    .join("\n");
+  if (
+    !window.confirm(
+      `Delete ${targets.length} superseded run file(s)?\n\n${listed}\n\n` +
+        "Each one's episodes are already inside the merged run named beside it. " +
+        "This cannot be undone, and it does not touch anything published to Supabase."
+    )
+  ) {
+    return;
+  }
+  const failed = [];
+  for (const runId of targets) {
+    try {
+      const response = await fetch(`/api/runs/${runId}`, { method: "DELETE" });
+      if (!response.ok) throw new Error(`${response.status} ${await response.text()}`);
+    } catch (error) {
+      failed.push(`${runId}: ${error.message}`);
+    }
+  }
+  await refreshData();
+  renderAll();
+  if (failed.length) {
+    window.alert(`Could not delete ${failed.length} run(s):\n${failed.join("\n")}`);
   }
 }
 
@@ -2551,6 +2639,7 @@ function bindEvents() {
     state.selectedKey = row.dataset.resultKey;
     renderAll();
   });
+  els.runSupersededAction.addEventListener("click", deleteSupersededRuns);
   els.runListTable.addEventListener("click", (event) => {
     const button = event.target.closest(".run-delete");
     if (button) {

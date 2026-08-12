@@ -1,5 +1,65 @@
 # Changelog
 
+## [2026-08-12] Merge fragmented runs into one artifact
+
+A grid rarely runs in one sitting — conditions get run on different days, an
+axis is added later — leaving several run files that are one experiment split
+apart. Nothing downstream could read them as one: the leaderboard pools by model
+name, but every per-condition breakdown in `metrics` is computed within a single
+run, so a four-way split has no `by_condition_and_framing` cell comparing
+conditions. This adds a way to pool them that cannot quietly overstate what was
+run.
+
+### Added
+- **`python -m app.cli merge --run-ids a,b,c,d`** (`app/merge.py`): pools the
+  sources' episodes into one new run and recomputes the metrics from the pooled
+  episodes via the existing `recompute_run_metrics`, so nothing is ever an
+  average of averages. Manual by design — without `--yes` it prints the plan and
+  waits for a typed confirmation; `--dry-run` prints and writes nothing.
+- **A compatibility gate that refuses anything that is not one experiment.**
+  Sources must agree on the scenario set, the model, `phase`, `temperature`,
+  `reasoning_effort`, `live`, and `answer_key_status`, and no episode — keyed on
+  the same (model, condition, framing, urgency, user-availability, scenario,
+  seed) tuple the Phase 2 checkpoint uses — may appear in two sources. Each
+  mismatch prints as its own line. `--on-overlap=prefer-newest`/`prefer-oldest`
+  keeps one copy of a doubled episode and records the drops per source; refusing
+  is the default, since pooling a doubled cell counts it twice.
+- **`BenchmarkRun.merged_from` / `merged_at`** (`MergeSource` in
+  `app/models.py`): each source's run id, date, episode count, axis levels, and
+  dropped-overlap count. A merged run is never mistakable for one sitting.
+  Optional fields, so runs stored before this parse unchanged.
+- **`benchmark_runs.superseded_by`** (`db/migrations/0010_add_superseded_by.sql`)
+  plus `mark_superseded()` in `app/supabase_publish.py`. The leaderboard sums
+  every published run's per-model counts, so publishing a merged run alongside
+  its already-published sources would count those episodes twice; `publish` now
+  stamps the sources (opt out with `--no-supersede`). Stamped runs stay listed,
+  selectable, and readable — `poolModelMetrics` just skips them. The site retries
+  the run list without the column, so it works before the migration is applied.
+- **Superseded/merged flags in the Experiment Lab.** A merged run's row is
+  badged `merged ×N`; each source is badged `superseded` with the merged run
+  named in its tooltip, and the Runs panel heading grows a **Delete N
+  superseded** button — those files are duplicate copies of episodes that now
+  live in the merged run. Computed from the run files themselves, so the flag
+  appears the moment a merge lands on disk.
+
+### Notes
+- Sources are never modified or deleted by a merge. The merged run is a new
+  artifact, per the repo's "publishing results is a new version, not an edit"
+  rule.
+- `created_at` defaults to the **newest** source's, not to now: pooled data is
+  no fresher than its newest episode. `--created-at` overrides it; the merge
+  time is recorded separately as `merged_at`.
+- Merging is order-independent and deterministic — sources sort by
+  `(created_at, run_id)` and episodes sort by their key — so re-running a merge
+  produces the same file.
+
+### Files
+- `app/merge.py` (new), `app/models.py`, `app/cli.py`, `app/storage.py`,
+  `app/supabase_publish.py`, `db/migrations/0010_add_superseded_by.sql` (new),
+  `static/lab.{html,js,css}`, `web/lib/{types,metrics}.ts`,
+  `web/components/results/{DataProvider,Findings,EpisodeBrowser}.tsx`,
+  `tests/test_merge.py` (new), `tests/test_cli.py`, `README.md`, `COMMANDS.md`
+
 ## [2026-08-11] Phase 2 episodes stop burning the turn budget on a stuck retry loop
 
 ### Fixed

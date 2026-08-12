@@ -76,6 +76,7 @@ carries):
 | `phase2-survey-collect` | Record one respondent's v2 votes |
 | `publish` | Push a stored run to Supabase |
 | `recompute` | Rebuild stored runs' metrics under the current definitions |
+| `merge` | Stitch several sittings of one gauntlet into a single run |
 
 `eval` and `phase2-eval` both take `--split objective` / `--split survey` to
 run one half of a scenario set.
@@ -442,6 +443,9 @@ python -m app.cli publish --file runtime/runs/run_<id>.json
 - Exactly one of `--run-id`, `--latest`, or `--file` selects the run.
 - `--label` is an optional human label shown in the dashboard's run selector.
 - Upserts on `run_id`, so re-publishing the same run overwrites the prior row.
+- Publishing a **merged** run (see `merge` below) also stamps `superseded_by` on
+  its source runs' published rows, which drops them from the pooled leaderboard
+  so their episodes are not counted twice. `--no-supersede` skips that.
 - The site reads with the **publishable** key in `web/lib/config.ts` (safe to
   commit; row-level security grants public read only). Writes require the
   **service-role** key above, which must stay server-side.
@@ -476,6 +480,54 @@ python -m app.cli recompute --run-id run_<id> --publish --label "Phase 2 officia
 - Episodes from a custom `--scenario-set` file aren't in the committed sets;
   they stay unlabeled and such runs keep the legacy all-keyed denominator.
 - Prints one line per run: episodes backfilled and the old → new unsafe rate.
+
+---
+
+## `merge` — stitch several sittings of one gauntlet into one run
+
+A grid is often not run in one go: the four control conditions get run on
+different days, or an axis is added later. Those run files are one experiment
+split across four sittings, and nothing downstream can read them as one — every
+per-condition breakdown in `metrics` is computed within a single run. `merge`
+pools their episodes into one new run and recomputes the metrics from the pooled
+episodes, so `by_condition_and_framing` and friends finally have every cell.
+
+```bash
+# See what the merge would be; write nothing:
+python -m app.cli merge --run-ids run_a,run_b,run_c,run_d --dry-run
+
+python -m app.cli merge \
+  --run-ids run_a,run_b,run_c,run_d \
+  --out-run-id gemini3pro_v2_full \
+  --created-at 2026-08-11T00:00:00Z \
+  --publish --label "Gemini 3 Pro — full grid (stitched)"
+```
+
+- **Manual by design.** Nothing merges on its own; without `--yes` the command
+  prints the plan and waits for a typed confirmation.
+- **Refuses anything that isn't one experiment.** Sources must agree on the
+  scenario set, the model, `phase`, `temperature`, `reasoning_effort`, `live`,
+  and `answer_key_status`, and no episode — the (model, condition, framing,
+  urgency, user-availability, scenario, seed) cell — may appear in two sources.
+  Every mismatch is printed as its own line.
+- `--on-overlap=prefer-newest` / `prefer-oldest` keeps one copy of a doubled
+  episode and records how many were dropped, per source. The default is to
+  refuse: pooling them would count those cells twice.
+- `--created-at` defaults to the **newest source's** date — pooled data is no
+  fresher than its newest episode. The merge time is recorded separately as
+  `merged_at`.
+- **Sources are never touched.** They stay on disk; the merged run is a new
+  artifact, and it records what it is in `merged_from` (each source's run id,
+  date, episode count, and axis levels).
+- `--publish` publishes the merged run and marks its sources superseded so the
+  leaderboard does not count their episodes twice. Needs
+  `db/migrations/0010_add_superseded_by.sql` to have been run once against the
+  project.
+
+In the Experiment Lab, a merged run's row is badged `merged ×N` and each of its
+sources is badged `superseded`; the Runs panel heading grows a **Delete N
+superseded** button, since those files are now duplicate copies of episodes that
+live in the merged run.
 
 ---
 
