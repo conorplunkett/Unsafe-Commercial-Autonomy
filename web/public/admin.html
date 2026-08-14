@@ -614,6 +614,7 @@ function renderResults(rows) {
         <button class="secondary" id="exp-csv">⬇ Export answers (CSV)</button>
         <button class="secondary" id="exp-summary">⬇ Export summary (CSV)</button>
         <button class="secondary" id="exp-images">⬇ Export scenario images (ZIP)</button>
+        <button class="secondary" id="copy-table-p1">📋 Copy results table</button>
         <span class="l" style="color:var(--muted);font-size:12px">Downloads to your device — commit to GitHub from there.</span>
       </div>
     </div>
@@ -752,10 +753,12 @@ function renderResults(rows) {
   const cb = document.getElementById("exp-csv");
   const sb = document.getElementById("exp-summary");
   const ib = document.getElementById("exp-images");
+  const mb = document.getElementById("copy-table-p1");
   if (jb) jb.onclick = exportJSON;
   if (cb) cb.onclick = exportAnswersCSV;
   if (sb) sb.onclick = exportSummaryCSV;
   if (ib) ib.onclick = () => exportScenarioImages("paybench-p1", ib);
+  if (mb) mb.onclick = () => copyToClipboard(resultsTableMarkdownP1(), mb);
 }
 
 function renderRespondentTableP1(rows) {
@@ -885,6 +888,35 @@ function toCSV(headers, rows) {
   return [headers.map(csvCell).join(","), ...rows.map(r => r.map(csvCell).join(","))].join("\n");
 }
 
+function toMarkdownTable(headers, rows) {
+  const esc = v => String(v === null || v === undefined ? "" : v).replace(/\|/g, "\\|").replace(/\n/g, " ");
+  const head = `| ${headers.map(esc).join(" | ")} |`;
+  const sep = `| ${headers.map(() => "---").join(" | ")} |`;
+  const body = rows.map(r => `| ${r.map(esc).join(" | ")} |`).join("\n");
+  return [head, sep, body].join("\n");
+}
+
+// Same clipboard-with-textarea-fallback pattern as the "Copy" buttons on the
+// Commands tab: clipboard API needs a secure context, so plain http falls
+// back to a hidden textarea + execCommand.
+async function copyToClipboard(text, buttonEl) {
+  const original = buttonEl ? buttonEl.textContent : "";
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch (e) {
+    const field = document.createElement("textarea");
+    field.value = text;
+    document.body.appendChild(field);
+    field.select();
+    try { document.execCommand("copy"); } catch (e2) {}
+    field.remove();
+  }
+  if (buttonEl) {
+    buttonEl.textContent = "Copied";
+    setTimeout(() => { buttonEl.textContent = original; }, 1200);
+  }
+}
+
 // Full, lossless dump of everything loaded — for archiving / GitHub.
 function exportJSON() {
   download(`paybench-responses-${stamp()}.json`, JSON.stringify(latestRows, null, 2), "application/json");
@@ -936,6 +968,25 @@ function exportSummaryCSV() {
     });
   });
   download(`paybench-summary-${stamp()}.csv`, toCSV(headers, rows), "text/csv;charset=utf-8");
+}
+
+// One row per scenario — the readable summary for pasting into a doc/paper,
+// as opposed to exportSummaryCSV's one-row-per-option raw detail.
+function resultsTableMarkdownP1() {
+  const clean = latestRows.filter(isClean);
+  const headers = ["ID", "Scenario", "n", "Top choice", "Agreement", "Status"];
+  const rows = QUESTIONS.map(q => {
+    const s = questionStats(q, clean);
+    return [
+      q.id,
+      q.short || "",
+      s.n,
+      s.n ? labelFor(q.id, s.modalKey) : "—",
+      s.n ? Math.round(s.agreement * 100) + "%" : "—",
+      s.locked ? "Locked" : "Provisional"
+    ];
+  });
+  return toMarkdownTable(headers, rows);
 }
 
 const QUESTIONS_P2 = [
@@ -1196,6 +1247,7 @@ function renderResultsP2(rows) {
         <button class="secondary" id="exp-csv-p2">⬇ Export votes (CSV)</button>
         <button class="secondary" id="exp-sum-p2">⬇ Export summary (CSV)</button>
         <button class="secondary" id="exp-images-p2">⬇ Export scenario images (ZIP)</button>
+        <button class="secondary" id="copy-table-p2">📋 Copy results table</button>
         <span class="l" style="color:var(--muted);font-size:12px">Downloads to your device.</span>
       </div>
     </div>`;
@@ -1433,10 +1485,12 @@ function wireP2Exports() {
   const cb = document.getElementById("exp-csv-p2");
   const sb = document.getElementById("exp-sum-p2");
   const ib = document.getElementById("exp-images-p2");
+  const mb = document.getElementById("copy-table-p2");
   if (jb) jb.onclick = () => download(`paybench-phase2-responses-${stamp()}.json`, JSON.stringify(latestRowsP2, null, 2), "application/json");
   if (cb) cb.onclick = exportVotesCSVP2;
   if (sb) sb.onclick = exportSummaryCSVP2;
   if (ib) ib.onclick = () => exportScenarioImages("paybench-p2", ib);
+  if (mb) mb.onclick = () => copyToClipboard(resultsTableMarkdownP2(), mb);
 }
 
 function exportVotesCSVP2() {
@@ -1471,6 +1525,25 @@ function exportSummaryCSVP2() {
       s.alignment || "", q.text];
   });
   download(`paybench-phase2-summary-${stamp()}.csv`, toCSV(headers, rows), "text/csv;charset=utf-8");
+}
+
+// One row per scenario — the readable summary for pasting into a doc/paper,
+// as opposed to exportSummaryCSVP2's one-row-per-scenario raw detail dump.
+function resultsTableMarkdownP2() {
+  const clean = latestRowsP2.filter(r => !isExcludedP2(r));
+  const headers = ["ID", "Scenario", "n", "Top choice", "Agreement", "Status"];
+  const rows = QUESTIONS_P2.map(q => {
+    const s = questionStatsP2(q, clean);
+    return [
+      q.id,
+      shortTextP2(q.text, 62),
+      s.n,
+      s.n ? labelForP2(q, s.modalKey) : "—",
+      s.n ? Math.round(s.agreement * 100) + "%" : "—",
+      STATUS_META_P2[lockStatusP2(s)].label
+    ];
+  });
+  return toMarkdownTable(headers, rows);
 }
 
 // ---- Gate + tab controller ------------------------------------------------
