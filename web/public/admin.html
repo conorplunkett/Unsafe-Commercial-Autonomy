@@ -969,21 +969,29 @@ function exportSummaryCSV() {
   download(`paybench-summary-${stamp()}.csv`, toCSV(headers, rows), "text/csv;charset=utf-8");
 }
 
-// One row per scenario — the readable summary for pasting into a doc/paper,
-// as opposed to exportSummaryCSV's one-row-per-option raw detail.
+// One row per scenario+option (every answer, ranked most- to least-chosen
+// within each scenario) — the readable Markdown counterpart to
+// exportSummaryCSV's raw one-row-per-option CSV.
 function resultsTableMarkdownP1() {
   const clean = latestRows.filter(isClean);
-  const headers = ["ID", "Scenario", "n", "Top choice", "Agreement", "Status"];
-  const rows = QUESTIONS.map(q => {
+  const headers = ["ID", "Scenario", "Option", "Chose", "% Chose", "% Endorsed", "n", "Status"];
+  const rows = [];
+  QUESTIONS.forEach(q => {
     const s = questionStats(q, clean);
-    return [
-      q.id,
-      q.short || "",
-      s.n,
-      s.n ? labelFor(q.id, s.modalKey) : "—",
-      s.n ? Math.round(s.agreement * 100) + "%" : "—",
-      s.locked ? "Locked" : "Provisional"
-    ];
+    s.ranked.forEach(o => {
+      const chose = s.counts[o.key] || 0;
+      const endorsed = s.acceptCounts[o.key] || 0;
+      rows.push([
+        q.id,
+        q.short || "",
+        o.label,
+        chose,
+        s.n > 0 ? Math.round((chose / s.n) * 100) + "%" : "—",
+        s.denom > 0 ? Math.round((endorsed / s.denom) * 100) + "%" : "—",
+        s.n,
+        s.locked ? "Locked" : "Provisional"
+      ]);
+    });
   });
   return toMarkdownTable(headers, rows);
 }
@@ -1526,21 +1534,32 @@ function exportSummaryCSVP2() {
   download(`paybench-phase2-summary-${stamp()}.csv`, toCSV(headers, rows), "text/csv;charset=utf-8");
 }
 
-// One row per scenario — the readable summary for pasting into a doc/paper,
-// as opposed to exportSummaryCSVP2's one-row-per-scenario raw detail dump.
+// One row per scenario+option (every answer, ranked most- to least-chosen
+// within each scenario) — the readable Markdown counterpart to
+// exportSummaryCSVP2's raw one-row-per-scenario CSV dump.
 function resultsTableMarkdownP2() {
   const clean = latestRowsP2.filter(r => !isExcludedP2(r));
-  const headers = ["ID", "Scenario", "n", "Top choice", "Agreement", "Status"];
-  const rows = QUESTIONS_P2.map(q => {
+  const headers = ["ID", "Scenario", "Option", "Chose", "% Chose", "% Endorsed", "n", "Status"];
+  const rows = [];
+  QUESTIONS_P2.forEach(q => {
     const s = questionStatsP2(q, clean);
-    return [
-      q.id,
-      shortTextP2(q.text, 62),
-      s.n,
-      s.n ? labelForP2(q, s.modalKey) : "—",
-      s.n ? Math.round(s.agreement * 100) + "%" : "—",
-      STATUS_META_P2[lockStatusP2(s)].label
-    ];
+    const st = STATUS_META_P2[lockStatusP2(s)];
+    const rankedAll = (q.options || []).map(o => o.key)
+      .sort((a, b) => (s.counts[b] || 0) - (s.counts[a] || 0));
+    rankedAll.forEach(k => {
+      const chose = s.counts[k] || 0;
+      const endorsed = s.acceptCounts[k] || 0;
+      rows.push([
+        q.id,
+        shortTextP2(q.text, 62),
+        labelForP2(q, k),
+        chose,
+        s.n > 0 ? Math.round((chose / s.n) * 100) + "%" : "—",
+        clean.length > 0 ? Math.round((endorsed / clean.length) * 100) + "%" : "—",
+        s.n,
+        st.label
+      ]);
+    });
   });
   return toMarkdownTable(headers, rows);
 }
