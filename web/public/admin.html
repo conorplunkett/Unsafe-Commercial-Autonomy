@@ -289,6 +289,8 @@
   <div id="results" style="display:none"></div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script>
 "use strict";
 
@@ -610,6 +612,7 @@ function renderResults(rows) {
         <button id="exp-json">⬇ Export all data (JSON)</button>
         <button class="secondary" id="exp-csv">⬇ Export answers (CSV)</button>
         <button class="secondary" id="exp-summary">⬇ Export summary (CSV)</button>
+        <button class="secondary" id="exp-images">⬇ Export scenario images (ZIP)</button>
         <span class="l" style="color:var(--muted);font-size:12px">Downloads to your device — commit to GitHub from there.</span>
       </div>
     </div>
@@ -679,7 +682,7 @@ function renderResults(rows) {
 
   stats.forEach(({ q, s }) => {
     html += `
-      <div class="scenario-block">
+      <div class="scenario-block" data-scn-id="${q.id}">
         <div class="scenario-head">
           <span class="scn-id">${q.id}</span>
           <span class="lock-badge ${s.locked ? 'locked' : 'provisional'}" title="Locks at ≥${LOCK_MIN_RESPONDENTS} responses and ≥${Math.round(LOCK_THRESHOLD*100)}% agreement">${s.locked ? 'Locked' : 'Provisional'}</span>
@@ -747,9 +750,11 @@ function renderResults(rows) {
   const jb = document.getElementById("exp-json");
   const cb = document.getElementById("exp-csv");
   const sb = document.getElementById("exp-summary");
+  const ib = document.getElementById("exp-images");
   if (jb) jb.onclick = exportJSON;
   if (cb) cb.onclick = exportAnswersCSV;
   if (sb) sb.onclick = exportSummaryCSV;
+  if (ib) ib.onclick = () => exportScenarioImages("paybench-p1", ib);
 }
 
 function renderRespondentTableP1(rows) {
@@ -813,6 +818,62 @@ function download(filename, text, mime) {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+function downloadBlob(filename, blob) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// One PNG per rendered scenario card (same markup as the on-page "Full
+// breakdown" / "Scenario detail" cards), bundled into a single ZIP so the
+// browser only prompts once. Runs entirely against what's already on screen —
+// no re-fetch, no server involvement.
+async function exportScenarioImages(filePrefix, buttonEl) {
+  const blocks = Array.from(document.querySelectorAll("#results .scenario-block"));
+  if (!blocks.length) { alert("No scenario cards are rendered on this tab yet."); return; }
+  if (typeof html2canvas === "undefined" || typeof JSZip === "undefined") {
+    alert("Image export libraries didn't load (offline, or blocked by an extension). Everything else on this page still works.");
+    return;
+  }
+  const original = buttonEl ? buttonEl.textContent : "";
+  if (buttonEl) buttonEl.disabled = true;
+  try {
+    const zip = new JSZip();
+    for (let i = 0; i < blocks.length; i++) {
+      const block = blocks[i];
+      const scnId = block.getAttribute("data-scn-id") || `scenario-${i + 1}`;
+      if (buttonEl) buttonEl.textContent = `Rendering ${i + 1}/${blocks.length}…`;
+      const canvas = await html2canvas(block, {
+        backgroundColor: "#ffffff",
+        scale: 2,
+        onclone: (clonedDoc) => {
+          const clone = clonedDoc.querySelector(`[data-scn-id="${scnId}"]`);
+          if (clone) {
+            clone.style.border = "none";
+            clone.style.margin = "0";
+            clone.style.padding = "20px";
+            clone.style.background = "#ffffff";
+          }
+        }
+      });
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
+      if (blob) zip.file(`${filePrefix}-${scnId}.png`, blob);
+    }
+    if (buttonEl) buttonEl.textContent = "Zipping…";
+    const zipBlob = await zip.generateAsync({ type: "blob" });
+    downloadBlob(`${filePrefix}-scenario-images-${stamp()}.zip`, zipBlob);
+  } catch (e) {
+    alert("Image export failed: " + e.message);
+  } finally {
+    if (buttonEl) { buttonEl.disabled = false; buttonEl.textContent = original; }
+  }
 }
 
 function csvCell(v) {
@@ -1133,6 +1194,7 @@ function renderResultsP2(rows) {
         <button id="exp-json-p2">⬇ Export all data (JSON)</button>
         <button class="secondary" id="exp-csv-p2">⬇ Export votes (CSV)</button>
         <button class="secondary" id="exp-sum-p2">⬇ Export summary (CSV)</button>
+        <button class="secondary" id="exp-images-p2">⬇ Export scenario images (ZIP)</button>
         <span class="l" style="color:var(--muted);font-size:12px">Downloads to your device.</span>
       </div>
     </div>`;
@@ -1325,7 +1387,7 @@ function renderResultsP2(rows) {
     const acc = (q.key && q.key.acceptable || [])
       .filter(a => a !== (q.key && q.key.expected_vote))
       .map(a => VOTE_LABEL_P2[a]).join(", ");
-    html += `<div class="scenario-block">
+    html += `<div class="scenario-block" data-scn-id="${q.id}">
       <div class="scenario-head"><span class="scn-id">${q.id}</span>
         <span class="${st.cls}">${st.label}</span> ${alignChip}</div>
       <div class="scenario-full-text">${escapeHtml(q.text)}</div>
@@ -1369,9 +1431,11 @@ function wireP2Exports() {
   const jb = document.getElementById("exp-json-p2");
   const cb = document.getElementById("exp-csv-p2");
   const sb = document.getElementById("exp-sum-p2");
+  const ib = document.getElementById("exp-images-p2");
   if (jb) jb.onclick = () => download(`paybench-phase2-responses-${stamp()}.json`, JSON.stringify(latestRowsP2, null, 2), "application/json");
   if (cb) cb.onclick = exportVotesCSVP2;
   if (sb) sb.onclick = exportSummaryCSVP2;
+  if (ib) ib.onclick = () => exportScenarioImages("paybench-p2", ib);
 }
 
 function exportVotesCSVP2() {
