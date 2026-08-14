@@ -32,9 +32,14 @@
   .scenario-list li { margin-bottom: 6px; }
   .illo { margin: 0 0 18px; }
   .illo svg { width: 100%; height: auto; display: block; }
-  .progress { height: 6px; background: var(--border); border-radius: 3px; margin-bottom: 20px; overflow: hidden; }
+  /* Progress bar and step labels ("Situation X of 50", "Part X of Y") are
+     intentionally never shown to respondents — mid-survey position/remaining
+     count could bias pacing or answers near the end. Kept in the DOM (not
+     removed) because scripts/phase2_walkthrough.js and phase2_mobile_pass.js
+     key off .step-label's text to drive and validate the walkthrough. */
+  .progress { display: none; height: 6px; background: var(--border); border-radius: 3px; margin-bottom: 20px; overflow: hidden; }
   .progress > div { height: 100%; background: var(--accent); border-radius: 3px; width: 0%; transition: width 0.25s ease; }
-  .step-label { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+  .step-label { display: none; font-size: 13px; color: var(--muted); margin-bottom: 8px; }
   .stem { font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 16px; }
   .stem em { font-style: normal; text-decoration: underline; text-underline-offset: 2px; }
   .stem .hint { font-weight: 400; font-size: 13px; color: var(--muted); }
