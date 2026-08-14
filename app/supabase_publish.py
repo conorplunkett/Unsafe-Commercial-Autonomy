@@ -350,3 +350,64 @@ def publish_run(
         )
     return row
 
+
+def mark_superseded(
+    run_ids: List[str],
+    *,
+    superseded_by: Optional[str],
+    client: Optional[httpx.Client] = None,
+) -> List[str]:
+    """Stamp published runs as pooled into ``superseded_by``; return those hit.
+
+    The leaderboard sums every published run's per-model counts, so publishing
+    a merged run without this would count its sources' episodes twice (see
+    db/migrations/0010_add_superseded_by.sql). Nothing is deleted: a stamped run
+    is still listed, still selectable, still has its episodes — it just stops
+    contributing to the pooled board.
+
+    Passing ``superseded_by=None`` clears the stamp, which is how an undo works.
+    Run ids with no published row are skipped silently; the return value names
+    the rows actually updated, so a caller can report "2 of 4 were published".
+    """
+    if not run_ids:
+        return []
+    base_url, key, table = _config()
+    headers = {
+        "apikey": key,
+        "Authorization": f"Bearer {key}",
+        "Content-Type": "application/json",
+        # Echo the updated rows back so the caller learns which ids existed.
+        "Prefer": "return=representation",
+    }
+    quoted = ",".join(f'"{run_id}"' for run_id in run_ids)
+    endpoint = f"{base_url}/rest/v1/{table}?run_id=in.({quoted})"
+
+    owns_client = client is None
+    client = client or httpx.Client(timeout=30.0)
+    try:
+        response = _request_with_retry(
+            lambda: client.patch(
+                endpoint, headers=headers, content=json.dumps({"superseded_by": superseded_by})
+            ),
+            "supersede",
+        )
+    finally:
+        if owns_client:
+            client.close()
+
+    if _missing_column(response) == "superseded_by":
+        raise SupabasePublishError(
+            "The benchmark_runs.superseded_by column does not exist yet. Run "
+            "db/migrations/0010_add_superseded_by.sql against the project, then "
+            "re-run publish (the run itself is already published)."
+        )
+    if response.status_code >= 400:
+        raise SupabasePublishError(
+            f"Supabase supersede failed ({response.status_code}): {response.text}"
+        )
+    try:
+        rows = response.json()
+    except ValueError:
+        return []
+    return [row["run_id"] for row in rows if isinstance(row, dict) and row.get("run_id")]
+

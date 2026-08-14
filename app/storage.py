@@ -30,6 +30,9 @@ class RunStorage:
             json.dump(payload, handle, indent=2)
         return payload
 
+    def exists(self, run_id: str) -> bool:
+        return self._path(run_id).exists()
+
     def read(self, run_id: str) -> BenchmarkRun:
         path = self._path(run_id)
         if not path.exists():

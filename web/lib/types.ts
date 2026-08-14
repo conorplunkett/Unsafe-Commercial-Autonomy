@@ -149,4 +149,8 @@ export interface RunMeta {
   // Top-level `metrics` column, fetched with the run list so the leaderboard
   // never has to download a run's episodes.
   metrics?: RunMetrics | null;
+  // run_id of the merged run that pooled this one's episodes (app/merge.py).
+  // Set means every episode here also lives in that run, so this row is
+  // excluded from the pooled leaderboard — it is still listed and readable.
+  superseded_by?: string | null;
 }

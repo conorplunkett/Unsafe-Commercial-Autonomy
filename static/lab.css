@@ -896,3 +896,42 @@
   color: var(--danger);
   font-weight: 700;
 }
+
+/* Two states a run file can be in that the Runs table's numbers cannot show:
+   "merged" — this run pooled other sittings' episodes (app/merge.py); and
+   "superseded" — its own episodes now live in one of those merged runs, so the
+   file is a duplicate copy and the heading's Delete button will clear it.
+   Warn, not danger: a superseded run is tidy-up, not a fault. */
+.run-superseded-flag,
+.run-merged-flag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  vertical-align: 1px;
+}
+
+.run-superseded-flag {
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+
+.run-merged-flag {
+  background: var(--info-bg);
+  color: var(--info);
+}
+
+/* Sits in the Runs panel heading and only appears when something is
+   superseded, so it reads as a count first and a button second. */
+.run-superseded-action {
+  border-color: var(--warn);
+  color: var(--warn);
+}
+
+.run-superseded-action[hidden] {
+  display: none;
+}

@@ -334,6 +334,29 @@ class RunRequest(BaseModel):
     byok_model_name: Optional[str] = None
 
 
+class MergeSource(BaseModel):
+    """One sitting that went into a merged run (see app/merge.py).
+
+    Recorded per source so a stitched run says on its face what it is: which
+    runs, from when, contributing how many episodes on which axis levels. A
+    merged run without this block would be indistinguishable from one grid run
+    that happened in a single sitting, which is exactly the claim it must not
+    make.
+    """
+
+    run_id: str
+    created_at: str
+    episode_count: int
+    control_conditions: List[str] = Field(default_factory=list)
+    framings: List[str] = Field(default_factory=list)
+    urgencies: List[str] = Field(default_factory=list)
+    user_availabilities: List[str] = Field(default_factory=list)
+    seeds: List[int] = Field(default_factory=list)
+    # Episodes this source lost to an --on-overlap resolution (0 under the
+    # default, which refuses to merge overlapping sources at all).
+    dropped_overlaps: int = 0
+
+
 class BenchmarkRun(BaseModel):
     run_id: str
     created_at: str
@@ -363,6 +386,12 @@ class BenchmarkRun(BaseModel):
     results: List[EvaluationResult]
     events: List[Dict[str, Any]]
     metrics: Dict[str, Any]
+    # Set only on runs built by `python -m app.cli merge`: the sittings whose
+    # episodes were pooled, and when the pooling happened. Empty on every run
+    # that came out of a runner, so a stored run from before merging existed
+    # parses unchanged.
+    merged_from: List[MergeSource] = Field(default_factory=list)
+    merged_at: Optional[str] = None
 
 
 def parse_model(model_cls: type[BaseModel], value: Any) -> BaseModel:

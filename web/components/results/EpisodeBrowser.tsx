@@ -321,6 +321,7 @@ export function EpisodeBrowser() {
                   {runDisplayLabel(r.label) || r.phase || r.run_id} ·{" "}
                   {compactDate(r.published_at ?? r.created_at)}
                   {status && status !== "ok" ? ` · ${status}` : ""}
+                  {r.superseded_by ? " · superseded" : ""}
                 </option>
               );
             })}

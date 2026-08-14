@@ -20,6 +20,7 @@ function RunControls() {
             <option key={r.run_id} value={r.run_id}>
               {runDisplayLabel(r.label) || r.phase || r.run_id} ·{" "}
               {compactDate(r.published_at ?? r.created_at)}
+              {r.superseded_by ? " · superseded" : ""}
             </option>
           ))}
         </select>
