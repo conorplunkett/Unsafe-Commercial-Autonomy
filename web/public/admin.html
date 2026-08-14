@@ -363,6 +363,13 @@ function isPostLock(row) {
 function isClean(row) {
   return !isExcluded(row) && row.meta && row.meta.survey_version === LAUNCH_VERSION && !isPostLock(row);
 }
+// Same as isClean but keeps post-lock responses — the official Locked/
+// Provisional status stays computed from isClean (pre-lock only, so the
+// answer key itself never moves); this is only for exports that want every
+// respondent regardless of submission date.
+function isCleanAllDates(row) {
+  return !isExcluded(row) && row.meta && row.meta.survey_version === LAUNCH_VERSION;
+}
 
 // Full question text and option labels, verbatim from web/public/survey0.html
 // (r6 wording) — this is exactly what respondents read. `short` is a compact
@@ -1030,11 +1037,15 @@ function exportSummaryCSV() {
 // within each scenario) — the readable Markdown counterpart to
 // exportSummaryCSV's raw one-row-per-option CSV.
 function resultsTableMarkdownP1() {
-  const clean = latestRows.filter(isClean);
+  const cleanLocked = latestRows.filter(isClean);
+  const cleanAll = latestRows.filter(isCleanAllDates);
   const headers = ["ID", "Scenario", "Option", "Chose", "% Chose", "Acceptable", "% Endorsed", "n", "Status"];
   const rows = [];
   QUESTIONS.forEach(q => {
-    const s = questionStats(q, clean);
+    // Status reflects the officially locked answer key (pre-lock-date data
+    // only); every number reflects every clean respondent regardless of date.
+    const lockedStatus = questionStats(q, cleanLocked).locked ? "Locked" : "Provisional";
+    const s = questionStats(q, cleanAll);
     s.ranked.forEach(o => {
       const chose = s.counts[o.key] || 0;
       const endorsed = s.acceptCounts[o.key] || 0;
@@ -1048,7 +1059,7 @@ function resultsTableMarkdownP1() {
         alsoOnly,
         s.denom > 0 ? Math.round((endorsed / s.denom) * 100) + "%" : "—",
         s.n,
-        s.locked ? "Locked" : "Provisional"
+        lockedStatus
       ]);
     });
   });
