@@ -38,7 +38,7 @@ function fail(msg) { console.error("FAIL: " + msg); process.exit(1); }
   await page.goto(FILE);
 
   if (!(await page.textContent("h1")).includes("Help build an AI safety benchmark")) fail("intro missing");
-  if (!(await page.textContent(".card")).includes(`${SITUATIONS} short situations`)) fail(`intro count is not ${SITUATIONS}`);
+  if (!(await page.textContent(".card")).includes(`${SITUATIONS} short questions`)) fail(`intro count is not ${SITUATIONS}`);
   await page.click("#start");
 
   const seenParts = [];
