@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { QuestionCard } from "@/components/survey/QuestionCard";
-import { SurveyResultsTable } from "@/components/survey/SurveyResultsTable";
 import { SURVEY_RESULTS } from "@/lib/surveyResults";
 import { CONFIG } from "@/lib/config";
 import { Card } from "@/components/ui/Card";
@@ -106,15 +105,9 @@ export default function SurveyResultsPage() {
           <p className="mt-5 max-w-2xl font-serif text-prose leading-relaxed text-ink/85">
             Six of PayBench&rsquo;s twenty-five scenario pairs are
             preference-dependent: the safe action is whatever people would
-            genuinely want an agent with their payment authority to do. We
-            surveyed {R.respondents.clean} respondents on the{" "}
-            {R.lock_summary.total} preference items under pre-registered
-            exclusion and lock rules. {R.respondents.excluded} responses were
-            excluded, {R.lock_summary.locked} of {R.lock_summary.total}
-            {" items "}
-            locked, and the survey&rsquo;s baseline item put the{" "}
-            <em>reflexive-ask floor</em> — the share who want the agent to check
-            in even when nothing is at stake — at {pct1(floor.rate)}.
+            genuinely want an agent with their payment authority to do. This
+            survey put those items to people directly, under pre-registered
+            exclusion and lock rules, and set the answer keys from their votes.
           </p>
         </header>
 
@@ -136,7 +129,7 @@ export default function SurveyResultsPage() {
               respondent: the 12 preference items (6 matched trap/lookalike
               pairs: A4, A5, B2, B4, C5, E5) plus 2 attention items. After
               choosing a preferred action, respondents mark which other options
-              would <em>also</em> have been acceptable. Recruitment was a
+              would <em>also</em>{" "}have been acceptable. Recruitment was a
               convenience sample via the author&rsquo;s Instagram and LinkedIn.
               The instrument version analyzed is{" "}
               <code className="font-mono text-small">
@@ -162,7 +155,8 @@ export default function SurveyResultsPage() {
               answered the launch instrument.
             </p>
             <p>
-              <strong>Lock rule:</strong> an item&rsquo;s answer key locks when
+              <strong>Lock rule:</strong>{" "}an item&rsquo;s answer key locks
+              when
               at least {Math.round(R._meta.lock_threshold * 100)}% of clean
               respondents agree on the modal mapped vote, with at least{" "}
               {R._meta.lock_min_respondents} clean respondents. An option is
@@ -172,7 +166,8 @@ export default function SurveyResultsPage() {
               dropped, and the count is reported.
             </p>
             <p>
-              <strong>The baseline item (att_1)</strong> is a trivially safe
+              <strong>The baseline item (att_1)</strong>{" "}is a trivially
+              safe
               purchase — an $18 phone case, within a $20 budget, from an
               approved store. It keys no scenario and never excludes anyone; it
               exists to measure how often people say &ldquo;check with me
@@ -212,11 +207,10 @@ export default function SurveyResultsPage() {
           <h2 className="text-h2 tracking-tight">Results by pair</h2>
           <p className="mt-3 max-w-3xl leading-relaxed text-ink/85">
             Each pair differs in exactly one way: the trap contains a real
-            reason not to proceed; the lookalike removes it. Solid bars show the
-            share who chose an option as preferred (of {R.questions[0]?.n}{" "}
-            answering); lighter bars extend to the share who chose it{" "}
-            <em>or</em> marked it also-acceptable (of {R.questions[0]?.denom}{" "}
-            clean respondents).
+            reason not to proceed; the lookalike removes it.
+          </p>
+          <p className="mt-2 font-mono text-caption text-muted">
+            Solid: chose · tinted: also ok
           </p>
           <div className="mt-6 space-y-10">
             {PAIR_ORDER.map((pair) => {
@@ -240,16 +234,6 @@ export default function SurveyResultsPage() {
               );
             })}
           </div>
-        </section>
-
-        <section className="mt-14">
-          <h2 className="text-h2 tracking-tight">Lock summary</h2>
-          <SurveyResultsTable questions={R.questions} />
-          <p className="mt-3 max-w-3xl text-small leading-relaxed text-muted">
-            Per the pre-registration, the {R.lock_summary.unlocked_ids.length}{" "}
-            items that failed to lock will be reworded or dropped, and that
-            count reported with the benchmark results.
-          </p>
         </section>
 
         <section className="mt-14">
@@ -294,9 +278,7 @@ export default function SurveyResultsPage() {
 
         <section className="mt-14">
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <h2 className="text-h2 tracking-tight">
-              Does experience predict safety?
-            </h2>
+            <h2 className="text-h2 tracking-tight">Experience and safety</h2>
             <span className="label">Exploratory · not pre-registered</span>
           </div>
           <div className="mt-4 max-w-3xl space-y-4 leading-relaxed text-ink/85">
@@ -377,8 +359,7 @@ export default function SurveyResultsPage() {
           </Card>
           <p className="mt-3 max-w-3xl text-small leading-relaxed text-muted">
             Unsafe pick = choosing the flagged, rule-breaking proceed option on
-            a trap. The &ldquo;used an agent to buy&rdquo; column (n = {evYes.n}
-            ) is shown for completeness; it is too small to compare.
+            a trap.
           </p>
         </section>
 
