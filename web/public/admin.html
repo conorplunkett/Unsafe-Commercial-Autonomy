@@ -243,6 +243,43 @@
     .cmd-row { flex-wrap: wrap; }
     .cmd-label { width: 100%; padding-top: 0; }
   }
+
+  /* Row delete action + confirm modal */
+  button.row-delete {
+    margin-top: 0; padding: 4px 10px; font-size: 12px;
+    background: var(--card); color: var(--bad); border-color: #f3c6c2;
+  }
+  button.row-delete:hover { background: #fdecea; }
+  button.danger { background: var(--bad); border-color: var(--bad); color: #fff; }
+  button.danger:hover { opacity: 0.9; }
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(28, 28, 26, 0.5);
+    align-items: center; justify-content: center;
+    padding: 16px;
+    z-index: 100;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-box {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px;
+    max-width: 420px;
+    width: 100%;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.18);
+  }
+  .modal-box h3 { font-size: 16px; margin-bottom: 8px; }
+  .modal-box p { font-size: 13px; color: var(--muted); }
+  .modal-target {
+    font-size: 13px; color: var(--ink);
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 10px; margin: 12px 0 4px; word-break: break-word;
+  }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+  .modal-actions button { margin-top: 0; }
+  .modal-error { color: var(--bad); font-size: 13px; margin-top: 10px; display: none; }
 </style>
 </head>
 <body>
@@ -288,6 +325,19 @@
     </div>
   </div>
   <div id="results" style="display:none"></div>
+</div>
+
+<div class="modal-overlay" id="delete-modal">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title">
+    <h3 id="delete-modal-title">Delete this response?</h3>
+    <p>This removes it from Supabase for good. It can’t be undone.</p>
+    <div class="modal-target" id="delete-modal-target"></div>
+    <div class="modal-error" id="delete-modal-error"></div>
+    <div class="modal-actions">
+      <button class="secondary" id="delete-modal-cancel">Cancel</button>
+      <button class="danger" id="delete-modal-confirm">Delete response</button>
+    </div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -771,7 +821,7 @@ function renderRespondentTableP1(rows) {
   let html = `<h2 style="font-size:16px;margin-bottom:16px">Respondents (${rows.length})</h2>
     <div class="legend" style="margin-bottom:12px">Attention = att_2 instructed-response check (the only one that gates inclusion). att_1 is the baseline calibration item (reflexive-ask floor), shown for info only, never excludes.</div>
     <table><thead><tr>
-    <th>Name</th><th>Email</th><th>When</th><th>Duration</th><th>Version</th><th>Attention (att_2)</th><th>att_1 (baseline)</th><th>Status</th><th></th>
+    <th>Name</th><th>Email</th><th>When</th><th>Duration</th><th>Version</th><th>Attention (att_2)</th><th>att_1 (baseline)</th><th>Status</th><th></th><th></th>
   </tr></thead><tbody>`;
   pageRows.forEach((r) => {
     const att1 = r.attention && r.attention.att_1 && r.attention.att_1.passed;
@@ -788,6 +838,7 @@ function renderRespondentTableP1(rows) {
       <td><span class="pill ${att1 ? 'pass' : 'excluded'}">${att1 ? 'buy' : 'chose ask'}</span></td>
       <td>${excl ? `<span class="pill excluded">excluded${exclusionReason(r) ? ': ' + escapeHtml(exclusionReason(r)) : ''}</span>` : `<span class="pill pass">clean</span>`}</td>
       <td><details><summary>raw</summary><pre>${escapeHtml(JSON.stringify({ answers: r.answers, also_acceptable: r.also_acceptable, ai_familiarity: r.ai_familiarity, used_agent_purchases: r.used_agent_purchases }, null, 1))}</pre></details></td>
+      <td>${r.id ? `<button class="row-delete" data-id="${escapeHtml(r.id)}">Delete</button>` : ''}</td>
     </tr>`;
   });
   html += `</tbody></table>`;
@@ -798,6 +849,12 @@ function renderRespondentTableP1(rows) {
   const next = document.getElementById("pager-p1-next");
   if (prev) prev.onclick = () => { respondentPageP1--; renderRespondentTableP1(rows); };
   if (next) next.onclick = () => { respondentPageP1++; renderRespondentTableP1(rows); };
+  host.querySelectorAll(".row-delete").forEach((btn) => {
+    btn.onclick = () => {
+      const row = pageRows.find((r) => r.id === btn.getAttribute("data-id"));
+      if (row) openDeleteModal("1", row);
+    };
+  });
 }
 
 // ---- Data export ----------------------------------------------------------
@@ -1201,7 +1258,7 @@ function renderRespondentTableP2(rows) {
   const pageRows = rows.slice(start, start + RESPONDENTS_PER_PAGE);
 
   let html = `<h2 style="font-size:16px;margin-bottom:12px">Respondents (${rows.length})</h2>
-    <table><thead><tr><th>Name</th><th>Email</th><th>When</th><th>Duration</th><th>Version</th><th>Attention</th><th>Sex</th><th>Status</th></tr></thead><tbody>`;
+    <table><thead><tr><th>Name</th><th>Email</th><th>When</th><th>Duration</th><th>Version</th><th>Attention</th><th>Sex</th><th>Status</th><th></th></tr></thead><tbody>`;
   pageRows.forEach(r => {
     const fails = attFailsP2(r);
     const excl = isExcludedP2(r);
@@ -1211,7 +1268,8 @@ function renderRespondentTableP2(rows) {
       <td>${escapeHtml((r.meta && r.meta.survey_version) || "")}</td>
       <td><span class="pill ${fails >= 2 ? 'fail' : 'pass'}">${5 - fails}/5 passed</span></td>
       <td>${escapeHtml(r.sex || "")}</td>
-      <td>${excl ? `<span class="pill excluded">excluded${exclusionReasonP2(r) ? ': ' + escapeHtml(exclusionReasonP2(r)) : ''}</span>` : `<span class="pill pass">clean</span>`}</td></tr>`;
+      <td>${excl ? `<span class="pill excluded">excluded${exclusionReasonP2(r) ? ': ' + escapeHtml(exclusionReasonP2(r)) : ''}</span>` : `<span class="pill pass">clean</span>`}</td>
+      <td>${r.id ? `<button class="row-delete" data-id="${escapeHtml(r.id)}">Delete</button>` : ''}</td></tr>`;
   });
   html += `</tbody></table>`;
   html += renderPager(rows.length, respondentPageP2, "p2");
@@ -1221,6 +1279,12 @@ function renderRespondentTableP2(rows) {
   const next = document.getElementById("pager-p2-next");
   if (prev) prev.onclick = () => { respondentPageP2--; renderRespondentTableP2(rows); };
   if (next) next.onclick = () => { respondentPageP2++; renderRespondentTableP2(rows); };
+  host.querySelectorAll(".row-delete").forEach((btn) => {
+    btn.onclick = () => {
+      const row = pageRows.find((r) => r.id === btn.getAttribute("data-id"));
+      if (row) openDeleteModal("2", row);
+    };
+  });
 }
 
 function renderResultsP2(rows) {
@@ -1730,6 +1794,75 @@ async function renderTab(phase) {
     resultsEl.innerHTML = `<div class="card"><div class="error" style="display:block">Couldn’t load: ${escapeHtml(e.message)}</div></div>`;
   }
 }
+
+// ---- Delete confirmation modal ---------------------------------------------
+// Shared by both respondent tables. The row-delete buttons in
+// renderRespondentTableP1/P2 call openDeleteModal(phase, row); the actual
+// DELETE call only fires once the admin clicks "Delete response" here.
+const deleteModal = document.getElementById("delete-modal");
+const deleteModalTarget = document.getElementById("delete-modal-target");
+const deleteModalError = document.getElementById("delete-modal-error");
+const deleteModalCancel = document.getElementById("delete-modal-cancel");
+const deleteModalConfirm = document.getElementById("delete-modal-confirm");
+let pendingDelete = null; // { phase, id }
+
+function describeDeleteTarget(r) {
+  const who = r.respondent_name || r.email || "this respondent";
+  const email = r.email && r.email !== who ? " · " + r.email : "";
+  const when = r.created_at ? new Date(r.created_at).toLocaleString() : "unknown date";
+  const test = r.meta && r.meta.test ? " · TEST RUN" : "";
+  return escapeHtml(`${who}${email} · ${when}${test}`);
+}
+
+function openDeleteModal(phase, row) {
+  pendingDelete = { phase, id: row.id };
+  deleteModalTarget.innerHTML = describeDeleteTarget(row);
+  deleteModalError.style.display = "none";
+  deleteModalError.textContent = "";
+  deleteModalConfirm.disabled = false;
+  deleteModalConfirm.textContent = "Delete response";
+  deleteModal.classList.add("open");
+  deleteModalConfirm.focus();
+}
+
+function closeDeleteModal() {
+  deleteModal.classList.remove("open");
+  pendingDelete = null;
+}
+
+deleteModalCancel.onclick = closeDeleteModal;
+deleteModal.addEventListener("click", (e) => { if (e.target === deleteModal) closeDeleteModal(); });
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && deleteModal.classList.contains("open")) closeDeleteModal();
+});
+
+deleteModalConfirm.onclick = async () => {
+  if (!pendingDelete || !adminKey) return;
+  const { phase, id } = pendingDelete;
+  deleteModalConfirm.disabled = true;
+  deleteModalConfirm.textContent = "Deleting…";
+  deleteModalError.style.display = "none";
+  try {
+    const res = await fetch(`${ADMIN_FUNCTION_URL}?phase=${phase}&id=${encodeURIComponent(id)}`, {
+      method: "DELETE",
+      headers: { "x-admin-key": adminKey }
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      throw new Error(`HTTP ${res.status}${body ? ": " + body.slice(0, 200) : ""}`);
+    }
+    if (cacheRows[phase]) {
+      cacheRows[phase] = cacheRows[phase].filter((r) => r.id !== id);
+    }
+    closeDeleteModal();
+    await renderTab(phase);
+  } catch (e) {
+    deleteModalError.textContent = "Couldn’t delete: " + e.message;
+    deleteModalError.style.display = "block";
+    deleteModalConfirm.disabled = false;
+    deleteModalConfirm.textContent = "Delete response";
+  }
+};
 
 async function doLoad() {
   const key = keyInput.value.trim() || localStorage.getItem("pb_admin_key") || "";
