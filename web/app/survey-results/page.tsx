@@ -104,10 +104,9 @@ export default function SurveyResultsPage() {
           </h1>
           <p className="mt-5 max-w-2xl font-serif text-prose leading-relaxed text-ink/85">
             Six of PayBench&rsquo;s twenty-five scenario pairs are
-            preference-dependent: the safe action is whatever people would
-            genuinely want an agent with their payment authority to do. This
-            survey put those items to people directly, under pre-registered
-            exclusion and lock rules, and set the answer keys from their votes.
+            preference-dependent: the safe action is whatever people would want
+            an agent with their payment authority to do. This survey put those
+            items to people directly and set the answer keys from their votes.
           </p>
         </header>
 
@@ -138,16 +137,18 @@ export default function SurveyResultsPage() {
               ; the full wording of every item is reproduced below, verbatim.
             </p>
             <p>
-              <strong>Pre-registered exclusions</strong> (
-              <a
-                href={preregUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="text-accent underline decoration-accent/40 underline-offset-2 hover:decoration-accent"
-              >
-                pre-registration
-              </a>
-              ): failing the instructed-response check att_2, completing in
+              <strong>
+                <a
+                  href={preregUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-accent underline decoration-accent/40 underline-offset-2 hover:decoration-accent"
+                >
+                  Pre-registered
+                </a>{" "}
+                exclusions:
+              </strong>{" "}
+              failing the instructed-response check att_2, completing in
               under {R._meta.min_duration_seconds} seconds, or answering a
               pre-launch wording revision. {R.respondents.excluded} of{" "}
               {R.respondents.total} responses were excluded — all{" "}
@@ -170,8 +171,8 @@ export default function SurveyResultsPage() {
               safe
               purchase — an $18 phone case, within a $20 budget, from an
               approved store. It keys no scenario and never excludes anyone; it
-              exists to measure how often people say &ldquo;check with me
-              first&rdquo; when there is no reason to.
+              measures how often people say &ldquo;check with me first&rdquo;
+              when there is no reason to.
             </p>
           </div>
         </section>
@@ -284,15 +285,13 @@ export default function SurveyResultsPage() {
           <div className="mt-4 max-w-3xl space-y-4 leading-relaxed text-ink/85">
             <p>
               Respondents skew toward heavy AI users (
-              {demo.ai_familiarity.daily ?? 0}/{R.respondents.clean} daily), so
-              the natural question is whether experience tracks with safety. For
-              the part that matters, it does not:{" "}
-              <strong>trap-avoidance is flat</strong>. Daily users chose a safe
-              option on all six traps {evDaily.avoided_all_traps}/{evDaily.n} of
-              the time ({pct1(evDaily.avoided_all_traps_rate)}), less-than-daily
-              users {evLess.avoided_all_traps}/{evLess.n} (
-              {pct1(evLess.avoided_all_traps_rate)}). Experience did not predict
-              falling for a trap.
+              {demo.ai_familiarity.daily ?? 0}/{R.respondents.clean} daily), but{" "}
+              <strong>trap-avoidance is flat</strong>{" "}across experience
+              levels: daily users chose a safe option on all six traps{" "}
+              {evDaily.avoided_all_traps}/{evDaily.n} of the time (
+              {pct1(evDaily.avoided_all_traps_rate)}), less-than-daily users{" "}
+              {evLess.avoided_all_traps}/{evLess.n} (
+              {pct1(evLess.avoided_all_traps_rate)}).
             </p>
             <p>
               The one visible gap is <em>deference</em>, not safety: daily users
@@ -300,11 +299,11 @@ export default function SurveyResultsPage() {
               the time versus {pct1(evLess.lookalike_ask_rate)} for
               less-than-daily users, and their reflexive-ask floor is higher (
               {pct1(evDaily.reflexive_ask_rate)} vs{" "}
-              {pct1(evLess.reflexive_ask_rate)}) — heavier users lean toward
-              checking in <em>more</em>, not less. That rests on {evLess.n}{" "}
-              non-daily respondents, so read it as a hint. Prior agent-purchase
-              experience is only {evYes.n} of {R.respondents.clean} respondents
-              — reported for completeness, not interpreted.
+              {pct1(evLess.reflexive_ask_rate)}) — heavier users check in{" "}
+              <em>more</em>, not less. That rests on {evLess.n} non-daily
+              respondents, so read it as a hint. Only {evYes.n} of{" "}
+              {R.respondents.clean} respondents have let an agent buy for them,
+              so that column is reported for completeness, not interpreted.
             </p>
           </div>
           <Card tone="bare" pad="none" className="mt-5 overflow-x-auto">
@@ -385,8 +384,8 @@ export default function SurveyResultsPage() {
               marking anything acceptable.
             </li>
             <li>
-              The att_1 split and the experience-vs-safety comparison are both
-              exploratory and were not pre-registered; their subgroups are small
+              The att_1 split and the experience-vs-safety comparison were not
+              pre-registered; their subgroups are small
               (down to {evLess.n} less-than-daily and {evYes.n} agent-purchase
               respondents).
             </li>
