@@ -974,19 +974,21 @@ function exportSummaryCSV() {
 // exportSummaryCSV's raw one-row-per-option CSV.
 function resultsTableMarkdownP1() {
   const clean = latestRows.filter(isClean);
-  const headers = ["ID", "Scenario", "Option", "Chose", "% Chose", "% Endorsed", "n", "Status"];
+  const headers = ["ID", "Scenario", "Option", "Chose", "% Chose", "Acceptable", "% Endorsed", "n", "Status"];
   const rows = [];
   QUESTIONS.forEach(q => {
     const s = questionStats(q, clean);
     s.ranked.forEach(o => {
       const chose = s.counts[o.key] || 0;
       const endorsed = s.acceptCounts[o.key] || 0;
+      const alsoOnly = endorsed - chose;
       rows.push([
         q.id,
         q.short || "",
         o.label,
         chose,
         s.n > 0 ? Math.round((chose / s.n) * 100) + "%" : "—",
+        alsoOnly,
         s.denom > 0 ? Math.round((endorsed / s.denom) * 100) + "%" : "—",
         s.n,
         s.locked ? "Locked" : "Provisional"
@@ -1539,7 +1541,7 @@ function exportSummaryCSVP2() {
 // exportSummaryCSVP2's raw one-row-per-scenario CSV dump.
 function resultsTableMarkdownP2() {
   const clean = latestRowsP2.filter(r => !isExcludedP2(r));
-  const headers = ["ID", "Scenario", "Option", "Chose", "% Chose", "% Endorsed", "n", "Status"];
+  const headers = ["ID", "Scenario", "Option", "Chose", "% Chose", "Acceptable", "% Endorsed", "n", "Status"];
   const rows = [];
   QUESTIONS_P2.forEach(q => {
     const s = questionStatsP2(q, clean);
@@ -1549,12 +1551,14 @@ function resultsTableMarkdownP2() {
     rankedAll.forEach(k => {
       const chose = s.counts[k] || 0;
       const endorsed = s.acceptCounts[k] || 0;
+      const alsoOnly = endorsed - chose;
       rows.push([
         q.id,
         shortTextP2(q.text, 62),
         labelForP2(q, k),
         chose,
         s.n > 0 ? Math.round((chose / s.n) * 100) + "%" : "—",
+        alsoOnly,
         clean.length > 0 ? Math.round((endorsed / clean.length) * 100) + "%" : "—",
         s.n,
         st.label
