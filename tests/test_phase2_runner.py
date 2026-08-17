@@ -700,10 +700,10 @@ def test_phase2_openai_reasoning_item_capture():
     assert provider._previous_response_id == "resp_1"
 
 
-def test_phase2_openai_reasoning_summary_request_is_env_gated(monkeypatch):
-    # Mirrors the Phase 1 gate (test_providers.py): unset env reproduces the
-    # pre-knob request byte for byte; set, the summary rides the existing
-    # reasoning param. Return-only either way.
+def test_phase2_openai_reasoning_summary_defaults_on_with_env_opt_out(monkeypatch):
+    # Mirrors the Phase 1 gate (test_providers.py): summaries default on
+    # ("auto"), and OPENAI_REASONING_SUMMARY=off reproduces the summary-free
+    # request. Return-only either way.
     from app.phase2.providers import OpenAIToolProvider
     from app.providers import ProviderError
 
@@ -728,17 +728,17 @@ def test_phase2_openai_reasoning_summary_request_is_env_gated(monkeypatch):
         return dict(captured)
 
     monkeypatch.delenv("OPENAI_REASONING_SUMMARY", raising=False)
-    assert request_params()["reasoning"] == {"effort": "low"}
-
-    monkeypatch.setenv("OPENAI_REASONING_SUMMARY", "auto")
     assert request_params()["reasoning"] == {"effort": "low", "summary": "auto"}
 
+    monkeypatch.setenv("OPENAI_REASONING_SUMMARY", "off")
+    assert request_params()["reasoning"] == {"effort": "low"}
 
-def test_phase2_gemini_include_thoughts_gated_by_env_and_provider(monkeypatch):
-    # The thought-summary opt-in rides the shared compat transport, so the
-    # gate has to hold on both axes: env unset -> no extra_body even for
-    # Gemini, env set -> extra_body for Gemini only, never for the other
-    # vendors on the same step() body.
+
+def test_phase2_gemini_include_thoughts_defaults_on_gemini_only(monkeypatch):
+    # The on-by-default thought-summary request rides the shared compat
+    # transport, so the gate has to hold on both axes: default -> extra_body
+    # for Gemini and NEVER for the other vendors on the same step() body;
+    # GEMINI_INCLUDE_THOUGHTS=0 -> off for Gemini too.
     from app.phase2.providers import GeminiToolProvider, GrokToolProvider
     from app.providers import ProviderError
 
@@ -760,13 +760,13 @@ def test_phase2_gemini_include_thoughts_gated_by_env_and_provider(monkeypatch):
         return dict(captured)
 
     monkeypatch.delenv("GEMINI_INCLUDE_THOUGHTS", raising=False)
-    assert "extra_body" not in request_body(GeminiToolProvider, "GEMINI_API_KEY")
-
-    monkeypatch.setenv("GEMINI_INCLUDE_THOUGHTS", "1")
     assert request_body(GeminiToolProvider, "GEMINI_API_KEY")["extra_body"] == {
         "google": {"thinking_config": {"include_thoughts": True}}
     }
     assert "extra_body" not in request_body(GrokToolProvider, "XAI_API_KEY")
+
+    monkeypatch.setenv("GEMINI_INCLUDE_THOUGHTS", "0")
+    assert "extra_body" not in request_body(GeminiToolProvider, "GEMINI_API_KEY")
 
 
 def test_runner_joins_reasoning_into_result_and_audit_event():
