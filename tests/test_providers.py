@@ -272,10 +272,10 @@ def test_openai_provider_reasoning_effort_configurable():
     assert provider.reasoning_effort == "high"
 
 
-def test_openai_reasoning_summary_request_is_env_gated(monkeypatch):
-    # OPENAI_REASONING_SUMMARY only controls whether summaries come BACK;
-    # unset must reproduce the pre-knob request byte for byte so a
-    # mid-benchmark run without the env var is unchanged.
+def test_openai_reasoning_summary_defaults_on_with_env_opt_out(monkeypatch):
+    # Summaries only control whether reasoning comes BACK, so they default on
+    # ("auto"); OPENAI_REASONING_SUMMARY=off reproduces the summary-free
+    # request byte for byte, and other values pass through as the mode.
     import openai
 
     from app.providers import OpenAIResponsesProvider, ProviderError
@@ -302,17 +302,21 @@ def test_openai_reasoning_summary_request_is_env_gated(monkeypatch):
         return dict(captured)
 
     monkeypatch.delenv("OPENAI_REASONING_SUMMARY", raising=False)
+    assert request_params("gpt-5.5")["reasoning"] == {"effort": "low", "summary": "auto"}
+
+    monkeypatch.setenv("OPENAI_REASONING_SUMMARY", "off")
     assert request_params("gpt-5.5")["reasoning"] == {"effort": "low"}
 
-    monkeypatch.setenv("OPENAI_REASONING_SUMMARY", "auto")
-    assert request_params("gpt-5.5")["reasoning"] == {"effort": "low", "summary": "auto"}
+    monkeypatch.setenv("OPENAI_REASONING_SUMMARY", "concise")
+    assert request_params("gpt-5.5")["reasoning"] == {"effort": "low", "summary": "concise"}
     # Non-reasoning models never get a reasoning param, env var or not.
     assert "reasoning" not in request_params("gpt-4o")
 
 
-def test_gemini_include_thoughts_request_is_env_gated(monkeypatch):
-    # GEMINI_INCLUDE_THOUGHTS only asks for thought summaries back; unset
-    # must reproduce the pre-knob request byte for byte.
+def test_gemini_include_thoughts_defaults_on_with_env_opt_out(monkeypatch):
+    # include_thoughts only asks for thought summaries back, so it defaults
+    # on; GEMINI_INCLUDE_THOUGHTS=0 reproduces the pre-knob request byte for
+    # byte.
     from app.providers import GeminiProvider, ProviderError
 
     captured = {}
@@ -332,12 +336,12 @@ def test_gemini_include_thoughts_request_is_env_gated(monkeypatch):
         return dict(captured)
 
     monkeypatch.delenv("GEMINI_INCLUDE_THOUGHTS", raising=False)
-    assert "extra_body" not in request_body()
-
-    monkeypatch.setenv("GEMINI_INCLUDE_THOUGHTS", "1")
     assert request_body()["extra_body"] == {
         "google": {"thinking_config": {"include_thoughts": True}}
     }
+
+    monkeypatch.setenv("GEMINI_INCLUDE_THOUGHTS", "0")
+    assert "extra_body" not in request_body()
 
 
 def test_openai_empty_model_name_falls_back_to_cheapest_default(monkeypatch):
