@@ -343,12 +343,12 @@ const FRAMING_LABELS = {
 };
 const URGENCY_ORDER = ["none", "time_pressure"];
 const URGENCY_LABELS = {
-  none: "No deadline",
-  time_pressure: "Deadline",
+  none: "No time pressure",
+  time_pressure: "Time pressure",
 };
 const USER_AVAILABILITY_ORDER = ["none", "unreachable"];
 const USER_AVAILABILITY_LABELS = {
-  none: "User reachable",
+  none: "User present",
   unreachable: "User away",
 };
 
@@ -2741,14 +2741,18 @@ function sameConditionSet(conditions, order) {
   return conditions.length === order.length && conditions.every((condition) => order.includes(condition));
 }
 
-// Which condition(s) — and, for Phase 2, which framing/urgency/user-availability
-// axis levels — a run's results actually used. A single run can bundle
-// anywhere from one condition to a full cross product, so this reads the
-// results rather than assuming a shape. Stays a short clause rather than an
-// exhaustive axis-by-axis breakdown: urgency/user-availability only get
-// called out when the run actually crosses that ablation (their "none" level
-// is the default every other run sits at, so it would just be noise here).
-function runConditionsSummary(results) {
+// Which condition(s) — and, for Phase 2, which environment/urgency/user-availability
+// axis levels — a run's results actually used, rendered as one pill per line. A
+// single run can bundle anywhere from one condition to a full cross product, so
+// this reads the results rather than assuming a shape. Environment and urgency
+// only get their own pill when the run actually crosses that ablation (their
+// "none" level is the default every other run sits at, so a pill for it would
+// just be noise). User availability is the exception: it always gets a pill once
+// a run is Phase-2-shaped, because "no one's away" is itself worth stating rather
+// than leaving the cell blank — Phase 2 results always carry a real "none"
+// string here (app/phase2/runner.py), while Phase 1 leaves the field null, so
+// that distinguishes "axis applies, at its default" from "axis doesn't apply".
+function runConditionsPills(results) {
   const conditionSortOrder = Object.keys(CONDITION_LABELS);
   const conditions = [...new Set(results.map((result) => result.control_condition).filter(Boolean))].sort(
     (a, b) => conditionSortOrder.indexOf(a) - conditionSortOrder.indexOf(b)
@@ -2759,21 +2763,28 @@ function runConditionsSummary(results) {
       ? "All conditions"
       : conditions.map(controlConditionLabel).join(", ");
 
-  const parts = [conditionsText];
+  const pills = [conditionsText];
+
   const framings = [...new Set(results.map((result) => result.framing).filter(Boolean))];
-  if (framings.length) parts.push(framings.map(framingLabel).join("/"));
+  if (framings.length) pills.push(`Environment: ${framings.map(framingLabel).join("/")}`);
+
   const urgencies = [
     ...new Set(results.map((result) => result.urgency).filter((urgency) => urgency && urgency !== "none")),
   ];
-  if (urgencies.length) parts.push(urgencies.map(urgencyLabel).join("/"));
-  const availabilities = [
-    ...new Set(
-      results.map((result) => result.user_availability).filter((availability) => availability && availability !== "none")
-    ),
-  ];
-  if (availabilities.length) parts.push(availabilities.map(userAvailabilityLabel).join("/"));
+  if (urgencies.length) pills.push(urgencies.map(urgencyLabel).join("/"));
 
-  return parts.join(" · ");
+  if (results.some((result) => result.user_availability != null)) {
+    const availabilities = [
+      ...new Set(
+        results.map((result) => result.user_availability).filter((availability) => availability && availability !== "none")
+      ),
+    ];
+    pills.push(availabilities.length ? availabilities.map(userAvailabilityLabel).join("/") : "User present");
+  }
+
+  return `<div class="condition-pills">${pills
+    .map((text) => `<span class="condition-pill">${text}</span>`)
+    .join("")}</div>`;
 }
 
 function renderRunList() {
@@ -2822,7 +2833,7 @@ function renderRunList() {
           <td>${compactTime(run.created_at)}${supersededFlag}${mergedFlag}</td>
           <td>${models}</td>
           <td>${phaseChecklist(run.results)}</td>
-          <td>${runConditionsSummary(run.results)}</td>
+          <td>${runConditionsPills(run.results)}</td>
           <td>${metrics.total}</td>
           <td>${percent(metrics.unsafePaymentRate)}</td>
           <td>${percent(metrics.refusedWhenSafeRate)}</td>
