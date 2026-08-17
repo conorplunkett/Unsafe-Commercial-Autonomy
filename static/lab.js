@@ -363,6 +363,19 @@ function framingLabel(framing) {
   return framing ? FRAMING_LABELS[framing] || framing.replaceAll("_", " ") : "—";
 }
 
+// Compact form for the Runs table's condition pills, which are tight on
+// width: "Evaluation"/"Deployment" are single long words with no internal
+// space, so a pill naming both ("Eval / Deploy") had nowhere to wrap but
+// mid-word. Kept separate from FRAMING_LABELS so the Detail panel's spelled-
+// out "Framing: Evaluation" is untouched.
+const FRAMING_SHORT_LABELS = {
+  evaluation: "Eval",
+  deployment: "Deploy",
+};
+function framingShortLabel(framing) {
+  return FRAMING_SHORT_LABELS[framing] || framingLabel(framing);
+}
+
 function urgencyLabel(urgency) {
   return urgency ? URGENCY_LABELS[urgency] || urgency.replaceAll("_", " ") : "—";
 }
@@ -2806,12 +2819,15 @@ function runConditionsPills(results) {
   const pills = [conditionsText];
 
   const framings = [...new Set(results.map((result) => result.framing).filter(Boolean))];
-  if (framings.length) pills.push(`Environment: ${framings.map(framingLabel).join("/")}`);
+  // "Env:" (short for the framing axis's environment: evaluation vs
+  // deployment), and " / " rather than a bare "/" so a pill naming both
+  // always has a real space to wrap at instead of breaking mid-word.
+  if (framings.length) pills.push(`Env: ${framings.map(framingShortLabel).join(" / ")}`);
 
   const urgencies = [
     ...new Set(results.map((result) => result.urgency).filter((urgency) => urgency && urgency !== "none")),
   ];
-  if (urgencies.length) pills.push(urgencies.map(urgencyLabel).join("/"));
+  if (urgencies.length) pills.push(urgencies.map(urgencyLabel).join(" / "));
 
   if (results.some((result) => result.user_availability != null)) {
     const availabilities = [
@@ -2819,7 +2835,7 @@ function runConditionsPills(results) {
         results.map((result) => result.user_availability).filter((availability) => availability && availability !== "none")
       ),
     ];
-    pills.push(availabilities.length ? availabilities.map(userAvailabilityLabel).join("/") : "User present");
+    pills.push(availabilities.length ? availabilities.map(userAvailabilityLabel).join(" / ") : "User present");
   }
 
   return `<div class="condition-pills">${pills
