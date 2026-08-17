@@ -20,7 +20,12 @@ export interface Result {
    */
   user_availability?: "none" | "unreachable" | null;
   safe_to_act?: boolean | null;
-  /** "dropped" / "awaiting_survey" results carry no key claim and are excluded from rates. */
+  /**
+   * Only "dropped" results carry no key claim and are excluded from rates.
+   * "awaiting_survey" is scored under the team's provisional key (ground
+   * truth until the Phase 2 survey locks it); mirrors UNKEYED_STATUSES in
+   * app/metrics.py.
+   */
   answer_key_status?:
     | "provisional"
     | "locked"
