@@ -6,7 +6,7 @@
     <title>Experiment Lab · Unsafe Commercial Autonomy</title>
     <link rel="icon" href="/favicon.ico">
     <link rel="stylesheet" href="/static/styles.css?v=13">
-    <link rel="stylesheet" href="/static/lab.css?v=14">
+    <link rel="stylesheet" href="/static/lab.css?v=15">
   </head>
   <body>
     <div class="lab-page-layout">
@@ -408,11 +408,11 @@
 
       <p id="labEmpty" class="lab-empty" hidden>No runs yet. Pick a model and hit Run experiment.</p>
 
-      <section class="taxonomy-panel ladder-panel" id="section-ladder" aria-label="CLI cost ladder">
-        <div class="panel-heading">
+      <details class="taxonomy-panel ladder-panel" id="section-ladder" aria-label="CLI cost ladder">
+        <summary>
           <h2>Cost ladder</h2>
           <span class="run-stamp">phase2-eval · cheapest model is the default</span>
-        </div>
+        </summary>
         <div class="ladder-models" id="ladderModels" role="group" aria-label="Model">
           <button type="button" class="ladder-modelbtn is-active" data-model="openai">openai</button>
           <button type="button" class="ladder-modelbtn" data-model="anthropic">anthropic</button>
@@ -492,9 +492,9 @@
           <code>--temperature</code> only affects temperature-based models; reasoning models (gpt-5.x) vary by seed.
           Phase 1: same rungs with <code>eval</code> (drop <code>--framings</code>).
         </p>
-      </section>
+      </details>
 
-      <details class="taxonomy-panel pricing-panel" aria-label="Provider pricing">
+      <details class="taxonomy-panel pricing-panel" id="section-pricing" aria-label="Provider pricing">
         <summary>
           <h2>Pricing</h2>
           <span class="run-stamp">$ per 1M tokens &middot; verified 2026-08-17</span>
@@ -530,6 +530,47 @@
             </tbody>
           </table>
         </div>
+      </details>
+
+      <details class="taxonomy-panel merge-panel" id="section-combine" aria-label="Combine runs">
+        <summary>
+          <h2>Combine runs</h2>
+          <span class="run-stamp">python -m app.cli merge</span>
+        </summary>
+        <p class="panel-legend">
+          Pools several sittings of one gauntlet into a single run, so its
+          metrics compare every condition at once. Refuses unless the sources
+          match on scenario set, model, and sampling config, with no episode
+          covered twice. Sources are never modified or deleted.
+        </p>
+        <div class="ladder-rungs">
+          <div class="ladder-rung">
+            <div class="ladder-rung-head"><span class="ladder-name">See the plan</span><span class="ladder-count">writes nothing</span><button type="button" class="ladder-copy">Copy</button></div>
+            <pre>python -m app.cli merge \
+  --run-ids run_a,run_b,run_c,run_d \
+  --dry-run</pre>
+          </div>
+          <div class="ladder-rung">
+            <div class="ladder-rung-head"><span class="ladder-name">Merge, keep sources</span><span class="ladder-count">confirms first</span><button type="button" class="ladder-copy">Copy</button></div>
+            <pre>python -m app.cli merge \
+  --run-ids run_a,run_b,run_c,run_d \
+  --out-run-id merged_full_grid</pre>
+          </div>
+          <div class="ladder-rung">
+            <div class="ladder-rung-head"><span class="ladder-name">Merge and publish</span><span class="ladder-count">supersedes sources</span><button type="button" class="ladder-copy">Copy</button></div>
+            <pre>python -m app.cli merge \
+  --run-ids run_a,run_b,run_c,run_d \
+  --out-run-id merged_full_grid \
+  --publish --label "Full grid (stitched)"</pre>
+          </div>
+        </div>
+        <p class="panel-legend ladder-foot">
+          <code>--on-overlap=prefer-newest</code> or <code>prefer-oldest</code>
+          keeps one copy of a doubled episode instead of refusing.
+          <code>--created-at</code> overrides the default (the newest source's
+          date). Publishing marks the sources <strong>superseded</strong> in
+          the Runs table above. Delete them there.
+        </p>
       </details>
     </div>
     </div>
@@ -592,6 +633,8 @@
           { id: 'section-splits', label: 'Splits', gated: true },
           { id: 'failurePanel', label: 'Failure modes', gated: true },
           { id: 'section-ladder', label: 'Cost ladder' },
+          { id: 'section-pricing', label: 'Pricing' },
+          { id: 'section-combine', label: 'Combine runs' },
         ];
         var toc = document.getElementById('labToc');
         var sideNav = document.getElementById('labSideNav');

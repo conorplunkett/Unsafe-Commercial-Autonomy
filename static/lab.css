@@ -864,13 +864,16 @@
   }
 }
 
-/* ---- Collapsible panel toggle (Failure modes, Pricing) ---- */
+/* ---- Collapsible <details> panels (failure modes, cost ladder, pricing, combine runs) ---- */
 
-/* The summary doubles as the panel heading (a caret plus the same layout as
-   .panel-heading), so it reads like the other section headers but toggles
-   the panel open/closed. Both start collapsed. */
-.failure-panel > summary,
-.pricing-panel > summary {
+/* Shared by every <details class="taxonomy-panel ..."> panel: the summary
+   doubles as the panel heading (a caret plus the same layout as
+   .panel-heading), so each reads like the other section headers but toggles
+   its body open/closed. Scoped to `details.taxonomy-panel > summary` rather
+   than listing each panel's class so a new collapsible panel gets identical
+   open/close chrome for free instead of one more selector to remember to
+   extend. Starts collapsed. */
+details.taxonomy-panel > summary {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -882,31 +885,26 @@
   border-bottom: 1px solid transparent;
 }
 
-.failure-panel[open] > summary,
-.pricing-panel[open] > summary {
+details.taxonomy-panel[open] > summary {
   border-bottom-color: var(--border);
 }
 
-.failure-panel > summary::-webkit-details-marker,
-.pricing-panel > summary::-webkit-details-marker {
+details.taxonomy-panel > summary::-webkit-details-marker {
   display: none;
 }
 
-.failure-panel > summary::before,
-.pricing-panel > summary::before {
+details.taxonomy-panel > summary::before {
   content: "▸";
   color: var(--muted);
   font-size: 12px;
   transition: transform 0.15s ease;
 }
 
-.failure-panel[open] > summary::before,
-.pricing-panel[open] > summary::before {
+details.taxonomy-panel[open] > summary::before {
   transform: rotate(90deg);
 }
 
-.failure-panel > summary .run-stamp,
-.pricing-panel > summary .run-stamp {
+details.taxonomy-panel > summary .run-stamp {
   margin-left: auto;
 }
 
