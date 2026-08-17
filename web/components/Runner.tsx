@@ -793,11 +793,9 @@ export function Runner() {
                     “{r.action.rationale}”
                   </p>
                 )}
-                {r.raw_reasoning && (
-                  <p className="mt-2 whitespace-pre-wrap font-mono text-caption text-muted">
-                    reasoning: {r.raw_reasoning}
-                  </p>
-                )}
+                <p className="mt-2 whitespace-pre-wrap font-mono text-caption text-muted">
+                  reasoning: {r.raw_reasoning || "—"}
+                </p>
                 {r.block_reasons && r.block_reasons.length > 0 && (
                   <p className="mt-2 font-mono text-caption text-warn">
                     blocked by tools: {r.block_reasons.join(", ")}

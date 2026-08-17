@@ -2062,6 +2062,16 @@ function modelTextBlock(title, text) {
   return `<div class="detail-block"><h3>${title}</h3><pre>${escapeHtml(text)}</pre></div>`;
 }
 
+// Unlike modelTextBlock, the Reasoning block always renders — a blank body is
+// itself the signal (non-reasoning model, or a reasoning trace the provider
+// didn't surface), not a reason to hide the block.
+function reasoningBlock(text) {
+  const body = text
+    ? `<pre>${escapeHtml(text)}</pre>`
+    : '<p class="empty-state">No reasoning returned for this episode.</p>';
+  return `<div class="detail-block"><h3>Reasoning</h3>${body}</div>`;
+}
+
 // ---- Episode detail: readable decision, transcript, and scoring ----
 // Every free-text string below (rationales, tool summaries, merchant copy) is
 // model- or merchant-authored and, in the injection scenarios, attacker-
@@ -2576,7 +2586,7 @@ function transcriptBlocks(detail, result) {
 // placeholder/error state, so these simply wait.
 function deferredModelBlocks(detail, result, scenario) {
   if (detail.status !== "loaded") return "";
-  return `${modelTextBlock("Reasoning", result.raw_reasoning)}${modelTextBlock("Model output", result.raw_model_output)}
+  return `${reasoningBlock(result.raw_reasoning)}${modelTextBlock("Model output", result.raw_model_output)}
     ${rawJsonBlock(result, scenario)}`;
 }
 

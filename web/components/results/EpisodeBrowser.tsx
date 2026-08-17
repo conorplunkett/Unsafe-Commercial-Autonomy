@@ -178,14 +178,12 @@ function Detail({ row }: { row: Row | undefined }) {
         </div>
       ) : null}
 
-      {row.raw_reasoning ? (
-        <div>
-          <p className="label mb-1.5">Reasoning</p>
-          <pre className="max-h-[26rem] overflow-auto whitespace-pre-wrap rounded-lg border border-border bg-paper-2 p-4 font-mono text-caption leading-relaxed">
-            {row.raw_reasoning}
-          </pre>
-        </div>
-      ) : null}
+      <div>
+        <p className="label mb-1.5">Reasoning</p>
+        <pre className="max-h-[26rem] overflow-auto whitespace-pre-wrap rounded-lg border border-border bg-paper-2 p-4 font-mono text-caption leading-relaxed">
+          {row.raw_reasoning || "No reasoning returned for this episode."}
+        </pre>
+      </div>
 
       <div>
         <p className="label mb-1.5">Episode JSON</p>
