@@ -1072,3 +1072,25 @@
 .run-superseded-action[hidden] {
   display: none;
 }
+
+/* Conditions column: one pill per axis level the run actually set, stacked
+   so a run crossing several Phase 2 axes doesn't collapse into an
+   unreadable dot-joined line. Neutral tone — these name which cell a run's
+   results sit in, not a health signal like the flags above. */
+.condition-pills {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.condition-pill {
+  display: inline-block;
+  padding: 1px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-strong);
+  color: var(--ink);
+  font-size: 11px;
+  white-space: nowrap;
+}
