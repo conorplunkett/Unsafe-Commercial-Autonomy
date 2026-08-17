@@ -286,6 +286,25 @@
   50% { opacity: 0.55; }
 }
 
+/* ---- Loading spinner ---- */
+/* Small inline ring for "data is in flight" states (Runs/Results/By-model
+   while refreshData() has a fetch outstanding) — distinct from the
+   run-in-progress pulse above, which marks an actual benchmark running. */
+.spinner {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 999px;
+  vertical-align: -2px;
+  animation: spinner-rotate 0.7s linear infinite;
+}
+
+@keyframes spinner-rotate {
+  to { transform: rotate(360deg); }
+}
+
 /* ---- Keys panel ---- */
 
 .keys-band {
@@ -573,9 +592,11 @@
   font-weight: 700;
 }
 
-/* Filter bar above the Results table: slice by run, verdict, and control
-   condition. Selects reuse .run-select's compact sizing; the reset chip only
-   appears once a filter is active. */
+/* Filter bar above the Results table: slice by run, verdict, control
+   condition, and (Phase 2) framing/urgency/user availability. Each field is a
+   multi-select chip row — the same toggle-button pattern as the Run form's
+   own axis chips above — so more than one value can be selected per field;
+   the reset chip only appears once a filter is active. */
 .results-filter-bar {
   display: flex;
   flex-wrap: wrap;
@@ -590,7 +611,7 @@
   display: block;
 }
 
-.results-filter-bar .run-select {
+.results-filter-bar .chip-row {
   margin-top: 4px;
 }
 

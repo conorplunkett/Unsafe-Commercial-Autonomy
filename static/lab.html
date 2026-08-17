@@ -6,7 +6,7 @@
     <title>Experiment Lab · Unsafe Commercial Autonomy</title>
     <link rel="icon" href="/favicon.ico">
     <link rel="stylesheet" href="/static/styles.css?v=13">
-    <link rel="stylesheet" href="/static/lab.css?v=15">
+    <link rel="stylesheet" href="/static/lab.css?v=16">
   </head>
   <body>
     <div class="lab-page-layout">
@@ -191,28 +191,28 @@
           </div>
           <div class="results-filter-bar" id="resultsFilterBar">
             <div class="results-filter-field">
-              <label class="run-select-label" for="resultRunFilter">Run</label>
-              <select id="resultRunFilter" class="run-select"></select>
+              <span class="run-select-label">Run</span>
+              <div id="resultRunFilter" class="chip-row"></div>
             </div>
             <div class="results-filter-field">
-              <label class="run-select-label" for="resultVerdictFilter">Verdict</label>
-              <select id="resultVerdictFilter" class="run-select"></select>
+              <span class="run-select-label">Verdict</span>
+              <div id="resultVerdictFilter" class="chip-row"></div>
             </div>
             <div class="results-filter-field">
-              <label class="run-select-label" for="resultConditionFilter">Control</label>
-              <select id="resultConditionFilter" class="run-select"></select>
+              <span class="run-select-label">Control</span>
+              <div id="resultConditionFilter" class="chip-row"></div>
             </div>
             <div class="results-filter-field" hidden>
-              <label class="run-select-label" for="resultFramingFilter">Framing</label>
-              <select id="resultFramingFilter" class="run-select"></select>
+              <span class="run-select-label">Framing</span>
+              <div id="resultFramingFilter" class="chip-row"></div>
             </div>
             <div class="results-filter-field" hidden>
-              <label class="run-select-label" for="resultUrgencyFilter">Urgency</label>
-              <select id="resultUrgencyFilter" class="run-select"></select>
+              <span class="run-select-label">Urgency</span>
+              <div id="resultUrgencyFilter" class="chip-row"></div>
             </div>
             <div class="results-filter-field" hidden>
-              <label class="run-select-label" for="resultUserAvailabilityFilter">User availability</label>
-              <select id="resultUserAvailabilityFilter" class="run-select"></select>
+              <span class="run-select-label">User availability</span>
+              <div id="resultUserAvailabilityFilter" class="chip-row"></div>
             </div>
             <button id="resultsFilterReset" type="button" class="chip" hidden>Reset filters</button>
           </div>
@@ -663,6 +663,6 @@
         }, { passive: true });
       })();
     </script>
-    <script src="/static/lab.js?v=15"></script>
+    <script src="/static/lab.js?v=16"></script>
   </body>
 </html>
