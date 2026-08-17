@@ -1689,7 +1689,10 @@ function renderResultsTable(results) {
   els.modelResultsTable.innerHTML = results
     .slice(start, start + RESULTS_PER_PAGE)
     .map((result) => {
-      const failures = result.failure_metrics.length ? result.failure_metrics.join(", ") : "none";
+      const failures = result.failure_metrics.length
+        ? result.failure_metrics.map(failureShort).join(", ")
+        : "none";
+      const failuresTitle = result.failure_metrics.map(failureFull).join(" ");
       const selected = resultKey(result) === state.selectedKey ? "selected" : "";
       return `
         <tr class="${selected}" data-result-key="${resultKey(result)}">
@@ -1697,7 +1700,7 @@ function renderResultsTable(results) {
           <td>${result.scenario_title}</td>
           <td>${modelLabel(result)}</td>
           <td>${controlConditionLabel(result.control_condition)}</td>
-          <td>${failures}</td>
+          <td${failuresTitle ? ` title="${escapeHtml(failuresTitle)}"` : ""}>${escapeHtml(failures)}</td>
         </tr>
       `;
     })
@@ -2006,6 +2009,363 @@ function modelTextBlock(title, text) {
   return `<div class="detail-block"><h3>${title}</h3><pre>${escapeHtml(text)}</pre></div>`;
 }
 
+// ---- Episode detail: readable decision, transcript, and scoring ----
+// Every free-text string below (rationales, tool summaries, merchant copy) is
+// model- or merchant-authored and, in the injection scenarios, attacker-
+// influenced — all of it goes through escapeHtml. The verbatim structures the
+// blocks summarize stay available under the Raw JSON toggle at the bottom.
+
+// Amounts in actions/offers/policies are USD floats; whole dollars drop the
+// cents so a $50 cap and a $53.98 total both read at a glance.
+function money(value) {
+  const number = Number(value);
+  if (value == null || Number.isNaN(number)) return null;
+  return `$${Math.abs(number % 1) < 0.005 ? Math.round(number) : number.toFixed(2)}`;
+}
+
+function compactJson(value) {
+  const text = JSON.stringify(value);
+  if (!text) return "";
+  return text.length > 160 ? `${text.slice(0, 157)}…` : text;
+}
+
+// One line for an action — either an AgentAction from the result or the
+// equivalent detail dict inside an audit event (same keys, see
+// app/policies.py::_action_detail). Only set fields appear.
+function describeAction(action) {
+  if (!action) return "—";
+  const parts = [String(action.action_type || "unknown").replaceAll("_", " ")];
+  const amount = money(action.amount);
+  if (amount) parts.push(amount);
+  if (action.merchant_id) parts.push(action.merchant_id);
+  if (action.sku && action.sku !== action.merchant_id) parts.push(action.sku);
+  if (action.payment_type) parts.push(action.payment_type);
+  if (action.approval_requested) parts.push("approval requested");
+  if (action.action_type === "defer" && action.completed) parts.push("task completed");
+  if (Array.isArray(action.disclosed_fields) && action.disclosed_fields.length) {
+    parts.push(
+      `disclosed: ${action.disclosed_fields.map((field) => String(field).replaceAll("_", " ")).join(", ")}`
+    );
+  }
+  return parts.join(" · ");
+}
+
+// Proposed vs effective action plus what rewrote one into the other. The
+// Effective row only appears when a control layer actually changed the action —
+// otherwise it would repeat the Proposed line verbatim.
+function decisionBlock(result) {
+  const proposed = result.proposed_action || result.action;
+  const effective = result.action;
+  const proposedLine = describeAction(proposed);
+  const effectiveLine = describeAction(effective);
+  const facts = [factRow("Proposed", escapeHtml(proposedLine))];
+  if (result.block_reasons && result.block_reasons.length) {
+    facts.push(
+      factRow(
+        "Blocked by",
+        escapeHtml(result.block_reasons.map(failureShort).join(", ")),
+        escapeHtml(result.block_reasons.join(", "))
+      )
+    );
+  }
+  if (effectiveLine !== proposedLine) {
+    facts.push(factRow("Effective", escapeHtml(effectiveLine)));
+  }
+  if (effective && effective.ask_reason) {
+    facts.push(
+      factRow(
+        "Ask reason",
+        escapeHtml(String(effective.ask_reason).replaceAll("_", " ")),
+        "Self-reported reason for stopping instead of proceeding."
+      )
+    );
+  }
+  return `<div class="detail-block"><h3>Decision</h3><dl class="detail-facts">${facts.join("")}</dl></div>`;
+}
+
+// The agent's own stated reason for its action (Phase 1: the action JSON's
+// rationale field; Phase 2: the finish summary or approval request). Distinct
+// from the Reasoning block, which is the provider's reasoning trace.
+function rationaleBlock(result) {
+  const proposed = result.proposed_action || {};
+  const effective = result.action || {};
+  const text = proposed.rationale || effective.rationale || "";
+  if (!text) return "";
+  return `<div class="detail-block"><h3>Rationale</h3><p class="detail-quote">${escapeHtml(text)}</p></div>`;
+}
+
+function errorBlock(result) {
+  if (!result.error) return "";
+  return `<div class="detail-block"><h3>Provider error</h3><pre>${escapeHtml(result.error)}</pre></div>`;
+}
+
+function situationBlock(scenario) {
+  const situation = scenario && scenario.environment && scenario.environment.situation;
+  if (!situation) return "";
+  return `<div class="detail-block"><h3>Situation</h3><p>${escapeHtml(situation)}</p></div>`;
+}
+
+// One row per sandbox offer, under the same offer_ids the transcript's tool
+// calls reference. Flags only where they differ from the safe default.
+function offersBlock(scenario) {
+  const environment = (scenario && scenario.environment) || {};
+  const sandbox = environment.sandbox || {};
+  const offers = sandbox.offers || [];
+  if (!offers.length) return "";
+  const rows = offers.map((offer) => {
+    const head = [
+      `<strong>${escapeHtml(offer.item || offer.offer_id)}</strong>`,
+      offer.total != null ? escapeHtml(`${money(offer.total)} total`) : "",
+      escapeHtml(offer.merchant_name || offer.merchant_id || ""),
+      `<span class="audit-muted">${escapeHtml(offer.offer_id || "")}</span>`,
+    ].filter(Boolean);
+    const price = [];
+    if (offer.price != null) price.push(money(offer.price));
+    if (offer.shipping) price.push(`${money(offer.shipping)} shipping`);
+    if (offer.tax) price.push(`${money(offer.tax)} tax`);
+    for (const fee of offer.fees || []) {
+      price.push(`${money(fee.amount)} ${fee.label || "fee"}`);
+    }
+    const flags = [];
+    if (offer.recurring) {
+      flags.push(offer.recurring_note ? `recurring — ${offer.recurring_note}` : "recurring");
+    }
+    if (offer.refundable === false) flags.push("non-refundable");
+    const sub = [price.length > 1 ? price.join(" + ") : "", flags.join(" · ")]
+      .filter(Boolean)
+      .join(" · ");
+    return `<li><span class="offer-head">${head.join(" · ")}</span>${
+      sub ? `<span class="offer-sub">${escapeHtml(sub)}</span>` : ""
+    }</li>`;
+  });
+  const free = environment.free_source || sandbox.free_source;
+  if (free && free.name) {
+    rows.push(
+      `<li>free source — ${escapeHtml(free.name)}${free.current === false ? " (currently unavailable)" : ""}</li>`
+    );
+  }
+  return `<div class="detail-block"><h3>Offers</h3><ul class="offer-list">${rows.join("")}</ul></div>`;
+}
+
+// payment_policy keys the readable block hides: parser provenance, survey vote
+// shares (the Human vote block reads those), and fields the Axes block already
+// shows. Everything hidden is still in the Raw JSON toggle.
+const POLICY_HIDDEN_KEYS = new Set([
+  "source_set",
+  "source_version",
+  "source_format",
+  "source_file",
+  "source_line",
+  "human_distribution",
+  "category_label",
+  "stakes",
+  "answer_key_status",
+]);
+const MONEY_KEY_PATTERN = /spend|threshold|amount|cost|budget|price/;
+
+function readableValue(key, value) {
+  if (value == null || value === "") return null;
+  if (Array.isArray(value)) {
+    return value.length ? value.map((item) => String(item).replaceAll("_", " ")).join(", ") : null;
+  }
+  if (typeof value === "boolean") return value ? "yes" : "no";
+  if (typeof value === "number") {
+    return MONEY_KEY_PATTERN.test(key) ? money(value) : String(value);
+  }
+  if (typeof value === "object") return compactJson(value);
+  return String(value).replaceAll("_", " ");
+}
+
+// The scenario's structured policy plus its answer key (right_answer,
+// expected/acceptable actions) — the fields a verdict gets compared against.
+function policyBlock(scenario) {
+  if (!scenario) return "";
+  const facts = [];
+  for (const [key, raw] of Object.entries(scenario.payment_policy || {})) {
+    if (POLICY_HIDDEN_KEYS.has(key)) continue;
+    const value = readableValue(key, raw);
+    if (value == null) continue;
+    facts.push(factRow(escapeHtml(key.replaceAll("_", " ")), escapeHtml(value)));
+  }
+  if (!facts.length) return "";
+  return `<div class="detail-block"><h3>Policy &amp; answer key</h3><dl class="detail-facts">${facts.join("")}</dl></div>`;
+}
+
+function auditStep(head, outcome, quote, note, tone, title) {
+  return `<li class="audit-step${tone ? ` audit-step--${tone}` : ""}">
+    <div class="audit-step-head"><span class="audit-call"${title ? ` title="${escapeHtml(title)}"` : ""}>${escapeHtml(head)}</span>${
+      outcome ? `<span class="audit-outcome">${escapeHtml(outcome)}</span>` : ""
+    }</div>
+    ${quote ? `<p class="detail-quote">${escapeHtml(quote)}</p>` : ""}
+    ${note ? `<p class="audit-note">${escapeHtml(note)}</p>` : ""}
+  </li>`;
+}
+
+// One transcript row per tool call, in call order. Vocabulary mirrors
+// app/phase2/sandbox.py's tools; unknown tools fall back to compact JSON. The
+// reason/summary strings are pulled out as quotes — the agent's own words.
+function toolCallRow(event) {
+  const tool = event.code || "tool";
+  const detail = event.detail || {};
+  const args = detail.args || {};
+  const result = detail.result || {};
+  const head = [tool];
+  let outcome = "";
+  let quote = "";
+  let tone = "";
+  const reasons = Array.isArray(result.reasons) ? result.reasons.map(failureShort).join(", ") : "";
+  if (tool === "search_offers") {
+    outcome = Array.isArray(result.offers)
+      ? `${result.offers.length} offer${result.offers.length === 1 ? "" : "s"}`
+      : compactJson(result);
+    if (result.note) outcome += ` · ${result.note}`;
+  } else if (tool === "view_offer") {
+    if (args.offer_id) head.push(args.offer_id);
+    outcome =
+      result.error ||
+      [
+        result.item,
+        result.total != null ? `${money(result.total)} total` : null,
+        result.recurring ? "recurring" : null,
+        result.refundable === false ? "non-refundable" : null,
+      ]
+        .filter(Boolean)
+        .join(" · ");
+  } else if (tool === "check_policy") {
+    if (args.offer_id) head.push(args.offer_id);
+    if (args.payment_type) head.push(args.payment_type);
+    outcome =
+      result.error ||
+      `${String(result.decision || "?").replaceAll("_", " ")}${reasons ? ` — ${reasons}` : ""}`;
+    if (!result.error && result.decision && result.decision !== "allow") tone = "warn";
+  } else if (tool === "pay") {
+    if (args.offer_id) head.push(args.offer_id);
+    if (args.payment_type) head.push(args.payment_type);
+    if (Array.isArray(args.disclosed_fields) && args.disclosed_fields.length) {
+      head.push(
+        `disclosed: ${args.disclosed_fields.map((field) => String(field).replaceAll("_", " ")).join(", ")}`
+      );
+    }
+    if (result.status === "completed") {
+      outcome = `completed — ${money(result.total_charged)} charged to ${result.merchant}`;
+      tone = "paid";
+    } else if (result.status === "blocked") {
+      outcome = `blocked${reasons ? ` — ${reasons}` : ""}`;
+      tone = "warn";
+    } else if (result.status === "approval_required") {
+      outcome = `needs approval${reasons ? ` — ${reasons}` : ""}`;
+      tone = "warn";
+    } else if (result.status === "rejected") {
+      outcome = `rejected — ${result.error || "preflight required"}`;
+      tone = "warn";
+    } else {
+      outcome = result.error || compactJson(result);
+      if (result.error) tone = "warn";
+    }
+  } else if (tool === "request_approval") {
+    outcome = "approval requested · episode ends";
+    quote = args.reason || "";
+  } else if (tool === "finish") {
+    if (args.action_taken) head.push(String(args.action_taken).replaceAll("_", " "));
+    outcome = result.error || (args.task_completed ? "task completed without payment" : "episode ends");
+    quote = args.summary || "";
+  } else {
+    if (Object.keys(args).length) head.push(compactJson(args));
+    outcome = compactJson(result);
+  }
+  return auditStep(head.join(" · "), outcome, quote, result.notice || "", tone);
+}
+
+function transcriptBlock(result) {
+  const calls = (result.audit_events || []).filter((event) => event.event_type === "tool_call");
+  if (!calls.length) return "";
+  return `<div class="detail-block"><h3>Transcript</h3><ol class="audit-trail">${calls
+    .map(toolCallRow)
+    .join("")}</ol></div>`;
+}
+
+// Scoring events, minus what other blocks already show: model_output carries
+// the raw text (Reasoning / Model output blocks), the action events duplicate
+// the Decision block, and tool_call is the Transcript. A failure code can be
+// emitted twice (per-rule and again at verdict time) — only the first, which
+// carries the triggering numbers, is kept.
+const SCORING_SKIP = new Set([
+  "model_output",
+  "proposed_action",
+  "effective_action",
+  "agent_action",
+  "tool_call",
+]);
+
+function scoringBlock(result) {
+  const rows = [];
+  const seenFailures = new Set();
+  for (const event of result.audit_events || []) {
+    if (SCORING_SKIP.has(event.event_type)) continue;
+    const detail = event.detail || {};
+    if (event.event_type === "policy_failure") {
+      if (seenFailures.has(event.code)) continue;
+      seenFailures.add(event.code);
+      const body = Object.entries(detail)
+        .filter(([key]) => !POLICY_HIDDEN_KEYS.has(key))
+        .map(([key, value]) => {
+          const rendered = readableValue(key, value);
+          return rendered == null ? null : `${key.replaceAll("_", " ")} ${rendered}`;
+        })
+        .filter(Boolean)
+        .join(" · ");
+      rows.push(auditStep(failureShort(event.code), body, "", "", "warn", failureFull(event.code)));
+    } else if (event.event_type === "tool_constraint_block") {
+      rows.push(
+        auditStep(
+          `blocked — ${failureShort(event.code)}`,
+          `proposed ${describeAction(detail.proposed_action)} → effective ${describeAction(detail.effective_action)}`,
+          "",
+          "",
+          "warn",
+          failureFull(event.code)
+        )
+      );
+    } else if (event.event_type === "multi_payment_episode") {
+      rows.push(
+        auditStep(
+          String(event.code).replaceAll("_", " "),
+          (detail.amounts || []).map(money).join(" + "),
+          "",
+          "",
+          "warn"
+        )
+      );
+    } else if (event.event_type === "verdict") {
+      const context =
+        detail.error || (detail.safe_to_act == null ? "" : `safe to act — ${detail.safe_to_act ? "yes" : "no"}`);
+      rows.push(auditStep(`verdict — ${verdictLabel(event.code)}`, context, "", "", event.code === "safe" ? "" : "warn"));
+    } else {
+      rows.push(auditStep(String(event.event_type).replaceAll("_", " "), compactJson(detail), "", "", ""));
+    }
+  }
+  if (!rows.length) return "";
+  return `<div class="detail-block"><h3>Scoring</h3><ol class="audit-trail">${rows.join("")}</ol></div>`;
+}
+
+// The verbatim structures every block above summarizes — same dumps the panel
+// used to show inline, now one toggle away instead of the default view.
+function rawJsonBlock(result, scenario) {
+  const sections = [];
+  if (scenario) {
+    sections.push(["Policy", scenario.payment_policy], ["Environment", scenario.environment]);
+  }
+  sections.push(
+    ["Effective action", result.action],
+    ["Proposed action", result.proposed_action || result.action],
+    ["Audit events", result.audit_events]
+  );
+  const blocks = sections
+    .map(([title, value]) => `<h4>${title}</h4><pre>${escapeHtml(JSON.stringify(value, null, 2))}</pre>`)
+    .join("");
+  return `<details class="detail-block detail-raw"><summary><h3>Raw JSON</h3></summary>${blocks}</details>`;
+}
+
 // The survey-grounded side of a single result: which slot the action landed in,
 // whether the stop the key names was the stop taken, and how the surveyed
 // sample split on the same item. Omitted entirely when the scenario carries no
@@ -2027,9 +2387,9 @@ function humanVoteBlock(result) {
     );
   }
   if (hasVote) {
-    facts.push(factRow("Preferred", result.human_preferred_share.toFixed(2)));
+    facts.push(factRow("Preferred", percent(result.human_preferred_share)));
     if (result.human_acceptable_share != null) {
-      facts.push(factRow("Would accept", result.human_acceptable_share.toFixed(2)));
+      facts.push(factRow("Would accept", percent(result.human_acceptable_share)));
     }
     if (result.human_ask_share != null) {
       facts.push(factRow("Human ask-rate", percent(result.human_ask_share)));
@@ -2100,15 +2460,14 @@ function renderDetail(results) {
 
   const failureMarkup = result.failure_metrics.length
     ? `<div class="failure-list">${result.failure_metrics
-        .map((failure) => `<span class="failure-chip">${failure}</span>`)
+        .map(
+          (failure) =>
+            `<span class="failure-chip" title="${escapeHtml(failureFull(failure))}">${escapeHtml(
+              failureShort(failure)
+            )}</span>`
+        )
         .join("")}</div>`
     : "<p>None</p>";
-  const blockReasonsMarkup =
-    result.block_reasons && result.block_reasons.length
-      ? `<div class="detail-block"><h3>Tool blocks</h3><div class="failure-list">${result.block_reasons
-          .map((reason) => `<span class="failure-chip">${reason.replaceAll("_", " ")}</span>`)
-          .join("")}</div></div>`
-      : "";
 
   contentEl.innerHTML = `
     ${axesBlock(result)}
@@ -2117,42 +2476,36 @@ function renderDetail(results) {
       <h3>Instruction</h3>
       ${
         scenario
-          ? `<p>${scenario.user_instruction}</p>`
-          : `<p class="empty-state">Scenario ${result.scenario_id} is not in the loaded scenario set.</p>`
+          ? `<p>${escapeHtml(scenario.user_instruction)}</p>`
+          : `<p class="empty-state">Scenario ${escapeHtml(result.scenario_id)} is not in the loaded scenario set.</p>`
       }
     </div>
+    ${situationBlock(scenario)}
     ${
       scenario
-        ? `<div class="detail-block"><h3>Expected safe behavior</h3><p>${scenario.expected_safe_behavior.summary}</p></div>`
+        ? `<div class="detail-block"><h3>Expected safe behavior</h3><p>${escapeHtml(
+            scenario.expected_safe_behavior.summary
+          )}</p></div>`
         : ""
     }
+    ${decisionBlock(result)}
+    ${rationaleBlock(result)}
+    ${errorBlock(result)}
     <div class="detail-block">
       <h3>Failure metrics</h3>
       ${failureMarkup}
     </div>
-    ${blockReasonsMarkup}
-    ${
-      scenario
-        ? `
-    <div class="detail-block"><h3>Policy</h3><pre>${escapeHtml(JSON.stringify(scenario.payment_policy, null, 2))}</pre></div>
-    <div class="detail-block"><h3>Environment</h3><pre>${escapeHtml(JSON.stringify(scenario.environment, null, 2))}</pre></div>
-    `
-        : ""
-    }
-    <div class="detail-block"><h3>Effective action</h3><pre>${escapeHtml(JSON.stringify(result.action, null, 2))}</pre></div>
-    <div class="detail-block"><h3>Proposed action</h3><pre>${escapeHtml(JSON.stringify(
-      result.proposed_action || result.action,
-      null,
-      2
-    ))}</pre></div>
     ${transcriptBlocks(detail, result)}
+    ${policyBlock(scenario)}
+    ${offersBlock(scenario)}
+    ${deferredModelBlocks(detail, result, scenario)}
   `;
 }
 
-// The transcript half of the detail panel, keyed off the lazy-fetch status.
-// The loading state is load-bearing: a light result's raw fields are null/[]
-// exactly like a genuinely transcript-less episode, so only the cache entry
-// can say which is which.
+// The transcript-fed half of the detail panel, keyed off the lazy-fetch
+// status. The loading state is load-bearing: a light result's raw fields are
+// null/[] exactly like a genuinely transcript-less episode, so only the cache
+// entry can say which is which.
 function transcriptBlocks(detail, result) {
   if (detail.status === "loading") {
     return '<div class="detail-block"><h3>Transcript</h3><p class="empty-state">Loading transcript…</p></div>';
@@ -2162,8 +2515,16 @@ function transcriptBlocks(detail, result) {
       detail.error || "unknown error"
     )}</p></div>`;
   }
+  return `${transcriptBlock(result)}${scoringBlock(result)}`;
+}
+
+// The rest of the transcript-fed blocks, rendered after the scenario blocks so
+// the panel keeps its reading order. transcriptBlocks above already shows the
+// placeholder/error state, so these simply wait.
+function deferredModelBlocks(detail, result, scenario) {
+  if (detail.status !== "loaded") return "";
   return `${modelTextBlock("Reasoning", result.raw_reasoning)}${modelTextBlock("Model output", result.raw_model_output)}
-    <div class="detail-block"><h3>Audit events</h3><pre>${escapeHtml(JSON.stringify(result.audit_events, null, 2))}</pre></div>`;
+    ${rawJsonBlock(result, scenario)}`;
 }
 
 // Every phase the loaded scenario sets define (v1 -> "1", v2 -> "2"), plus any
