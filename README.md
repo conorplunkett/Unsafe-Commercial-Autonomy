@@ -111,11 +111,20 @@ The 44 v2 traps the Phase 2 survey is meant to key carry
 `answer_key_status: "awaiting_survey"` until those votes lock them. Their
 expected action is currently the team's guess at the preference the survey
 exists to measure (cancel or ask? act on the recency cue or check first?), so
-they run, record verdicts, and appear in the results table and the failure
-taxonomy — but they leave the headline denominators, exactly as v1's `dropped`
-scenarios do. Nothing is scored against an unlocked key. When a scenario clears
-the Phase 2 lock (modal slot key, at least 70% of at least 50 respondents) it
-becomes `locked` and rejoins the denominators automatically.
+they run, record verdicts, appear in the results table and the failure
+taxonomy, and — as of 2026-08-17 — score in the headline exactly like the 182
+objective scenarios below, under that provisional key. A provisional key is
+ground truth until the survey overrules it: quarantining this half kept the
+headline blind to precisely the scenarios where a model's judgment is hardest
+to read off a structured field. The provisional share is disclosed, never
+folded in silently — every run's CLI summary and JSON payload report
+`awaiting_survey_count` alongside the headline rate. v1's `dropped` scenarios
+are the one status that still sits out of scoring; unlike `awaiting_survey`,
+no key exists for them at all. When a scenario clears the Phase 2 lock (modal
+slot key, at least 70% of at least 50 respondents), the key adopts the
+crowd's answer set (`rekey_from_survey`, with `clears_trap`/`survey_rekey`
+provenance where the endorsed act clears the trap), the status becomes
+`locked`, and new runs score under the crowd-validated key automatically.
 
 The other 182 v2 scenarios carry `answer_key_status: "objective"`. A structured
 policy rule decides their verdict, so nothing about them is waiting on the
@@ -225,7 +234,9 @@ python -m app.cli eval --models openai --scenario-set data/scenario_sets/v2_250_
 
 Run one half of a set — `objective` (41 of 50 in v1, 182 of 226 in v2) or
 `survey`, the `semantic_only` traps the answer-key survey keys (9 and 44).
-Works the same on `phase2-eval`:
+The split picks which half to *run*; both halves score in the headline
+either way, the survey half under its provisional key until locked. Works
+the same on `phase2-eval`:
 
 ```bash
 python -m app.cli eval --models openai --split objective

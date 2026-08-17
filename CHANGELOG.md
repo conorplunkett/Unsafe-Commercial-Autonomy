@@ -1,5 +1,82 @@
 # Changelog
 
+## [2026-08-17] Headline scores the survey half under provisional keys
+
+`UNKEYED_STATUSES = {dropped, awaiting_survey}` (`app/metrics.py`, mirrored in
+`web/lib/metrics.ts` and `static/lab.js`) quarantined every one of the 44 v2
+`semantic_only` traps from the headline from the moment the 2026-07-24
+amendment introduced `awaiting_survey`: they ran, recorded a verdict, and
+that verdict was then discarded from every denominator that matters, on the
+reasoning that nothing should be scored against a key the team guessed and
+the survey hasn't yet blessed. Read the other way, that same rule quarantined
+exactly the half of the benchmark where a model's judgment is hardest to read
+off a structured field — cancel outright or ask first, act on the recency
+cue or check which Alice — which is the half most likely to be where agents
+actually degrade. A headline that cannot see that half isn't blind by
+accident; it's blind by construction, on precisely the scenarios most worth
+seeing.
+
+Project owner's decision, effective today: a provisional key is ground truth
+until its survey overrules it. Nothing about the survey itself changes — same
+instrument, same lock rule (≥70% of ≥50 respondents), same
+`rekey_from_survey` adoption machinery, same `clears_trap`/`survey_rekey`
+provenance once a scenario locks. What changes is only what happens to a
+verdict recorded *before* that lock: it now counts, with its provisional
+standing stated rather than hidden.
+
+### Changed
+- **`UNKEYED_STATUSES` narrows to `{dropped}`**, in the same place across all
+  three copies — `app/metrics.py`, `web/lib/metrics.ts`, `static/lab.js` — so
+  the rule can't drift between them again. `awaiting_survey` scenarios now
+  feed the headline unsafe-payment and false-refusal rates exactly like
+  `objective` scenarios, scored under their current provisional key (team
+  guess, or a `rekey_from_survey`-adopted key once real responses exist).
+  Only v1's `dropped` scenarios — survey consensus failed with no fallback,
+  no key exists at all — stay out; that status is untouched.
+- **Provisional share disclosed, not hidden.** The CLI summary and the run
+  JSON now report `awaiting_survey_count` alongside the headline rate, so a
+  number resting partly on unlocked keys never reads as if it rested on
+  none. `metrics.by_semantic_only` keeps its `objective`/`semantic_only`
+  shape; the `semantic_only` bucket carries real rates now instead of a
+  structurally empty one.
+- **Splits are unchanged.** `--split objective` and `--split survey` still
+  pick which half of a scenario set to *run* — they never picked which half
+  got *scored*. The survey half's verdicts were always recorded; only the
+  aggregation stage used to throw them out.
+- **Lock and re-key semantics are untouched.** When a scenario clears the
+  Phase 2 lock, the key still adopts the crowd's answer set exactly as
+  before (`rekey_from_survey`, `clears_trap`/`survey_rekey` provenance), the
+  status still becomes `locked`, and new runs still score under the
+  crowd-validated key automatically. This change touches only the interim
+  treatment of the time before that lock, not the lock itself.
+- **Docs**: `README.md`, `COMMANDS.md`, `VALIDITY_REVIEW.md`, and
+  `data/survey/PHASE2_WEB_SURVEY.md` updated to describe the current
+  treatment. `VALIDITY_REVIEW.md` and `PHASE2_WEB_SURVEY.md` keep their
+  original text and carry a dated amendment instead, matching each
+  document's own convention for recording a superseded verdict.
+
+### Notes
+- **Archived runs.** `python -m app.cli recompute` re-aggregates every
+  stored run's metrics under this policy, because the survey-half verdicts
+  already exist in the episode record — recompute only reruns the
+  aggregation, the same trick the 2026-08-11 trap-conditional denominator
+  change relied on. What recompute cannot do is re-grade: a scenario that
+  locks *after* a run was recorded keeps that run's original provisional-key
+  verdict, because verdicts are stamped at run time. Only a fresh run picks
+  up a post-lock key change.
+- **Rates from before and after this change are not directly comparable** on
+  any metric that touches the survey half, for the same reason every
+  denominator change in this project has carried that warning: the
+  population being divided by changed.
+
+### Files
+- Edited: `app/metrics.py`, `app/cli.py`, `app/survey.py`, `app/models.py`,
+  `web/lib/metrics.ts`, `web/lib/types.ts`,
+  `web/components/results/EpisodeBrowser.tsx`, `web/components/Limitations.tsx`,
+  `static/lab.js`, `static/lab.html` (cache-buster), `README.md`,
+  `COMMANDS.md`, `VALIDITY_REVIEW.md`, `data/survey/PHASE2_WEB_SURVEY.md`,
+  `tests/test_metrics.py`, `tests/test_cli.py`, `tests/test_phase2_web_survey.py`.
+
 ## [2026-08-17] b13's category token becomes self-describing
 
 `prohibited_network_equipment` was circular: the policy prompt renders

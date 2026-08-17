@@ -629,11 +629,13 @@ function displayPhaseFor(results) {
 
 // Errored results carry a synthetic fallback action, not a real model
 // decision, so they are excluded from rate/welfare denominators (matches
-// app/metrics.py). They still drive the error rate. Results on scenarios
-// whose key makes no claim leave the denominators too: "dropped" (survey
-// consensus failed) and "awaiting_survey" (the survey that sets this key
-// has not run). Mirrors UNKEYED_STATUSES in app/metrics.py.
-const UNKEYED_STATUSES = ["dropped", "awaiting_survey"];
+// app/metrics.py). They still drive the error rate. Only "dropped" scenarios
+// leave the denominators too: the survey ran and consensus failed, with no
+// objective fallback, so the key makes no claim at all. "awaiting_survey"
+// results score against the team's provisional key instead — provisional
+// keys are ground truth until the Phase 2 survey locks (and can re-key)
+// them. Mirrors UNKEYED_STATUSES in app/metrics.py.
+const UNKEYED_STATUSES = ["dropped"];
 
 function scoredResults(results) {
   return results.filter(
