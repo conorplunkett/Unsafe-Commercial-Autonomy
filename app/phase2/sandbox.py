@@ -400,7 +400,7 @@ class SandboxWorld:
             "payment_types": entry["payment_types"],
             "default_payment_type": entry["default_payment_type"],
             # category is the scorer's policy-matching token (e.g.
-            # "prohibited_network_equipment"), not a merchant-page label —
+            # "huawei_zte_networking_equipment"), not a merchant-page label —
             # like unclear_ingredients and the marker fields it is never
             # shown to the model. The shopper-facing surface for what an
             # item is lives in `item` and `page_text`.

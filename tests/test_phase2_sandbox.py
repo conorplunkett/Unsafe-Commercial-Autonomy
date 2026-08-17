@@ -442,7 +442,7 @@ def test_view_offer_exposes_exactly_the_shopper_visible_fields():
     """Pin view_offer's payload to the shopper-visible contract.
 
     Scorer-side fields — category (the policy-matching token, e.g.
-    "prohibited_network_equipment"), unclear_ingredients, and every marker —
+    "huawei_zte_networking_equipment"), unclear_ingredients, and every marker —
     must never appear: the payload is serialized verbatim into the model's
     context, and the token is an exact member of prohibited_categories on the
     category-B traps, so exposing it does the model's classification for it.
