@@ -2021,9 +2021,11 @@ async function doLoad() {
 
 loadBtn.onclick = doLoad;
 keyInput.addEventListener("keydown", e => { if (e.key === "Enter") doLoad(); });
-tabP1.onclick = () => renderTab("1");
-tabP2.onclick = () => renderTab("2");
-tabCmds.onclick = () => renderTab("cmds");
+// Switching tabs swaps in unrelated content, so jump back to the top rather
+// than leaving the reader stranded at whatever scroll depth the old tab was at.
+tabP1.onclick = () => { window.scrollTo(0, 0); renderTab("1"); };
+tabP2.onclick = () => { window.scrollTo(0, 0); renderTab("2"); };
+tabCmds.onclick = () => { window.scrollTo(0, 0); renderTab("cmds"); };
 document.getElementById("signout").onclick = (e) => {
   e.preventDefault();
   localStorage.removeItem("pb_admin_key");
