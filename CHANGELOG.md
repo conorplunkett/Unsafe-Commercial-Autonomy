@@ -59,6 +59,82 @@ trap-ness lives in `refundable_only`.
   only heal on a live re-run — the models really did stop; the harness made
   them.
 
+## [2026-08-17] Experiment Lab: light run serving
+
+Opening the Lab downloaded every stored run in full — per-episode model
+transcripts, audit trails, and a run-level event stream that duplicates them —
+and re-downloaded it all after every finished run and every delete. A single
+scripted-agent Phase 2 sweep is a ~49 MB file, so a few stored runs meant
+hundreds of megabytes parsed on the server's event loop (stalling the progress
+polls) and rendered as one giant table. Stored run files are unchanged on
+disk; only serving and rendering are.
+
+### Changed
+- **Light run payloads** (`app/storage.py`, `app/main.py`):
+  `GET /api/runs/{id}` strips `raw_model_output`, `raw_reasoning`,
+  `audit_events`, and `events` before serving — 4×+ smaller before real model
+  transcripts are even involved — with `?include=full` restoring the old
+  payload. The slimmed payload still passes through the models, so the legacy
+  field aliases keep applying, and each served result carries its
+  `episode_index`.
+- **On-demand transcripts** (`static/lab.js`): the Detail panel fetches one
+  episode's transcript fields from the new
+  `GET /api/runs/{id}/results/{episode_index}` the first time that episode is
+  selected, with an explicit loading state so a pending fetch can't read as
+  "the model produced no output".
+- **Sidecar run summaries** (`app/storage.py`): each save also writes
+  `_summaries/<run_id>.json`, and `/api/runs` lists from those (mtime-checked,
+  self-healing for pre-existing runs and `recompute --file` rewrites) instead
+  of parsing every full run file.
+- **Endpoints off the event loop** (`app/main.py`): run-serving, scenario, and
+  benchmark endpoints are sync `def`, so their file IO and parsing run in the
+  threadpool instead of freezing the 800 ms job-progress polls.
+- **Results table pagination** (`static/lab.js`, `static/lab.html`): 50 rows
+  per page with the failure-chart pager; row clicks repaint the table and
+  Detail panel instead of the whole dashboard.
+
+### Fixed
+- **Detail selection collisions** (`static/lab.js`): `resultKey` now includes
+  the episode index, so a Phase 2 grid's framing/urgency/availability cells no
+  longer share one key — the panel previously showed whichever episode matched
+  the key first.
+
+## [2026-08-14] Experiment Lab: readable episode detail
+
+Auditing an episode in the Lab meant reading four raw JSON dumps (policy,
+environment, both actions, and the full audit-event list) in which the two
+things an audit actually needs — what the agent decided and the reason it gave —
+were buried among null fields, parser provenance, and repeated axis labels.
+The Detail panel now renders those as readable blocks; the verbatim structures
+moved behind a Raw JSON toggle instead of being the default view.
+
+### Changed
+- **Decision block** (`static/lab.js`): proposed action, what blocked it, and
+  the effective action as one-line summaries of only the set fields
+  ("purchase · $53.98 · chargerhub · card"), with the Effective row shown only
+  when a control layer actually rewrote the proposal. Block reasons use the
+  same readable failure vocabulary as the charts.
+- **Rationale block**: the agent's own stated reason (Phase 1 action rationale,
+  Phase 2 finish summary / approval request) pulled out as a quoted paragraph
+  instead of a JSON string field.
+- **Transcript block**: Phase 2 `tool_call` audit events as a numbered step
+  list — tool, condensed arguments, and outcome per step ("pay · off_1 →
+  completed — $53.98 charged to ChargerHub"), with agent-written
+  reason/summary text quoted under the step. Completed payments and
+  blocked/rejected attempts carry an edge accent.
+- **Scoring block**: `policy_failure` / `tool_constraint_block` / `verdict`
+  events as labeled rows with the triggering numbers ("amount $53.98 ·
+  max total spend $50"), deduplicated per failure code.
+- **Policy & answer key / Offers / Situation blocks**: the scenario's
+  structured policy and answer key as fact rows (parser provenance and survey
+  vote shares filtered out — the Human vote block already shows those), sandbox
+  offers as one line each under the same `offer_id` the transcript references.
+- **Raw JSON toggle**: the exact dumps the panel used to show inline (policy,
+  environment, actions, audit events), collapsed by default.
+- **Readable failure labels everywhere**: Results-table Failure column and the
+  Detail failure chips now use the chart vocabulary (`failureShort`) with the
+  full sentence as a hover title; human-vote shares render as percentages.
+
 ## [2026-08-12] Merge fragmented runs into one artifact
 
 A grid rarely runs in one sitting — conditions get run on different days, an

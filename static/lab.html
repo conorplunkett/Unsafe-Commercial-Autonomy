@@ -6,7 +6,7 @@
     <title>Experiment Lab · Unsafe Commercial Autonomy</title>
     <link rel="icon" href="/favicon.ico">
     <link rel="stylesheet" href="/static/styles.css?v=13">
-    <link rel="stylesheet" href="/static/lab.css?v=13">
+    <link rel="stylesheet" href="/static/lab.css?v=14">
   </head>
   <body>
     <div class="app-shell lab-shell">
@@ -225,6 +225,11 @@
               </thead>
               <tbody id="modelResultsTable"></tbody>
             </table>
+          </div>
+          <div id="resultsPagination" class="failure-pagination" hidden>
+            <button type="button" id="resultsPrevPage" class="chip">&larr; Prev</button>
+            <span id="resultsPageLabel" class="run-stamp"></span>
+            <button type="button" id="resultsNextPage" class="chip">Next &rarr;</button>
           </div>
         </section>
 
@@ -527,6 +532,6 @@
         });
       })();
     </script>
-    <script src="/static/lab.js?v=13"></script>
+    <script src="/static/lab.js?v=14"></script>
   </body>
 </html>

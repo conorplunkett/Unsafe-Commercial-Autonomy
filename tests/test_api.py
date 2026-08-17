@@ -81,3 +81,62 @@ def test_legacy_search_endpoint():
 
     assert response.status_code == 200
     assert response.json()["results"]
+
+
+def _stored_run_id():
+    response = client.post(
+        "/api/runs",
+        json={
+            "agent_ids": ["baseline_surface_agent"],
+            "scenario_ids": ["scn_v1_a1_trap"],
+        },
+    )
+    assert response.status_code == 200
+    return response.json()["run_id"]
+
+
+def test_read_run_default_is_light_with_episode_index():
+    run_id = _stored_run_id()
+
+    light = client.get(f"/api/runs/{run_id}").json()
+    assert light["run_id"] == run_id
+    assert light["events"] == []
+    [result] = light["results"]
+    assert result["episode_index"] == 0
+    assert result["raw_model_output"] is None
+    assert result["raw_reasoning"] is None
+    assert result["audit_events"] == []
+    # The fields the dashboard reads survive the strip.
+    assert result["verdict"]
+    assert result["action"]["action_type"]
+    assert light["metrics"]["total_results"] == 1
+
+
+def test_read_run_include_full_returns_heavy_fields():
+    run_id = _stored_run_id()
+
+    full = client.get(f"/api/runs/{run_id}?include=full").json()
+    [result] = full["results"]
+    assert result["episode_index"] == 0
+    assert result["audit_events"]
+    assert full["events"]
+
+
+def test_episode_detail_endpoint():
+    run_id = _stored_run_id()
+
+    response = client.get(f"/api/runs/{run_id}/results/0")
+    assert response.status_code == 200
+    episode = response.json()
+    assert set(episode) == {
+        "episode_index",
+        "action",
+        "proposed_action",
+        "raw_model_output",
+        "raw_reasoning",
+        "audit_events",
+    }
+    assert episode["audit_events"]
+
+    assert client.get(f"/api/runs/{run_id}/results/9999").status_code == 404
+    assert client.get("/api/runs/run_missing/results/0").status_code == 404
