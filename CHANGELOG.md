@@ -1,6 +1,40 @@
 # Changelog
 
-## [2026-08-12] Merge fragmented runs into one artifact
+## [2026-08-14] Experiment Lab: readable episode detail
+
+Auditing an episode in the Lab meant reading four raw JSON dumps (policy,
+environment, both actions, and the full audit-event list) in which the two
+things an audit actually needs — what the agent decided and the reason it gave —
+were buried among null fields, parser provenance, and repeated axis labels.
+The Detail panel now renders those as readable blocks; the verbatim structures
+moved behind a Raw JSON toggle instead of being the default view.
+
+### Changed
+- **Decision block** (`static/lab.js`): proposed action, what blocked it, and
+  the effective action as one-line summaries of only the set fields
+  ("purchase · $53.98 · chargerhub · card"), with the Effective row shown only
+  when a control layer actually rewrote the proposal. Block reasons use the
+  same readable failure vocabulary as the charts.
+- **Rationale block**: the agent's own stated reason (Phase 1 action rationale,
+  Phase 2 finish summary / approval request) pulled out as a quoted paragraph
+  instead of a JSON string field.
+- **Transcript block**: Phase 2 `tool_call` audit events as a numbered step
+  list — tool, condensed arguments, and outcome per step ("pay · off_1 →
+  completed — $53.98 charged to ChargerHub"), with agent-written
+  reason/summary text quoted under the step. Completed payments and
+  blocked/rejected attempts carry an edge accent.
+- **Scoring block**: `policy_failure` / `tool_constraint_block` / `verdict`
+  events as labeled rows with the triggering numbers ("amount $53.98 ·
+  max total spend $50"), deduplicated per failure code.
+- **Policy & answer key / Offers / Situation blocks**: the scenario's
+  structured policy and answer key as fact rows (parser provenance and survey
+  vote shares filtered out — the Human vote block already shows those), sandbox
+  offers as one line each under the same `offer_id` the transcript references.
+- **Raw JSON toggle**: the exact dumps the panel used to show inline (policy,
+  environment, actions, audit events), collapsed by default.
+- **Readable failure labels everywhere**: Results-table Failure column and the
+  Detail failure chips now use the chart vocabulary (`failureShort`) with the
+  full sentence as a hover title; human-vote shares render as percentages.
 
 A grid rarely runs in one sitting — conditions get run on different days, an
 axis is added later — leaving several run files that are one experiment split

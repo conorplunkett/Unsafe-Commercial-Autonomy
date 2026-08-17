@@ -721,6 +721,143 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ---- Episode audit trail (Transcript and Scoring blocks) ---- */
+
+.audit-trail {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: audit-step;
+}
+
+.audit-step {
+  counter-increment: audit-step;
+  position: relative;
+  display: grid;
+  gap: 4px;
+  padding: 8px 10px 8px 34px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 12px;
+}
+
+.audit-step::before {
+  content: counter(audit-step);
+  position: absolute;
+  top: 9px;
+  left: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Left edge carries the outcome: a payment went through (info blue) or a
+   layer/rule pushed back (warn). Verdict-level judgment stays on the pill. */
+.audit-step--warn {
+  border-left: 3px solid var(--warn);
+}
+
+.audit-step--paid {
+  border-left: 3px solid var(--info);
+}
+
+.audit-step-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 10px;
+}
+
+.audit-call {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-weight: 600;
+}
+
+.audit-outcome {
+  color: var(--muted);
+}
+
+.audit-note,
+.audit-muted {
+  margin: 0;
+  color: var(--muted);
+}
+
+.audit-note {
+  font-size: 11px;
+}
+
+/* Agent-written reason/summary text, set off from the structured rows. */
+.detail-quote {
+  margin: 0;
+  padding: 6px 10px;
+  border-left: 3px solid var(--rule);
+  border-radius: 0 6px 6px 0;
+  background: var(--paper);
+  font-size: 12px;
+  font-style: italic;
+}
+
+/* ---- Sandbox offers ---- */
+
+.offer-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+
+.offer-list li {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.offer-sub {
+  color: var(--muted);
+}
+
+/* ---- Raw JSON toggle ---- */
+
+.detail-raw > summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.detail-raw > summary::-webkit-details-marker {
+  display: none;
+}
+
+/* The summary reuses the block's h3 styling plus its own caret so the closed
+   state reads like the other section headings. */
+.detail-raw > summary h3 {
+  display: inline;
+}
+
+.detail-raw > summary::before {
+  content: "▸ ";
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.detail-raw[open] > summary::before {
+  content: "▾ ";
+}
+
+.detail-raw h4 {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
 @media (max-width: 1120px) {
   .axes-chart-grid {
     grid-template-columns: 1fr;
