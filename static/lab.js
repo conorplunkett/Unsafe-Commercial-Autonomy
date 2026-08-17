@@ -70,6 +70,16 @@ const state = {
   // open, from paintFailureChart. failurePage is 1-indexed.
   failureResults: [],
   failurePage: 1,
+  // Results table page, 1-indexed like failurePage. Reset wherever
+  // selectedKey resets, so auto-select always lands on page 1.
+  resultsPage: 1,
+  // Per-episode transcript fetches: `${run_id}::${episode_index}` ->
+  // {status: "loading"|"loaded"|"error", error?}. Runs arrive light (no
+  // transcripts), so the detail panel hydrates its episode on demand and
+  // this map is what distinguishes "not fetched yet" from "model produced
+  // no output". refreshData() replaces the map wholesale; in-flight fetches
+  // compare map identity and drop their result when it changed under them.
+  detailCache: new Map(),
 };
 
 const els = {};
@@ -137,6 +147,10 @@ for (const id of [
   "resultsFilterReset",
   "modelResultsTable",
   "modelResultsStamp",
+  "resultsPagination",
+  "resultsPrevPage",
+  "resultsNextPage",
+  "resultsPageLabel",
   "modelDetailVerdict",
   "modelDetailContent",
   "runListTable",
@@ -458,7 +472,11 @@ function categoryLabel(id) {
 }
 
 function resultKey(result) {
-  return `${result.run_id}::${result.scenario_id}::${result.model_id || result.agent_id}::${result.control_condition || "legacy"}::${result.seed || 0}`;
+  // episode_index (the result's position in its run, stamped by the server)
+  // is what actually makes the key unique: a Phase 2 grid crosses framing ×
+  // urgency × availability inside one run, so the other parts alone collide.
+  // ?? 0 keeps keys stable against payloads that predate the stamp.
+  return `${result.run_id}::${result.scenario_id}::${result.model_id || result.agent_id}::${result.control_condition || "legacy"}::${result.seed || 0}::${result.episode_index ?? 0}`;
 }
 
 function modelLabel(result) {
@@ -1328,6 +1346,11 @@ async function refreshData() {
   state.runList = [];
   state.allResults = [];
   state.surveyFloor = null;
+  // Fresh light copies replace every result object, so pending transcript
+  // fetches against the old ones must not land — new Map identity is the
+  // signal ensureEpisodeDetail uses to drop them.
+  state.detailCache = new Map();
+  state.resultsPage = 1;
   for (const run of runs) {
     if (!run || !run.results) continue;
     state.runList.push(run);
@@ -1646,16 +1669,25 @@ function controlConditionLabel(condition) {
   return condition ? CONDITION_LABELS[condition] || condition.replaceAll("_", " ") : "legacy";
 }
 
+const RESULTS_PER_PAGE = 50;
+
 function renderResultsTable(results) {
   if (!results.length) {
     els.modelResultsTable.innerHTML =
       '<tr><td colspan="5" class="empty-state">No matching results.</td></tr>';
+    els.resultsPagination.hidden = true;
     return;
   }
+  // Selection is validated against the full filtered set, not the visible
+  // page, so paging away from the selected row never reassigns it.
   if (!state.selectedKey || !results.some((result) => resultKey(result) === state.selectedKey)) {
     state.selectedKey = resultKey(results[0]);
   }
+  const totalPages = Math.max(1, Math.ceil(results.length / RESULTS_PER_PAGE));
+  state.resultsPage = Math.min(Math.max(state.resultsPage, 1), totalPages);
+  const start = (state.resultsPage - 1) * RESULTS_PER_PAGE;
   els.modelResultsTable.innerHTML = results
+    .slice(start, start + RESULTS_PER_PAGE)
     .map((result) => {
       const failures = result.failure_metrics.length ? result.failure_metrics.join(", ") : "none";
       const selected = resultKey(result) === state.selectedKey ? "selected" : "";
@@ -1670,6 +1702,10 @@ function renderResultsTable(results) {
       `;
     })
     .join("");
+  els.resultsPagination.hidden = results.length <= RESULTS_PER_PAGE;
+  els.resultsPageLabel.textContent = `Page ${state.resultsPage} of ${totalPages}`;
+  els.resultsPrevPage.disabled = state.resultsPage <= 1;
+  els.resultsNextPage.disabled = state.resultsPage >= totalPages;
 }
 
 // Failure-mode × condition breakdown for a result set. For each failure code
@@ -1920,6 +1956,7 @@ function resetResultFilters() {
   state.urgencyFilter = "all";
   state.userAvailabilityFilter = "all";
   state.selectedKey = null;
+  state.resultsPage = 1;
   renderAll();
 }
 
@@ -2001,6 +2038,49 @@ function humanVoteBlock(result) {
   return `<div class="detail-block"><h3>Human vote</h3><dl class="detail-facts">${facts.join("")}</dl></div>`;
 }
 
+// Runs arrive light — no transcripts, no audit events — so the first time an
+// episode is selected its heavy fields are fetched from
+// /api/runs/{run_id}/results/{episode_index} and merged onto the result
+// object. Returns the cache entry renderDetail branches its transcript
+// blocks on; kicks the fetch when there's no entry yet.
+function ensureEpisodeDetail(result) {
+  if (result.episode_index == null || !result.run_id) {
+    // Full payloads (?include=full, or a server predating the stamp) carry
+    // the fields inline — nothing to fetch.
+    return { status: "loaded" };
+  }
+  const key = `${result.run_id}::${result.episode_index}`;
+  const cached = state.detailCache.get(key);
+  if (cached) return cached;
+  const entry = { status: "loading" };
+  state.detailCache.set(key, entry);
+  const cacheAtStart = state.detailCache;
+  fetchJson(`/api/runs/${result.run_id}/results/${result.episode_index}`)
+    .then((detail) => {
+      if (state.detailCache !== cacheAtStart) return;
+      // Transcript fields only: the light payload's action/proposed_action
+      // already went through the server's legacy-alias pass; the raw copies
+      // in this response did not.
+      result.raw_model_output = detail.raw_model_output;
+      result.raw_reasoning = detail.raw_reasoning;
+      result.audit_events = detail.audit_events || [];
+      entry.status = "loaded";
+      repaintDetailIfSelected(result);
+    })
+    .catch((error) => {
+      if (state.detailCache !== cacheAtStart) return;
+      entry.status = "error";
+      entry.error = error.message;
+      repaintDetailIfSelected(result);
+    });
+  return entry;
+}
+
+function repaintDetailIfSelected(result) {
+  if (resultKey(result) !== state.selectedKey) return;
+  renderDetail(applyResultFilters(state.allResults));
+}
+
 function renderDetail(results) {
   const result = results.find((item) => resultKey(item) === state.selectedKey);
   const verdictEl = els.modelDetailVerdict;
@@ -2013,6 +2093,7 @@ function renderDetail(results) {
     return;
   }
   const scenario = state.scenarioIndex.get(result.scenario_id);
+  const detail = ensureEpisodeDetail(result);
   verdictEl.textContent = verdictLabel(result.verdict);
   verdictEl.className = `status-pill status-${result.verdict}`;
   contentEl.className = "detail-content";
@@ -2064,9 +2145,25 @@ function renderDetail(results) {
       null,
       2
     ))}</pre></div>
-    ${modelTextBlock("Reasoning", result.raw_reasoning)}${modelTextBlock("Model output", result.raw_model_output)}
-    <div class="detail-block"><h3>Audit events</h3><pre>${escapeHtml(JSON.stringify(result.audit_events, null, 2))}</pre></div>
+    ${transcriptBlocks(detail, result)}
   `;
+}
+
+// The transcript half of the detail panel, keyed off the lazy-fetch status.
+// The loading state is load-bearing: a light result's raw fields are null/[]
+// exactly like a genuinely transcript-less episode, so only the cache entry
+// can say which is which.
+function transcriptBlocks(detail, result) {
+  if (detail.status === "loading") {
+    return '<div class="detail-block"><h3>Transcript</h3><p class="empty-state">Loading transcript…</p></div>';
+  }
+  if (detail.status === "error") {
+    return `<div class="detail-block"><h3>Transcript</h3><p class="empty-state">Could not load transcript: ${escapeHtml(
+      detail.error || "unknown error"
+    )}</p></div>`;
+  }
+  return `${modelTextBlock("Reasoning", result.raw_reasoning)}${modelTextBlock("Model output", result.raw_model_output)}
+    <div class="detail-block"><h3>Audit events</h3><pre>${escapeHtml(JSON.stringify(result.audit_events, null, 2))}</pre></div>`;
 }
 
 // Every phase the loaded scenario sets define (v1 -> "1", v2 -> "2"), plus any
@@ -2631,13 +2728,18 @@ function bindEvents() {
     if (!row) return;
     state.modelFilter = state.modelFilter === row.dataset.model ? null : row.dataset.model;
     state.selectedKey = null;
+    state.resultsPage = 1;
     renderAll();
   });
   els.modelResultsTable.addEventListener("click", (event) => {
     const row = event.target.closest("tr[data-result-key]");
     if (!row) return;
     state.selectedKey = row.dataset.resultKey;
-    renderAll();
+    // Selecting a row changes no chart input — repaint just the table
+    // highlight and the detail panel instead of the whole dashboard.
+    const filtered = applyResultFilters(state.allResults);
+    renderResultsTable(filtered);
+    renderDetail(filtered);
   });
   els.runSupersededAction.addEventListener("click", deleteSupersededRuns);
   els.runListTable.addEventListener("click", (event) => {
@@ -2650,36 +2752,43 @@ function bindEvents() {
     if (!row) return;
     state.runFilter = state.runFilter === row.dataset.runId ? null : row.dataset.runId;
     state.selectedKey = null;
+    state.resultsPage = 1;
     renderAll();
   });
   els.resultRunFilter.addEventListener("change", () => {
     state.runFilter = els.resultRunFilter.value === "all" ? null : els.resultRunFilter.value;
     state.selectedKey = null;
+    state.resultsPage = 1;
     renderAll();
   });
   els.resultVerdictFilter.addEventListener("change", () => {
     state.verdictFilter = els.resultVerdictFilter.value;
     state.selectedKey = null;
+    state.resultsPage = 1;
     renderAll();
   });
   els.resultConditionFilter.addEventListener("change", () => {
     state.conditionFilter = els.resultConditionFilter.value;
     state.selectedKey = null;
+    state.resultsPage = 1;
     renderAll();
   });
   els.resultUserAvailabilityFilter.addEventListener("change", () => {
     state.userAvailabilityFilter = els.resultUserAvailabilityFilter.value;
     state.selectedKey = null;
+    state.resultsPage = 1;
     renderAll();
   });
   els.resultFramingFilter.addEventListener("change", () => {
     state.framingFilter = els.resultFramingFilter.value;
     state.selectedKey = null;
+    state.resultsPage = 1;
     renderAll();
   });
   els.resultUrgencyFilter.addEventListener("change", () => {
     state.urgencyFilter = els.resultUrgencyFilter.value;
     state.selectedKey = null;
+    state.resultsPage = 1;
     renderAll();
   });
   els.resultsFilterReset.addEventListener("click", resetResultFilters);
@@ -2697,6 +2806,16 @@ function bindEvents() {
   els.failureNextPage.addEventListener("click", () => {
     state.failurePage += 1;
     paintFailureChart();
+  });
+  // Page flips repaint only the results table (renderResultsTable clamps the
+  // page) — the charts' inputs don't change, so renderAll would be waste.
+  els.resultsPrevPage.addEventListener("click", () => {
+    state.resultsPage = Math.max(1, state.resultsPage - 1);
+    renderResultsTable(applyResultFilters(state.allResults));
+  });
+  els.resultsNextPage.addEventListener("click", () => {
+    state.resultsPage += 1;
+    renderResultsTable(applyResultFilters(state.allResults));
   });
 }
 
