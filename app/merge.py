@@ -1,10 +1,10 @@
 """Stitch several sittings of the same gauntlet into one run.
 
-A full Phase 2 grid is often not run in one go: the four control conditions get
-run on different days, or an axis is added later, leaving four run files that
-are one experiment split across four sittings. Nothing downstream can read them
+A full Phase 2 grid is often not run in one go: the control conditions get
+run on different days, or an axis is added later, leaving several run files
+that are one experiment split across sittings. Nothing downstream can read them
 as one — the leaderboard pools by model name, but every per-condition breakdown
-in ``metrics`` is computed within a single run, so a four-way split has no
+in ``metrics`` is computed within a single run, so a multi-way split has no
 `by_condition_and_framing` cell that compares conditions.
 
 This module pools those sittings' episodes into one new run and recomputes the

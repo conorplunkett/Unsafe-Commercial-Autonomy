@@ -280,17 +280,21 @@ def _human_axes(results: List[EvaluationResult]) -> Dict[str, Any]:
     return axes
 
 
-# Conditions in which the check_policy tool exists. Mirrors
-# phase2.sandbox.CONDITIONS_WITH_POLICY_TOOL rather than importing it:
-# metrics must summarize stored runs without pulling in the phase2 stack.
+# Every condition that ever offered the check_policy tool. Read path, so it is
+# deliberately wider than phase2.sandbox.CONDITIONS_WITH_POLICY_TOOL (and not
+# imported from it — metrics must summarize stored runs without pulling in the
+# phase2 stack): required_check was cut from the runnable grid on 2026-08-17,
+# but stored runs containing its episodes must keep aggregating here.
 _POLICY_TOOL_CONDITIONS = frozenset({"required_check", "tool_constraints"})
 
 
 def _check_policy_discipline(results: List[EvaluationResult]) -> Dict[str, Any]:
     """Procedure compliance for the check_policy arms, from stored transcripts.
 
-    The two check_policy conditions each bundle a procedure with the policy,
-    and the headline rates never say whether the model actually followed it.
+    The check_policy conditions each bundle a procedure with the policy, and
+    the headline rates never say whether the model actually followed it.
+    (required_check episodes only exist in stored runs — the condition was cut
+    from the runnable grid on 2026-08-17 — but those runs must keep reporting.)
     Three additive rates, computed from the tool transcript each Phase 2
     episode persists in its audit trail:
 
