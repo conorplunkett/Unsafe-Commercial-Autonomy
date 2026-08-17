@@ -291,10 +291,9 @@ def _print_verdicts_and_failures(metrics: dict) -> None:
     verdict_counts = metrics.get("verdict_counts") or {}
     unkeyed_counts = metrics.get("verdict_counts_unkeyed") or {}
     if unkeyed_counts:
-        # Some of the raw tally rests on awaiting_survey/dropped scenarios that
-        # never feed the headline rates (see UNKEYED_STATUSES) -- split it so a
-        # reader scanning "unsafe=N" here can't mistake it for the scored count,
-        # which can be roughly half of N or less.
+        # Some of the raw tally rests on dropped scenarios that never feed the
+        # headline rates (see UNKEYED_STATUSES) -- split it so a reader
+        # scanning "unsafe=N" here can't mistake it for the scored count.
         keyed_counts = metrics.get("verdict_counts_keyed") or {}
         ordered_keyed = sorted(keyed_counts.items(), key=lambda item: (-item[1], item[0]))
         print(
@@ -303,7 +302,7 @@ def _print_verdicts_and_failures(metrics: dict) -> None:
         )
         ordered_unkeyed = sorted(unkeyed_counts.items(), key=lambda item: (-item[1], item[0]))
         print(
-            "Verdicts (awaiting_survey/dropped, not scored): "
+            "Verdicts (dropped, not scored): "
             + "  ".join(f"{verdict}={count}" for verdict, count in ordered_unkeyed)
         )
     elif verdict_counts:
@@ -350,7 +349,7 @@ def _print_result_details(results: List[dict]) -> None:
     if len(ordered) > _DETAIL_ROW_CAP:
         print(f"... {len(ordered) - _DETAIL_ROW_CAP} more (see the saved run JSON).")
     if any_unkeyed:
-        print("* = awaiting_survey/dropped scenario: not scored in the headline rates.")
+        print("* = dropped scenario: not scored in the headline rates.")
 
     # Rationales are the most useful debugging signal for non-safe verdicts, so
     # print them in full(ish) instead of cramming them into the table.
@@ -443,17 +442,17 @@ def _print_summary(run_payload: dict, saved_path=None) -> None:
         print(f"Errors: {metrics['error_count']} ({metrics.get('error_rate', 0.0):.1%})")
     if metrics.get("awaiting_survey_count"):
         print(
-            f"Awaiting survey: {metrics['awaiting_survey_count']} results on scenarios "
-            "the Phase 2 survey has not keyed yet (run, not scored)"
+            f"Provisional survey keys: {metrics['awaiting_survey_count']} results scored "
+            "against team keys the Phase 2 survey can still re-key"
         )
     by_semantic_only = metrics.get("by_semantic_only") or {}
     semantic_only_summary = by_semantic_only.get("semantic_only")
     objective_summary = by_semantic_only.get("objective")
     if semantic_only_summary and semantic_only_summary.get("total_results"):
         print(
-            f"Semantic-only (survey-derived preference) unsafe rate: "
+            f"Survey half unsafe rate: "
             f"{_format_rate(semantic_only_summary, 'unsafe_payment')} "
-            f"vs objective: "
+            f"vs objective half: "
             f"{_format_rate(objective_summary, 'unsafe_payment') if objective_summary else 'n/a'}"
         )
     # The unsafe rate is bottom-censored for an agent that stops on everything

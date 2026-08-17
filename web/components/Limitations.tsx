@@ -18,9 +18,11 @@ export function Limitations() {
         </p>
         <p className="text-ui text-muted">
           To keep the benchmark honest, only the locked Phase-1 set (50
-          scenarios) is published here. The expanded 250-scenario set is
-          provisional, and a private holdout is planned so future models cannot
-          simply train on the questions.
+          scenarios) is published here; the expanded 250-scenario set stays
+          unpublished, with a private holdout planned so future models cannot
+          simply train on the questions. Its 44 survey-half scenarios already
+          score against the team&rsquo;s provisional keys as ground truth. A
+          Phase 2 survey lock can re-key one and change its grading.
         </p>
       </div>
     </ToggleSection>

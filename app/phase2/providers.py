@@ -736,8 +736,8 @@ class OpenAICompatToolProvider(ToolLoopProvider):
         if self.send_seed and self._seed is not None:
             body["seed"] = self._seed
         if self.provider_id == "gemini":
-            # Env-gated thought-summary opt-in; {} (the default) for every
-            # other vendor on this shared transport.
+            # On-by-default thought-summary request (env opt-out); {} for
+            # every other vendor on this shared transport.
             body.update(_gemini_thinking_extra_body())
         try:
             response = httpx.post(

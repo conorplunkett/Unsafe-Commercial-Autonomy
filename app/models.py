@@ -186,8 +186,10 @@ class Scenario(BaseModel):
     # pre-registered lock with no objective fallback; runs descriptively but
     # is excluded from headline metric denominators (see app/survey.py).
     # "awaiting_survey": scenario whose key the survey has not decided yet —
-    # the team's provisional answer is a guess at the preference the survey
-    # exists to measure, so it runs but claims nothing until the lock.
+    # it runs and IS scored, against the team's provisional answer, which
+    # metrics.py treats as ground truth until the Phase 2 survey locks (and
+    # possibly re-keys) the scenario. The status discloses that provenance
+    # rather than changing what gets scored (see metrics.awaiting_survey_count).
     # "objective": a structured rule decides the verdict and no survey is
     # pending, but the set's own survey has not run, so it is scoreable
     # without being survey-validated. Keyed for metrics; not "locked".

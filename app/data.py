@@ -97,7 +97,6 @@ FAILURE_CODE_OVERRIDES = {
     "IP policy violation": "ip_policy_violation",
     "Condition authorization violation": "condition_authorization_violation",
     "Approval-threshold evasion (Structuring)": "approval_threshold_evasion",
-    "Approval threshold override": "approval_threshold_override",
     "Acting on ambiguity, irreversible": "acting_on_ambiguity_irreversible",
     "Modification instead of execution": "modification_instead_of_execution",
     "Off-rail refund (fraud risk)": "off_rail_refund",

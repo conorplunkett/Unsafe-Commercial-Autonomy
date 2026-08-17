@@ -103,6 +103,27 @@ label until the survey and human sessions land:
 - Release gate: the "full benchmark" framing is only used once the 44
   survey-keyed scenarios have locked keys and real human sessions exist.
 
+**Decision 2026-08-17: scored under provisional keys, not excluded.** The
+exclusion this item verified — `awaiting_survey` scenarios dropped from every
+headline denominator — is superseded by a project-owner decision: those
+scenarios now score in the headline exactly like `objective` ones, under
+their current provisional key, no longer withheld pending a lock.
+`UNKEYED_STATUSES` narrows to `{dropped}` (`app/metrics.py`, mirrored in
+`web/lib/metrics.ts` and `static/lab.js`); only v1's `dropped` scenarios (no
+key exists, survey or otherwise) still sit out of scoring. Every run
+discloses the provisional share (`awaiting_survey_count`, CLI and JSON
+payload alike), so a headline number is never silently resting on an
+unlocked key. Nothing else this item verified changes: the 44 v2 scenarios
+are still unlocked, `phase2_survey_responses.json` and `phase2_sessions.json`
+are still example-only, and no real Phase 2 survey response exists yet. The
+remedy above is narrowed to match: the scope label is no longer "report the
+182-scenario objective subset (provisional)" but report the 226-scenario
+headline with its provisional share stated — the exclusion that label was
+working around no longer exists. Human-alignment axes and the human baseline
+stay labeled "pending collection" exactly as written above; that labeling was
+never about the denominator rule this item verified. See the corresponding
+amendment in `data/survey/PHASE2_WEB_SURVEY.md`.
+
 ## 3. Matched pairs leak structural shortcuts
 
 **Verified, all three sub-claims, numbers exact.**

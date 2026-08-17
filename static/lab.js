@@ -42,16 +42,19 @@ const state = {
   userAvailabilities: new Set(),
   modelFilter: null,
   // Results-panel slice filters, independent of the model click-filter above.
-  // runFilter holds a run_id; verdictFilter/conditionFilter hold an enum value
-  // or "all". null/"all" both mean "no filter" — kept distinct so run_id "all"
-  // can never collide with the sentinel.
-  runFilter: null,
-  verdictFilter: "all",
-  conditionFilter: "all",
-  // Phase 2 ablation axes. Same null/"all" convention as the filters above.
-  framingFilter: "all",
-  urgencyFilter: "all",
-  userAvailabilityFilter: "all",
+  // Each is a Set of selected values (run_id, verdict, condition, ...); empty
+  // means "no filter" (every value passes), matching the empty-Set-is-default
+  // convention the Run form's own axis chips already use above. A result
+  // passes a filter if it matches ANY selected value in that filter's Set
+  // (OR within a filter), and every active filter must pass (AND across
+  // filters) — see applyResultFilters.
+  runFilters: new Set(),
+  verdictFilters: new Set(),
+  conditionFilters: new Set(),
+  // Phase 2 ablation axes. Same Set convention as the filters above.
+  framingFilters: new Set(),
+  urgencyFilters: new Set(),
+  userAvailabilityFilters: new Set(),
   selectedKey: null,
   // The human reflexive-ask floor (share of respondents who want the agent to
   // check in before a trivially in-policy purchase), lifted from any loaded
@@ -80,6 +83,10 @@ const state = {
   // no output". refreshData() replaces the map wholesale; in-flight fetches
   // compare map identity and drop their result when it changed under them.
   detailCache: new Map(),
+  // True while refreshData() has a fetch in flight (first page load, or a
+  // refresh after running/deleting a run). Runs/Results/By-model all read
+  // this so they show a spinner instead of sitting blank or stale mid-fetch.
+  loading: true,
 };
 
 const els = {};
@@ -343,17 +350,30 @@ const FRAMING_LABELS = {
 };
 const URGENCY_ORDER = ["none", "time_pressure"];
 const URGENCY_LABELS = {
-  none: "No deadline",
-  time_pressure: "Deadline",
+  none: "No time pressure",
+  time_pressure: "Time pressure",
 };
 const USER_AVAILABILITY_ORDER = ["none", "unreachable"];
 const USER_AVAILABILITY_LABELS = {
-  none: "User reachable",
+  none: "User present",
   unreachable: "User away",
 };
 
 function framingLabel(framing) {
   return framing ? FRAMING_LABELS[framing] || framing.replaceAll("_", " ") : "—";
+}
+
+// Compact form for the Runs table's condition pills, which are tight on
+// width: "Evaluation"/"Deployment" are single long words with no internal
+// space, so a pill naming both ("Eval / Deploy") had nowhere to wrap but
+// mid-word. Kept separate from FRAMING_LABELS so the Detail panel's spelled-
+// out "Framing: Evaluation" is untouched.
+const FRAMING_SHORT_LABELS = {
+  evaluation: "Eval",
+  deployment: "Deploy",
+};
+function framingShortLabel(framing) {
+  return FRAMING_SHORT_LABELS[framing] || framingLabel(framing);
 }
 
 function urgencyLabel(urgency) {
@@ -609,11 +629,13 @@ function displayPhaseFor(results) {
 
 // Errored results carry a synthetic fallback action, not a real model
 // decision, so they are excluded from rate/welfare denominators (matches
-// app/metrics.py). They still drive the error rate. Results on scenarios
-// whose key makes no claim leave the denominators too: "dropped" (survey
-// consensus failed) and "awaiting_survey" (the survey that sets this key
-// has not run). Mirrors UNKEYED_STATUSES in app/metrics.py.
-const UNKEYED_STATUSES = ["dropped", "awaiting_survey"];
+// app/metrics.py). They still drive the error rate. Only "dropped" scenarios
+// leave the denominators too: the survey ran and consensus failed, with no
+// objective fallback, so the key makes no claim at all. "awaiting_survey"
+// results score against the team's provisional key instead — provisional
+// keys are ground truth until the Phase 2 survey locks (and can re-key)
+// them. Mirrors UNKEYED_STATUSES in app/metrics.py.
+const UNKEYED_STATUSES = ["dropped"];
 
 function scoredResults(results) {
   return results.filter(
@@ -1339,6 +1361,12 @@ async function runExperiment() {
 /* ------------------------------------------------------------------ */
 
 async function refreshData() {
+  // Flip on before the fetch starts (not after) and repaint immediately, so
+  // Runs/Results/By-model show a spinner for the whole time a run list — and
+  // every run's full JSON alongside it — is in flight, not just once it's
+  // already back.
+  state.loading = true;
+  renderAll();
   const runList = await fetchJson("/api/runs").catch(() => []);
   const runs = await Promise.all(
     runList.map((meta) => fetchJson(`/api/runs/${meta.run_id}`).catch(() => null))
@@ -1372,6 +1400,7 @@ async function refreshData() {
   // identical to having no runs at all.
   state.runsListed = runList.length;
   state.runsFailed = runList.length - state.runList.length;
+  state.loading = false;
 }
 
 // Which stored runs have been pooled into a merged run, and by which one.
@@ -1672,6 +1701,11 @@ function controlConditionLabel(condition) {
 const RESULTS_PER_PAGE = 50;
 
 function renderResultsTable(results) {
+  if (state.loading) {
+    els.modelResultsTable.innerHTML = loadingRow(5, "Loading results…");
+    els.resultsPagination.hidden = true;
+    return;
+  }
   if (!results.length) {
     els.modelResultsTable.innerHTML =
       '<tr><td colspan="5" class="empty-state">No matching results.</td></tr>';
@@ -1818,146 +1852,158 @@ function paintFailureChart() {
   els.failureNextPage.disabled = state.failurePage >= totalPages;
 }
 
-// Rebuilds the three Results-panel filter dropdowns from whatever's actually
-// in state.allResults/state.runList (same "only show options that exist"
-// pattern as the runner card's category filter), then restores the current
-// selection — or falls back to "all"/none if that value no longer exists
-// (e.g. the selected run was just deleted).
-function renderResultsFilterOptions() {
-  const runOptions = state.runList
-    .map((run) => `<option value="${run.run_id}">${runOptionLabel(run)}</option>`)
-    .join("");
-  els.resultRunFilter.innerHTML = `<option value="all">All runs</option>${runOptions}`;
-  if (state.runFilter && !state.runList.some((run) => run.run_id === state.runFilter)) {
-    state.runFilter = null;
+// Adds/removes `value` in `set` — the toggle every filter chip and the Runs
+// table's row click share.
+function toggleSetValue(set, value) {
+  if (set.has(value)) set.delete(value);
+  else set.add(value);
+}
+
+// Multi-select chip row for a Results-panel filter: one chip per value
+// actually present in state.allResults/state.runList (same "only offer what
+// exists" rule the old dropdowns used), each toggling membership in
+// `selected`. Prunes `selected` of any value that dropped out from under it
+// (e.g. its run got deleted) before rendering, so a stale filter never
+// silently keeps hiding results for a value nobody can see selected anymore.
+// The whole field can hide itself below `minPresent` values — the three
+// Phase 2 axes disappear entirely on Phase-1-only data, since a chip row
+// that can only pick what's already showing is noise.
+function renderFilterChips(el, order, selected, labelFn, minPresent = 1) {
+  const wrap = el.closest(".results-filter-field") || el;
+  // Below the threshold the field is about to disappear, so drop every
+  // selection it held rather than leave a value silently still filtering
+  // behind a hidden, unlabeled control — full reset here, not just pruning
+  // the stale ones, matching the old single-select's reset-on-hide.
+  if (order.length < minPresent) {
+    selected.clear();
+    wrap.hidden = true;
+    el.innerHTML = "";
+    return;
   }
-  els.resultRunFilter.value = state.runFilter || "all";
+  for (const value of [...selected]) {
+    if (!order.includes(value)) selected.delete(value);
+  }
+  wrap.hidden = false;
+  el.innerHTML = order
+    .map(
+      (value) => `
+      <button type="button" class="chip ${selected.has(value) ? "chip-on" : ""}" data-value="${value}">
+        ${labelFn(value)}
+      </button>
+    `
+    )
+    .join("");
+}
+
+// Rebuilds the six Results-panel filter chip-rows from whatever's actually in
+// state.allResults/state.runList (same "only show options that exist"
+// pattern as the runner card's category filter).
+function renderResultsFilterOptions() {
+  const runOrder = state.runList.map((run) => run.run_id);
+  renderFilterChips(els.resultRunFilter, runOrder, state.runFilters, (runId) =>
+    runOptionLabel(state.runList.find((run) => run.run_id === runId))
+  );
 
   const verdictsPresent = new Set(state.allResults.map((result) => result.verdict || "none"));
-  const verdictOptions = VERDICT_ORDER.filter((verdict) => verdictsPresent.has(verdict))
-    .map((verdict) => `<option value="${verdict}">${verdictLabel(verdict)}</option>`)
-    .join("");
-  els.resultVerdictFilter.innerHTML = `<option value="all">All verdicts</option>${verdictOptions}`;
-  if (state.verdictFilter !== "all" && !verdictsPresent.has(state.verdictFilter)) {
-    state.verdictFilter = "all";
-  }
-  els.resultVerdictFilter.value = state.verdictFilter;
+  renderFilterChips(
+    els.resultVerdictFilter,
+    VERDICT_ORDER.filter((verdict) => verdictsPresent.has(verdict)),
+    state.verdictFilters,
+    verdictLabel
+  );
 
   const conditionsPresent = new Set(
     state.allResults.map((result) => result.control_condition || "legacy")
   );
-  const conditionOptions = [...PHASE2_CONDITION_ORDER, "legacy"]
-    .filter((condition) => conditionsPresent.has(condition))
-    .map((condition) => `<option value="${condition}">${controlConditionLabel(condition === "legacy" ? null : condition)}</option>`)
-    .join("");
-  els.resultConditionFilter.innerHTML = `<option value="all">All conditions</option>${conditionOptions}`;
-  if (state.conditionFilter !== "all" && !conditionsPresent.has(state.conditionFilter)) {
-    state.conditionFilter = "all";
-  }
-  els.resultConditionFilter.value = state.conditionFilter;
+  renderFilterChips(
+    els.resultConditionFilter,
+    [...PHASE2_CONDITION_ORDER, "legacy"].filter((condition) => conditionsPresent.has(condition)),
+    state.conditionFilters,
+    (condition) => controlConditionLabel(condition === "legacy" ? null : condition)
+  );
 
-  // Framing, urgency and user availability are Phase 2 ablation axes, so the selects hide
-  // entirely on a page holding only Phase 1 results rather than offering a
-  // dropdown with one option in it.
-  state.framingFilter = renderAxisFilter(
+  // Framing, urgency and user availability are Phase 2 ablation axes, so their
+  // fields hide entirely on a page holding only Phase 1 results, or where the
+  // axis never varied — a chip row with a single, already-showing value is noise.
+  const framingsPresent = [...new Set(state.allResults.map((result) => result.framing).filter(Boolean))];
+  renderFilterChips(
     els.resultFramingFilter,
-    FRAMING_ORDER,
-    (result) => result.framing,
-    state.framingFilter,
-    "All framings",
-    framingLabel
+    FRAMING_ORDER.filter((framing) => framingsPresent.includes(framing)),
+    state.framingFilters,
+    framingLabel,
+    2
   );
-  state.urgencyFilter = renderAxisFilter(
+  const urgenciesPresent = [...new Set(state.allResults.map((result) => result.urgency).filter(Boolean))];
+  renderFilterChips(
     els.resultUrgencyFilter,
-    URGENCY_ORDER,
-    (result) => result.urgency,
-    state.urgencyFilter,
-    "All urgency",
-    urgencyLabel
+    URGENCY_ORDER.filter((urgency) => urgenciesPresent.includes(urgency)),
+    state.urgencyFilters,
+    urgencyLabel,
+    2
   );
-  state.userAvailabilityFilter = renderAxisFilter(
+  const availabilitiesPresent = [
+    ...new Set(state.allResults.map((result) => result.user_availability).filter(Boolean)),
+  ];
+  renderFilterChips(
     els.resultUserAvailabilityFilter,
-    USER_AVAILABILITY_ORDER,
-    (result) => result.user_availability,
-    state.userAvailabilityFilter,
-    "All availability",
-    userAvailabilityLabel
+    USER_AVAILABILITY_ORDER.filter((availability) => availabilitiesPresent.includes(availability)),
+    state.userAvailabilityFilters,
+    userAvailabilityLabel,
+    2
   );
 
   const anyFilterActive =
     Boolean(state.modelFilter) ||
-    Boolean(state.runFilter) ||
-    state.verdictFilter !== "all" ||
-    state.conditionFilter !== "all" ||
-    state.framingFilter !== "all" ||
-    state.urgencyFilter !== "all" ||
-    state.userAvailabilityFilter !== "all";
+    state.runFilters.size > 0 ||
+    state.verdictFilters.size > 0 ||
+    state.conditionFilters.size > 0 ||
+    state.framingFilters.size > 0 ||
+    state.urgencyFilters.size > 0 ||
+    state.userAvailabilityFilters.size > 0;
   els.resultsFilterReset.hidden = !anyFilterActive;
 }
 
-// Shared builder for the two Phase 2 axis filters. Same "only show options that
-// exist" rule as the filters above, plus: the whole control disappears when the
-// loaded results carry fewer than two values on the axis, since a select that
-// can only pick what is already showing is noise. Returns the (possibly reset)
-// filter value.
-function renderAxisFilter(selectEl, order, read, current, allLabel, label) {
-  if (!selectEl) return "all";
-  const wrap = selectEl.closest(".results-filter-field") || selectEl;
-  const present = new Set(state.allResults.map(read).filter(Boolean));
-  if (present.size < 2) {
-    wrap.hidden = true;
-    return "all";
-  }
-  wrap.hidden = false;
-  const options = order
-    .filter((value) => present.has(value))
-    .map((value) => `<option value="${value}">${label(value)}</option>`)
-    .join("");
-  selectEl.innerHTML = `<option value="all">${allLabel}</option>${options}`;
-  const next = current !== "all" && !present.has(current) ? "all" : current;
-  selectEl.value = next;
-  return next;
-}
-
 // Slices state.allResults by every active Results-panel filter: the Models
-// table's click-filter, the Run dropdown (or a Runs-table row click, which
-// sets the same state.runFilter), and the Verdict/Control selects.
+// table's click-filter, plus the six multi-select chip rows (Run, Verdict,
+// Control, Framing, Urgency, User availability). A result passes a filter
+// with values selected if it matches ANY of them; an empty Set imposes no
+// constraint at all.
 function applyResultFilters(results) {
   let filtered = results;
   if (state.modelFilter) {
     filtered = filtered.filter((result) => modelLabel(result) === state.modelFilter);
   }
-  if (state.runFilter) {
-    filtered = filtered.filter((result) => result.run_id === state.runFilter);
+  if (state.runFilters.size) {
+    filtered = filtered.filter((result) => state.runFilters.has(result.run_id));
   }
-  if (state.verdictFilter !== "all") {
-    filtered = filtered.filter((result) => (result.verdict || "none") === state.verdictFilter);
+  if (state.verdictFilters.size) {
+    filtered = filtered.filter((result) => state.verdictFilters.has(result.verdict || "none"));
   }
-  if (state.conditionFilter !== "all") {
-    filtered = filtered.filter(
-      (result) => (result.control_condition || "legacy") === state.conditionFilter
+  if (state.conditionFilters.size) {
+    filtered = filtered.filter((result) =>
+      state.conditionFilters.has(result.control_condition || "legacy")
     );
   }
-  if (state.framingFilter !== "all") {
-    filtered = filtered.filter((result) => result.framing === state.framingFilter);
+  if (state.framingFilters.size) {
+    filtered = filtered.filter((result) => state.framingFilters.has(result.framing));
   }
-  if (state.urgencyFilter !== "all") {
-    filtered = filtered.filter((result) => result.urgency === state.urgencyFilter);
+  if (state.urgencyFilters.size) {
+    filtered = filtered.filter((result) => state.urgencyFilters.has(result.urgency));
   }
-  if (state.userAvailabilityFilter !== "all") {
-    filtered = filtered.filter((result) => result.user_availability === state.userAvailabilityFilter);
+  if (state.userAvailabilityFilters.size) {
+    filtered = filtered.filter((result) => state.userAvailabilityFilters.has(result.user_availability));
   }
   return filtered;
 }
 
 function resetResultFilters() {
   state.modelFilter = null;
-  state.runFilter = null;
-  state.verdictFilter = "all";
-  state.conditionFilter = "all";
-  state.framingFilter = "all";
-  state.urgencyFilter = "all";
-  state.userAvailabilityFilter = "all";
+  state.runFilters.clear();
+  state.verdictFilters.clear();
+  state.conditionFilters.clear();
+  state.framingFilters.clear();
+  state.urgencyFilters.clear();
+  state.userAvailabilityFilters.clear();
   state.selectedKey = null;
   state.resultsPage = 1;
   renderAll();
@@ -1989,6 +2035,13 @@ function axesBlock(result) {
   return `<div class="detail-block"><h3>Axes</h3><dl class="detail-facts">${facts.join("")}</dl></div>`;
 }
 
+// A table's loading placeholder: same cell shape as its "no data yet"
+// empty-state row, plus a spinner, so a fetch in flight never looks
+// identical to a table that already finished and simply has nothing in it.
+function loadingRow(colspan, label) {
+  return `<tr><td colspan="${colspan}" class="empty-state"><span class="spinner" aria-hidden="true"></span> ${label}</td></tr>`;
+}
+
 // `&` has to go first — escaping `<`/`>`/`"` before `&` would double-escape
 // the entities those replacements just introduced.
 function escapeHtml(value) {
@@ -2007,6 +2060,16 @@ function escapeHtml(value) {
 function modelTextBlock(title, text) {
   if (!text) return "";
   return `<div class="detail-block"><h3>${title}</h3><pre>${escapeHtml(text)}</pre></div>`;
+}
+
+// Unlike modelTextBlock, the Reasoning block always renders — a blank body is
+// itself the signal (non-reasoning model, or a reasoning trace the provider
+// didn't surface), not a reason to hide the block.
+function reasoningBlock(text) {
+  const body = text
+    ? `<pre>${escapeHtml(text)}</pre>`
+    : '<p class="empty-state">No reasoning returned for this episode.</p>';
+  return `<div class="detail-block"><h3>Reasoning</h3>${body}</div>`;
 }
 
 // ---- Episode detail: readable decision, transcript, and scoring ----
@@ -2523,7 +2586,7 @@ function transcriptBlocks(detail, result) {
 // placeholder/error state, so these simply wait.
 function deferredModelBlocks(detail, result, scenario) {
   if (detail.status !== "loaded") return "";
-  return `${modelTextBlock("Reasoning", result.raw_reasoning)}${modelTextBlock("Model output", result.raw_model_output)}
+  return `${reasoningBlock(result.raw_reasoning)}${modelTextBlock("Model output", result.raw_model_output)}
     ${rawJsonBlock(result, scenario)}`;
 }
 
@@ -2623,7 +2686,9 @@ function phaseStatusBadges(entry) {
 function renderPhases() {
   const breakdown = phasesBreakdown();
   const started = breakdown.filter((entry) => entry.smoke).length;
-  els.phasesStamp.textContent = `${started} of ${breakdown.length} started`;
+  els.phasesStamp.innerHTML = state.loading
+    ? '<span class="spinner" aria-hidden="true"></span> Loading…'
+    : `${started} of ${breakdown.length} started`;
   // Phase 2 is the phase actively being run, so its panel opens by default;
   // other phases start collapsed. Falls back to the first entry if Phase 2
   // isn't in the breakdown at all (e.g. its scenario set failed to load).
@@ -2741,14 +2806,18 @@ function sameConditionSet(conditions, order) {
   return conditions.length === order.length && conditions.every((condition) => order.includes(condition));
 }
 
-// Which condition(s) — and, for Phase 2, which framing/urgency/user-availability
-// axis levels — a run's results actually used. A single run can bundle
-// anywhere from one condition to a full cross product, so this reads the
-// results rather than assuming a shape. Stays a short clause rather than an
-// exhaustive axis-by-axis breakdown: urgency/user-availability only get
-// called out when the run actually crosses that ablation (their "none" level
-// is the default every other run sits at, so it would just be noise here).
-function runConditionsSummary(results) {
+// Which condition(s) — and, for Phase 2, which environment/urgency/user-availability
+// axis levels — a run's results actually used, rendered as one pill per line. A
+// single run can bundle anywhere from one condition to a full cross product, so
+// this reads the results rather than assuming a shape. Environment and urgency
+// only get their own pill when the run actually crosses that ablation (their
+// "none" level is the default every other run sits at, so a pill for it would
+// just be noise). User availability is the exception: it always gets a pill once
+// a run is Phase-2-shaped, because "no one's away" is itself worth stating rather
+// than leaving the cell blank — Phase 2 results always carry a real "none"
+// string here (app/phase2/runner.py), while Phase 1 leaves the field null, so
+// that distinguishes "axis applies, at its default" from "axis doesn't apply".
+function runConditionsPills(results) {
   const conditionSortOrder = Object.keys(CONDITION_LABELS);
   const conditions = [...new Set(results.map((result) => result.control_condition).filter(Boolean))].sort(
     (a, b) => conditionSortOrder.indexOf(a) - conditionSortOrder.indexOf(b)
@@ -2759,26 +2828,36 @@ function runConditionsSummary(results) {
       ? "All conditions"
       : conditions.map(controlConditionLabel).join(", ");
 
-  const parts = [conditionsText];
+  const pills = [conditionsText];
+
   const framings = [...new Set(results.map((result) => result.framing).filter(Boolean))];
-  if (framings.length) parts.push(framings.map(framingLabel).join("/"));
+  // "Env:" (short for the framing axis's environment: evaluation vs
+  // deployment), and " / " rather than a bare "/" so a pill naming both
+  // always has a real space to wrap at instead of breaking mid-word.
+  if (framings.length) pills.push(`Env: ${framings.map(framingShortLabel).join(" / ")}`);
+
   const urgencies = [
     ...new Set(results.map((result) => result.urgency).filter((urgency) => urgency && urgency !== "none")),
   ];
-  if (urgencies.length) parts.push(urgencies.map(urgencyLabel).join("/"));
-  const availabilities = [
-    ...new Set(
-      results.map((result) => result.user_availability).filter((availability) => availability && availability !== "none")
-    ),
-  ];
-  if (availabilities.length) parts.push(availabilities.map(userAvailabilityLabel).join("/"));
+  if (urgencies.length) pills.push(urgencies.map(urgencyLabel).join(" / "));
 
-  return parts.join(" · ");
+  if (results.some((result) => result.user_availability != null)) {
+    const availabilities = [
+      ...new Set(
+        results.map((result) => result.user_availability).filter((availability) => availability && availability !== "none")
+      ),
+    ];
+    pills.push(availabilities.length ? availabilities.map(userAvailabilityLabel).join(" / ") : "User present");
+  }
+
+  return `<div class="condition-pills">${pills
+    .map((text) => `<span class="condition-pill">${text}</span>`)
+    .join("")}</div>`;
 }
 
 function renderRunList() {
-  els.runListStamp.textContent = state.runFilter
-    ? `${state.runList.length} stored — filtered, click again to clear`
+  els.runListStamp.textContent = state.runFilters.size
+    ? `${state.runList.length} stored — filtered, click a selected row to clear it`
     : `${state.runList.length} stored`;
   // Superseded runs are safe to delete — their episodes are inside the merged
   // run — so the count doubles as the button that clears them all.
@@ -2790,7 +2869,14 @@ function renderRunList() {
   els.runSupersededAction.title = supersededIds.join(", ");
   // The Runs section sits above the by-model dashboard and is always shown
   // (see renderPhases), so an empty list needs its own row rather than
-  // silently rendering a header with no body.
+  // silently rendering a header with no body. Loading takes priority over
+  // "no runs yet" — refreshData() fetches every run's full JSON, which can
+  // take a moment, and a spinner beats a table that looks like it already
+  // finished and simply has nothing in it.
+  if (state.loading) {
+    els.runListTable.innerHTML = loadingRow(11, "Loading runs…");
+    return;
+  }
   if (!state.runList.length) {
     els.runListTable.innerHTML =
       '<tr><td colspan="11" class="empty-state">No runs yet. Pick a model above and hit Run benchmark.</td></tr>';
@@ -2800,7 +2886,7 @@ function renderRunList() {
     .map((run) => {
       const metrics = summarize(run.results);
       const models = [...new Set(run.results.map(modelLabel))].join(", ");
-      const selected = state.runFilter === run.run_id ? "selected" : "";
+      const selected = state.runFilters.has(run.run_id) ? "selected" : "";
       // Errors are a run-health signal, not a safety metric — flag any
       // non-zero rate so a provider outage or bad key is visible without
       // opening the run, rather than silently diluting the other rates.
@@ -2818,11 +2904,11 @@ function renderRunList() {
             .join(", ")}">merged ×${run.merged_from.length}</span>`
         : "";
       return `
-        <tr class="${selected}" data-run-id="${run.run_id}" title="Click to filter Results to this run">
+        <tr class="${selected}" data-run-id="${run.run_id}" title="Click to toggle this run in the Results filter">
           <td>${compactTime(run.created_at)}${supersededFlag}${mergedFlag}</td>
           <td>${models}</td>
           <td>${phaseChecklist(run.results)}</td>
-          <td>${runConditionsSummary(run.results)}</td>
+          <td>${runConditionsPills(run.results)}</td>
           <td>${metrics.total}</td>
           <td>${percent(metrics.unsafePaymentRate)}</td>
           <td>${percent(metrics.refusedWhenSafeRate)}</td>
@@ -2925,24 +3011,38 @@ function renderAll() {
   renderResultsFilterOptions();
   const filtered = applyResultFilters(state.allResults);
   const stampParts = [state.modelFilter || "All models"];
-  if (state.runFilter) {
-    const run = state.runList.find((item) => item.run_id === state.runFilter);
-    stampParts.push(run ? runOptionLabel(run) : "1 run");
+  if (state.runFilters.size) {
+    stampParts.push(
+      [...state.runFilters]
+        .map((runId) => state.runList.find((item) => item.run_id === runId))
+        .map((run, i) => (run ? runOptionLabel(run) : `run ${i + 1}`))
+        .join("/")
+    );
   }
-  if (state.verdictFilter !== "all") stampParts.push(verdictLabel(state.verdictFilter));
-  if (state.conditionFilter !== "all") {
-    stampParts.push(controlConditionLabel(state.conditionFilter === "legacy" ? null : state.conditionFilter));
+  if (state.verdictFilters.size) stampParts.push([...state.verdictFilters].map(verdictLabel).join("/"));
+  if (state.conditionFilters.size) {
+    stampParts.push(
+      [...state.conditionFilters]
+        .map((condition) => controlConditionLabel(condition === "legacy" ? null : condition))
+        .join("/")
+    );
   }
-  if (state.framingFilter !== "all") stampParts.push(framingLabel(state.framingFilter));
-  if (state.urgencyFilter !== "all") stampParts.push(urgencyLabel(state.urgencyFilter));
-  if (state.userAvailabilityFilter !== "all")
-    stampParts.push(userAvailabilityLabel(state.userAvailabilityFilter));
+  if (state.framingFilters.size) stampParts.push([...state.framingFilters].map(framingLabel).join("/"));
+  if (state.urgencyFilters.size) stampParts.push([...state.urgencyFilters].map(urgencyLabel).join("/"));
+  if (state.userAvailabilityFilters.size)
+    stampParts.push([...state.userAvailabilityFilters].map(userAvailabilityLabel).join("/"));
   els.modelResultsStamp.textContent = `${stampParts.join(" · ")} · ${filtered.length} results`;
   renderResultsTable(filtered);
   renderDetail(filtered);
 
   if (!hasResults) {
     els.modelSectionMeta.textContent = "";
+    // Loading takes priority over both messages below: a fetch in flight
+    // isn't "no runs" or "runs failed" yet, it just hasn't answered.
+    if (state.loading) {
+      els.labEmpty.innerHTML = '<span class="spinner" aria-hidden="true"></span> Loading runs…';
+      return;
+    }
     // Distinguish "genuinely no runs" from "runs exist but the server couldn't
     // return them" (e.g. a stale server process, or a payload it can't parse) —
     // the latter otherwise looks identical to an empty lab.
@@ -3111,47 +3211,30 @@ function bindEvents() {
     }
     const row = event.target.closest("tr[data-run-id]");
     if (!row) return;
-    state.runFilter = state.runFilter === row.dataset.runId ? null : row.dataset.runId;
+    toggleSetValue(state.runFilters, row.dataset.runId);
     state.selectedKey = null;
     state.resultsPage = 1;
     renderAll();
   });
-  els.resultRunFilter.addEventListener("change", () => {
-    state.runFilter = els.resultRunFilter.value === "all" ? null : els.resultRunFilter.value;
-    state.selectedKey = null;
-    state.resultsPage = 1;
-    renderAll();
-  });
-  els.resultVerdictFilter.addEventListener("change", () => {
-    state.verdictFilter = els.resultVerdictFilter.value;
-    state.selectedKey = null;
-    state.resultsPage = 1;
-    renderAll();
-  });
-  els.resultConditionFilter.addEventListener("change", () => {
-    state.conditionFilter = els.resultConditionFilter.value;
-    state.selectedKey = null;
-    state.resultsPage = 1;
-    renderAll();
-  });
-  els.resultUserAvailabilityFilter.addEventListener("change", () => {
-    state.userAvailabilityFilter = els.resultUserAvailabilityFilter.value;
-    state.selectedKey = null;
-    state.resultsPage = 1;
-    renderAll();
-  });
-  els.resultFramingFilter.addEventListener("change", () => {
-    state.framingFilter = els.resultFramingFilter.value;
-    state.selectedKey = null;
-    state.resultsPage = 1;
-    renderAll();
-  });
-  els.resultUrgencyFilter.addEventListener("change", () => {
-    state.urgencyFilter = els.resultUrgencyFilter.value;
-    state.selectedKey = null;
-    state.resultsPage = 1;
-    renderAll();
-  });
+  // Shared toggle handler for the six Results-panel filter chip-rows: each is
+  // a multi-select Set keyed by the chip's data-value, same delegated-click
+  // pattern as the Run form's Phase 2 axis chips (bindAxisChips above).
+  function bindResultFilterChips(el, selectedSet) {
+    el.addEventListener("click", (event) => {
+      const chip = event.target.closest("[data-value]");
+      if (!chip) return;
+      toggleSetValue(selectedSet, chip.dataset.value);
+      state.selectedKey = null;
+      state.resultsPage = 1;
+      renderAll();
+    });
+  }
+  bindResultFilterChips(els.resultRunFilter, state.runFilters);
+  bindResultFilterChips(els.resultVerdictFilter, state.verdictFilters);
+  bindResultFilterChips(els.resultConditionFilter, state.conditionFilters);
+  bindResultFilterChips(els.resultFramingFilter, state.framingFilters);
+  bindResultFilterChips(els.resultUrgencyFilter, state.urgencyFilters);
+  bindResultFilterChips(els.resultUserAvailabilityFilter, state.userAvailabilityFilters);
   els.resultsFilterReset.addEventListener("click", resetResultFilters);
   // Failure modes is closed by default and its chart is only built lazily
   // (see renderFailureChart/paintFailureChart) — paint it the moment it's
