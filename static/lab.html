@@ -9,6 +9,8 @@
     <link rel="stylesheet" href="/static/lab.css?v=15">
   </head>
   <body>
+    <div class="lab-page-layout">
+    <nav class="lab-side-nav" id="labSideNav" aria-label="Section nav"></nav>
     <div class="app-shell lab-shell">
       <header class="topbar lab-topbar">
         <div>
@@ -20,7 +22,9 @@
         </div>
       </header>
 
-      <section class="runner-card" aria-label="Experiment controls">
+      <nav class="lab-toc" id="labToc" aria-label="Contents"></nav>
+
+      <section class="runner-card" id="section-run" aria-label="Experiment controls">
         <div class="runner-card-heading">
           <h2>Run</h2>
         </div>
@@ -145,7 +149,7 @@
         </p>
       </details>
 
-      <section class="taxonomy-panel lab-runs" aria-label="Runs">
+      <section class="taxonomy-panel lab-runs" id="section-runs" aria-label="Runs">
         <div class="panel-heading">
           <h2>Runs</h2>
           <span id="runListStamp" class="run-stamp"></span>
@@ -179,7 +183,7 @@
         </div>
       </section>
 
-      <main class="content-grid model-content-grid lab-results">
+      <main class="content-grid model-content-grid lab-results" id="section-results">
         <section class="result-panel" aria-label="Results">
           <div class="panel-heading">
             <h2>Results</h2>
@@ -244,7 +248,7 @@
         </aside>
       </main>
 
-      <section class="taxonomy-panel lab-phases" aria-label="Phases">
+      <section class="taxonomy-panel lab-phases" id="section-phases" aria-label="Phases">
         <div class="panel-heading">
           <h2>Phases</h2>
           <span id="phasesStamp" class="run-stamp"></span>
@@ -263,7 +267,7 @@
         <div id="phasesContent" class="phases-content"></div>
       </section>
 
-      <div class="section-divider lab-divider">
+      <div class="section-divider lab-divider" id="section-bymodel">
         <h2>By model</h2>
         <p id="modelSectionMeta" class="lab-section-meta"></p>
       </div>
@@ -284,7 +288,7 @@
           </article>
         </section>
 
-        <div class="section-divider lab-divider">
+        <div class="section-divider lab-divider" id="section-axes">
           <h2>Survey-grounded axes</h2>
           <p id="axesSectionMeta" class="lab-section-meta"></p>
         </div>
@@ -320,7 +324,7 @@
           Additive: the two rates above keep their definitions.
         </p>
 
-        <section class="taxonomy-panel" aria-label="Model summary">
+        <section class="taxonomy-panel" id="section-models" aria-label="Model summary">
           <div class="panel-heading">
             <h2>Models</h2>
             <span id="modelSummaryStamp" class="run-stamp"></span>
@@ -348,7 +352,7 @@
           </div>
         </section>
 
-        <section class="taxonomy-panel" aria-label="Splits">
+        <section class="taxonomy-panel" id="section-splits" aria-label="Splits">
           <div class="panel-heading">
             <h2>Splits</h2>
             <span id="splitsStamp" class="run-stamp"></span>
@@ -404,7 +408,7 @@
 
       <p id="labEmpty" class="lab-empty" hidden>No runs yet. Pick a model and hit Run experiment.</p>
 
-      <section class="taxonomy-panel ladder-panel" aria-label="CLI cost ladder">
+      <section class="taxonomy-panel ladder-panel" id="section-ladder" aria-label="CLI cost ladder">
         <div class="panel-heading">
           <h2>Cost ladder</h2>
           <span class="run-stamp">phase2-eval · cheapest model is the default</span>
@@ -490,6 +494,7 @@
         </p>
       </section>
     </div>
+    </div>
 
     <style>
       .ladder-models { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
@@ -530,6 +535,94 @@
             });
           });
         });
+      })();
+    </script>
+    <script>
+      // Populates the "Contents" row and the sticky left nav pane from a
+      // fixed section list. Axes/Models/Splits/Failure modes live inside
+      // #modelDashboard, which lab.js shows only once a run has results, so
+      // those four links are gated on that element's `hidden` state.
+      (function () {
+        var SECTIONS = [
+          { id: 'section-run', label: 'Run' },
+          { id: 'section-runs', label: 'Runs' },
+          { id: 'section-results', label: 'Results' },
+          { id: 'section-phases', label: 'Phases' },
+          { id: 'section-bymodel', label: 'By model' },
+          { id: 'section-axes', label: 'Axes', gated: true },
+          { id: 'section-models', label: 'Models', gated: true },
+          { id: 'section-splits', label: 'Splits', gated: true },
+          { id: 'failurePanel', label: 'Failure modes', gated: true },
+          { id: 'section-ladder', label: 'Cost ladder' },
+        ];
+        var toc = document.getElementById('labToc');
+        var sideNav = document.getElementById('labSideNav');
+        var dashboard = document.getElementById('modelDashboard');
+        var spyLinks = {};
+
+        function linkHtml(s) {
+          return '<a href="#' + s.id + '">' + s.label + '</a>';
+        }
+
+        function render() {
+          var visible = SECTIONS.filter(function (s) {
+            return !s.gated || (dashboard && !dashboard.hidden);
+          });
+          var html = visible.map(linkHtml).join('');
+          if (toc) toc.innerHTML = html;
+          if (sideNav) sideNav.innerHTML = html;
+          spyLinks = {};
+          if (sideNav) {
+            sideNav.querySelectorAll('a').forEach(function (a) {
+              spyLinks[a.getAttribute('href').slice(1)] = a;
+            });
+          }
+        }
+
+        // Highlight whichever section is nearest the top of the viewport.
+        // Section heights here range from a collapsed <details> (~50px) to
+        // the Cost ladder (~1300px), so a thin mid-viewport intersection
+        // band (as the marketing site's Nav uses) misses the short ones
+        // entirely. Instead: on scroll, the "current" section is the last
+        // one whose top has scrolled up past a fixed line near the top of
+        // the viewport — correct regardless of how tall each section is.
+        var THRESHOLD = 100;
+        function computeActive() {
+          if (!sideNav) return;
+          var current = null;
+          SECTIONS.forEach(function (s) {
+            if (!spyLinks[s.id]) return; // gated and not in the nav right now
+            var el = document.getElementById(s.id);
+            if (el && el.getBoundingClientRect().top <= THRESHOLD) current = s.id;
+          });
+          if (!current) {
+            var first = SECTIONS.filter(function (s) { return spyLinks[s.id]; })[0];
+            current = first ? first.id : null;
+          }
+          Object.keys(spyLinks).forEach(function (id) {
+            spyLinks[id].classList.toggle('active', id === current);
+          });
+        }
+
+        function refresh() {
+          render();
+          computeActive();
+        }
+
+        refresh();
+
+        // render() rebuilds the <a> elements (and spyLinks) when the gated
+        // links appear/disappear, so recompute active state right after.
+        if (dashboard && typeof MutationObserver !== 'undefined') {
+          new MutationObserver(refresh).observe(dashboard, { attributes: true, attributeFilter: ['hidden'] });
+        }
+
+        var ticking = false;
+        window.addEventListener('scroll', function () {
+          if (ticking) return;
+          ticking = true;
+          requestAnimationFrame(function () { computeActive(); ticking = false; });
+        }, { passive: true });
       })();
     </script>
     <script src="/static/lab.js?v=15"></script>

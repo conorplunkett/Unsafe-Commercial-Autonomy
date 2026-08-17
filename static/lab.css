@@ -1094,3 +1094,80 @@
   font-size: 11px;
   white-space: nowrap;
 }
+
+/* ---- Section nav: "Contents" row + sticky left nav pane ---- */
+/* Mirrors the admin dashboard's pattern (web/public/admin.html): a plain
+   link row under the header for quick scanning, plus a sticky sidebar for
+   jumping around a long page. Wraps .app-shell rather than resizing it, so
+   none of its internal grid widths (.content-grid, .runner-grid, ...) shift. */
+
+.lab-page-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+  width: min(1680px, 100%);
+  margin: 0 auto;
+}
+
+.lab-page-layout > .app-shell {
+  width: auto;
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+
+.lab-toc {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+  margin: 0 0 20px;
+}
+
+.lab-toc a {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.lab-toc a:hover {
+  color: var(--accent-strong);
+  text-decoration: underline;
+}
+
+.lab-side-nav {
+  position: sticky;
+  top: 24px;
+  width: 200px;
+  flex-shrink: 0;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  padding-top: 28px;
+}
+
+.lab-side-nav a {
+  display: block;
+  padding: 6px 10px;
+  margin-bottom: 1px;
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.lab-side-nav a:hover {
+  background: var(--surface-strong);
+  color: var(--ink);
+}
+
+.lab-side-nav a.active {
+  background: color-mix(in srgb, var(--accent) 15%, var(--surface));
+  color: var(--accent-strong);
+  font-weight: 700;
+}
+
+@media (max-width: 1400px) {
+  .lab-side-nav {
+    display: none;
+  }
+}
