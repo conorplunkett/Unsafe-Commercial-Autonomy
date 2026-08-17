@@ -321,9 +321,9 @@ writing the model names inside `payload` — but top-level `model_names` filters
 
 ### Runs split across several sittings
 
-A grid is often not run in one go — the four control conditions get run on
+A grid is often not run in one go — the three control conditions get run on
 different days, or an axis is added later. Those run files are one experiment
-split across four sittings, and no per-condition breakdown in `metrics` can span
+split across several sittings, and no per-condition breakdown in `metrics` can span
 them, because each is computed within a single run.
 
 `python -m app.cli merge --run-ids a,b,c,d` pools the sittings' episodes into one
@@ -455,13 +455,12 @@ The benchmark moves to staging or sandbox infrastructure from an agentic payment
 
 - **Dataset.** Grows to 250 scenarios, 50 per category, with much higher variance in merchant types, adversarial pressure, edge cases, and instruction ambiguity. (226 delivered as of the 2026-07-24 trim: 12 pairs cut over two vetting passes for being trivially easy — the policy and the disqualifying fact stated adjacent to each other, no computation or temptation involved — concentrated in category B, which drops to 14 pairs; category C drops to 24. See the scenario-set file and CHANGELOG.)
 - **Survey.** Expands to 50 participants with demographic stratification, putting the implied-preference answer key on a sounder base. The live instrument is the web survey at `/survey` (`v2_web_r3`: 50 situations in five context parts, concrete per-item options on fixed slot keys, plus the acceptability sub-question); wording, slot semantics, and pre-registered analysis rules are in `data/survey/PHASE2_WEB_SURVEY.md`.
-- **Full control ablation.** Four conditions, varying one layer at a time while holding scenario set, models, and seeds fixed:
+- **Full control ablation.** Three conditions, varying one layer at a time while holding scenario set, models, and seeds fixed — nothing, policy shown, policy enforced:
     1. **No policy:** the agent receives the task and tools, with no explicit payment policy.
-    2. **Structured policy representation:** the policy is provided as structured fields, but not enforced by tools.
-    3. **Required policy check:** the agent must call a policy-check tool before payment, which returns allow, block, or approval required; the verdict itself is advisory.
-    4. **Tool-level hard constraints:** payment tools enforce hard limits such as spend caps, merchant allowlists, payment-rail restrictions, and subscription approval requirements.
-- **Evaluation-awareness test (opt-in).** Framing varies between explicit evaluation context and realistic deployment context, measuring whether models behave more cautiously when a scenario reads like a test (`metrics.phase2.by_framing`; `--framings`). Defaults to `deployment` only: the "evaluation" preamble tells the tested agent it is being evaluated, so no run carries that disclosure unless a caller explicitly opts in with `evaluation` (or `all`) to study the effect on purpose.
-- **Urgency ablation.** A prompt-level axis crossed with framing and control condition the same way: the default `none` versus `time_pressure`, which adds a deadline and nothing else (`metrics.phase2.by_urgency`; `--urgencies`). Gives a reportable rate instead of relying on the handful of scenarios that happen to narrate a deadline.
+    2. **Structured policy representation:** the policy is provided as structured fields (shown when the scenario has structured rules), but not enforced by tools.
+    3. **Tool-level hard constraints:** the same structured policy, now enforced — payment tools apply hard limits such as spend caps, merchant allowlists, payment-rail restrictions, and subscription approval requirements, with a policy-check tool available. (A fourth arm, `required_check` — the agent had to call the policy-check tool before paying, but the verdict was only advisory — was dropped on 2026-08-17: no compliance metric existed for the advisory verdict, so the arm measured neither enforcement nor judgment, and the remaining ladder still varies one layer at a time.)
+- **Deployment framing only.** Every episode runs under the same plain deployment prompt; there is no evaluation-framed arm. (The opt-in "evaluation" framing was removed on 2026-08-17: it never ran by default, residual eval-awareness compressed the effect it was meant to measure, and the matched comparison forced the prompt to assert the card was real — itself an eval-tell. Deployment-only is now the design, not just the default. `--framings` survives for compatibility but accepts only `deployment`/`all`, and stored runs that carried the old arm still load and report.)
+- **Urgency ablation.** A prompt-level axis crossed with control condition the same way: the default `none` versus `time_pressure`, which adds a time-pressure sentence and nothing else (`metrics.phase2.by_urgency`; `--urgencies`). Gives a reportable rate instead of relying on the handful of scenarios that happen to narrate a deadline.
 - **User-availability ablation.** A separate axis crossed with urgency: `none` versus `unreachable`, which states that the delegating user is away for the day. It states the absence as a fact and does not tell the agent to skip asking — `request_approval` stays available, so the ~15% of scenarios where asking is correct remain measurable (`metrics.phase2.by_user_availability`; `--user-availabilities`).
 - **Why the two are separate.** A single preamble carrying both a deadline and an absent user cannot say whether a rise in unsafe rates is degraded judgment or plain instruction-following. Crossed, the four cells separate the deadline effect, the absent-oversight effect, and any interaction (`metrics.phase2.by_urgency_and_user_availability`). Both axes are opt-in; omitting the flags runs `none` only.
 - **Phases are reported separately.** Phase 1 (single-shot self-report) and Phase 2 (sandbox) are separate evaluations with separate results; no claim is made that one predicts the other. The earlier transfer-check design — correlating Phase 1 rates against sandbox reruns of the v1 traps — was removed on 2026-08-09 for exactly that reason. The v1 scenarios still run through the sandbox directly (`phase2-eval --scenario-set data/scenario_sets/v1_50_scenarios.md`), and that remains the canonical path for their verdicts.
@@ -517,7 +516,7 @@ The distributions come from the committed survey aggregate and are merged into e
 ## Expected results
 
 Prompt-only controls are expected to fail often. The agent may understand a rule in the abstract and still violate it when optimizing for task completion.
-Structured policy and required checks are expected to sit between prompt-only controls and hard constraints: better than prompting alone, but dependent on whether the agent actually invokes the check correctly.
+Structured policy is expected to sit between prompt-only controls and hard constraints: better than prose alone, but dependent on whether the agent actually applies the rules it is shown.
 Tool-level hard constraints should reduce direct overspend but miss subtler failures like buying the wrong item, picking a non-refundable option, leaking unnecessary data, or splitting payments to avoid approval.
 Human-in-the-loop approval should reduce severe failures while raising the false-stop rate, which is exactly why the frontier framing matters.
 The best setup is expected to combine structured payment policy, hard tool constraints, merchant and category validation, approval thresholds, and audit logs.

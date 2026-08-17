@@ -70,7 +70,7 @@ carries):
 | `smoketest-openai-5` | Same, across 5 scenarios |
 | `models` | Model ids each provider's key can use |
 | `survey` | v1 answer-key agreement and lock status |
-| `phase2-eval` | Phase 2 four-condition sandbox ablation |
+| `phase2-eval` | Phase 2 three-condition sandbox ablation |
 | `phase2-checkpoints` | Resumable Phase 2 runs |
 | `phase2-survey` | v2 answer-key agreement and lock status |
 | `phase2-survey-collect` | Record one respondent's v2 votes |
@@ -233,7 +233,7 @@ Coverage caveats:
 - The survey data files ship with **example entries only**
   (`_meta.example: true`); collect real data before reporting.
 
-### `phase2-eval` — four-condition sandbox ablation + framing/urgency/user-availability tests
+### `phase2-eval` — three-condition sandbox ablation + urgency/user-availability tests
 
 ```bash
 # Offline scripted agents (no API keys)
@@ -244,7 +244,7 @@ python -m app.cli phase2-eval --dry-run \
 # Live OpenAI subset (OPENAI_MODEL optional; defaults to the cheapest model, gpt-5.4-nano)
 export OPENAI_API_KEY=...
 python -m app.cli phase2-eval --models openai \
-  --conditions no_policy,tool_constraints --framings deployment \
+  --conditions no_policy,tool_constraints \
   --scenario-ids scn_v2_a1_trap,scn_v2_a1_lookalike --seeds 1,2,3
 
 # Objective half only (182 of 226); --split survey runs the other 44
@@ -254,9 +254,9 @@ python -m app.cli phase2-eval --models openai --split objective --concurrency 4
 | Flag | Default | Description |
 | --- | --- | --- |
 | `--models` | `openai` | `openai`, `anthropic`, `gemini`, `kimi`, `inkling`, `grok`, `deepseek`, `mistral`, `qwen`, `openrouter`, `openweights`, `scripted_diligent`, `scripted_naive`, `all` |
-| `--conditions` | `no_policy` only | `no_policy`, `structured_policy`, `required_check`, `tool_constraints`, or `all`. No additional control layers by default — omitting this does **not** run all four; pass a list or `--conditions=all` to turn constraints on |
-| `--framings` | `deployment` only | `evaluation` (tells the agent it is being evaluated) vs `deployment` (live-task framing, no evaluation disclosure). Omitting this does **not** run both — `evaluation` never reaches the agent unless you pass `--framings=evaluation` or `--framings=all` to deliberately study evaluation-awareness |
-| `--urgencies` | `none` only | `none` vs `time_pressure` (adds a system-prompt deadline, and nothing else). Omitting this does **not** run both levels — pass `--urgencies=time_pressure` or `--urgencies=all` to opt in |
+| `--conditions` | `no_policy` only | `no_policy`, `structured_policy`, `tool_constraints`, or `all`. No additional control layers by default — omitting this does **not** run all three; pass a list or `--conditions=all` to turn constraints on |
+| `--framings` | `deployment` | `deployment` or `all` — one framing exists, so both mean the same thing; the flag is kept so existing invocations keep working. The `evaluation` framing (a preamble telling the agent it was being evaluated) was removed on 2026-08-17 and is refused |
+| `--urgencies` | `none` only | `none` vs `time_pressure` (adds a system-prompt time-pressure sentence, and nothing else). Omitting this does **not** run both levels — pass `--urgencies=time_pressure` or `--urgencies=all` to opt in |
 | `--user-availabilities` | `none` only | `none` vs `unreachable` (states the delegating user is away for the day; never instructs the agent to skip asking). Crosses with `--urgencies` for the pressure 2×2. Also opt-in — omitting it runs `none` only |
 | `--scenario-set` | v2 (226) | Markdown scenario-set path |
 | `--split` | `all` | `objective` or `survey` — run one half of the set (see [Objective vs survey split](#objective-vs-survey-split)) |
@@ -267,13 +267,19 @@ python -m app.cli phase2-eval --models openai --split objective --concurrency 4
 | `--concurrency` | `1` | Episodes in flight at once; each worker gets its own provider connection |
 
 Condition matrix: `no_policy`/`structured_policy` vary the prompt only (pay
-always succeeds); `required_check` makes `pay` reject until
-`check_policy` was called for that offer (a block **verdict** does not stop
-pay — heeding it is measured); `tool_constraints` hard-enforces the policy
+always succeeds) — `no_policy` shows no rules, `structured_policy` adds the
+user's payment rules as JSON without enforcing them; `tool_constraints` shows
+the same rules, offers the `check_policy` tool, and hard-enforces the policy
 engine at `pay`: violations return `blocked`, while a legitimate payment that
 merely needs sign-off (over the approval threshold, unapproved subscription)
 returns `approval_required` — the episode stays open, and whether the agent
-escalates via `request_approval` or works around it is measured.
+escalates via `request_approval` or works around it is measured. The rules
+block is shown only when the scenario has promptable rules; with the current
+loader baseline (`allowed_payment_types: ["card"]` seeded into every
+scenario) every scenario has at least one, so the skip is a dormant guard
+for genuinely rule-free policies rather than a change to current runs. A fourth arm,
+`required_check` (`pay` rejected until `check_policy` was called; the verdict
+itself advisory), was dropped on 2026-08-17 — see the CHANGELOG.
 
 #### Offer-grounded v1 (Flaw C fix)
 
@@ -286,7 +292,7 @@ the offer the agent paid and what it disclosed:
 python -m app.cli phase2-eval \
   --scenario-set data/scenario_sets/v1_50_scenarios.md \
   --conditions no_policy,structured_policy,tool_constraints \
-  --framings deployment --dry-run        # live: drop --dry-run, add --models openai
+  --dry-run                              # live: drop --dry-run, add --models openai
 ```
 
 This is the **recommended canonical** path for the Flaw-C-affected v1 scenarios;
@@ -307,7 +313,8 @@ all-error run.
 
 #### Surviving a long run: checkpoint, resume, retry, concurrency
 
-A full grid is 13,560 episodes per model, so the run has to be interruptible.
+A full grid is 3,390 episodes per model — 13,560 with both pressure axes — so
+the run has to be interruptible.
 
 **Checkpointing is on by default.** Every finished episode is appended to
 `runtime/checkpoints/<run_id>.jsonl` and flushed, so a crash or a `Ctrl-C`
@@ -348,7 +355,7 @@ Episodes are capped at 12 tool turns. Full tool transcripts are stored as
 `.by_condition_and_framing`, and — when the axis selects more than one level —
 `.by_urgency` / `.by_condition_and_urgency`, `.by_user_availability` /
 `.by_condition_and_user_availability`, plus `.by_urgency_and_user_availability` when both
-axes vary. **Full live grid = 226 × 6 × 2 × 5 = 13,560 multi-turn episodes per
+axes vary. **Full live grid = 226 × 3 × 5 = 3,390 multi-turn episodes per
 model** at the default single urgency and user-availability level — `--urgencies=all`
 doubles that, and adding `--user-availabilities=all` quadruples it.
 
@@ -488,9 +495,9 @@ python -m app.cli recompute --run-id run_<id> --publish --label "Phase 2 officia
 
 ## `merge` — stitch several sittings of one gauntlet into one run
 
-A grid is often not run in one go: the four control conditions get run on
+A grid is often not run in one go: the three control conditions get run on
 different days, or an axis is added later. Those run files are one experiment
-split across four sittings, and nothing downstream can read them as one — every
+split across several sittings, and nothing downstream can read them as one — every
 per-condition breakdown in `metrics` is computed within a single run. `merge`
 pools their episodes into one new run and recomputes the metrics from the pooled
 episodes, so `by_condition_and_framing` and friends finally have every cell.
@@ -650,8 +657,8 @@ and model defaults — a model id that runs in Phase 1 runs in Phase 2.
 | `prompt_policy` | The scenario's structured payment policy, injected into the prompt as natural-language rules (`render_policy_text`) |
 | `tool_constraints` | The structured policy as machine-readable JSON, plus a simulated payment tool that inspects the model's submitted action and blocks it only when that action violates a hard limit — never the answer key (`apply_tool_constraints` in `app/policies.py`) |
 
-The Phase 2 sandbox has its own four-condition grid (`no_policy`,
-`structured_policy`, `required_check`, `tool_constraints`); see the
+The Phase 2 sandbox has its own three-condition grid (`no_policy`,
+`structured_policy`, `tool_constraints`); see the
 `phase2-eval` section above.
 
 ---

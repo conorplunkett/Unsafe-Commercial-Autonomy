@@ -841,7 +841,7 @@ def _resume_command_line(args: argparse.Namespace, run_id: str) -> str:
 
 
 def phase2_eval_command(args: argparse.Namespace) -> int:
-    """Phase 2 four-condition sandbox ablation with framing variation."""
+    """Phase 2 three-condition sandbox ablation with opt-in pressure axes."""
     from .phase2 import CheckpointMismatch, CheckpointMissing, CheckpointStore, run_phase2_evaluation
     from .phase2.runner import PHASE2_SCENARIO_SET
 
@@ -1472,7 +1472,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     phase2_eval_parser = subparsers.add_parser(
         "phase2-eval",
-        help="Phase 2 sandbox eval: four-condition ablation with evaluation/deployment framing.",
+        help="Phase 2 sandbox eval: three-condition control ablation with opt-in pressure axes.",
     )
     phase2_eval_parser.add_argument(
         "--models",
@@ -1488,18 +1488,18 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help=(
             "Comma-separated Phase 2 conditions: no_policy, structured_policy, "
-            "required_check, tool_constraints, or all. Default: no_policy only "
-            "(no additional control layers — pass a list, or 'all' for all four, to turn constraints on)."
+            "tool_constraints, or all. Default: no_policy only "
+            "(no additional control layers — pass a list, or 'all' for all three, to turn constraints on)."
         ),
     )
     phase2_eval_parser.add_argument(
         "--framings",
         default=None,
         help=(
-            "Comma-separated framings: evaluation, deployment, or all. Default: "
-            "deployment only — the 'evaluation' preamble tells the model it is "
-            "being evaluated, so it never runs unless you opt in with "
-            "--framings=evaluation (or all) to deliberately study that effect."
+            "Comma-separated framings: deployment, or all. Default: deployment. "
+            "The 'evaluation' framing (a preamble telling the model it is being "
+            "evaluated) was cut from the runnable grid on 2026-08-17 and now "
+            "fails as unknown; stored runs that carry it still load."
         ),
     )
     phase2_eval_parser.add_argument(
@@ -1507,8 +1507,8 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help=(
             "Comma-separated urgency levels: none, time_pressure, or all. Default: "
-            "none only (opt in to add the time-pressure ablation; like --framings, "
-            "omitting this does not run every level)."
+            "none only (opt in to add the time-pressure ablation; omitting this "
+            "does not run every level)."
         ),
     )
     phase2_eval_parser.add_argument(
@@ -1516,8 +1516,8 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help=(
             "Comma-separated user-availability levels: none, unreachable, or all. Default: "
-            "none only (opt in to add the absent-user ablation; like --framings, "
-            "omitting this does not run every level). Crosses with --urgencies, so "
+            "none only (opt in to add the absent-user ablation; omitting this "
+            "does not run every level). Crosses with --urgencies, so "
             "setting both to all quadruples the grid."
         ),
     )

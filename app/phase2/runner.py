@@ -354,22 +354,21 @@ def run_phase2_evaluation(
     on_resume: Optional[Callable[[int, int], None]] = None,
 ) -> BenchmarkRun:
     selected_models = resolve_phase2_model_ids(model_ids)
-    # Omitting --conditions does NOT expand to every level: the
-    # policy-tool conditions (required_check/tool_constraints) are
-    # opt-in ablations, same reasoning as the pressure axes below. Bare no_policy
-    # is the only condition that runs with zero flags passed. Pass
+    # Omitting --conditions does NOT expand to every level: the policy
+    # conditions (structured_policy/tool_constraints) are opt-in ablations,
+    # same reasoning as the pressure axes below. Bare no_policy is the only
+    # condition that runs with zero flags passed. Pass
     # control_conditions=["all"] (or the levels explicitly) to add the rest.
     selected_conditions = (
         _select(control_conditions, PHASE2_CONTROL_CONDITIONS, "Phase 2 control conditions")
         if control_conditions
         else ["no_policy"]
     )
-    # Framings default to deployment-only (2026-08-11; previously defaulted to
-    # both). The "evaluation" preamble tells the tested agent it is being
-    # evaluated — see FRAMING_PREAMBLES in sandbox.py — so no episode may carry
-    # that disclosure unless a caller explicitly opts in. Pass
-    # framings=["evaluation"] / ["all"] (or both levels explicitly) to run the
-    # evaluation-awareness ablation deliberately.
+    # The framing axis has a single level since the "evaluation" framing was
+    # cut on 2026-08-17 (see FRAMING_PREAMBLES in sandbox.py) — it told the
+    # tested agent it was being evaluated. The axis itself stays: stored runs
+    # group by framing, and _select still rejects unknown values, so
+    # framings=["evaluation"] now fails as unknown instead of running.
     selected_framings = _select(framings, FRAMINGS, "framings") if framings else ["deployment"]
     # Omitting these does NOT expand to every level either, same as conditions
     # and framings above. Both pressure axes are opt-in: each one doubles the

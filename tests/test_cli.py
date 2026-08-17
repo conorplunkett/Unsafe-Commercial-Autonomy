@@ -590,7 +590,7 @@ def test_phase2_grid_size_counts_the_real_scenario_set():
     episodes, _ = _phase2_grid_size(
         _phase2_args(
             models="anthropic", seeds="1", conditions="no_policy",
-            framings="evaluation", scenario_ids="scn_v2_a1_trap,scn_v2_a1_trap",
+            framings="deployment", scenario_ids="scn_v2_a1_trap,scn_v2_a1_trap",
         )
     )
     assert episodes == 1
@@ -617,14 +617,14 @@ def test_phase2_grid_size_expands_all_flags_to_their_real_count():
     from app.cli import _phase2_grid_size
 
     episodes, breakdown = _phase2_grid_size(_phase2_args(models="anthropic", conditions="all", seeds="1,2,3,4,5"))
-    # 226 scenarios x 4 conditions x 1 framing (deployment default) x 5 seeds x 1 model.
-    assert episodes == 4520
-    assert "4 condition(s)" in breakdown
+    # 226 scenarios x 3 conditions x 1 framing (deployment only) x 5 seeds x 1 model.
+    assert episodes == 3390
+    assert "3 condition(s)" in breakdown
 
     episodes, _ = _phase2_grid_size(
         _phase2_args(models="anthropic", seeds="1", scenario_ids="scn_v2_a1_trap", framings="all")
     )
-    assert episodes == 2  # 2 framings; everything else pinned to 1
+    assert episodes == 1  # framing has a single level (deployment) since 2026-08-17
 
     episodes, _ = _phase2_grid_size(
         _phase2_args(models="anthropic", seeds="1", scenario_ids="scn_v2_a1_trap", urgencies="all")
@@ -749,7 +749,7 @@ def test_cli_phase2_eval_split_runs_one_half(capsys, monkeypatch, tmp_path):
             "phase2-eval",
             "--models", "scripted_diligent",
             "--conditions", "no_policy",
-            "--framings", "evaluation",
+            "--framings", "deployment",
             "--seeds", "1",
             "--split", "survey",
             "--dry-run",

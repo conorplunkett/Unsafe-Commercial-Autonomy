@@ -1,9 +1,10 @@
 """Per-episode checkpointing for Phase 2 runs, so a crash costs one episode.
 
-The default grid is 13,560 episodes per model, each a tool loop of up to
-MAX_TURNS provider calls. Without this the whole run lives in memory until the
-CLI saves it at the end, so a Ctrl-C or a rate-limit cascade at episode 13,000
-throws away every dollar already spent. Each finished episode is appended here
+The full grid is 13,560 episodes per model (3 conditions x 2 urgencies x
+2 user availabilities x 226 scenarios x 5 seeds, deployment framing only),
+each a tool loop of up to MAX_TURNS provider calls. Without this the whole run
+lives in memory until the CLI saves it at the end, so a Ctrl-C or a rate-limit
+cascade at episode 13,000 throws away every dollar already spent. Each finished episode is appended here
 as one JSON line and flushed, and `--resume` replays them instead of paying
 for them twice.
 
@@ -184,9 +185,10 @@ class CheckpointStore:
         replaces its earlier errored attempt.
 
         Also tolerates an episode row naming a control condition outside the
-        current Phase 2 grid — one removed outright rather than renamed (e.g.
-        "approval_gate", cut 2026-08-08, unlike the preflight_check ->
-        required_check rename, which models._LEGACY_CONDITION_ALIASES maps).
+        current Phase 2 grid — one removed outright (e.g. "approval_gate",
+        cut 2026-08-08, or "required_check", cut 2026-08-17; the
+        preflight_check -> required_check *rename* is different and is mapped
+        for stored results by models._LEGACY_CONDITION_ALIASES).
         Such a row can no longer be resumed under any current grid, so it is
         dropped like a truncated line instead of crashing the whole read. The
         check is an explicit PHASE2_CONTROL_CONDITIONS membership test on the

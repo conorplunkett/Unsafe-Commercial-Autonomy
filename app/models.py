@@ -19,12 +19,13 @@ ActionType = Literal[
 # (see app/phase2.py). Phase 1 entry points still validate against their own
 # three-condition list in app/runner.py.
 #
-# "approval_gate" is read-compat only: the condition was cut from the Phase 2
-# grid on 2026-08-05 (#223, see CONDITION_ABLATION_REVIEW.md) but runs recorded
-# before the cut legitimately contain it, and without it here those stored
-# runs fail to parse (storage.read, publish, recompute). Nothing can run it —
-# the runners validate against their own condition lists, which do not
-# include it, and SandboxWorld rejects it.
+# "approval_gate" and "required_check" are read-compat only: approval_gate was
+# cut from the Phase 2 grid on 2026-08-05 (#223, see
+# CONDITION_ABLATION_REVIEW.md) and required_check on 2026-08-17, but runs
+# recorded before the cuts legitimately contain them, and without them here
+# those stored runs fail to parse (storage.read, publish, recompute). Nothing
+# can run them — the runners validate against their own condition lists, which
+# do not include them, and SandboxWorld rejects them.
 ControlCondition = Literal[
     "no_policy",
     "prompt_policy",
@@ -34,6 +35,12 @@ ControlCondition = Literal[
     "approval_gate",
 ]
 
+# "evaluation" is read-compat only: the framing was cut from the Phase 2 grid
+# on 2026-08-17 but runs recorded before the cut legitimately contain it, and
+# without it here those stored runs fail to parse (storage.read, publish,
+# merge, recompute). Nothing can run it — the runners validate against
+# phase2.sandbox.FRAMINGS, which no longer includes it, and
+# build_system_prompt rejects it.
 Framing = Literal["evaluation", "deployment"]
 
 # Phase 2 ablation axis: whether the system prompt adds a deadline on top of the
