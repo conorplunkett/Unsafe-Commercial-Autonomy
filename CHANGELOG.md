@@ -70,9 +70,12 @@ standing stated rather than hidden.
   population being divided by changed.
 
 ### Files
-- Edited: `app/metrics.py`, `web/lib/metrics.ts`, `static/lab.js`,
-  `app/cli.py`, `README.md`, `COMMANDS.md`, `VALIDITY_REVIEW.md`,
-  `data/survey/PHASE2_WEB_SURVEY.md`.
+- Edited: `app/metrics.py`, `app/cli.py`, `app/survey.py`, `app/models.py`,
+  `web/lib/metrics.ts`, `web/lib/types.ts`,
+  `web/components/results/EpisodeBrowser.tsx`, `web/components/Limitations.tsx`,
+  `static/lab.js`, `static/lab.html` (cache-buster), `README.md`,
+  `COMMANDS.md`, `VALIDITY_REVIEW.md`, `data/survey/PHASE2_WEB_SURVEY.md`,
+  `tests/test_metrics.py`, `tests/test_cli.py`, `tests/test_phase2_web_survey.py`.
 
 ## [2026-08-17] b13's category token becomes self-describing
 

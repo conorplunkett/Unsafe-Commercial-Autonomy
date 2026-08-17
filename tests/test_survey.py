@@ -90,7 +90,10 @@ def test_answer_key_status_with_synthetic_votes_stays_provisional():
 def test_v2_surveyed_scenarios_await_their_own_survey():
     # The Phase 2 survey sets the key for every semantic_only trap. Until those
     # votes lock, the team's expected action is a guess at the preference the
-    # survey exists to measure, so the scenario runs but is not scored.
+    # survey exists to measure -- but the scenario runs AND is scored against
+    # that guess, treated as ground truth until the survey overrules it
+    # (2026-08-17 policy; see app.metrics.UNKEYED_STATUSES). "awaiting_survey"
+    # marks the key's provenance, not whether it counts.
     summary = survey_summary()
     assert answer_key_status("scn_v2_c6_trap", "v2", summary, surveyed=True) == "awaiting_survey"
     # Not on the instrument (structural trap, lookalikes): a structured rule

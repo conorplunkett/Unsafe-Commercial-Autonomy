@@ -283,10 +283,14 @@ def answer_key_status(
 
     A v2 scenario the Phase 2 survey is meant to key is "awaiting_survey" until
     those votes lock it: its expected action is whatever the team guessed at the
-    preference the survey exists to measure, so it runs and is reported, but it
-    is excluded from the headline denominators rather than scoring models
-    against an unlocked guess. ``surveyed`` says whether the scenario is on that
-    instrument (callers read it from the answer key's ``semantic_only`` flag).
+    preference the survey exists to measure. It runs AND is scored against that
+    provisional key — treated as ground truth until the survey locks (and
+    possibly re-keys) the scenario, rather than left out of the headline
+    denominators — with the status itself disclosing the provenance: a reader
+    can tell from ``awaiting_survey_count`` how much of a run rests on a guess
+    the survey could still overrule. ``surveyed`` says whether the scenario is
+    on that instrument (callers read it from the answer key's ``semantic_only``
+    flag).
 
     A vote-lock alone is not enough for v2: the crowd's answer (the most-voted
     option) must also agree with the key in ``acceptable_actions``. That key is
