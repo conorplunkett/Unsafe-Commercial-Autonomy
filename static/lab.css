@@ -864,12 +864,13 @@
   }
 }
 
-/* ---- Failure-modes breakdown (mode × control condition) ---- */
+/* ---- Collapsible panel toggle (Failure modes, Pricing) ---- */
 
-/* Collapsible panel: the summary doubles as the panel heading (a caret plus
-   the same layout as .panel-heading), so it reads like the other section
-   headers but toggles the chart open/closed. Starts collapsed. */
-.failure-panel > summary {
+/* The summary doubles as the panel heading (a caret plus the same layout as
+   .panel-heading), so it reads like the other section headers but toggles
+   the panel open/closed. Both start collapsed. */
+.failure-panel > summary,
+.pricing-panel > summary {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -881,28 +882,35 @@
   border-bottom: 1px solid transparent;
 }
 
-.failure-panel[open] > summary {
+.failure-panel[open] > summary,
+.pricing-panel[open] > summary {
   border-bottom-color: var(--border);
 }
 
-.failure-panel > summary::-webkit-details-marker {
+.failure-panel > summary::-webkit-details-marker,
+.pricing-panel > summary::-webkit-details-marker {
   display: none;
 }
 
-.failure-panel > summary::before {
+.failure-panel > summary::before,
+.pricing-panel > summary::before {
   content: "▸";
   color: var(--muted);
   font-size: 12px;
   transition: transform 0.15s ease;
 }
 
-.failure-panel[open] > summary::before {
+.failure-panel[open] > summary::before,
+.pricing-panel[open] > summary::before {
   transform: rotate(90deg);
 }
 
-.failure-panel > summary .run-stamp {
+.failure-panel > summary .run-stamp,
+.pricing-panel > summary .run-stamp {
   margin-left: auto;
 }
+
+/* ---- Failure-modes breakdown (mode × control condition) ---- */
 
 .failure-chart {
   padding: 8px 16px 16px;
