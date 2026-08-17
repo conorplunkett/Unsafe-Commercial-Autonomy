@@ -489,6 +489,44 @@
           Phase 1: same rungs with <code>eval</code> (drop <code>--framings</code>).
         </p>
       </section>
+
+      <section class="taxonomy-panel pricing-panel" aria-label="Provider pricing">
+        <div class="panel-heading">
+          <h2>Pricing</h2>
+          <span class="run-stamp">$ per 1M tokens &middot; verified 2026-08-17</span>
+        </div>
+        <p class="panel-legend">
+          <strong>Input</strong> &mdash; per 1M prompt tokens. <strong>Output</strong> &mdash; per 1M
+          completion tokens. Each provider's cheapest current model, standard (non-batch) pricing, in USD.
+        </p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Provider</th>
+                <th title="The provider's cheapest current model — its default when no *_MODEL env var is set. Other models cost more; see .env.example.">Model</th>
+                <th title="Cost per 1 million prompt tokens, in USD.">Input</th>
+                <th title="Cost per 1 million completion tokens, in USD.">Output</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>OpenAI</td><td>gpt-5.4-nano</td><td>$0.20</td><td>$1.25</td><td></td></tr>
+              <tr><td>Anthropic</td><td>claude-haiku-4-5</td><td>$1.00</td><td>$5.00</td><td></td></tr>
+              <tr><td>Gemini</td><td>gemini-3.1-flash-lite</td><td>$0.25</td><td>$1.50</td><td></td></tr>
+              <tr><td>Kimi</td><td>kimi-k2.6</td><td>$0.95</td><td>$4.00</td><td title="Input drops to $0.16 per 1M tokens on a cache hit.">cache hit $0.16</td></tr>
+              <tr><td>Inkling</td><td>thinkingmachines/Inkling</td><td>&mdash;</td><td>&mdash;</td><td title="Open-weight model with no single vendor price — cost depends on the inference host (Together AI by default; also Fireworks, Modal, Databricks, Baseten).">host-dependent</td></tr>
+              <tr><td>Grok</td><td>grok-4.20-0309-non-reasoning</td><td>$1.25</td><td>$2.50</td><td title="Doubles to $2.50 input / $5.00 output per 1M tokens once the prompt reaches 200K tokens.">$2.50/$5 &ge;200K ctx</td></tr>
+              <tr><td>DeepSeek</td><td>deepseek-v4-flash</td><td>$0.22</td><td>$0.66</td><td title="Off-peak rate shown. Doubles to $0.44 input / $1.32 output during peak hours (01:00–04:00, 06:00–10:00 UTC). Changed from a flat $0.14/$0.28 on 2026-08-16.">peak $0.44/$1.32</td></tr>
+              <tr><td>Mistral</td><td>mistral-small-latest</td><td>$0.15</td><td>$0.60</td><td></td></tr>
+              <tr><td>Qwen</td><td>qwen-flash</td><td>$0.05</td><td>$0.40</td><td title="Rises to $0.25 input / $2.00 output per 1M tokens once the prompt exceeds 256K tokens.">$0.25/$2 &gt;256K ctx</td></tr>
+              <tr><td>OpenRouter</td><td>&mdash; (set OPENROUTER_MODEL)</td><td>&mdash;</td><td>&mdash;</td><td title="Gateway to 300+ models; billed at each vendor's own per-model price plus a routing markup. No single OpenRouter price — set OPENROUTER_MODEL to a specific slug.">+ markup, per model</td></tr>
+              <tr><td>Open-weights</td><td>&mdash; (self-hosted)</td><td>&mdash;</td><td>&mdash;</td><td title="Runs on your own OpenAI-compatible server (vLLM, llama.cpp, TGI) — no vendor API cost, only your own infrastructure.">self-hosted</td></tr>
+              <tr><td>Naive baseline</td><td>&mdash;</td><td>Free</td><td>Free</td><td title="Deterministic always-cheapest heuristic. Runs offline with zero API calls.">offline</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
     </div>
 
     <style>
