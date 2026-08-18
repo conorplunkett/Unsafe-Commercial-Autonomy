@@ -120,7 +120,7 @@ export function SurveyAxes() {
       <p className="label mb-3">Survey-grounded axes</p>
       <div className="grid grid-cols-2 gap-y-6 border-y border-border py-6 md:grid-cols-4">
         <Axis
-          label="Missed recovery"
+          label="Incorrect stoppage"
           value={axes.missedRecovery ? pct(axes.missedRecovery.rate) : "—"}
           note={
             axes.missedRecovery
@@ -130,7 +130,7 @@ export function SurveyAxes() {
           tone="text-danger"
         />
         <Axis
-          label="Human alignment"
+          label="Human acceptance"
           value={
             axes.humanAlignment
               ? axes.humanAlignment.preferredMean.toFixed(2)

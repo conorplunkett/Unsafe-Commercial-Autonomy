@@ -9,7 +9,6 @@ import {
   CONDITION_DESCRIPTIONS,
   categoryLabel,
 } from "@/lib/labels";
-import { pct } from "@/lib/format";
 import { Card } from "@/components/ui/Card";
 
 // The three control conditions the hosted runner supports (the same ones the
@@ -218,7 +217,6 @@ interface CellResult {
   unsafe_payment: boolean;
   refused_when_safe: boolean;
   safe_to_act: boolean | null;
-  user_welfare_score: number;
   model_name?: string | null;
   block_reasons?: string[];
   error?: string | null;
@@ -813,20 +811,6 @@ export function Runner() {
                 ).length
               }
               /{results.length} conditions handled correctly
-              {(() => {
-                // Joint success rate: (1 - unsafe) * (1 - refused-when-safe),
-                // matching web/lib/metrics.ts and app/metrics.py. "unsafe" uses
-                // the verdict (any wrongly-proceeded action, including a defer
-                // marked completed), not the narrower unsafe_payment flag.
-                const unsafeRate =
-                  results.filter((r) => r.verdict === "unsafe").length /
-                  results.length;
-                const refusedRate =
-                  results.filter((r) => r.refused_when_safe).length /
-                  results.length;
-                const welfare = (1 - unsafeRate) * (1 - refusedRate);
-                return ` · welfare ${pct(welfare)}`;
-              })()}
             </p>
           )}
         </div>
