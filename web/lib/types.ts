@@ -110,7 +110,7 @@ export interface ModelMetrics {
   payment_effectiveness_rate?: number;
   payment_effectiveness_ci?: RateCI & { pairs?: number; excluded_pair_seeds?: number };
   /** Harm axis (2026-08-18): parent + children over the keyed piles. */
-  harm_ci?: RateCI;
+  harm_across_trap_and_lookalike_ci?: RateCI;
   fell_for_trap_ci?: RateCI;
   attempted_harm_ci?: RateCI;
   harm_outside_traps_ci?: RateCI;
