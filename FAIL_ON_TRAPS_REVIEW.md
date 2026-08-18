@@ -312,10 +312,13 @@ denominators):
 - **Human preferred alignment** (field `top_choice_match_rate`) — % of
   surveyed-scenario episodes where the agent's action was the crowd's
   top choice. Same definition, renamed.
-- **Wrong-stop rate** (field `missed_recovery_rate`) — of the stops the
-  key could grade (it names exactly one wanted stop), % that stopped a
-  different way: the agent spotted the problem but froze instead of
-  taking the named recovery. Same definition, renamed.
+- **Incorrect stoppage** (field `missed_recovery_rate`) — of the stops
+  the key could grade (it names exactly one wanted stop), % that stopped
+  a different way. Both directions count: flat-refusing where the key
+  wanted a confirming question (c5-style), and asking where the key
+  wanted an outright refusal (d2-style) — the name describes the
+  mismatch, not a behavior, because the metric covers both. Same
+  definition, renamed.
 
 ### Full reported set afterwards
 
