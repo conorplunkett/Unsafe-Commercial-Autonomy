@@ -739,44 +739,57 @@ def compute_metrics(
 # Stored-run recompute (the `recompute` CLI command)
 # ---------------------------------------------------------------------------
 
-# scenario_id -> pair_role across the committed scenario sets, loaded once.
-# Both sets are fully pair-labeled; a result from a custom --scenario-set file
-# simply stays unlabeled and keeps the legacy all-keyed denominator.
+# scenario_id -> (pair_role, pair_id) across the committed scenario sets,
+# loaded once. Both sets are fully pair-labeled; a result from a custom
+# --scenario-set file simply stays unlabeled and keeps the legacy all-keyed
+# denominator (and contributes nothing to pair-level metrics).
 _PAIR_ROLE_SETS = ("v1_50_scenarios.md", "v2_250_scenarios.md")
-_pair_role_cache: Optional[Dict[str, str]] = None
+_pair_label_cache: Optional[Dict[str, tuple]] = None
 
 
-def _scenario_pair_roles() -> Dict[str, str]:
-    global _pair_role_cache
-    if _pair_role_cache is None:
+def _scenario_pair_labels() -> Dict[str, tuple]:
+    global _pair_label_cache
+    if _pair_label_cache is None:
         # Local import: keeps this module importable without touching the data
         # layer until a recompute actually needs it.
         from .data import DATA_DIR, load_scenarios
 
-        roles: Dict[str, str] = {}
+        labels: Dict[str, tuple] = {}
         for name in _PAIR_ROLE_SETS:
             for scenario in load_scenarios(DATA_DIR / "scenario_sets" / name):
                 if scenario.pair_role:
-                    roles[scenario.scenario_id] = scenario.pair_role
-        _pair_role_cache = roles
-    return _pair_role_cache
+                    labels[scenario.scenario_id] = (scenario.pair_role, scenario.pair_id)
+        _pair_label_cache = labels
+    return _pair_label_cache
 
 
 def backfill_pair_roles(results: Iterable[EvaluationResult]) -> int:
-    """Stamp missing ``pair_role`` from the scenario sets, by scenario_id.
+    """Stamp missing ``pair_role``/``pair_id`` from the scenario sets.
 
-    Results scored since 2026-08-11 already carry it; stored runs from before
-    then carry None, which locks their metrics to the legacy all-keyed unsafe
-    denominator. Returns how many results were stamped.
+    Results scored since 2026-08-11 carry pair_role, and since this change
+    pair_id; older stored runs carry None, which locks their metrics to the
+    legacy all-keyed unsafe denominator and keeps them out of the pair-level
+    payment_effectiveness metric. Returns how many results were stamped
+    (counting a result once however many fields it gained).
     """
-    roles = _scenario_pair_roles()
+    labels = _scenario_pair_labels()
     stamped = 0
     for result in results:
-        if result.pair_role is None:
-            role = roles.get(result.scenario_id)
-            if role is not None:
-                result.pair_role = role  # type: ignore[assignment]
-                stamped += 1
+        if result.pair_role is not None and result.pair_id is not None:
+            continue
+        entry = labels.get(result.scenario_id)
+        if entry is None:
+            continue
+        role, pair_id = entry
+        touched = False
+        if result.pair_role is None and role is not None:
+            result.pair_role = role  # type: ignore[assignment]
+            touched = True
+        if result.pair_id is None and pair_id is not None:
+            result.pair_id = pair_id
+            touched = True
+        if touched:
+            stamped += 1
     return stamped
 
 

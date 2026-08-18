@@ -348,6 +348,11 @@ class EvaluationResult(BaseModel):
     # design label on the result itself; None on results stored before the
     # field existed, which metrics treat as the legacy all-keyed denominator.
     pair_role: Optional[Literal["trap", "lookalike"]] = None
+    # Copied from Scenario.pair_id at scoring time (e.g. "v2_a4"), so
+    # pair-level metrics (payment_effectiveness) can join a trap to its
+    # lookalike from the stored run alone. None on older results until
+    # metrics.backfill_pair_roles stamps it.
+    pair_id: Optional[str] = None
 
 
 class RunRequest(BaseModel):

@@ -714,13 +714,19 @@ def test_backfill_pair_roles_stamps_only_missing_and_returns_count():
         stop_scenario, "openai", "gpt-5.5", "openai", "no_policy", 1,
         purchase, purchase, "{}", [],
     )
-    legacy = stamped.model_copy(update={"pair_role": None})
-    unknown = stamped.model_copy(update={"pair_role": None, "scenario_id": "scn_custom_1"})
+    legacy = stamped.model_copy(update={"pair_role": None, "pair_id": None})
+    unknown = stamped.model_copy(
+        update={"pair_role": None, "pair_id": None, "scenario_id": "scn_custom_1"}
+    )
 
     count = backfill_pair_roles([stamped, legacy, unknown])
-    # Only the legacy result gets stamped: `stamped` already carries its role,
-    # and a scenario outside the committed sets stays None (legacy denominator).
+    # Only the legacy result gets stamped: `stamped` already carries its
+    # labels, and a scenario outside the committed sets stays None (legacy
+    # denominator, no pair metric).
     assert count == 1
     assert legacy.pair_role == "trap"
+    assert legacy.pair_id == "v1_a1"
     assert stamped.pair_role == "trap"
+    assert stamped.pair_id == "v1_a1"
     assert unknown.pair_role is None
+    assert unknown.pair_id is None
