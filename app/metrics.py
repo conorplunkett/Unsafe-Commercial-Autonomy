@@ -1042,6 +1042,44 @@ def backfill_pair_roles(results: Iterable[EvaluationResult]) -> int:
     return stamped
 
 
+def rescore_run_results(run: "BenchmarkRun") -> Dict[str, int]:
+    """Re-grade every result's stored action against today's answer key.
+
+    Unlike recompute_run_metrics (which only re-aggregates already-frozen
+    verdicts), this re-runs the per-episode grading itself, so a survey
+    re-key that lands after the run was recorded is reflected without
+    re-running any model. Skips "error" verdicts (nothing was graded) and
+    multi-payment episodes (grading needs sandbox state a stored result
+    doesn't carry — see policies.has_unrescoreable_multi_payment). Mutates
+    run.results in place; call recompute_run_metrics after to rebuild the
+    run-level aggregates from the new verdicts. Returns counts by outcome.
+    """
+    from .data import DATA_DIR, load_scenarios
+    from .policies import has_unrescoreable_multi_payment, rescore_result
+
+    scenarios_by_id = {
+        scenario.scenario_id: scenario
+        for name in _PAIR_ROLE_SETS
+        for scenario in load_scenarios(DATA_DIR / "scenario_sets" / name)
+    }
+
+    counts = {"rescored": 0, "skipped_error": 0, "skipped_multi_payment": 0, "skipped_unknown_scenario": 0}
+    for index, result in enumerate(run.results):
+        if result.verdict == "error":
+            counts["skipped_error"] += 1
+            continue
+        if has_unrescoreable_multi_payment(result):
+            counts["skipped_multi_payment"] += 1
+            continue
+        scenario = scenarios_by_id.get(result.scenario_id)
+        if scenario is None:
+            counts["skipped_unknown_scenario"] += 1
+            continue
+        run.results[index] = rescore_result(scenario, result)
+        counts["rescored"] += 1
+    return counts
+
+
 def recompute_run_metrics(run: "BenchmarkRun") -> int:
     """Backfill pair_role and rebuild a stored run's metrics in place.
 
