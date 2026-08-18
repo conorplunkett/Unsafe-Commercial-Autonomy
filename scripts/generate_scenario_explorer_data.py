@@ -2,17 +2,29 @@
 
 Reads the merged Scenario records the same way app/main.py's
 GET /api/phase2/scenarios does, groups the 226 scenarios into 113
-trap/lookalike pairs by pair_id, and writes the result as the JSON asset
+trap/lookalike pairs by pair_id, and writes the result as the JSON assets
 bundled into the admin-scenario-data Supabase Edge Function. This script is
 the only way that function's data gets refreshed -- re-run it and redeploy
 after any change to data/scenario_sets/v2_250_scenarios.md or
 data/answer_keys/v2_constraints.json.
 
+Split into many small chunk files (scenario_pairs.NNN.json, each a plain
+JSON array of a few pairs) rather than one ~850KB combined file: the
+combined file -- and even one file per category -- is too large for some
+tooling to read or relay in a single piece. Chunks are packed greedily by
+serialized size (CHUNK_SIZE_BUDGET), not by a fixed pair count: pair size
+varies a lot (category E's prompt-injection pairs run much longer than a
+plain spend-limit pair), so a fixed count doesn't bound file size the way
+a size budget does. index.ts imports every chunk in numeric order and
+concatenates them; nothing about a pair's category or role depends on
+which chunk it landed in, since both are already fields on the pair record
+itself.
+
 Pair order is NOT recomputed: it is exactly the first-seen order of pair_id
 in load_scenarios() output, i.e. the Markdown file's own row order (category
 A to E, ascending pair number within each category, including the numbering
-gaps left by the 2026-07-24 twelve-pair cut -- e.g. category B skips to
-B1, B3, B4, B5, B10...). Prev/Next in the UI walks this order.
+gaps left by the 2026-07-24 twelve-pair cut -- e.g. category B skips to B1,
+B3, B4, B5, B10...). Prev/Next in the UI walks this order.
 
 Run from the repo root:  python scripts/generate_scenario_explorer_data.py
 """
@@ -30,7 +42,23 @@ from app.data import load_scenarios  # noqa: E402
 from app.models import model_to_dict  # noqa: E402
 from app.phase2 import PHASE2_SCENARIO_SET  # noqa: E402
 
-OUT_PATH = ROOT / "supabase" / "functions" / "admin-scenario-data" / "scenario_pairs.json"
+OUT_DIR = ROOT / "supabase" / "functions" / "admin-scenario-data"
+
+# Target serialized size (bytes) per chunk file, packed greedily -- see the
+# module docstring for why this is a byte budget rather than a pair count.
+CHUNK_SIZE_BUDGET = 15_000
+
+# Category order is no longer the file-splitting axis (chunks are sequential
+# across the whole 113-pair order, independent of category boundaries), but
+# this is still the canonical A-to-E order build_pairs() produces and the
+# order Prev/Next walks in the UI.
+CATEGORY_ORDER = [
+    "spend_limits",
+    "authorization_scope",
+    "consent_and_escalation",
+    "privacy_and_disclosure",
+    "adversarial_robustness",
+]
 
 EXPECTED_CATEGORY_COUNTS = {
     "spend_limits": 25,
@@ -86,14 +114,50 @@ def build_pairs() -> List[Dict[str, Any]]:
     return pairs
 
 
-def main(out_path: Path = OUT_PATH) -> None:
+def chunk_filename(index: int) -> str:
+    return f"scenario_pairs.{index:03d}.json"
+
+
+def pack_chunks(pairs: List[Dict[str, Any]], budget: int) -> List[List[Dict[str, Any]]]:
+    """Greedily group consecutive pairs so each chunk's own serialized size
+    stays near `budget`. A single pair larger than the budget still gets its
+    own one-pair chunk rather than being split (a pair is never divided)."""
+    chunks: List[List[Dict[str, Any]]] = []
+    current: List[Dict[str, Any]] = []
+    current_size = 2  # "[]"
+    for pair in pairs:
+        pair_size = len(json.dumps(pair, indent=2))
+        addition = pair_size + 2  # ", " (or the closing bracket, roughly)
+        if current and current_size + addition > budget:
+            chunks.append(current)
+            current, current_size = [], 2
+        current.append(pair)
+        current_size += addition
+    if current:
+        chunks.append(current)
+    return chunks
+
+
+def write_chunk_files(pairs: List[Dict[str, Any]], out_dir: Path) -> List[Path]:
+    # Clear any chunk files from a previous run with a different chunk count,
+    # so a shrinking chunk count never leaves a stale, no-longer-imported
+    # file behind for a human to wonder about.
+    for stale in out_dir.glob("scenario_pairs.*.json"):
+        stale.unlink()
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    written: List[Path] = []
+    for i, chunk in enumerate(pack_chunks(pairs, CHUNK_SIZE_BUDGET)):
+        path = out_dir / chunk_filename(i)
+        path.write_text(json.dumps(chunk, indent=2) + "\n", encoding="utf-8")
+        written.append(path)
+    return written
+
+
+def main(out_dir: Path = OUT_DIR) -> None:
     pairs = build_pairs()
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(
-        json.dumps({"pairs": pairs, "count": len(pairs)}, indent=2) + "\n",
-        encoding="utf-8",
-    )
-    print(f"Wrote {len(pairs)} pairs to {out_path}")
+    written = write_chunk_files(pairs, out_dir)
+    print(f"Wrote {len(pairs)} pairs across {len(written)} chunk files to {out_dir}")
 
 
 if __name__ == "__main__":
