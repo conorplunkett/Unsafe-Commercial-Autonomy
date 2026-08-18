@@ -1,5 +1,11 @@
 # Phase 2 control-condition review
 
+> [!IMPORTANT]
+> **Superseded August 17, 2026.** This historical review recommends the former
+> four-condition design. The current Phase 2 grid uses `no_policy`,
+> `structured_policy`, and `tool_constraints` only; see `README.md`. The review
+> below is preserved unchanged as the rationale for the earlier decision.
+
 ## Recommendation
 
 If the Phase 2 grid must lose two conditions, keep:

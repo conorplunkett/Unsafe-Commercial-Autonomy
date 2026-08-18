@@ -63,10 +63,19 @@ separately-versioned document** — never a modification of the locked proposal.
 - Keep each released version as its own immutable artifact so the history of
   what was claimed, and when, stays auditable.
 
-## Source of truth for scope
+## Sources of truth
 
-For benchmark scope and README claims, the research plan described in `README.md`
-remains the working source of truth for ongoing implementation. The locked
-proposal is the historical record of the funding proposal, not a live spec —
-when the two differ, follow the README/research plan for code, and leave the
-locked PDF untouched.
+- `README.md` defines benchmark scope, the current phase, and the research
+  design. The project is firmly in Phase 2; Phase 1 is complete and locked and
+  should not receive further work unless the user explicitly reopens it.
+- Scenario contents and counts come from `data/scenario_sets/`.
+- Answer keys and survey status come from `data/answer_keys/` and
+  `data/survey/`.
+- CLI commands and defaults come from `python -m app.cli <command> --help`;
+  environment variables come from `.env.example`.
+- `RUNBOOK.md` holds only non-obvious operational workflows, and `CHANGELOG.md`
+  holds historical changes.
+
+The locked proposal is the historical funding record, not a live spec. When it
+differs from current sources, follow the current sources and leave the PDF
+untouched.
