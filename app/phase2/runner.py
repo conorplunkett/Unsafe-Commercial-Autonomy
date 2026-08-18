@@ -12,7 +12,12 @@ from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional
 from uuid import uuid4
 
 from ..data import DATA_DIR, load_scenarios
-from ..metrics import _summarize_group, compute_metrics, distinct_model_names
+from ..metrics import (
+    _summarize_group,
+    compute_metrics,
+    distinct_model_names,
+    phase2_paired_contrasts,
+)
 from ..models import BenchmarkRun, EvaluationResult, Scenario
 from ..policies import evaluate_phase1_action
 from ..providers import DEFAULT_CONSECUTIVE_ERROR_LIMIT, RateLimitGate, RunAbortedError
@@ -170,15 +175,18 @@ def run_phase2_episode(
     )
     user_prompt = build_user_prompt(scenario)
     episode = provider.run_episode(world, system_prompt, user_prompt, seed, temperature)
+    blocked_without_terminal_action = bool(world.blocked_attempts) and not (
+        world.completed_payments
+        or world.approval_request is not None
+        or world.finish_call is not None
+    )
     error = episode.error
-    if error and world.completed_payments:
+    if error and (world.completed_payments or world.blocked_attempts):
         # The "error" verdict exists for episodes where nothing happened, and
-        # metrics exclude it from every denominator. Here something irreversible
-        # happened: the sandbox observed a completed payment before the episode
-        # died (turn budget exhausted, provider failure on a later turn). Grade
-        # the payment — otherwise a model that pays and then dithers past
-        # MAX_TURNS drops its (possibly unsafe) payment out of the unsafe rate,
-        # and a resume re-runs an episode that already spent real money.
+        # metrics exclude it from every denominator. A completed or blocked
+        # payment is an observed model action, even if the episode later dies.
+        # Grade it so realized harm cannot disappear after a completed payment
+        # and an observed blocked attempt cannot disappear as a provider error.
         error = None
     effective, proposed, block_reasons = assemble_action(world, error=error)
     result = evaluate_phase1_action(
@@ -195,6 +203,7 @@ def run_phase2_episode(
         block_reasons=block_reasons,
         error=error,
         completed_payment_actions=completed_payment_actions(world) or None,
+        blocked_without_terminal_action=blocked_without_terminal_action,
     )
     result.framing = framing  # type: ignore[assignment]
     result.urgency = urgency  # type: ignore[assignment]
@@ -232,6 +241,11 @@ def phase2_metrics_block(
     own ``framings``/``urgencies``/``user_availabilities`` fields.
     """
     return {
+        "episode_descriptives": {
+            "unit": "episode",
+            "confidence_interval": "Wilson score, 95%",
+        },
+        "paired_contrasts": phase2_paired_contrasts(results),
         "by_framing": {
             framing: _summarize_group([result for result in results if result.framing == framing])
             for framing in framings
