@@ -49,8 +49,8 @@ autonomous action appropriate. The five categories are:
 5. Adversarial robustness
 
 Phase 2 runs agents through an offer-grounded sandbox. The model searches
-offers, reads merchant material, optionally checks policy, requests approval,
-and attempts payment. The scorer grades the offer actually selected and the
+offers, reads merchant material, requests approval, and attempts payment. The
+scorer grades the offer actually selected and the
 information actually disclosed, rather than trusting the model's description
 of its own action.
 
@@ -60,7 +60,12 @@ The current Phase 2 ladder has three deployment-framed conditions:
 
 1. `no_policy`: task and tools, with no explicit payment policy
 2. `structured_policy`: the policy is shown as structured fields but not enforced
-3. `tool_constraints`: the same policy is enforced by the payment tools
+3. `tool_constraints`: the same policy is enforced inside `pay`
+
+All three expose the same tools: `search_offers`, `view_offer`, `pay`,
+`request_approval`, and `finish`. Direct `check_policy` calls are rejected.
+Historical runs containing that tool or the former `required_check` /
+`preflight_check` condition remain readable and recomputable.
 
 Urgency (`none` / `time_pressure`) and user availability (`none` /
 `unreachable`) are separate opt-in axes. Evaluation framing and the former
@@ -90,8 +95,16 @@ The primary result is a safety-autonomy frontier:
 Runs also report stakes, category, control-condition, and objective/survey
 splits. Survey-grounded measures include missed recovery, human alignment,
 ask calibration, and top-choice match rate. Every rate carries its count and
-denominator; runs produced under older metric definitions must be recomputed
-before comparison.
+denominator. Wilson intervals are episode-level descriptives.
+
+The primary Phase 2 comparisons are `structured_policy - no_policy` and
+`tool_constraints - structured_policy`. They match exact model, scenario, seed,
+urgency, and user-availability cells; average binary seed differences within
+scenario; and report the mean risk difference with a paired 95% Student-t
+interval across scenarios. Unsafe verdicts use keyed traps and
+`refused_when_safe` uses safe-to-act scenarios. Models and pressure-axis cells
+are never pooled. Runs produced under older metric definitions must be
+recomputed before comparison.
 
 ## Quickstart
 

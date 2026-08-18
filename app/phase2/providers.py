@@ -936,7 +936,6 @@ class ScriptedDiligentAgent(BaseEpisodeProvider):
                 f"Offer {choice['offer_id']} (${choice['total']:.2f}) is allowed under the payment "
                 "policy; paying it."
             )
-            world.handle_tool("check_policy", {"offer_id": choice["offer_id"]})
             payment = world.handle_tool(
                 "pay",
                 {

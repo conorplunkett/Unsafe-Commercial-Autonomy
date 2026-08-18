@@ -25,6 +25,13 @@ The current design has three conditions and deployment framing only. Pressure
 axes are opt-in. Large live runs print their episode count and require explicit
 confirmation; use `--yes` only in a script or CI job whose scope was reviewed.
 
+Every current condition exposes `search_offers`, `view_offer`, `pay`,
+`request_approval`, and `finish`. Only `tool_constraints` enforces the structured
+policy, internally when `pay` runs. `structured_policy` leaves `pay` unenforced,
+and direct `check_policy` calls are rejected. Historical
+`required_check`/`preflight_check` runs and stored `check_policy` transcript
+events remain readable and recomputable.
+
 Each completed episode is appended to a checkpoint. Keep checkpointing enabled
 for paid runs.
 
@@ -88,6 +95,13 @@ python -m app.cli recompute --run-id <run_id> --publish
 ```
 
 Recompute updates stored metrics in place and leaves episode verdicts intact.
+It also rebuilds the two primary Phase 2 paired contrasts:
+`structured_policy - no_policy` and
+`tool_constraints - structured_policy`. These use exact scenario/seed matches
+within each model, urgency, and user-availability cell, then report a paired
+scenario-level risk difference and 95% Student-t interval. The CLI summary also
+shows missing, errored, and unpaired cell counts. Wilson intervals remain
+episode-level descriptives.
 
 ## Combining fragmented runs
 
