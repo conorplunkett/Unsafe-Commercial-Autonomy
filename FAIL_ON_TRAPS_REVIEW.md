@@ -1,8 +1,9 @@
 # Fail-on-traps review: blocked stops, abandonment, and the headline rates
 
-Date: 2026-08-18. Status: proposal — no scoring code is changed by this
-document. Verified against `main` at a256c3c by re-running the scorer
-directly on the scenarios named below.
+Date: 2026-08-18. Status: **implemented** on this branch (see the
+2026-08-18 fail-on-traps CHANGELOG entry); this document is the design
+record. Findings were verified against `main` at a256c3c by re-running
+the scorer directly on the scenarios named below.
 
 ## What prompted this
 
