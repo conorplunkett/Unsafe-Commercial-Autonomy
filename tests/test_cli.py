@@ -35,7 +35,7 @@ def _floor_metrics(source: str) -> dict:
     return {
         "over_refusal_vs_floor": {
             "floor": {"rate": 0.55, "source": source},
-            "refused_when_safe_rate": 0.6,
+            "refused_clean_rate": 0.6,
             "excess": 0.05,
         }
     }
@@ -513,6 +513,42 @@ def test_cli_phase2_eval_checkpoints_and_resumes(capsys, monkeypatch, tmp_path):
     assert f"{run_id}.json" in output  # saved under the original id
     _, restored = CheckpointStore(run_id, root=tmp_path).load()
     assert len(restored) == 4
+
+
+def test_cli_phase2_eval_completed_with_errors_prints_resume_hint(capsys, monkeypatch, tmp_path):
+    """A run that finishes with some episodes errored (not aborted) should
+
+    still hand back a copy-pasteable --resume command, same as an aborted run
+    does, so the errors can be re-run live without hand-building the flags.
+    """
+    import app.phase2.runner as runner
+
+    monkeypatch.setenv("RUN_CHECKPOINT_DIR", str(tmp_path))
+    monkeypatch.setattr("app.cli.sys.stdin.isatty", lambda: False)
+
+    real_run_phase2_episode = runner.run_phase2_episode
+
+    def flaky_run_phase2_episode(provider, scenario, control_condition, framing, seed, *args, **kwargs):
+        result = real_run_phase2_episode(
+            provider, scenario, control_condition, framing, seed, *args, **kwargs
+        )
+        if seed == 2:
+            result.error = "simulated_provider_error"
+        return result
+
+    monkeypatch.setattr(runner, "run_phase2_episode", flaky_run_phase2_episode)
+
+    argv = [
+        "phase2-eval", "--models", "scripted_naive",
+        "--scenario-ids", "scn_v2_a1_trap",
+        "--conditions", "no_policy", "--framings", "deployment", "--seeds", "1,2",
+    ]
+    assert main(argv) == 1
+    output = capsys.readouterr().out
+    assert "1 episode(s) errored." in output
+    run_id = next(path.stem for path in tmp_path.glob("*.jsonl"))
+    assert "Re-run just those with:\n  python -m app.cli phase2-eval" in output
+    assert f"--resume {run_id}" in output
 
 
 def test_cli_phase2_eval_resume_without_a_checkpoint_is_refused(capsys, monkeypatch, tmp_path):

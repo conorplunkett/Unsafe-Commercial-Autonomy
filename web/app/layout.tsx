@@ -2,9 +2,8 @@ import type { Metadata } from "next";
 import { Inter, Newsreader, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { RESULTS_LIVE } from "@/lib/config";
-// Once results are live, DataProvider fetches published runs from Supabase for
-// the results components (see components/results/README.md). While the site is
-// a proposal it is skipped entirely so the page makes no network calls.
+// When results are live, DataProvider fetches published runs from Supabase.
+// Proposal mode skips it entirely so the page makes no network calls.
 import { DataProvider } from "@/components/results/DataProvider";
 
 // Three faces, each with a job: Inter carries the UI and every heading,

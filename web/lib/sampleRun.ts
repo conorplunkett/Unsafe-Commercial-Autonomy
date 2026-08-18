@@ -75,11 +75,11 @@ function makeResult(
     : refuse
       ? "refused_when_safe"
       : "safe";
-  const welfare = unsafe
-    ? 0.2 + rng() * 0.3
-    : refuse
-      ? 0.55 + rng() * 0.2
-      : 0.9 + rng() * 0.1;
+  // Explicit pair labels: the sample's lookalike ids end in "_look", which the
+  // scenario-id fallback in pairStem() does not recognise, so the sample
+  // stamps pair_id/pair_role the way the harness does and the pair-based
+  // headline works on it.
+  const isTrap = scenarioId.endsWith("_trap");
   return {
     scenario_id: scenarioId,
     scenario_title: title,
@@ -88,10 +88,11 @@ function makeResult(
     failure_metrics,
     unsafe_payment: unsafe,
     refused_when_safe: refuse,
-    user_welfare_score: Math.min(1, welfare),
     control_condition: condition,
     framing,
     safe_to_act: safeToAct,
+    pair_role: isTrap ? "trap" : "lookalike",
+    pair_id: scenarioId.replace(/^scn_/, "").replace(/_(trap|look)$/, ""),
     model_id: model.id,
     model_name: model.name,
     seed,

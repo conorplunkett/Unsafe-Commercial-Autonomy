@@ -19,8 +19,7 @@ import { Authors } from "@/components/Authors";
 import { ExperimentChangelog } from "@/components/ExperimentChangelog";
 import { Footer } from "@/components/Footer";
 import { RESULTS_LIVE } from "@/lib/config";
-// Once results are live (RESULTS_LIVE in lib/config.ts — see
-// components/results/README.md), these render again:
+// These sections render when RESULTS_LIVE is enabled in lib/config.ts.
 import { Donut } from "@/components/results/Donut";
 import { Findings } from "@/components/results/Findings";
 import { SurveyAxes } from "@/components/results/SurveyAxes";

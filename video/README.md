@@ -3,46 +3,40 @@
 A [Remotion](https://www.remotion.dev/) motion-graphics launch video for the
 **Unsafe Commercial Autonomy** benchmark.
 
-This is a **standalone project**. It is intentionally kept separate from the
-Next.js app in [`../web`](../web) so the video's heavy render toolchain
-(bundler, headless-Chromium renderer) never lands in the product's dependency
-tree. It has its own `package.json` and `node_modules`.
+This is a standalone project. It stays separate from the Next.js app in
+[`../web`](../web) so the render toolchain does not enter the website's
+dependency tree. It has its own `package.json` and `node_modules`.
 
-## Setup
+## Setup and preview
 
 ```bash
 cd video
 npm install
+npm run dev
 ```
 
-## Preview (live editor)
-
-```bash
-npm run dev        # opens Remotion Studio at http://localhost:3000
-```
+Remotion Studio opens at [http://localhost:3000](http://localhost:3000).
 
 ## Render
 
 ```bash
-npm run render         # → out/launch-video.mp4  (1920×1080, 30fps, ~28s)
-npm run render:still   # → out/poster.png        (a poster frame)
+npm run render         # out/launch-video.mp4
+npm run render:still   # out/poster.png
 ```
 
-Rendered output lands in `out/`, which is git-ignored.
+The video is 1920×1080 at 30 fps and approximately 28 seconds. Rendered output
+under `out/` is gitignored.
 
 ## Structure
 
 | File | Purpose |
 | --- | --- |
-| `src/index.ts` | Remotion entry point (`registerRoot`). |
-| `src/Root.tsx` | Registers the `LaunchVideo` composition (size, fps, duration). |
-| `src/LaunchVideo.tsx` | Sequences the scenes; single source of truth for scene order and durations. |
-| `src/scenes.tsx` | The seven scene components (title → shift → question → trap scenario → benchmark scale → metric → outro). |
-| `src/components.tsx` | Shared animation primitives (`FadeUp`, `Kicker`, `Card`, `Backdrop`). |
-| `src/theme.ts` | Palette + fonts lifted from the product site (`static/styles.css`) so the video is on-brand. |
+| `src/index.ts` | Remotion entry point. |
+| `src/Root.tsx` | Registers the composition, dimensions, frame rate, and duration. |
+| `src/LaunchVideo.tsx` | Defines scene order and timing. |
+| `src/scenes.tsx` | Contains the seven scenes and their copy. |
+| `src/components.tsx` | Shared animation primitives. |
+| `src/theme.ts` | Video palette and fonts. |
 
-## Editing content
-
-Copy in each scene lives in `src/scenes.tsx`. To retime the video, change the
-per-scene `duration` values in `src/LaunchVideo.tsx` — the composition length
-is derived from their sum, so nothing else needs updating.
+Edit scene copy in `src/scenes.tsx`. Change per-scene durations in
+`src/LaunchVideo.tsx`; the composition length is derived from their sum.

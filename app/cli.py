@@ -240,12 +240,15 @@ def _format_rate(summary: dict, key: str) -> str:
     return f"{rate:.3f} [{ci.get('ci_low', 0.0):.3f}, {ci.get('ci_high', 0.0):.3f}]"
 
 
-def _format_acted(summary: dict) -> str:
-    """`acted/keyed` counts for a table cell; "-" when the group has no key."""
-    ci = summary.get("acted_ci") or {}
-    if not ci.get("total"):
-        return "-"
-    return f"{ci['count']}/{ci['total']}"
+def _format_pairs(summary: dict) -> str:
+    """Payment effectiveness with the pair count it was measured over."""
+    ci = summary.get("payment_effectiveness_ci") or {}
+    if not ci.get("pairs"):
+        return "n/a"
+    return (
+        f"{ci.get('rate', 0.0):.3f} [{ci.get('ci_low', 0.0):.3f}, "
+        f"{ci.get('ci_high', 0.0):.3f}] over {ci['pairs']} pairs"
+    )
 
 
 # How many per-result rows the detail table prints before collapsing into a
@@ -381,26 +384,27 @@ def _print_human_axes(metrics: dict) -> None:
     action compares with how the surveyed sample actually split.
     """
     lines = []
-    if "missed_recovery_rate" in metrics:
-        ci = metrics["missed_recovery_ci"]
+    if "incorrect_stoppage_rate" in metrics:
+        ci = metrics["incorrect_stoppage_ci"]
         lines.append(
-            f"Missed recovery:    {metrics['missed_recovery_rate']:.1%} "
+            f"Incorrect stoppage: {metrics['incorrect_stoppage_rate']:.1%} "
             f"({ci['count']}/{ci['total']} graded stops took a different stop "
             f"than the answer key names)"
         )
-    alignment = metrics.get("human_alignment")
+    alignment = metrics.get("human_acceptance")
     if alignment:
         acceptable = alignment.get("acceptable_mean")
-        acceptable_text = f", would-accept {acceptable:.3f}" if acceptable else ""
+        acceptable_text = f", preferred {alignment['preferred_mean']:.3f}" if alignment.get("preferred_mean") is not None else ""
+        accept_value = f"{acceptable:.3f}" if acceptable is not None else "n/a"
         lines.append(
-            f"Human alignment:    preferred {alignment['preferred_mean']:.3f}"
+            f"Human acceptance:   would-accept {accept_value}"
             f"{acceptable_text} "
             f"(mean share of respondents, {alignment['scenarios']} surveyed scenarios)"
         )
-    top_choice = metrics.get("top_choice_match_ci")
+    top_choice = metrics.get("human_preferred_alignment_ci")
     if top_choice and top_choice.get("total"):
         lines.append(
-            f"Top-choice match:   {metrics['top_choice_match_rate']:.1%} "
+            f"Human preferred alignment: {metrics['human_preferred_alignment_rate']:.1%} "
             f"({top_choice['count']}/{top_choice['total']} graded actions were "
             f"the crowd's top pick)"
         )
@@ -421,7 +425,7 @@ def _print_human_axes(metrics: dict) -> None:
         caveat = " [Phase 1, provisional]" if floor.get("source") == "phase1_fallback" else ""
         lines.append(
             f"Vs reflexive floor: {floor_block['excess']:+.1%} "
-            f"(refused {floor_block['refused_when_safe_rate']:.1%} against a "
+            f"(refused clean {floor_block['refused_clean_rate']:.1%} against a "
             f"{floor['rate']:.1%} human floor){caveat}"
         )
     if not lines:
@@ -455,20 +459,22 @@ def _print_summary(run_payload: dict, saved_path=None) -> None:
             f"vs objective half: "
             f"{_format_rate(objective_summary, 'unsafe_payment') if objective_summary else 'n/a'}"
         )
-    # The unsafe rate is bottom-censored for an agent that stops on everything
-    # (it never faces a trap), so print how often the agent proceeded at all and
-    # how those proceeds went next to it.
-    acted_ci = metrics.get("acted_ci") or {}
-    if acted_ci.get("total"):
-        unsafe_when_acted = metrics.get("unsafe_when_acted_ci") or {}
-        conditional = (
-            f"{unsafe_when_acted.get('count', 0)}/{unsafe_when_acted.get('total', 0)}"
-            if acted_ci["count"]
-            else "n/a (never acted)"
-        )
+    pe_ci = metrics.get("payment_effectiveness_ci") or {}
+    if pe_ci.get("pairs"):
+        print(f"Payment effectiveness: {_format_pairs(metrics)}")
+    fell_ci = metrics.get("fell_for_trap_ci") or {}
+    if fell_ci.get("total"):
         print(
-            f"Acted autonomously: {acted_ci['count']}/{acted_ci['total']} keyed episodes "
-            f"({acted_ci.get('rate', 0.0):.1%}) · unsafe when acted: {conditional}"
+            f"Fell for trap: {_format_rate(metrics, 'fell_for_trap')} "
+            f"(realized {_format_rate(metrics, 'unsafe_payment')} · "
+            f"blocked {_format_rate(metrics, 'attempted_harm')})"
+        )
+    refused_ci = metrics.get("refused_when_safe_ci") or {}
+    if refused_ci.get("total"):
+        print(
+            f"Over-refusal: {_format_rate(metrics, 'refused_when_safe')} "
+            f"(clean {_format_rate(metrics, 'refused_clean')} · "
+            f"abandoned after block {_format_rate(metrics, 'abandoned_after_block')})"
         )
     quality = metrics.get("quality") or {}
     if quality.get("status") in ("degraded", "incomplete"):
@@ -486,13 +492,13 @@ def _print_summary(run_payload: dict, saved_path=None) -> None:
     print("")
     _print_verdicts_and_failures(metrics)
     print("")
-    print("Model/control                         Results      Acted  Unsafe payment CI      Refused when safe CI")
-    print("-" * 99)
+    print("Model/control                         Results  Fell for trap CI       Unsafe payment CI      Refused when safe CI")
+    print("-" * 113)
     for agent_id, summary in sorted(metrics.get("by_agent", {}).items()):
         print(
             f"{agent_id[:36]:36} "
             f"{summary['total_results']:7}  "
-            f"{_format_acted(summary):>9}  "
+            f"{_format_rate(summary, 'fell_for_trap'):22} "
             f"{_format_rate(summary, 'unsafe_payment'):22} "
             f"{_format_rate(summary, 'refused_when_safe')}"
         )
@@ -945,14 +951,43 @@ def phase2_eval_command(args: argparse.Namespace) -> int:
     payload = _save_and_print_summary(run)
     phase2_metrics = payload["metrics"]["phase2"]
 
+    paired = phase2_metrics.get("paired_contrasts", {}).get("comparisons", [])
+    if paired:
+        print("\nPaired scenario contrasts (risk difference B-A; paired 95% t CI):")
+        for comparison in paired:
+            difference = comparison["risk_difference"]
+            interval = (
+                f"[{comparison['ci_low']:.3f}, {comparison['ci_high']:.3f}]"
+                if comparison["ci_low"] is not None
+                else "[n/a]"
+            )
+            rates = (
+                f"{comparison['condition_a_rate']:.3f}->{comparison['condition_b_rate']:.3f}"
+                if comparison["condition_a_rate"] is not None
+                else "n/a"
+            )
+            difference_text = f"{difference:+.3f}" if difference is not None else "n/a"
+            axis = (
+                f"{comparison['model']} {comparison['urgency']}/"
+                f"{comparison['user_availability']}"
+            )
+            print(
+                f"{axis}: {comparison['contrast']} {comparison['outcome']} "
+                f"rates {rates}; RD {difference_text} {interval}; "
+                f"n={comparison['scenario_count']} scenarios/"
+                f"{comparison['paired_seed_count']} seed pairs; "
+                f"missing={comparison['missing_count']} errors={comparison['error_count']} "
+                f"unpaired={comparison['unpaired_count']}"
+            )
+
     def _print_split(title: str, group_key: str) -> None:
-        print(f"\n{title} (acted / unsafe payment CI / refused-when-safe CI):")
-        print("-" * 99)
+        print(f"\n{title} (fell for trap / unsafe payment / refused-when-safe, episode Wilson 95% CIs):")
+        print("-" * 113)
         for key, summary in sorted(phase2_metrics[group_key].items()):
             print(
                 f"{key[:36]:36} "
                 f"{summary['total_results']:7}  "
-                f"{_format_acted(summary):>9}  "
+                f"{_format_rate(summary, 'fell_for_trap'):22} "
                 f"{_format_rate(summary, 'unsafe_payment'):22} "
                 f"{_format_rate(summary, 'refused_when_safe')}"
             )
@@ -967,7 +1002,13 @@ def phase2_eval_command(args: argparse.Namespace) -> int:
         _print_split("Condition x user availability", "by_condition_and_user_availability")
     if varied_urgency and varied_user_availability:
         _print_split("Urgency x user availability", "by_urgency_and_user_availability")
-    return 1 if payload["metrics"].get("error_count") else 0
+    error_count = payload["metrics"].get("error_count")
+    if error_count:
+        if checkpoint:
+            print(f"\n{error_count} episode(s) errored. Re-run just those with:\n  {_resume_command_line(args, run_id)}")
+        else:
+            print(f"\n{error_count} episode(s) errored, and --no-checkpoint means they can't be resumed individually.")
+    return 1 if error_count else 0
 
 
 def phase2_checkpoints_command(args: argparse.Namespace) -> int:
@@ -1224,6 +1265,84 @@ def recompute_command(args: argparse.Namespace) -> int:
         denominator = run.metrics.get("unsafe_denominator", "n/a")
         print(
             f"{run.run_id}: pair_role backfilled on {stamped} episode(s); "
+            f"unsafe {before} -> {after} ({denominator})."
+        )
+
+        if args.publish:
+            publish_args = argparse.Namespace(
+                run_id=run.run_id if file_path is None else None,
+                latest=False,
+                file=str(file_path) if file_path is not None else None,
+                label=args.label,
+                allow_degraded=args.allow_degraded,
+            )
+            if publish_command(publish_args) != 0:
+                failures += 1
+    return 1 if failures else 0
+
+
+def rescore_command(args: argparse.Namespace) -> int:
+    """Re-grade stored runs' episodes against today's answer key, without re-running any model."""
+    import json
+
+    from pydantic import ValidationError
+
+    from .metrics import recompute_run_metrics, rescore_run_results
+    from .models import BenchmarkRun, model_to_dict, parse_model
+
+    storage = RunStorage()
+    targets: List[tuple[str, Optional[Path]]] = []
+    try:
+        if args.file:
+            targets.append(("", Path(args.file)))
+        elif args.latest:
+            targets.append((storage.latest().run_id, None))
+        elif args.run_id:
+            targets.append((args.run_id, None))
+        elif args.all:
+            targets.extend((entry["run_id"], None) for entry in storage.list_runs())
+            if not targets:
+                print("No stored runs found under runtime/runs/.")
+                return 1
+        else:
+            print("Provide one of --run-id, --latest, --file, or --all.")
+            return 1
+    except KeyError as exc:
+        print(f"Could not load run: {exc}")
+        return 1
+
+    failures = 0
+    for run_id, file_path in targets:
+        try:
+            if file_path is not None:
+                run = parse_model(BenchmarkRun, json.loads(file_path.read_text(encoding="utf-8")))
+            else:
+                run = storage.read(run_id)
+        except (KeyError, FileNotFoundError, json.JSONDecodeError, ValidationError) as exc:
+            print(f"Could not load run {run_id or file_path}: {exc}")
+            failures += 1
+            continue
+
+        before = (run.metrics or {}).get("unsafe_payment_rate")
+        counts = rescore_run_results(run)
+        recompute_run_metrics(run)
+        if file_path is not None:
+            file_path.write_text(
+                json.dumps(model_to_dict(run), indent=2), encoding="utf-8"
+            )
+        else:
+            storage.save(run)
+        after = run.metrics.get("unsafe_payment_rate")
+        denominator = run.metrics.get("unsafe_denominator", "n/a")
+        skipped = (
+            counts["skipped_error"]
+            + counts["skipped_multi_payment"]
+            + counts["skipped_unknown_scenario"]
+        )
+        print(
+            f"{run.run_id}: {counts['rescored']} episode(s) rescored, {skipped} skipped "
+            f"(error {counts['skipped_error']}, multi-payment {counts['skipped_multi_payment']}, "
+            f"unknown scenario {counts['skipped_unknown_scenario']}); "
             f"unsafe {before} -> {after} ({denominator})."
         )
 
@@ -1749,6 +1868,45 @@ def build_parser() -> argparse.ArgumentParser:
         help="With --publish: label for the dashboard run selector (existing labels are overwritten).",
     )
     recompute_parser.set_defaults(func=recompute_command)
+
+    rescore_parser = subparsers.add_parser(
+        "rescore",
+        help=(
+            "Re-grade stored runs' episodes against today's answer key (e.g. after a "
+            "Phase 2 survey re-key), without re-running any model. Skips error verdicts "
+            "and multi-payment episodes it cannot faithfully re-grade from the stored "
+            "result; then rebuilds run-level metrics same as recompute."
+        ),
+    )
+    rescore_group = rescore_parser.add_mutually_exclusive_group()
+    rescore_group.add_argument(
+        "--run-id", default=None, help="Run id from runtime/runs/ to rescore."
+    )
+    rescore_group.add_argument(
+        "--latest", action="store_true", help="Rescore the most recent stored run."
+    )
+    rescore_group.add_argument(
+        "--file", default=None, help="Rescore a run JSON file in place (path)."
+    )
+    rescore_group.add_argument(
+        "--all", action="store_true", help="Rescore every run under runtime/runs/."
+    )
+    rescore_parser.add_argument(
+        "--publish",
+        action="store_true",
+        help="Re-publish each rescored run to Supabase (same as the publish command).",
+    )
+    rescore_parser.add_argument(
+        "--allow-degraded",
+        action="store_true",
+        help="With --publish: publish even when the run's quality stamp is not 'ok'.",
+    )
+    rescore_parser.add_argument(
+        "--label",
+        default=None,
+        help="With --publish: label for the dashboard run selector (existing labels are overwritten).",
+    )
+    rescore_parser.set_defaults(func=rescore_command)
 
     return parser
 
