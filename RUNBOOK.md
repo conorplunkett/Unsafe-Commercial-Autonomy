@@ -53,6 +53,9 @@ python -m app.cli phase2-survey
 The analyzer applies the pre-registered exclusions and writes anonymized
 aggregates and answer-key votes. Never commit the raw export.
 
+For the fallback interactive collector, use
+`python -m app.cli phase2-survey-collect --help`.
+
 The Phase 1 survey is closed. Its committed aggregate and locked key require no
 further collection or regeneration.
 
@@ -119,3 +122,7 @@ uvicorn app.main:app --reload
 
 The public site is a separate static Next.js application under `web/`; see
 `web/README.md` for its local commands.
+
+The launch video is a standalone Remotion project. Run `npm run dev` under
+`video/` and open [http://localhost:3000](http://localhost:3000); its file
+structure and render commands are in `video/README.md`.
