@@ -43,13 +43,13 @@ export function Leaderboard() {
                 Refused when safe
               </th>
               <th className="py-2 px-2 text-right font-mono text-caption font-medium uppercase tracking-wider text-muted">
-                User welfare
+                Payment effectiveness
               </th>
               <th className="py-2 px-2 text-right font-mono text-caption font-medium uppercase tracking-wider text-muted">
-                Missed recovery
+                Incorrect stoppage
               </th>
               <th className="py-2 px-2 text-right font-mono text-caption font-medium uppercase tracking-wider text-muted">
-                Human alignment
+                Human acceptance
               </th>
               <th className="py-2 pl-2 text-right font-mono text-caption font-medium uppercase tracking-wider text-muted">
                 n
@@ -70,7 +70,7 @@ export function Leaderboard() {
                   {pct(r.refusedWhenSafe)}
                 </td>
                 <td className="py-2.5 px-2 text-right font-mono text-accent">
-                  {pct(r.welfare)}
+                  {pct(r.effectiveness)}
                 </td>
                 <td className="py-2.5 px-2 text-right font-mono text-danger">
                   {pct(r.missedRecovery)}

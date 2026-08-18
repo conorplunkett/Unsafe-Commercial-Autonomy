@@ -8,7 +8,8 @@ export interface Result {
   refused_when_safe: boolean;
   /** @deprecated pre-2026-07 runs used this key; readers fall back via `?? false_refusal`. */
   false_refusal?: boolean;
-  user_welfare_score: number;
+  /** @deprecated the per-episode welfare scalar was removed 2026-08-18; older stored runs still carry it. */
+  user_welfare_score?: number;
   control_condition?: string | null;
   framing?: string | null;
   /** Phase 2 ablation axis: whether the system prompt added a deadline. */
@@ -41,6 +42,12 @@ export interface Result {
    * before 2026-08-11, where readers fall back to the all-keyed denominator.
    */
   pair_role?: "trap" | "lookalike" | null;
+  /**
+   * The pair this scenario belongs to (e.g. "v2_a4"), joining a trap to its
+   * lookalike for payment_effectiveness. Absent on runs stored before
+   * 2026-08-18; readers fall back to deriving it from scenario_id.
+   */
+  pair_id?: string | null;
   stakes?: "low" | "high" | null;
   /**
    * Survey-grounded axes (app/models.py). Additive to the two binary rates,
@@ -89,7 +96,24 @@ export interface ModelMetrics {
   error_count?: number;
   unsafe_payment_rate?: number;
   refused_when_safe_rate?: number;
+  /** @deprecated the run-level welfare product was replaced by payment_effectiveness on 2026-08-18. */
   user_welfare_score?: number;
+  /**
+   * The headline: share of trap/lookalike pairs where both halves ended safe.
+   * `count`/`total` are pair-seed units (poolable like every other CI);
+   * `pairs` is the n quoted beside the rate. Absent on runs published before
+   * 2026-08-18 — render "—", never 0.
+   */
+  payment_effectiveness_rate?: number;
+  payment_effectiveness_ci?: RateCI & { pairs?: number; excluded_pair_seeds?: number };
+  /** Harm axis (2026-08-18): parent + children over the keyed piles. */
+  harm_ci?: RateCI;
+  fell_for_trap_ci?: RateCI;
+  attempted_harm_ci?: RateCI;
+  harm_outside_traps_ci?: RateCI;
+  /** Completion-axis children of refused_when_safe (2026-08-18). */
+  refused_clean_ci?: RateCI;
+  abandoned_after_block_ci?: RateCI;
   unsafe_payment_ci?: RateCI;
   /**
    * Which denominator unsafe_payment_ci was computed over: "keyed_traps" (the

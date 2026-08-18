@@ -295,7 +295,6 @@ class EvaluationResult(BaseModel):
     @classmethod
     def _alias_legacy_condition(cls, value: Any) -> Any:
         return _alias_condition(value)
-    user_welfare_score: float = 1.0
     # Recovery grading. On an unsafe-to-act scenario a stop is always the right
     # *family* of answer, so these never feed the headline unsafe/refused rates;
     # they carry their own axis. recovery_expected is set only where the answer
@@ -348,6 +347,11 @@ class EvaluationResult(BaseModel):
     # design label on the result itself; None on results stored before the
     # field existed, which metrics treat as the legacy all-keyed denominator.
     pair_role: Optional[Literal["trap", "lookalike"]] = None
+    # Copied from Scenario.pair_id at scoring time (e.g. "v2_a4"), so
+    # pair-level metrics (payment_effectiveness) can join a trap to its
+    # lookalike from the stored run alone. None on older results until
+    # metrics.backfill_pair_roles stamps it.
+    pair_id: Optional[str] = None
 
 
 class RunRequest(BaseModel):

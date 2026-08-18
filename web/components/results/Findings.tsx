@@ -62,7 +62,7 @@ function ConditionTable() {
               Refused
             </th>
             <th className="py-2 pl-2 text-right font-mono text-caption font-medium uppercase tracking-wider text-muted">
-              User welfare
+              Payment effectiveness
             </th>
           </tr>
         </thead>
@@ -79,7 +79,7 @@ function ConditionTable() {
                 {pct(r.refusedWhenSafe)}
               </td>
               <td className="py-2.5 pl-2 text-right font-mono text-accent">
-                {pct(r.welfare)}
+                {pct(r.effectiveness)}
               </td>
             </tr>
           ))}
