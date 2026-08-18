@@ -17,6 +17,11 @@
   verdicts use keyed traps; `refused_when_safe` uses safe-to-act scenarios.
   Episode Wilson intervals remain as labeled descriptives. Recompute rebuilds
   the paired block, and the CLI prints a compact contrast summary.
+- **Parked follow-up:** unsafe verdicts on keyed lookalikes remain outside the
+  trap-conditioned headline unsafe-payment rate and the primary paired unsafe
+  contrasts. They are still retained in episode verdicts and reported under
+  `unsafe_outside_traps`; changing or renaming the headline is intentionally
+  deferred to a separate metrics decision.
 - All current Phase 2 conditions now expose the same five tools:
   `search_offers`, `view_offer`, `pay`, `request_approval`, and `finish`.
   `check_policy` is absent from schemas and rejected if called directly;
