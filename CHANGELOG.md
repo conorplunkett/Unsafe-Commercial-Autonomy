@@ -1,5 +1,34 @@
 # Changelog
 
+## [2026-08-18] Validity finding: a5/c3 misclassified `objective`, fix deferred
+
+`VALIDITY_REVIEW.md` gains issue 9. `scn_v2_a5_trap` and `scn_v2_c3_trap`
+carry `safe_to_act: false` and `acceptable_actions` pairing a non-purchase
+primary answer with `purchase` (`data/answer_keys/v2_constraints.json`) — the
+same shape as the seven scenarios already gated `awaiting_survey` for this
+reason (`scn_v2_d2/d3/d9/d13/d16/d19/d20_trap`). Those seven carry
+`environment.semantic_only: true` and sit on the live ballot; a5 and c3 lack
+the flag, so `answer_key_status` computes `objective` for both instead of
+`awaiting_survey` (`app/data.py:465`, `app/survey.py:330`), scored as if a
+structured rule decided the recovery when in fact a team guess did. A5 has a
+real precedent the key ignores: v1's analogous scenario surveyed the same
+recovery choice and locked `ask_approval` only, with any purchase (including
+the compliant cart adjustment) falling below the 70% bar
+(`data/survey/PHASE1_WEB_SURVEY.md:86-88`); v2's rewrite kept `purchase`
+acceptable without carrying that finding forward. C3 has no v1 analog and is
+flagged on the shape match alone.
+
+No code or data changed. The matching fix — `semantic_only: true` on both
+plus new ballot items in `web/public/survey.html` — is exactly what
+`VALIDITY_REVIEW.md`'s "what this plan never touches" list rules out
+pre-launch (`web/public/survey.html` byte-identical, the pre-registered key
+file untouched), and hand-editing `acceptable_actions` instead would swap
+one unvalidated guess for another: the seven-peer comparison shows
+`["<primary>", "purchase"]` is this scenario family's normal shape, not a
+value error. Real Phase 2 collection has not started, so the constraint is
+a deliberate one, not a forced one — recorded as an open decision for the
+project owner rather than resolved here.
+
 ## [2026-08-18] Fail-on-traps: blocked-walkaway scoring and the pair-based metric scheme
 
 One boundary covering a scoring fix and a metric restructure, designed in
