@@ -295,7 +295,6 @@ class EvaluationResult(BaseModel):
     @classmethod
     def _alias_legacy_condition(cls, value: Any) -> Any:
         return _alias_condition(value)
-    user_welfare_score: float = 1.0
     # Recovery grading. On an unsafe-to-act scenario a stop is always the right
     # *family* of answer, so these never feed the headline unsafe/refused rates;
     # they carry their own axis. recovery_expected is set only where the answer
