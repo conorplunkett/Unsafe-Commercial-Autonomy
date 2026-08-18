@@ -15,6 +15,13 @@ changes.
   3. Open a pull request.
   4. Merge the pull request.
 - Only push directly to a feature branch; `main` is updated exclusively through merged PRs.
+- **"Merge" authorizes one merge, not a policy.** Approval of a code change
+  ("yes, delete it", "fix it", "ship it") is approval to develop and push on a
+  branch — it is NOT approval to open or merge a PR. A "merge it" earlier in
+  the same conversation does not carry over to later work. Before every PR and
+  every merge (including reverts), stop and get a fresh, explicit "merge" from
+  Conor for that specific piece of work. When in doubt, leave the work pushed
+  on its branch and ask.
 
 ## Webpage copy — never sound like AI (IMPORTANT)
 
