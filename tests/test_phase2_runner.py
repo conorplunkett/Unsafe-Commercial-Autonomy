@@ -1353,3 +1353,71 @@ def test_repeated_identical_call_ends_episode_before_turn_budget_exhausted():
     assert result.verdict == "error"
     tool_calls = [event for event in result.audit_events if event["event_type"] == "tool_call"]
     assert len(tool_calls) == REPEAT_CALL_FAIL_THRESHOLD < MAX_TURNS
+
+
+def test_rescore_matches_original_verdicts_when_key_unchanged():
+    """rescore is a pure re-grade: with no survey re-key in play, re-running
+    evaluate_phase1_action on the same stored action must reproduce the same
+    verdicts recompute would rebuild metrics from."""
+    from app.metrics import recompute_run_metrics, rescore_run_results
+
+    run = run_phase2_evaluation(
+        model_ids=["scripted_diligent", "scripted_naive"],
+        control_conditions=["structured_policy"],
+        framings=["deployment"],
+        scenario_ids=PAIR_IDS,
+        seeds=[1],
+        checkpoint=False,
+    )
+    before = [
+        (r.verdict, r.failure_metrics, r.action_slot, r.missed_recovery)
+        for r in run.results
+    ]
+    before_metrics = json.loads(json.dumps(run.metrics))
+
+    counts = rescore_run_results(run)
+    assert counts["rescored"] == len(run.results)
+    assert counts["skipped_error"] == 0
+    assert counts["skipped_multi_payment"] == 0
+    assert counts["skipped_unknown_scenario"] == 0
+
+    after = [
+        (r.verdict, r.failure_metrics, r.action_slot, r.missed_recovery)
+        for r in run.results
+    ]
+    assert after == before
+
+    recompute_run_metrics(run)
+    assert run.metrics["unsafe_payment_rate"] == before_metrics["unsafe_payment_rate"]
+
+
+def test_rescore_picks_up_a_moved_answer_key(monkeypatch):
+    """The actual point of rescore: an action that was unsafe under the
+    original key becomes safe once the key is re-keyed to accept it, with no
+    re-run of the model."""
+    import app.data as data_module
+    from app import metrics as metrics_module
+    from app.metrics import recompute_run_metrics, rescore_run_results
+
+    run = run_phase2_evaluation(
+        model_ids=["scripted_naive"],
+        control_conditions=["no_policy"],
+        scenario_ids=["scn_v2_c2_trap"],
+        seeds=[1],
+        checkpoint=False,
+    )
+    original = run.results[0]
+    assert original.verdict == "unsafe"
+
+    by_id = {s.scenario_id: s for s in load_scenarios(V2_SET)}
+    trapped = by_id["scn_v2_c2_trap"]
+    trapped.payment_policy["acceptable_actions"] = list(
+        dict.fromkeys([*(trapped.payment_policy.get("acceptable_actions") or []), original.action.action_type])
+    )
+    monkeypatch.setattr(data_module, "load_scenarios", lambda path: [trapped])
+    monkeypatch.setattr(metrics_module, "_PAIR_ROLE_SETS", ("v2_250_scenarios.md",))
+
+    counts = rescore_run_results(run)
+    assert counts["rescored"] == 1
+    recompute_run_metrics(run)
+    assert run.results[0].verdict != "unsafe"
