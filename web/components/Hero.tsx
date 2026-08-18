@@ -14,29 +14,30 @@ const LEDE: (string | string[])[] = [
   "Together, they map the agentic payment frontier: agents that spend on their own when it's safe, and stop to ask when it isn't.",
 ];
 
-// Clickable thumbnail of the bundled paper PDF. The embedded preview renders the
-// first page; clicking opens the full PDF in a new tab.
+// Scrollable preview of the bundled paper PDF, with a separate control to open
+// the full PDF in a new tab (the embedded preview itself handles its own scroll).
 function PaperPreview() {
   return (
     <figure className="lg:sticky lg:top-24">
+      <div className="overflow-hidden rounded-lg border border-border bg-paper shadow-[0_4px_12px_rgba(0,0,0,0.05)]">
+        <object
+          data={`${CONFIG.paperPdf}#toolbar=0&navpanes=0`}
+          type="application/pdf"
+          aria-label="PayBench paper preview"
+          className="h-[32rem] w-full overflow-auto"
+        >
+          <div className="flex h-[32rem] w-full items-center justify-center bg-ink/5 p-6 text-center font-mono text-caption text-muted">
+            PDF preview unavailable. Click below to open the paper.
+          </div>
+        </object>
+      </div>
       <a
         href={CONFIG.paperPdf}
         target="_blank"
         rel="noreferrer"
-        aria-label="Open the PayBench paper (PDF)"
-        className="group block overflow-hidden rounded-lg border border-border bg-paper shadow-[0_4px_12px_rgba(0,0,0,0.05)] transition-shadow hover:shadow-[0_8px_20px_rgba(0,0,0,0.08)]"
+        className="tap-link mt-2 inline-block font-mono text-small text-muted underline decoration-border underline-offset-4 hover:text-ink"
       >
-        <object
-          data={`${CONFIG.paperPdf}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
-          type="application/pdf"
-          aria-hidden="true"
-          tabIndex={-1}
-          className="pointer-events-none aspect-[3/4] w-full"
-        >
-          <div className="flex aspect-[3/4] w-full items-center justify-center bg-ink/5 p-6 text-center font-mono text-caption text-muted">
-            PDF preview unavailable. Click to open the paper.
-          </div>
-        </object>
+        Open full PDF in new tab
       </a>
     </figure>
   );

@@ -203,13 +203,18 @@ async def list_control_conditions():
     return CONTROL_CONDITION_PROFILES
 
 
+# Endpoints below that hit the filesystem (scenario sets, stored runs) or run
+# a benchmark are plain `def` on purpose: FastAPI moves sync endpoints to its
+# threadpool, so a multi-MB run parse or a long benchmark can't camp on the
+# event loop and stall everything else — most visibly the Lab's 800ms
+# /api/jobs progress polls.
 @app.get("/api/scenarios")
-async def list_scenarios():
+def list_scenarios():
     return [model_to_dict(scenario) for scenario in load_scenarios()]
 
 
 @app.get("/api/phase2/scenarios")
-async def list_phase2_scenarios():
+def list_phase2_scenarios():
     # The v2 250-scenario set backs Phase 2 runs. Imported lazily so the Phase 1
     # API path never pulls in Phase 2 modules at startup.
     from .phase2 import PHASE2_SCENARIO_SET
@@ -218,7 +223,7 @@ async def list_phase2_scenarios():
 
 
 @app.get("/api/scenarios/{scenario_id}")
-async def read_scenario(scenario_id: str):
+def read_scenario(scenario_id: str):
     try:
         return model_to_dict(get_scenario(scenario_id))
     except KeyError as exc:
@@ -226,7 +231,7 @@ async def read_scenario(scenario_id: str):
 
 
 @app.post("/api/runs")
-async def create_run(request: RunRequest):
+def create_run(request: RunRequest):
     try:
         run = run_benchmark(
             agent_ids=request.agent_ids,
@@ -309,20 +314,33 @@ async def read_job(job_id: str):
 
 
 @app.get("/api/runs")
-async def list_runs():
+def list_runs():
     return storage.list_runs()
 
 
 @app.get("/api/runs/{run_id}")
-async def read_run(run_id: str):
+def read_run(run_id: str, include: Optional[str] = Query(default=None)):
+    # Light by default: the Lab pulls every stored run on each refresh, and
+    # the dashboard reads transcripts only in the one-episode detail panel,
+    # served on demand by /api/runs/{run_id}/results/{episode_index} below.
     try:
-        return model_to_dict(storage.read(run_id))
+        if include == "full":
+            return storage.read_full_dict(run_id)
+        return storage.read_light(run_id)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
+@app.get("/api/runs/{run_id}/results/{episode_index}")
+def read_run_episode(run_id: str, episode_index: int):
+    try:
+        return storage.read_episode(run_id, episode_index)
+    except (KeyError, IndexError) as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
 @app.delete("/api/runs/{run_id}")
-async def delete_run(run_id: str):
+def delete_run(run_id: str):
     # Deletes the stored run file. Local-only console action — the Lab uses it
     # to drop dry-run or mistaken runs from the dashboard. Published runs live
     # in Supabase and are unaffected.
@@ -334,7 +352,7 @@ async def delete_run(run_id: str):
 
 
 @app.get("/api/runs/{run_id}/events")
-async def read_run_events(run_id: str):
+def read_run_events(run_id: str):
     try:
         return storage.read(run_id).events
     except KeyError as exc:
@@ -342,7 +360,7 @@ async def read_run_events(run_id: str):
 
 
 @app.get("/api/metrics")
-async def read_metrics(run_id: Optional[str] = Query(default=None)):
+def read_metrics(run_id: Optional[str] = Query(default=None)):
     try:
         run = storage.read(run_id) if run_id else storage.latest()
         return run.metrics

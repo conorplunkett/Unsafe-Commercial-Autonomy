@@ -32,9 +32,19 @@
   .scenario-list li { margin-bottom: 6px; }
   .illo { margin: 0 0 18px; }
   .illo svg { width: 100%; height: auto; display: block; }
-  .progress { height: 6px; background: var(--border); border-radius: 3px; margin-bottom: 20px; overflow: hidden; }
-  .progress > div { height: 100%; background: var(--accent); border-radius: 3px; width: 0%; transition: width 0.25s ease; }
-  .step-label { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+  /* Step labels ("Situation X of 50", "Part X of Y") are intentionally never
+     shown to respondents — mid-survey position/remaining count could bias
+     pacing or answers near the end. Kept in the DOM (not removed) because
+     scripts/phase2_walkthrough.js and phase2_mobile_pass.js key off
+     .step-label's text to drive and validate the walkthrough.
+     The progress bar itself carries no numbers or text, only a fill colour,
+     so it's shown as a subtle pacing cue without exposing position/remaining
+     count. It's moved next to whichever .step-label is current (see
+     syncProgressBar) so it always sits just under where that hidden label
+     would be. */
+  .progress { height: 3px; background: var(--border); border-radius: 2px; margin-bottom: 20px; overflow: hidden; }
+  .progress > div { height: 100%; background: var(--accent); opacity: 0.4; border-radius: 2px; width: 0%; transition: width 0.4s ease; }
+  .step-label { display: none; font-size: 13px; color: var(--muted); margin-bottom: 8px; }
   .stem { font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 16px; }
   .stem em { font-style: normal; text-decoration: underline; text-underline-offset: 2px; }
   .stem .hint { font-weight: 400; font-size: 13px; color: var(--muted); }
@@ -96,7 +106,7 @@
   <div class="brand"><b>PayBench</b> &middot; Phase 2 preference survey</div>
   <div id="testbanner" style="display:none;background:#fdf3e2;border:1px solid #ead6a8;color:#8a6116;border-radius:8px;padding:10px 12px;font-size:13px;font-weight:700;margin-bottom:16px">&#129514; Test mode &mdash; your answers are not recorded.</div>
   <div id="testjump" style="display:none"></div>
-  <div class="progress"><div id="bar"></div></div>
+  <div class="progress" id="progressWrap" style="display:none"><div id="bar"></div></div>
   <div class="card" id="card"></div>
 </div>
 
@@ -1178,6 +1188,7 @@ const state = {
 
 const card = document.getElementById("card");
 const bar = document.getElementById("bar");
+const progressWrap = document.getElementById("progressWrap");
 
 function setProgress() {
   bar.style.width = Math.min(100, Math.round((state.step / (STEPS.length - 1)) * 100)) + "%";
@@ -1196,7 +1207,7 @@ function renderIntro() {
       <li>a budget to stay within</li>
       <li>your name, shipping address, payment card, and the usual details a normal checkout needs</li>
     </ul>
-    <p>You&rsquo;ll see <b>${QUESTION_COUNT} short situations</b> in five parts, each at a moment where the agent has to make a call.</p>
+    <p>You&rsquo;ll see <b>${QUESTION_COUNT} short questions</b>, each at a moment where the agent has to make a call.</p>
     <p>When it stops to check with you instead of acting, the task waits until you next look at your phone or laptop.</p>
     <p>Answer as yourself, the person who set the rules: <b>what would you have wanted the agent to do?</b></p>
     <ul class="intro-list">
@@ -1461,6 +1472,20 @@ function escapeHtml(s) {
 // themselves directly (e.g. on every option click) without going through render() —
 // so each render*() function re-appends the label itself, right after it sets
 // card.innerHTML, rather than relying on a single append in the render() wrapper.
+// Moves the (already-existing) progress bar node to sit right after whichever
+// .step-label the current view rendered, so it always tracks the hidden
+// number indicator's position without ever showing a number itself. Hidden
+// entirely on views with no step-label (intro, done).
+function syncProgressBar() {
+  const label = card.querySelector(".step-label");
+  if (label) {
+    label.insertAdjacentElement("afterend", progressWrap);
+    progressWrap.style.display = "block";
+  } else {
+    progressWrap.style.display = "none";
+  }
+}
+
 function syncDebugLabel() {
   const dbg = document.createElement("div");
   dbg.id = "debugScenario";
@@ -1524,6 +1549,7 @@ function render() {
   else if (s.type === "question") renderQuestion(s);
   else if (s.type === "demographics") renderDemographics();
   else renderDone();
+  syncProgressBar();
   if (TEST_MODE) updateTestJump();
 }
 

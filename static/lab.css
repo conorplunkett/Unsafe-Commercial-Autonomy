@@ -286,6 +286,25 @@
   50% { opacity: 0.55; }
 }
 
+/* ---- Loading spinner ---- */
+/* Small inline ring for "data is in flight" states (Runs/Results/By-model
+   while refreshData() has a fetch outstanding) — distinct from the
+   run-in-progress pulse above, which marks an actual benchmark running. */
+.spinner {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 999px;
+  vertical-align: -2px;
+  animation: spinner-rotate 0.7s linear infinite;
+}
+
+@keyframes spinner-rotate {
+  to { transform: rotate(360deg); }
+}
+
 /* ---- Keys panel ---- */
 
 .keys-band {
@@ -527,6 +546,20 @@
   margin-bottom: 8px;
 }
 
+/* 11 columns split evenly (the table-layout:fixed default, styles.css)
+   starves Conditions, forcing its pills to wrap more than they need to. Give
+   it real room and Phase a little more (its checklist can run two lines);
+   the remaining columns split what's left. */
+.lab-runs table th:nth-child(3),
+.lab-runs table td:nth-child(3) {
+  width: 13%;
+}
+
+.lab-runs table th:nth-child(4),
+.lab-runs table td:nth-child(4) {
+  width: 22%;
+}
+
 @media (max-width: 640px) {
   .runner-grid,
   .keys-fields,
@@ -573,9 +606,11 @@
   font-weight: 700;
 }
 
-/* Filter bar above the Results table: slice by run, verdict, and control
-   condition. Selects reuse .run-select's compact sizing; the reset chip only
-   appears once a filter is active. */
+/* Filter bar above the Results table: slice by run, verdict, control
+   condition, and (Phase 2) framing/urgency/user availability. Each field is a
+   multi-select chip row — the same toggle-button pattern as the Run form's
+   own axis chips above — so more than one value can be selected per field;
+   the reset chip only appears once a filter is active. */
 .results-filter-bar {
   display: flex;
   flex-wrap: wrap;
@@ -590,7 +625,7 @@
   display: block;
 }
 
-.results-filter-bar .run-select {
+.results-filter-bar .chip-row {
   margin-top: 4px;
 }
 
@@ -721,18 +756,159 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ---- Episode audit trail (Transcript and Scoring blocks) ---- */
+
+.audit-trail {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: audit-step;
+}
+
+.audit-step {
+  counter-increment: audit-step;
+  position: relative;
+  display: grid;
+  gap: 4px;
+  padding: 8px 10px 8px 34px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 12px;
+}
+
+.audit-step::before {
+  content: counter(audit-step);
+  position: absolute;
+  top: 9px;
+  left: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Left edge carries the outcome: a payment went through (info blue) or a
+   layer/rule pushed back (warn). Verdict-level judgment stays on the pill. */
+.audit-step--warn {
+  border-left: 3px solid var(--warn);
+}
+
+.audit-step--paid {
+  border-left: 3px solid var(--info);
+}
+
+.audit-step-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 10px;
+}
+
+.audit-call {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-weight: 600;
+}
+
+.audit-outcome {
+  color: var(--muted);
+}
+
+.audit-note,
+.audit-muted {
+  margin: 0;
+  color: var(--muted);
+}
+
+.audit-note {
+  font-size: 11px;
+}
+
+/* Agent-written reason/summary text, set off from the structured rows. */
+.detail-quote {
+  margin: 0;
+  padding: 6px 10px;
+  border-left: 3px solid var(--rule);
+  border-radius: 0 6px 6px 0;
+  background: var(--paper);
+  font-size: 12px;
+  font-style: italic;
+}
+
+/* ---- Sandbox offers ---- */
+
+.offer-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+
+.offer-list li {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.offer-sub {
+  color: var(--muted);
+}
+
+/* ---- Raw JSON toggle ---- */
+
+.detail-raw > summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.detail-raw > summary::-webkit-details-marker {
+  display: none;
+}
+
+/* The summary reuses the block's h3 styling plus its own caret so the closed
+   state reads like the other section headings. */
+.detail-raw > summary h3 {
+  display: inline;
+}
+
+.detail-raw > summary::before {
+  content: "▸ ";
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.detail-raw[open] > summary::before {
+  content: "▾ ";
+}
+
+.detail-raw h4 {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
 @media (max-width: 1120px) {
   .axes-chart-grid {
     grid-template-columns: 1fr;
   }
 }
 
-/* ---- Failure-modes breakdown (mode × control condition) ---- */
+/* ---- Collapsible <details> panels (failure modes, cost ladder, pricing, combine runs) ---- */
 
-/* Collapsible panel: the summary doubles as the panel heading (a caret plus
-   the same layout as .panel-heading), so it reads like the other section
-   headers but toggles the chart open/closed. Starts collapsed. */
-.failure-panel > summary {
+/* Shared by every <details class="taxonomy-panel ..."> panel: the summary
+   doubles as the panel heading (a caret plus the same layout as
+   .panel-heading), so each reads like the other section headers but toggles
+   its body open/closed. Scoped to `details.taxonomy-panel > summary` rather
+   than listing each panel's class so a new collapsible panel gets identical
+   open/close chrome for free instead of one more selector to remember to
+   extend. Starts collapsed. */
+details.taxonomy-panel > summary {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -744,28 +920,30 @@
   border-bottom: 1px solid transparent;
 }
 
-.failure-panel[open] > summary {
+details.taxonomy-panel[open] > summary {
   border-bottom-color: var(--border);
 }
 
-.failure-panel > summary::-webkit-details-marker {
+details.taxonomy-panel > summary::-webkit-details-marker {
   display: none;
 }
 
-.failure-panel > summary::before {
+details.taxonomy-panel > summary::before {
   content: "▸";
   color: var(--muted);
   font-size: 12px;
   transition: transform 0.15s ease;
 }
 
-.failure-panel[open] > summary::before {
+details.taxonomy-panel[open] > summary::before {
   transform: rotate(90deg);
 }
 
-.failure-panel > summary .run-stamp {
+details.taxonomy-panel > summary .run-stamp {
   margin-left: auto;
 }
+
+/* ---- Failure-modes breakdown (mode × control condition) ---- */
 
 .failure-chart {
   padding: 8px 16px 16px;
@@ -934,4 +1112,109 @@
 
 .run-superseded-action[hidden] {
   display: none;
+}
+
+/* Conditions column: one pill per axis level the run actually set, stacked
+   so a run crossing several Phase 2 axes doesn't collapse into an
+   unreadable dot-joined line. Neutral tone — these name which cell a run's
+   results sit in, not a health signal like the flags above. */
+.condition-pills {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.condition-pill {
+  /* No white-space: nowrap, and a max-width capping it to the flex parent's
+     available width — the same fix .phase-badge needed above. Without it, a
+     pill for a run crossing both framings ("Env: Eval / Deploy") had no cap,
+     so align-items: flex-start let it grow past the column and bleed over
+     whatever sits to its right instead of wrapping inside its own pill. */
+  display: inline-block;
+  max-width: 100%;
+  padding: 1px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-strong);
+  color: var(--ink);
+  font-size: 11px;
+  overflow-wrap: break-word;
+}
+
+/* ---- Section nav: "Contents" row + sticky left nav pane ---- */
+/* Mirrors the admin dashboard's pattern (web/public/admin.html): a plain
+   link row under the header for quick scanning, plus a sticky sidebar for
+   jumping around a long page. Wraps .app-shell rather than resizing it, so
+   none of its internal grid widths (.content-grid, .runner-grid, ...) shift. */
+
+.lab-page-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+  width: min(1680px, 100%);
+  margin: 0 auto;
+}
+
+.lab-page-layout > .app-shell {
+  width: auto;
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+
+.lab-toc {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+  margin: 0 0 20px;
+}
+
+.lab-toc a {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.lab-toc a:hover {
+  color: var(--accent-strong);
+  text-decoration: underline;
+}
+
+.lab-side-nav {
+  position: sticky;
+  top: 24px;
+  width: 200px;
+  flex-shrink: 0;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  padding-top: 28px;
+}
+
+.lab-side-nav a {
+  display: block;
+  padding: 6px 10px;
+  margin-bottom: 1px;
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.lab-side-nav a:hover {
+  background: var(--surface-strong);
+  color: var(--ink);
+}
+
+.lab-side-nav a.active {
+  background: color-mix(in srgb, var(--accent) 15%, var(--surface));
+  color: var(--accent-strong);
+  font-weight: 700;
+}
+
+@media (max-width: 1400px) {
+  .lab-side-nav {
+    display: none;
+  }
 }

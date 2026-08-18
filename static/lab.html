@@ -6,9 +6,11 @@
     <title>Experiment Lab · Unsafe Commercial Autonomy</title>
     <link rel="icon" href="/favicon.ico">
     <link rel="stylesheet" href="/static/styles.css?v=13">
-    <link rel="stylesheet" href="/static/lab.css?v=13">
+    <link rel="stylesheet" href="/static/lab.css?v=17">
   </head>
   <body>
+    <div class="lab-page-layout">
+    <nav class="lab-side-nav" id="labSideNav" aria-label="Section nav"></nav>
     <div class="app-shell lab-shell">
       <header class="topbar lab-topbar">
         <div>
@@ -20,7 +22,9 @@
         </div>
       </header>
 
-      <section class="runner-card" aria-label="Experiment controls">
+      <nav class="lab-toc" id="labToc" aria-label="Contents"></nav>
+
+      <section class="runner-card" id="section-run" aria-label="Experiment controls">
         <div class="runner-card-heading">
           <h2>Run</h2>
         </div>
@@ -145,7 +149,7 @@
         </p>
       </details>
 
-      <section class="taxonomy-panel lab-runs" aria-label="Runs">
+      <section class="taxonomy-panel lab-runs" id="section-runs" aria-label="Runs">
         <div class="panel-heading">
           <h2>Runs</h2>
           <span id="runListStamp" class="run-stamp"></span>
@@ -164,7 +168,7 @@
                 <th title="When this run was started.">When</th>
                 <th title="Model id or label this run's results are grouped under.">Model</th>
                 <th title="Per-phase smoke/full scenario×condition coverage checklist for this run — see legend above.">Phase</th>
-                <th title="Control condition(s) this run's results were scored under. Phase 2 framing/urgency/user-availability axes are appended when the run set them to a non-default level.">Conditions</th>
+                <th title="Control condition(s) this run's results were scored under, as pills. Phase 2 environment/urgency pills are appended when the run set them to a non-default level; user-availability always shows once the run is Phase 2-shaped, since 'no one's away' is worth stating too.">Conditions</th>
                 <th title="Total scored episodes (scenario × condition × seed) in this run.">n</th>
                 <th title="Wrongly proceeded divided by the keyed traps — the agent took an unsafe action.">Unsafe payment</th>
                 <th title="Wrongly stopped divided by all scenarios where autonomous action was allowed.">Refused when safe</th>
@@ -179,7 +183,7 @@
         </div>
       </section>
 
-      <main class="content-grid model-content-grid lab-results">
+      <main class="content-grid model-content-grid lab-results" id="section-results">
         <section class="result-panel" aria-label="Results">
           <div class="panel-heading">
             <h2>Results</h2>
@@ -187,28 +191,28 @@
           </div>
           <div class="results-filter-bar" id="resultsFilterBar">
             <div class="results-filter-field">
-              <label class="run-select-label" for="resultRunFilter">Run</label>
-              <select id="resultRunFilter" class="run-select"></select>
+              <span class="run-select-label">Run</span>
+              <div id="resultRunFilter" class="chip-row"></div>
             </div>
             <div class="results-filter-field">
-              <label class="run-select-label" for="resultVerdictFilter">Verdict</label>
-              <select id="resultVerdictFilter" class="run-select"></select>
+              <span class="run-select-label">Verdict</span>
+              <div id="resultVerdictFilter" class="chip-row"></div>
             </div>
             <div class="results-filter-field">
-              <label class="run-select-label" for="resultConditionFilter">Control</label>
-              <select id="resultConditionFilter" class="run-select"></select>
+              <span class="run-select-label">Control</span>
+              <div id="resultConditionFilter" class="chip-row"></div>
             </div>
             <div class="results-filter-field" hidden>
-              <label class="run-select-label" for="resultFramingFilter">Framing</label>
-              <select id="resultFramingFilter" class="run-select"></select>
+              <span class="run-select-label">Framing</span>
+              <div id="resultFramingFilter" class="chip-row"></div>
             </div>
             <div class="results-filter-field" hidden>
-              <label class="run-select-label" for="resultUrgencyFilter">Urgency</label>
-              <select id="resultUrgencyFilter" class="run-select"></select>
+              <span class="run-select-label">Urgency</span>
+              <div id="resultUrgencyFilter" class="chip-row"></div>
             </div>
             <div class="results-filter-field" hidden>
-              <label class="run-select-label" for="resultUserAvailabilityFilter">User availability</label>
-              <select id="resultUserAvailabilityFilter" class="run-select"></select>
+              <span class="run-select-label">User availability</span>
+              <div id="resultUserAvailabilityFilter" class="chip-row"></div>
             </div>
             <button id="resultsFilterReset" type="button" class="chip" hidden>Reset filters</button>
           </div>
@@ -226,6 +230,11 @@
               <tbody id="modelResultsTable"></tbody>
             </table>
           </div>
+          <div id="resultsPagination" class="failure-pagination" hidden>
+            <button type="button" id="resultsPrevPage" class="chip">&larr; Prev</button>
+            <span id="resultsPageLabel" class="run-stamp"></span>
+            <button type="button" id="resultsNextPage" class="chip">Next &rarr;</button>
+          </div>
         </section>
 
         <aside class="detail-panel" aria-label="Result detail">
@@ -239,7 +248,7 @@
         </aside>
       </main>
 
-      <section class="taxonomy-panel lab-phases" aria-label="Phases">
+      <section class="taxonomy-panel lab-phases" id="section-phases" aria-label="Phases">
         <div class="panel-heading">
           <h2>Phases</h2>
           <span id="phasesStamp" class="run-stamp"></span>
@@ -258,7 +267,7 @@
         <div id="phasesContent" class="phases-content"></div>
       </section>
 
-      <div class="section-divider lab-divider">
+      <div class="section-divider lab-divider" id="section-bymodel">
         <h2>By model</h2>
         <p id="modelSectionMeta" class="lab-section-meta"></p>
       </div>
@@ -279,7 +288,7 @@
           </article>
         </section>
 
-        <div class="section-divider lab-divider">
+        <div class="section-divider lab-divider" id="section-axes">
           <h2>Survey-grounded axes</h2>
           <p id="axesSectionMeta" class="lab-section-meta"></p>
         </div>
@@ -315,7 +324,7 @@
           Additive: the two rates above keep their definitions.
         </p>
 
-        <section class="taxonomy-panel" aria-label="Model summary">
+        <section class="taxonomy-panel" id="section-models" aria-label="Model summary">
           <div class="panel-heading">
             <h2>Models</h2>
             <span id="modelSummaryStamp" class="run-stamp"></span>
@@ -343,7 +352,7 @@
           </div>
         </section>
 
-        <section class="taxonomy-panel" aria-label="Splits">
+        <section class="taxonomy-panel" id="section-splits" aria-label="Splits">
           <div class="panel-heading">
             <h2>Splits</h2>
             <span id="splitsStamp" class="run-stamp"></span>
@@ -399,11 +408,11 @@
 
       <p id="labEmpty" class="lab-empty" hidden>No runs yet. Pick a model and hit Run experiment.</p>
 
-      <section class="taxonomy-panel ladder-panel" aria-label="CLI cost ladder">
-        <div class="panel-heading">
+      <details class="taxonomy-panel ladder-panel" id="section-ladder" aria-label="CLI cost ladder">
+        <summary>
           <h2>Cost ladder</h2>
           <span class="run-stamp">phase2-eval · cheapest model is the default</span>
-        </div>
+        </summary>
         <div class="ladder-models" id="ladderModels" role="group" aria-label="Model">
           <button type="button" class="ladder-modelbtn is-active" data-model="openai">openai</button>
           <button type="button" class="ladder-modelbtn" data-model="anthropic">anthropic</button>
@@ -483,7 +492,87 @@
           <code>--temperature</code> only affects temperature-based models; reasoning models (gpt-5.x) vary by seed.
           Phase 1: same rungs with <code>eval</code> (drop <code>--framings</code>).
         </p>
-      </section>
+      </details>
+
+      <details class="taxonomy-panel pricing-panel" id="section-pricing" aria-label="Provider pricing">
+        <summary>
+          <h2>Pricing</h2>
+          <span class="run-stamp">$ per 1M tokens &middot; verified 2026-08-17</span>
+        </summary>
+        <p class="panel-legend">
+          <strong>Input</strong> &mdash; per 1M prompt tokens. <strong>Output</strong> &mdash; per 1M
+          completion tokens. Each provider's cheapest current model, standard (non-batch) pricing, in USD.
+        </p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Provider</th>
+                <th title="The provider's cheapest current model — its default when no *_MODEL env var is set. Other models cost more; see .env.example.">Model</th>
+                <th title="Cost per 1 million prompt tokens, in USD.">Input</th>
+                <th title="Cost per 1 million completion tokens, in USD.">Output</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>OpenAI</td><td>gpt-5.4-nano</td><td>$0.20</td><td>$1.25</td><td></td></tr>
+              <tr><td>Anthropic</td><td>claude-haiku-4-5</td><td>$1.00</td><td>$5.00</td><td></td></tr>
+              <tr><td>Gemini</td><td>gemini-3.1-flash-lite</td><td>$0.25</td><td>$1.50</td><td></td></tr>
+              <tr><td>Kimi</td><td>kimi-k2.6</td><td>$0.95</td><td>$4.00</td><td title="Input drops to $0.16 per 1M tokens on a cache hit.">cache hit $0.16</td></tr>
+              <tr><td>Inkling</td><td>thinkingmachines/Inkling</td><td>&mdash;</td><td>&mdash;</td><td title="Open-weight model with no single vendor price — cost depends on the inference host (Together AI by default; also Fireworks, Modal, Databricks, Baseten).">host-dependent</td></tr>
+              <tr><td>Grok</td><td>grok-4.20-0309-non-reasoning</td><td>$1.25</td><td>$2.50</td><td title="Doubles to $2.50 input / $5.00 output per 1M tokens once the prompt reaches 200K tokens.">$2.50/$5 &ge;200K ctx</td></tr>
+              <tr><td>DeepSeek</td><td>deepseek-v4-flash</td><td>$0.22</td><td>$0.66</td><td title="Off-peak rate shown. Doubles to $0.44 input / $1.32 output during peak hours (01:00–04:00, 06:00–10:00 UTC). Changed from a flat $0.14/$0.28 on 2026-08-16.">peak $0.44/$1.32</td></tr>
+              <tr><td>Mistral</td><td>mistral-small-latest</td><td>$0.15</td><td>$0.60</td><td></td></tr>
+              <tr><td>Qwen</td><td>qwen-flash</td><td>$0.05</td><td>$0.40</td><td title="Rises to $0.25 input / $2.00 output per 1M tokens once the prompt exceeds 256K tokens.">$0.25/$2 &gt;256K ctx</td></tr>
+              <tr><td>OpenRouter</td><td>&mdash; (set OPENROUTER_MODEL)</td><td>&mdash;</td><td>&mdash;</td><td title="Gateway to 300+ models; billed at each vendor's own per-model price plus a routing markup. No single OpenRouter price — set OPENROUTER_MODEL to a specific slug.">+ markup, per model</td></tr>
+              <tr><td>Open-weights</td><td>&mdash; (self-hosted)</td><td>&mdash;</td><td>&mdash;</td><td title="Runs on your own OpenAI-compatible server (vLLM, llama.cpp, TGI) — no vendor API cost, only your own infrastructure.">self-hosted</td></tr>
+              <tr><td>Naive baseline</td><td>&mdash;</td><td>Free</td><td>Free</td><td title="Deterministic always-cheapest heuristic. Runs offline with zero API calls.">offline</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+
+      <details class="taxonomy-panel merge-panel" id="section-combine" aria-label="Combine runs">
+        <summary>
+          <h2>Combine runs</h2>
+          <span class="run-stamp">python -m app.cli merge</span>
+        </summary>
+        <p class="panel-legend">
+          Pools several sittings of one gauntlet into a single run, so its
+          metrics compare every condition at once. Refuses unless the sources
+          match on scenario set, model, and sampling config, with no episode
+          covered twice. Sources are never modified or deleted.
+        </p>
+        <div class="ladder-rungs">
+          <div class="ladder-rung">
+            <div class="ladder-rung-head"><span class="ladder-name">See the plan</span><span class="ladder-count">writes nothing</span><button type="button" class="ladder-copy">Copy</button></div>
+            <pre>python -m app.cli merge \
+  --run-ids run_a,run_b,run_c,run_d \
+  --dry-run</pre>
+          </div>
+          <div class="ladder-rung">
+            <div class="ladder-rung-head"><span class="ladder-name">Merge, keep sources</span><span class="ladder-count">confirms first</span><button type="button" class="ladder-copy">Copy</button></div>
+            <pre>python -m app.cli merge \
+  --run-ids run_a,run_b,run_c,run_d \
+  --out-run-id merged_full_grid</pre>
+          </div>
+          <div class="ladder-rung">
+            <div class="ladder-rung-head"><span class="ladder-name">Merge and publish</span><span class="ladder-count">supersedes sources</span><button type="button" class="ladder-copy">Copy</button></div>
+            <pre>python -m app.cli merge \
+  --run-ids run_a,run_b,run_c,run_d \
+  --out-run-id merged_full_grid \
+  --publish --label "Full grid (stitched)"</pre>
+          </div>
+        </div>
+        <p class="panel-legend ladder-foot">
+          <code>--on-overlap=prefer-newest</code> or <code>prefer-oldest</code>
+          keeps one copy of a doubled episode instead of refusing.
+          <code>--created-at</code> overrides the default (the newest source's
+          date). Publishing marks the sources <strong>superseded</strong> in
+          the Runs table above. Delete them there.
+        </p>
+      </details>
+    </div>
     </div>
 
     <style>
@@ -527,6 +616,96 @@
         });
       })();
     </script>
-    <script src="/static/lab.js?v=13"></script>
+    <script>
+      // Populates the "Contents" row and the sticky left nav pane from a
+      // fixed section list. Axes/Models/Splits/Failure modes live inside
+      // #modelDashboard, which lab.js shows only once a run has results, so
+      // those four links are gated on that element's `hidden` state.
+      (function () {
+        var SECTIONS = [
+          { id: 'section-run', label: 'Run' },
+          { id: 'section-runs', label: 'Runs' },
+          { id: 'section-results', label: 'Results' },
+          { id: 'section-phases', label: 'Phases' },
+          { id: 'section-bymodel', label: 'By model' },
+          { id: 'section-axes', label: 'Axes', gated: true },
+          { id: 'section-models', label: 'Models', gated: true },
+          { id: 'section-splits', label: 'Splits', gated: true },
+          { id: 'failurePanel', label: 'Failure modes', gated: true },
+          { id: 'section-ladder', label: 'Cost ladder' },
+          { id: 'section-pricing', label: 'Pricing' },
+          { id: 'section-combine', label: 'Combine runs' },
+        ];
+        var toc = document.getElementById('labToc');
+        var sideNav = document.getElementById('labSideNav');
+        var dashboard = document.getElementById('modelDashboard');
+        var spyLinks = {};
+
+        function linkHtml(s) {
+          return '<a href="#' + s.id + '">' + s.label + '</a>';
+        }
+
+        function render() {
+          var visible = SECTIONS.filter(function (s) {
+            return !s.gated || (dashboard && !dashboard.hidden);
+          });
+          var html = visible.map(linkHtml).join('');
+          if (toc) toc.innerHTML = html;
+          if (sideNav) sideNav.innerHTML = html;
+          spyLinks = {};
+          if (sideNav) {
+            sideNav.querySelectorAll('a').forEach(function (a) {
+              spyLinks[a.getAttribute('href').slice(1)] = a;
+            });
+          }
+        }
+
+        // Highlight whichever section is nearest the top of the viewport.
+        // Section heights here range from a collapsed <details> (~50px) to
+        // the Cost ladder (~1300px), so a thin mid-viewport intersection
+        // band (as the marketing site's Nav uses) misses the short ones
+        // entirely. Instead: on scroll, the "current" section is the last
+        // one whose top has scrolled up past a fixed line near the top of
+        // the viewport — correct regardless of how tall each section is.
+        var THRESHOLD = 100;
+        function computeActive() {
+          if (!sideNav) return;
+          var current = null;
+          SECTIONS.forEach(function (s) {
+            if (!spyLinks[s.id]) return; // gated and not in the nav right now
+            var el = document.getElementById(s.id);
+            if (el && el.getBoundingClientRect().top <= THRESHOLD) current = s.id;
+          });
+          if (!current) {
+            var first = SECTIONS.filter(function (s) { return spyLinks[s.id]; })[0];
+            current = first ? first.id : null;
+          }
+          Object.keys(spyLinks).forEach(function (id) {
+            spyLinks[id].classList.toggle('active', id === current);
+          });
+        }
+
+        function refresh() {
+          render();
+          computeActive();
+        }
+
+        refresh();
+
+        // render() rebuilds the <a> elements (and spyLinks) when the gated
+        // links appear/disappear, so recompute active state right after.
+        if (dashboard && typeof MutationObserver !== 'undefined') {
+          new MutationObserver(refresh).observe(dashboard, { attributes: true, attributeFilter: ['hidden'] });
+        }
+
+        var ticking = false;
+        window.addEventListener('scroll', function () {
+          if (ticking) return;
+          ticking = true;
+          requestAnimationFrame(function () { computeActive(); ticking = false; });
+        }, { passive: true });
+      })();
+    </script>
+    <script src="/static/lab.js?v=17"></script>
   </body>
 </html>

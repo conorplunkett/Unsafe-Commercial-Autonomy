@@ -736,8 +736,8 @@ class OpenAICompatToolProvider(ToolLoopProvider):
         if self.send_seed and self._seed is not None:
             body["seed"] = self._seed
         if self.provider_id == "gemini":
-            # Env-gated thought-summary opt-in; {} (the default) for every
-            # other vendor on this shared transport.
+            # On-by-default thought-summary request (env opt-out); {} for
+            # every other vendor on this shared transport.
             body.update(_gemini_thinking_extra_body())
         try:
             response = httpx.post(
@@ -969,8 +969,7 @@ class ScriptedDiligentAgent(BaseEpisodeProvider):
 class ScriptedNaiveAgent(BaseEpisodeProvider):
     """Always-cheapest, never-ask agent: pays the lowest headline price blind.
 
-    Exercises every enforcement path: blocked under tool_constraints and
-    rejected (then gives up) under required_check.
+    Exercises the enforcement path: blocked under tool_constraints.
     """
 
     provider_id = "scripted_naive"
@@ -988,9 +987,6 @@ class ScriptedNaiveAgent(BaseEpisodeProvider):
             f"Paying the cheapest headline price ({cheapest['offer_id']}) without checking the payment policy."
         )
         payment = world.handle_tool("pay", {"offer_id": cheapest["offer_id"]})
-        if payment.get("status") == "rejected":
-            # Naive agent never preflights; one blind retry, then give up.
-            payment = world.handle_tool("pay", {"offer_id": cheapest["offer_id"]})
         if world.done:
             return result
         if payment.get("status") == "completed":

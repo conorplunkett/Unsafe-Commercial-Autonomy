@@ -184,6 +184,7 @@
   .rank-subnum { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; line-height: 1.1; }
   .rank-row.top .rank-label { font-weight: 700; }
   .rank-tag {
+    display: inline-block; white-space: nowrap;
     font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
     color: var(--good); background: #e6f4ec; padding: 1px 7px; border-radius: 999px; margin-left: 6px;
   }
@@ -242,9 +243,75 @@
     .cmd-row { flex-wrap: wrap; }
     .cmd-label { width: 100%; padding-top: 0; }
   }
+
+  /* Row delete action + confirm modal */
+  button.row-delete {
+    margin-top: 0; padding: 4px 10px; font-size: 12px;
+    background: var(--card); color: var(--bad); border-color: #f3c6c2;
+  }
+  button.row-delete:hover { background: #fdecea; }
+  button.danger { background: var(--bad); border-color: var(--bad); color: #fff; }
+  button.danger:hover { opacity: 0.9; }
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(28, 28, 26, 0.5);
+    align-items: center; justify-content: center;
+    padding: 16px;
+    z-index: 100;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-box {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px;
+    max-width: 420px;
+    width: 100%;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.18);
+  }
+  .modal-box h3 { font-size: 16px; margin-bottom: 8px; }
+  .modal-box p { font-size: 13px; color: var(--muted); }
+  .modal-target {
+    font-size: 13px; color: var(--ink);
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 10px; margin: 12px 0 4px; word-break: break-word;
+  }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+  .modal-actions button { margin-top: 0; }
+  .modal-error { color: var(--bad); font-size: 13px; margin-top: 10px; display: none; }
+
+  /* Page layout: sticky left nav pane + centered content column */
+  .layout { max-width: 1180px; margin: 0 auto; display: flex; align-items: flex-start; gap: 28px; }
+  .wrap { max-width: 920px; margin: 0; flex: 1; min-width: 0; }
+  .side-nav { position: sticky; top: 24px; width: 190px; flex-shrink: 0; max-height: calc(100vh - 48px); overflow-y: auto; }
+  .side-nav .sn-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin: 0 0 8px 8px; }
+  .side-nav a { display: block; font-size: 12.5px; color: var(--muted); text-decoration: none; padding: 5px 8px; border-radius: 6px; margin-bottom: 1px; line-height: 1.35; }
+  .side-nav a:hover { background: var(--bg); color: var(--ink); }
+  .side-nav a.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  @media (max-width: 1080px) {
+    .side-nav { display: none; }
+  }
+
+  /* "Contents" card at the top of each tab */
+  .toc-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin-bottom: 10px; }
+  .toc-links { display: flex; flex-wrap: wrap; gap: 7px 20px; }
+  .toc-links a { font-size: 12.5px; color: var(--accent); text-decoration: none; }
+  .toc-links a:hover { text-decoration: underline; }
+
+  /* Expandable "By scenario" rows: a <details>/<summary> pair styled to look
+     identical to the plain .glance-row it replaces when collapsed. */
+  summary.glance-row { list-style: none; color: var(--ink); cursor: pointer; border-radius: 6px; transition: background 0.15s ease; }
+  summary.glance-row::-webkit-details-marker { display: none; }
+  summary.glance-row::marker { content: ""; }
+  summary.glance-row:hover, summary.glance-row:focus-visible { background: var(--bg); }
+  details[open] > summary.glance-row { background: var(--accent-soft); }
+  .glance-expand { padding: 12px 0 4px; margin: -2px 0 12px; border-top: 1px dashed var(--border); }
 </style>
 </head>
 <body>
+<div class="layout">
+<nav class="side-nav" id="side-nav" aria-label="Section nav"></nav>
 <div class="wrap">
   <h1>PayBench survey — admin</h1>
   <div class="sub">Answer-by-answer results. Not linked anywhere; keep this URL private.
@@ -288,6 +355,20 @@
   </div>
   <div id="results" style="display:none"></div>
 </div>
+</div>
+
+<div class="modal-overlay" id="delete-modal">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title">
+    <h3 id="delete-modal-title">Delete this response?</h3>
+    <p>This removes it from Supabase for good. It can’t be undone.</p>
+    <div class="modal-target" id="delete-modal-target"></div>
+    <div class="modal-error" id="delete-modal-error"></div>
+    <div class="modal-actions">
+      <button class="secondary" id="delete-modal-cancel">Cancel</button>
+      <button class="danger" id="delete-modal-confirm">Delete response</button>
+    </div>
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -311,6 +392,13 @@ function isPostLock(row) {
 }
 function isClean(row) {
   return !isExcluded(row) && row.meta && row.meta.survey_version === LAUNCH_VERSION && !isPostLock(row);
+}
+// Same as isClean but keeps post-lock responses — the official Locked/
+// Provisional status stays computed from isClean (pre-lock only, so the
+// answer key itself never moves); this is only for exports that want every
+// respondent regardless of submission date.
+function isCleanAllDates(row) {
+  return !isExcluded(row) && row.meta && row.meta.survey_version === LAUNCH_VERSION;
 }
 
 // Full question text and option labels, verbatim from web/public/survey0.html
@@ -510,6 +598,61 @@ function renderPager(totalRows, page, idPrefix) {
   </div>`;
 }
 
+// ---- Section nav: "Contents" card + sticky left nav pane -------------------
+// Static per-tab section lists (ids match the id="" set on each card below).
+// Kept in sync by hand since the cards themselves are hand-authored, not data-driven.
+const TOC_P1 = [
+  { id: "card-overall-p1", label: "Overall" },
+  { id: "card-byscenario-p1", label: "By scenario" },
+  { id: "card-detail-p1", label: "Full breakdown" },
+  { id: "respondents-p1", label: "Respondents" },
+];
+const TOC_P2 = [
+  { id: "card-key", label: "Answer key check" },
+  { id: "card-lock", label: "Lock progress" },
+  { id: "card-overall-p2", label: "Overall" },
+  { id: "card-cat", label: "By category" },
+  { id: "card-byscenario-p2", label: "By scenario" },
+  { id: "card-demo", label: "By demographic" },
+  { id: "card-resp", label: "By respondent" },
+  { id: "card-detail-p2", label: "Scenario detail" },
+  { id: "respondents-p2", label: "Respondents" },
+];
+
+function renderContentsCard(sections) {
+  if (!sections || !sections.length) return "";
+  return `<div class="card">
+    <div class="toc-title">Contents</div>
+    <div class="toc-links">${sections.map(s => `<a href="#${s.id}">${escapeHtml(s.label)}</a>`).join("")}</div>
+  </div>`;
+}
+
+let sideNavObserver = null;
+function renderSideNav(sections, tabLabel) {
+  const host = document.getElementById("side-nav");
+  if (sideNavObserver) { sideNavObserver.disconnect(); sideNavObserver = null; }
+  if (!host) return;
+  if (!sections || !sections.length) { host.innerHTML = ""; return; }
+  host.innerHTML = `<div class="sn-title">${escapeHtml(tabLabel)}</div>` +
+    sections.map(s => `<a href="#${s.id}">${escapeHtml(s.label)}</a>`).join("");
+  // Highlight whichever section is currently near the middle of the viewport,
+  // same rootMargin trick the main site's Nav uses. Degrades gracefully if
+  // IntersectionObserver isn't available or a section id isn't on the page.
+  if (typeof IntersectionObserver === "undefined") return;
+  const links = {};
+  host.querySelectorAll("a").forEach(a => { links[a.getAttribute("href").slice(1)] = a; });
+  sideNavObserver = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      const link = links[e.target.id];
+      if (link) link.classList.toggle("active", e.isIntersecting);
+    });
+  }, { rootMargin: "-45% 0px -50% 0px", threshold: 0 });
+  sections.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (el) sideNavObserver.observe(el);
+  });
+}
+
 async function loadResponses(passphrase, phase) {
   const suffix = phase && phase !== "1" ? `?phase=${phase}` : "";
   const res = await fetch(ADMIN_FUNCTION_URL + suffix, {
@@ -576,6 +719,70 @@ function questionStats(q, clean) {
   return { denom, counts, acceptCounts, n, modalKey, modalCount, agreement, locked, ranked };
 }
 
+// Inner markup for one scenario's full detail (head, text, stacked bar, ranked
+// list). Shared by the "Full breakdown" card and each expandable "By scenario"
+// row so the two views can never drift apart.
+function scenarioDetailBodyP1(q, s) {
+  let html = `
+      <div class="scenario-head">
+        <span class="scn-id">${q.id}</span>
+        <span class="lock-badge ${s.locked ? 'locked' : 'provisional'}" title="Locks at ≥${LOCK_MIN_RESPONDENTS} responses and ≥${Math.round(LOCK_THRESHOLD*100)}% agreement">${s.locked ? 'Locked' : 'Provisional'}</span>
+      </div>
+      <div class="scenario-full-text">${escapeHtml(q.text)}</div>
+      <div class="meta-line">n=${s.n} · agreement ${Math.round(s.agreement * 100)}% ${s.n > 0 ? '(' + s.modalCount + '/' + s.n + ' chose “' + escapeHtml(labelFor(q.id, s.modalKey)) + '”)' : ''}</div>
+      <div class="choice-bar">`;
+  // 100%-stacked bar of preferred choices
+  s.ranked.forEach(o => {
+    const c = s.counts[o.key] || 0;
+    const pct = s.n > 0 ? (c / s.n) * 100 : 0;
+    if (pct <= 0) return;
+    const showText = pct >= 14;
+    html += `<div class="choice-seg" style="width:${pct}%;background:${colorForOption(q, o.key)}" title="${escapeHtml(o.label)}: ${c} (${Math.round(pct)}%)">${showText ? Math.round(pct) + '%' : ''}</div>`;
+  });
+  html += `<div class="choice-bar70" title="70% lock threshold"></div></div>
+      <div class="legend"><span><span class="sw" style="background:var(--ink)"></span>chose as most-wanted</span><span><span class="sw" style="background:var(--ink);opacity:0.28"></span>also marked acceptable</span></div>
+      <div class="rank-list">`;
+  // ranked list with layered per-option bars (solid = chose, light = also-acceptable)
+  s.ranked.forEach((o, i) => {
+    const chose = s.counts[o.key] || 0;
+    const accept = s.acceptCounts[o.key] || 0;   // chose + also-marked-acceptable
+    const alsoOnly = accept - chose;
+    const chosePct = s.denom > 0 ? (chose / s.denom) * 100 : 0;
+    const alsoPct = s.denom > 0 ? (alsoOnly / s.denom) * 100 : 0;
+    // Two numbers per option: the endorsed % (chose + also-acceptable) is
+    // printed ON the bar at the end of the fill; the bold % at the right is
+    // the chose (most-wanted) share — the "first pick" agreement, always the
+    // lower of the two.
+    const acceptPct = s.denom > 0 ? Math.round((accept / s.denom) * 100) : 0;
+    const chosePctLabel = s.n > 0 ? Math.round((chose / s.n) * 100) : 0;
+    const barvalInside = acceptPct >= 15;
+    const barval = barvalInside
+      ? `<span class="rank-barval inside" style="right:${100 - acceptPct}%">${acceptPct}%</span>`
+      : `<span class="rank-barval outside" style="left:${acceptPct}%">${acceptPct}%</span>`;
+    const isTop = i === 0 && chose > 0;
+    const color = colorForOption(q, o.key);
+    const totalLabel = alsoOnly > 0
+      ? `${chose} chose + ${alsoOnly} also-ok = ${accept} of ${s.denom} endorsed`
+      : `${accept} of ${s.denom} endorsed`;
+    html += `<div class="rank-row ${isTop ? 'top' : ''}">
+      <span class="rank-sw" style="background:${color}"></span>
+      <span class="rank-label">${escapeHtml(o.label)}${isTop ? '<span class="rank-tag">Most chosen</span>' : ''}</span>
+      <span class="rank-barwrap">
+        <span class="rank-track" title="${escapeHtml(o.label)}: ${chose} chose (${chosePctLabel}%)${alsoOnly > 0 ? ', ' + alsoOnly + ' also acceptable' : ''} = ${accept} of ${s.denom} endorsed (${acceptPct}%)">
+          <span class="seg-chose" style="width:${chosePct}%;background:${color}"></span>
+          <span class="seg-ok" style="width:${alsoPct}%;background:${color}"></span>
+          <span class="rank-track70" title="${Math.round(LOCK_THRESHOLD * 100)}% acceptability threshold"></span>
+          ${barval}
+        </span>
+        <span class="rank-subnum">${totalLabel}</span>
+      </span>
+      <span class="rank-pct" title="chose (most-wanted) share">${chosePctLabel}%</span>
+    </div>`;
+  });
+  html += `</div>`;
+  return html;
+}
+
 function renderResults(rows) {
   const el = document.getElementById("results");
   el.style.display = "block";
@@ -613,10 +820,11 @@ function renderResults(rows) {
         <button class="secondary" id="exp-csv">⬇ Export answers (CSV)</button>
         <button class="secondary" id="exp-summary">⬇ Export summary (CSV)</button>
         <button class="secondary" id="exp-images">⬇ Export scenario images (ZIP)</button>
-        <span class="l" style="color:var(--muted);font-size:12px">Downloads to your device — commit to GitHub from there.</span>
+        <button class="secondary" id="copy-table-p1">📋 Copy results table</button>
       </div>
     </div>
   `;
+  html += renderContentsCard(TOC_P1);
 
   // ---- 1. Overall action mix (Proceed / Ask / Refuse) across all scenarios --
   const catTotals = { proceed: 0, ask: 0, refuse: 0 };
@@ -632,7 +840,7 @@ function renderResults(rows) {
     { key: "ask", label: "Check with you first", color: "#e0a100", desc: "Paused to ask the human" },
     { key: "refuse", label: "Refuse / don’t", color: "#b3261e", desc: "Declined to act" }
   ];
-  html += `<div class="card">
+  html += `<div class="card" id="card-overall-p1">
     <h2>Overall</h2>
     <div class="section-sub">${allVotes} answers · ${clean.length} respondents · ${QUESTIONS.length} scenarios</div>
     <div class="cat-tiles">`;
@@ -655,11 +863,14 @@ function renderResults(rows) {
   html += `</div></div>`;
 
   // ---- 2. At-a-glance: one stacked row per scenario -------------------------
-  html += `<div class="card">
+  // Each row is a <details>/<summary> pair: collapsed, it's pixel-identical to
+  // the old plain .glance-row; expanded, it shows the same per-scenario detail
+  // as the "Full breakdown" card below (via scenarioDetailBodyP1).
+  html += `<div class="card" id="card-byscenario-p1">
     <h2>By scenario</h2>`;
   stats.forEach(({ q, s }) => {
     const winnerLabel = labelFor(q.id, s.modalKey);
-    html += `<div class="glance-row">
+    html += `<details class="glance-item"><summary class="glance-row">
       <div class="glance-label"><span class="gid">${q.id}</span><br>${escapeHtml(q.short || "")}</div>
       <div class="glance-bar">`;
     s.ranked.forEach(o => {
@@ -670,75 +881,18 @@ function renderResults(rows) {
     });
     html += `<div class="choice-bar70" title="70% lock threshold"></div></div>
       <div class="glance-top">${s.n > 0 ? '<b>' + escapeHtml(winnerLabel) + '</b><br>' + Math.round(s.agreement * 100) + '% · n=' + s.n : '<span style="color:var(--muted)">no responses</span>'}</div>
-    </div>`;
+    </summary><div class="glance-expand">${scenarioDetailBodyP1(q, s)}</div></details>`;
   });
   html += `</div>`;
 
   // ---- 3. Full detail per scenario -----------------------------------------
-  html += `<div class="card">
+  html += `<div class="card" id="card-detail-p1">
     <h2>Full breakdown</h2>
     <div class="section-sub">Dashed ${Math.round(LOCK_THRESHOLD * 100)}% line: on the stacked bar it’s the lock threshold (top pick ≥${Math.round(LOCK_THRESHOLD * 100)}%); on each option bar it’s the acceptability threshold (chose + also-acceptable ≥${Math.round(LOCK_THRESHOLD * 100)}%). The % on each bar is the endorsed share (chose + also-acceptable); the bold % at the right is the chose (most-wanted) share. n=${clean.length}.</div>
     <div class="stem">Shared prompt on every scenario: “${escapeHtml(STEM)}”</div>`;
 
   stats.forEach(({ q, s }) => {
-    html += `
-      <div class="scenario-block" data-scn-id="${q.id}">
-        <div class="scenario-head">
-          <span class="scn-id">${q.id}</span>
-          <span class="lock-badge ${s.locked ? 'locked' : 'provisional'}" title="Locks at ≥${LOCK_MIN_RESPONDENTS} responses and ≥${Math.round(LOCK_THRESHOLD*100)}% agreement">${s.locked ? 'Locked' : 'Provisional'}</span>
-        </div>
-        <div class="scenario-full-text">${escapeHtml(q.text)}</div>
-        <div class="meta-line">n=${s.n} · agreement ${Math.round(s.agreement * 100)}% ${s.n > 0 ? '(' + s.modalCount + '/' + s.n + ' chose “' + escapeHtml(labelFor(q.id, s.modalKey)) + '”)' : ''}</div>
-        <div class="choice-bar">`;
-    // 100%-stacked bar of preferred choices
-    s.ranked.forEach(o => {
-      const c = s.counts[o.key] || 0;
-      const pct = s.n > 0 ? (c / s.n) * 100 : 0;
-      if (pct <= 0) return;
-      const showText = pct >= 14;
-      html += `<div class="choice-seg" style="width:${pct}%;background:${colorForOption(q, o.key)}" title="${escapeHtml(o.label)}: ${c} (${Math.round(pct)}%)">${showText ? Math.round(pct) + '%' : ''}</div>`;
-    });
-    html += `<div class="choice-bar70" title="70% lock threshold"></div></div>
-      <div class="legend"><span><span class="sw" style="background:var(--ink)"></span>chose as most-wanted</span><span><span class="sw" style="background:var(--ink);opacity:0.28"></span>also marked acceptable</span></div>
-      <div class="rank-list">`;
-    // ranked list with layered per-option bars (solid = chose, light = also-acceptable)
-    s.ranked.forEach((o, i) => {
-      const chose = s.counts[o.key] || 0;
-      const accept = s.acceptCounts[o.key] || 0;   // chose + also-marked-acceptable
-      const alsoOnly = accept - chose;
-      const chosePct = s.denom > 0 ? (chose / s.denom) * 100 : 0;
-      const alsoPct = s.denom > 0 ? (alsoOnly / s.denom) * 100 : 0;
-      // Two numbers per option: the endorsed % (chose + also-acceptable) is
-      // printed ON the bar at the end of the fill; the bold % at the right is
-      // the chose (most-wanted) share — the "first pick" agreement, always the
-      // lower of the two.
-      const acceptPct = s.denom > 0 ? Math.round((accept / s.denom) * 100) : 0;
-      const chosePctLabel = s.n > 0 ? Math.round((chose / s.n) * 100) : 0;
-      const barvalInside = acceptPct >= 15;
-      const barval = barvalInside
-        ? `<span class="rank-barval inside" style="right:${100 - acceptPct}%">${acceptPct}%</span>`
-        : `<span class="rank-barval outside" style="left:${acceptPct}%">${acceptPct}%</span>`;
-      const isTop = i === 0 && chose > 0;
-      const color = colorForOption(q, o.key);
-      const totalLabel = alsoOnly > 0
-        ? `${chose} chose + ${alsoOnly} also-ok = ${accept} of ${s.denom} endorsed`
-        : `${accept} of ${s.denom} endorsed`;
-      html += `<div class="rank-row ${isTop ? 'top' : ''}">
-        <span class="rank-sw" style="background:${color}"></span>
-        <span class="rank-label">${escapeHtml(o.label)}${isTop ? '<span class="rank-tag">Most chosen</span>' : ''}</span>
-        <span class="rank-barwrap">
-          <span class="rank-track" title="${escapeHtml(o.label)}: ${chose} chose (${chosePctLabel}%)${alsoOnly > 0 ? ', ' + alsoOnly + ' also acceptable' : ''} = ${accept} of ${s.denom} endorsed (${acceptPct}%)">
-            <span class="seg-chose" style="width:${chosePct}%;background:${color}"></span>
-            <span class="seg-ok" style="width:${alsoPct}%;background:${color}"></span>
-            <span class="rank-track70" title="${Math.round(LOCK_THRESHOLD * 100)}% acceptability threshold"></span>
-            ${barval}
-          </span>
-          <span class="rank-subnum">${totalLabel}</span>
-        </span>
-        <span class="rank-pct" title="chose (most-wanted) share">${chosePctLabel}%</span>
-      </div>`;
-    });
-    html += `</div></div>`;
+    html += `<div class="scenario-block" data-scn-id="${q.id}">${scenarioDetailBodyP1(q, s)}</div>`;
   });
   html += `</div>`;
 
@@ -751,10 +905,12 @@ function renderResults(rows) {
   const cb = document.getElementById("exp-csv");
   const sb = document.getElementById("exp-summary");
   const ib = document.getElementById("exp-images");
+  const mb = document.getElementById("copy-table-p1");
   if (jb) jb.onclick = exportJSON;
   if (cb) cb.onclick = exportAnswersCSV;
   if (sb) sb.onclick = exportSummaryCSV;
   if (ib) ib.onclick = () => exportScenarioImages("paybench-p1", ib);
+  if (mb) mb.onclick = () => copyToClipboard(resultsTableMarkdownP1(), mb);
 }
 
 function renderRespondentTableP1(rows) {
@@ -768,7 +924,7 @@ function renderRespondentTableP1(rows) {
   let html = `<h2 style="font-size:16px;margin-bottom:16px">Respondents (${rows.length})</h2>
     <div class="legend" style="margin-bottom:12px">Attention = att_2 instructed-response check (the only one that gates inclusion). att_1 is the baseline calibration item (reflexive-ask floor), shown for info only, never excludes.</div>
     <table><thead><tr>
-    <th>Name</th><th>Email</th><th>When</th><th>Duration</th><th>Version</th><th>Attention (att_2)</th><th>att_1 (baseline)</th><th>Status</th><th></th>
+    <th>Name</th><th>Email</th><th>When</th><th>Duration</th><th>Version</th><th>Attention (att_2)</th><th>att_1 (baseline)</th><th>Status</th><th></th><th></th>
   </tr></thead><tbody>`;
   pageRows.forEach((r) => {
     const att1 = r.attention && r.attention.att_1 && r.attention.att_1.passed;
@@ -785,6 +941,7 @@ function renderRespondentTableP1(rows) {
       <td><span class="pill ${att1 ? 'pass' : 'excluded'}">${att1 ? 'buy' : 'chose ask'}</span></td>
       <td>${excl ? `<span class="pill excluded">excluded${exclusionReason(r) ? ': ' + escapeHtml(exclusionReason(r)) : ''}</span>` : `<span class="pill pass">clean</span>`}</td>
       <td><details><summary>raw</summary><pre>${escapeHtml(JSON.stringify({ answers: r.answers, also_acceptable: r.also_acceptable, ai_familiarity: r.ai_familiarity, used_agent_purchases: r.used_agent_purchases }, null, 1))}</pre></details></td>
+      <td>${r.id ? `<button class="row-delete" data-id="${escapeHtml(r.id)}">Delete</button>` : ''}</td>
     </tr>`;
   });
   html += `</tbody></table>`;
@@ -795,6 +952,12 @@ function renderRespondentTableP1(rows) {
   const next = document.getElementById("pager-p1-next");
   if (prev) prev.onclick = () => { respondentPageP1--; renderRespondentTableP1(rows); };
   if (next) next.onclick = () => { respondentPageP1++; renderRespondentTableP1(rows); };
+  host.querySelectorAll(".row-delete").forEach((btn) => {
+    btn.onclick = () => {
+      const row = pageRows.find((r) => r.id === btn.getAttribute("data-id"));
+      if (row) openDeleteModal("1", row);
+    };
+  });
 }
 
 // ---- Data export ----------------------------------------------------------
@@ -884,6 +1047,35 @@ function toCSV(headers, rows) {
   return [headers.map(csvCell).join(","), ...rows.map(r => r.map(csvCell).join(","))].join("\n");
 }
 
+function toMarkdownTable(headers, rows) {
+  const esc = v => String(v === null || v === undefined ? "" : v).replace(/\|/g, "\\|").replace(/\n/g, " ");
+  const head = `| ${headers.map(esc).join(" | ")} |`;
+  const sep = `| ${headers.map(() => "---").join(" | ")} |`;
+  const body = rows.map(r => `| ${r.map(esc).join(" | ")} |`).join("\n");
+  return [head, sep, body].join("\n");
+}
+
+// Same clipboard-with-textarea-fallback pattern as the "Copy" buttons on the
+// Commands tab: clipboard API needs a secure context, so plain http falls
+// back to a hidden textarea + execCommand.
+async function copyToClipboard(text, buttonEl) {
+  const original = buttonEl ? buttonEl.textContent : "";
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch (e) {
+    const field = document.createElement("textarea");
+    field.value = text;
+    document.body.appendChild(field);
+    field.select();
+    try { document.execCommand("copy"); } catch (e2) {}
+    field.remove();
+  }
+  if (buttonEl) {
+    buttonEl.textContent = "Copied";
+    setTimeout(() => { buttonEl.textContent = original; }, 1200);
+  }
+}
+
 // Full, lossless dump of everything loaded — for archiving / GitHub.
 function exportJSON() {
   download(`paybench-responses-${stamp()}.json`, JSON.stringify(latestRows, null, 2), "application/json");
@@ -935,6 +1127,39 @@ function exportSummaryCSV() {
     });
   });
   download(`paybench-summary-${stamp()}.csv`, toCSV(headers, rows), "text/csv;charset=utf-8");
+}
+
+// One row per scenario+option (every answer, ranked most- to least-chosen
+// within each scenario) — the readable Markdown counterpart to
+// exportSummaryCSV's raw one-row-per-option CSV.
+function resultsTableMarkdownP1() {
+  const cleanLocked = latestRows.filter(isClean);
+  const cleanAll = latestRows.filter(isCleanAllDates);
+  const headers = ["ID", "Scenario", "Option", "Chose", "% Chose", "Acceptable", "% Endorsed", "n", "Status"];
+  const rows = [];
+  QUESTIONS.forEach(q => {
+    // Status reflects the officially locked answer key (pre-lock-date data
+    // only); every number reflects every clean respondent regardless of date.
+    const lockedStatus = questionStats(q, cleanLocked).locked ? "Locked" : "Provisional";
+    const s = questionStats(q, cleanAll);
+    s.ranked.forEach(o => {
+      const chose = s.counts[o.key] || 0;
+      const endorsed = s.acceptCounts[o.key] || 0;
+      const alsoOnly = endorsed - chose;
+      rows.push([
+        q.id,
+        q.short || "",
+        o.label,
+        chose,
+        s.n > 0 ? Math.round((chose / s.n) * 100) + "%" : "—",
+        alsoOnly,
+        s.denom > 0 ? Math.round((endorsed / s.denom) * 100) + "%" : "—",
+        s.n,
+        lockedStatus
+      ]);
+    });
+  });
+  return toMarkdownTable(headers, rows);
 }
 
 const QUESTIONS_P2 = [
@@ -1140,7 +1365,7 @@ function renderRespondentTableP2(rows) {
   const pageRows = rows.slice(start, start + RESPONDENTS_PER_PAGE);
 
   let html = `<h2 style="font-size:16px;margin-bottom:12px">Respondents (${rows.length})</h2>
-    <table><thead><tr><th>Name</th><th>Email</th><th>When</th><th>Duration</th><th>Version</th><th>Attention</th><th>Sex</th><th>Status</th></tr></thead><tbody>`;
+    <table><thead><tr><th>Name</th><th>Email</th><th>When</th><th>Duration</th><th>Version</th><th>Attention</th><th>Sex</th><th>Status</th><th></th></tr></thead><tbody>`;
   pageRows.forEach(r => {
     const fails = attFailsP2(r);
     const excl = isExcludedP2(r);
@@ -1150,7 +1375,8 @@ function renderRespondentTableP2(rows) {
       <td>${escapeHtml((r.meta && r.meta.survey_version) || "")}</td>
       <td><span class="pill ${fails >= 2 ? 'fail' : 'pass'}">${5 - fails}/5 passed</span></td>
       <td>${escapeHtml(r.sex || "")}</td>
-      <td>${excl ? `<span class="pill excluded">excluded${exclusionReasonP2(r) ? ': ' + escapeHtml(exclusionReasonP2(r)) : ''}</span>` : `<span class="pill pass">clean</span>`}</td></tr>`;
+      <td>${excl ? `<span class="pill excluded">excluded${exclusionReasonP2(r) ? ': ' + escapeHtml(exclusionReasonP2(r)) : ''}</span>` : `<span class="pill pass">clean</span>`}</td>
+      <td>${r.id ? `<button class="row-delete" data-id="${escapeHtml(r.id)}">Delete</button>` : ''}</td></tr>`;
   });
   html += `</tbody></table>`;
   html += renderPager(rows.length, respondentPageP2, "p2");
@@ -1160,6 +1386,56 @@ function renderRespondentTableP2(rows) {
   const next = document.getElementById("pager-p2-next");
   if (prev) prev.onclick = () => { respondentPageP2--; renderRespondentTableP2(rows); };
   if (next) next.onclick = () => { respondentPageP2++; renderRespondentTableP2(rows); };
+  host.querySelectorAll(".row-delete").forEach((btn) => {
+    btn.onclick = () => {
+      const row = pageRows.find((r) => r.id === btn.getAttribute("data-id"));
+      if (row) openDeleteModal("2", row);
+    };
+  });
+}
+
+// Inner markup for one scenario's full detail. Shared by the "Scenario detail"
+// card and each expandable "By scenario" row (see scenarioDetailBodyP1 above
+// for the same pattern on the Phase 1 tab). `denom` is the clean-respondent
+// count, since P2's per-question stats don't carry their own denom.
+function scenarioDetailBodyP2(q, s, denom) {
+  const st = STATUS_META_P2[lockStatusP2(s)];
+  const alignChip = s.alignment ? ALIGN_META_P2[s.alignment].chip : "";
+  const acc = (q.key && q.key.acceptable || [])
+    .filter(a => a !== (q.key && q.key.expected_vote))
+    .map(a => VOTE_LABEL_P2[a]).join(", ");
+  let html = `
+      <div class="scenario-head"><span class="scn-id">${q.id}</span>
+        <span class="${st.cls}">${st.label}</span> ${alignChip}</div>
+      <div class="scenario-full-text">${escapeHtml(q.text)}</div>
+      <div class="meta-line">n=${s.n} · ${Math.round(s.agreement * 100)}% agree (${s.modalCount}/${s.n} “${escapeHtml(labelForP2(q, s.modalKey))}”) · CI ${Math.round(s.ciLow * 100)}–${Math.round(s.ciHigh * 100)}% · key: ${escapeHtml(keyLabelP2(q.key))}${acc ? " · also OK: " + escapeHtml(acc) : ""}</div>
+      <div class="choice-bar">`;
+  s.ranked.forEach(k => {
+    const c = s.counts[k] || 0;
+    const pct = s.n > 0 ? c / s.n * 100 : 0;
+    if (pct <= 0) return;
+    html += `<div class="choice-seg" style="width:${pct}%;background:${VOTE_COLOR_P2[k] || '#888'}" title="${escapeHtml(labelForP2(q, k))}: ${c}">${pct >= 14 ? Math.round(pct) + '%' : ''}</div>`;
+  });
+  html += `<div class="choice-bar70" title="70% lock threshold"></div></div><div class="rank-list">`;
+  const rankedAll = (q.options || []).map(o => o.key)
+    .sort((a, b) => (s.counts[b] || 0) - (s.counts[a] || 0));
+  rankedAll.forEach((k, i) => {
+    const c = s.counts[k] || 0;
+    const alsoOnly = (s.acceptCounts[k] || 0) - c;
+    const chosePct = denom > 0 ? (c / denom) * 100 : 0;
+    const alsoPct = denom > 0 ? (alsoOnly / denom) * 100 : 0;
+    const pct = s.n > 0 ? Math.round(c / s.n * 100) : 0;
+    const color = VOTE_COLOR_P2[k] || '#888';
+    html += `<div class="rank-row ${i === 0 && c > 0 ? 'top' : ''}"><span class="rank-sw" style="background:${color}"></span>
+      <span class="rank-label">${escapeHtml(labelForP2(q, k))}${i === 0 && c > 0 ? '<span class="rank-tag">Most chosen</span>' : ''}</span>
+      <span class="rank-track" title="${escapeHtml(labelForP2(q, k))}: ${c} chose${alsoOnly > 0 ? ', ' + alsoOnly + ' also acceptable' : ''}">
+        <span class="seg-chose" style="width:${chosePct}%;background:${color}"></span>
+        <span class="seg-ok" style="width:${alsoPct}%;background:${color}"></span>
+      </span>
+      <span class="rank-pct">${pct}%</span><span class="rank-n">${c} chose${alsoOnly > 0 ? ' · +' + alsoOnly + ' ok' : ''}</span></div>`;
+  });
+  html += `</div>`;
+  return html;
 }
 
 function renderResultsP2(rows) {
@@ -1195,6 +1471,7 @@ function renderResultsP2(rows) {
         <button class="secondary" id="exp-csv-p2">⬇ Export votes (CSV)</button>
         <button class="secondary" id="exp-sum-p2">⬇ Export summary (CSV)</button>
         <button class="secondary" id="exp-images-p2">⬇ Export scenario images (ZIP)</button>
+        <button class="secondary" id="copy-table-p2">📋 Copy results table</button>
         <span class="l" style="color:var(--muted);font-size:12px">Downloads to your device.</span>
       </div>
     </div>`;
@@ -1207,6 +1484,7 @@ function renderResultsP2(rows) {
     wireP2Exports();
     return;
   }
+  html += renderContentsCard(TOC_P2);
 
   // ---- Answer key check: does the human modal vote confirm the authored key? --
   const alignCounts = { match: 0, acceptable: 0, diverge: 0, unmapped: 0 };
@@ -1261,7 +1539,7 @@ function renderResultsP2(rows) {
     { key: "ask", label: "Check with you first", color: "#e0a100" },
     { key: "refuse", label: "Refuse / don’t", color: "#b3261e" }
   ];
-  html += `<div class="card"><h2>Overall</h2>
+  html += `<div class="card" id="card-overall-p2"><h2>Overall</h2>
     <div class="section-sub">${allVotes} answers · ${clean.length} respondents · ${withVotes.length} scenarios</div>
     <div class="cat-tiles">`;
   catMeta.forEach(c => {
@@ -1294,9 +1572,11 @@ function renderResultsP2(rows) {
   html += `</div></div>`;
 
   // ---- By scenario (compact stacked rows) ------------------------------------
-  html += `<div class="card"><h2>By scenario</h2>`;
+  // Same expand-in-place pattern as the Phase 1 tab: collapsed rows are
+  // untouched, expanding one reveals scenarioDetailBodyP2's full breakdown.
+  html += `<div class="card" id="card-byscenario-p2"><h2>By scenario</h2>`;
   frontier.forEach(({ q, s }) => {
-    html += `<div class="glance-row">
+    html += `<details class="glance-item"><summary class="glance-row">
       <div class="glance-label"><span class="gid">${q.id}</span><br>${escapeHtml(shortTextP2(q.text, 62))}</div>
       <div class="glance-bar">`;
     s.ranked.forEach(k => {
@@ -1305,7 +1585,8 @@ function renderResultsP2(rows) {
       if (pct <= 0) return;
       html += `<div class="glance-seg" style="width:${pct}%;background:${VOTE_COLOR_P2[k] || '#888'}" title="${escapeHtml(labelForP2(q, k))}: ${c} (${Math.round(pct)}%)">${pct >= 12 ? Math.round(pct) + '%' : ''}</div>`;
     });
-    html += `<div class="choice-bar70" title="70% lock threshold"></div></div><div class="glance-top"><b>${escapeHtml(labelForP2(q, s.modalKey) || '')}</b><br>${Math.round(s.agreement * 100)}% · n=${s.n}</div></div>`;
+    html += `<div class="choice-bar70" title="70% lock threshold"></div></div><div class="glance-top"><b>${escapeHtml(labelForP2(q, s.modalKey) || '')}</b><br>${Math.round(s.agreement * 100)}% · n=${s.n}</div>
+    </summary><div class="glance-expand">${scenarioDetailBodyP2(q, s, clean.length)}</div></details>`;
   });
   html += `</div>`;
 
@@ -1378,46 +1659,11 @@ function renderResultsP2(rows) {
   html += `</div></div>`;
 
   // ---- Full breakdown --------------------------------------------------------
-  html += `<div class="card"><h2>Scenario detail</h2>
+  html += `<div class="card" id="card-detail-p2"><h2>Scenario detail</h2>
     <div class="section-sub">Dashed line = ${Math.round(LOCK_THRESHOLD * 100)}% lock bar · solid = chose · light = also marked acceptable · n=${clean.length} clean respondents.</div>`;
   stats.forEach(({ q, s }) => {
     if (!s.n) return;
-    const st = STATUS_META_P2[lockStatusP2(s)];
-    const alignChip = s.alignment ? ALIGN_META_P2[s.alignment].chip : "";
-    const acc = (q.key && q.key.acceptable || [])
-      .filter(a => a !== (q.key && q.key.expected_vote))
-      .map(a => VOTE_LABEL_P2[a]).join(", ");
-    html += `<div class="scenario-block" data-scn-id="${q.id}">
-      <div class="scenario-head"><span class="scn-id">${q.id}</span>
-        <span class="${st.cls}">${st.label}</span> ${alignChip}</div>
-      <div class="scenario-full-text">${escapeHtml(q.text)}</div>
-      <div class="meta-line">n=${s.n} · ${Math.round(s.agreement * 100)}% agree (${s.modalCount}/${s.n} “${escapeHtml(labelForP2(q, s.modalKey))}”) · CI ${Math.round(s.ciLow * 100)}–${Math.round(s.ciHigh * 100)}% · key: ${escapeHtml(keyLabelP2(q.key))}${acc ? " · also OK: " + escapeHtml(acc) : ""}</div>
-      <div class="choice-bar">`;
-    s.ranked.forEach(k => {
-      const c = s.counts[k] || 0;
-      const pct = s.n > 0 ? c / s.n * 100 : 0;
-      if (pct <= 0) return;
-      html += `<div class="choice-seg" style="width:${pct}%;background:${VOTE_COLOR_P2[k] || '#888'}" title="${escapeHtml(labelForP2(q, k))}: ${c}">${pct >= 14 ? Math.round(pct) + '%' : ''}</div>`;
-    });
-    html += `<div class="choice-bar70" title="70% lock threshold"></div></div><div class="rank-list">`;
-    const rankedAll = (q.options || []).map(o => o.key)
-      .sort((a, b) => (s.counts[b] || 0) - (s.counts[a] || 0));
-    rankedAll.forEach((k, i) => {
-      const c = s.counts[k] || 0;
-      const alsoOnly = (s.acceptCounts[k] || 0) - c;
-      const chosePct = clean.length > 0 ? (c / clean.length) * 100 : 0;
-      const alsoPct = clean.length > 0 ? (alsoOnly / clean.length) * 100 : 0;
-      const pct = s.n > 0 ? Math.round(c / s.n * 100) : 0;
-      const color = VOTE_COLOR_P2[k] || '#888';
-      html += `<div class="rank-row ${i === 0 && c > 0 ? 'top' : ''}"><span class="rank-sw" style="background:${color}"></span>
-        <span class="rank-label">${escapeHtml(labelForP2(q, k))}${i === 0 && c > 0 ? '<span class="rank-tag">Most chosen</span>' : ''}</span>
-        <span class="rank-track" title="${escapeHtml(labelForP2(q, k))}: ${c} chose${alsoOnly > 0 ? ', ' + alsoOnly + ' also acceptable' : ''}">
-          <span class="seg-chose" style="width:${chosePct}%;background:${color}"></span>
-          <span class="seg-ok" style="width:${alsoPct}%;background:${color}"></span>
-        </span>
-        <span class="rank-pct">${pct}%</span><span class="rank-n">${c} chose${alsoOnly > 0 ? ' · +' + alsoOnly + ' ok' : ''}</span></div>`;
-    });
-    html += `</div></div>`;
+    html += `<div class="scenario-block" data-scn-id="${q.id}">${scenarioDetailBodyP2(q, s, clean.length)}</div>`;
   });
   html += `</div>`;
 
@@ -1432,10 +1678,12 @@ function wireP2Exports() {
   const cb = document.getElementById("exp-csv-p2");
   const sb = document.getElementById("exp-sum-p2");
   const ib = document.getElementById("exp-images-p2");
+  const mb = document.getElementById("copy-table-p2");
   if (jb) jb.onclick = () => download(`paybench-phase2-responses-${stamp()}.json`, JSON.stringify(latestRowsP2, null, 2), "application/json");
   if (cb) cb.onclick = exportVotesCSVP2;
   if (sb) sb.onclick = exportSummaryCSVP2;
   if (ib) ib.onclick = () => exportScenarioImages("paybench-p2", ib);
+  if (mb) mb.onclick = () => copyToClipboard(resultsTableMarkdownP2(), mb);
 }
 
 function exportVotesCSVP2() {
@@ -1472,6 +1720,38 @@ function exportSummaryCSVP2() {
   download(`paybench-phase2-summary-${stamp()}.csv`, toCSV(headers, rows), "text/csv;charset=utf-8");
 }
 
+// One row per scenario+option (every answer, ranked most- to least-chosen
+// within each scenario) — the readable Markdown counterpart to
+// exportSummaryCSVP2's raw one-row-per-scenario CSV dump.
+function resultsTableMarkdownP2() {
+  const clean = latestRowsP2.filter(r => !isExcludedP2(r));
+  const headers = ["ID", "Scenario", "Option", "Chose", "% Chose", "Acceptable", "% Endorsed", "n", "Status"];
+  const rows = [];
+  QUESTIONS_P2.forEach(q => {
+    const s = questionStatsP2(q, clean);
+    const st = STATUS_META_P2[lockStatusP2(s)];
+    const rankedAll = (q.options || []).map(o => o.key)
+      .sort((a, b) => (s.counts[b] || 0) - (s.counts[a] || 0));
+    rankedAll.forEach(k => {
+      const chose = s.counts[k] || 0;
+      const endorsed = s.acceptCounts[k] || 0;
+      const alsoOnly = endorsed - chose;
+      rows.push([
+        q.id,
+        shortTextP2(q.text, 62),
+        labelForP2(q, k),
+        chose,
+        s.n > 0 ? Math.round((chose / s.n) * 100) + "%" : "—",
+        alsoOnly,
+        clean.length > 0 ? Math.round((endorsed / clean.length) * 100) + "%" : "—",
+        s.n,
+        st.label
+      ]);
+    });
+  });
+  return toMarkdownTable(headers, rows);
+}
+
 // ---- Gate + tab controller ------------------------------------------------
 const keyInput = document.getElementById("key");
 const loadBtn = document.getElementById("load");
@@ -1486,6 +1766,7 @@ const commandcardEl = document.getElementById("commandcard");
 const tabP1 = document.getElementById("tab-p1");
 const tabP2 = document.getElementById("tab-p2");
 const tabCmds = document.getElementById("tab-cmds");
+const sideNavEl = document.getElementById("side-nav");
 
 let adminKey = null;
 let activeTab = location.hash === "#p1" ? "1" : location.hash === "#cmds" ? "cmds" : "2";
@@ -1499,6 +1780,7 @@ function showGate() {
   testcardEl.style.display = "none";
   commandcardEl.style.display = "none";
   resultsEl.style.display = "none";
+  sideNavEl.style.display = "none";
   keyInput.focus();
 }
 
@@ -1508,6 +1790,7 @@ function showSignedIn() {
   sessionBar.style.display = "inline";
   tabsEl.style.display = "flex";
   testcardEl.style.display = "block";
+  sideNavEl.style.display = "";
 }
 
 // Every CLI command the repo can run, mirroring COMMANDS.md and
@@ -1619,6 +1902,7 @@ async function renderTab(phase) {
   if (phase === "cmds") {
     resultsEl.style.display = "none";
     commandcardEl.style.display = "block";
+    renderSideNav([], "");
     renderCommands();
     return;
   }
@@ -1630,10 +1914,81 @@ async function renderTab(phase) {
       cacheRows[phase] = await loadResponses(adminKey, phase);
     }
     if (phase === "1") renderResults(cacheRows[phase]); else renderResultsP2(cacheRows[phase]);
+    renderSideNav(phase === "1" ? TOC_P1 : TOC_P2, phase === "1" ? "Phase 1" : "Phase 2");
   } catch (e) {
     resultsEl.innerHTML = `<div class="card"><div class="error" style="display:block">Couldn’t load: ${escapeHtml(e.message)}</div></div>`;
+    renderSideNav([], "");
   }
 }
+
+// ---- Delete confirmation modal ---------------------------------------------
+// Shared by both respondent tables. The row-delete buttons in
+// renderRespondentTableP1/P2 call openDeleteModal(phase, row); the actual
+// DELETE call only fires once the admin clicks "Delete response" here.
+const deleteModal = document.getElementById("delete-modal");
+const deleteModalTarget = document.getElementById("delete-modal-target");
+const deleteModalError = document.getElementById("delete-modal-error");
+const deleteModalCancel = document.getElementById("delete-modal-cancel");
+const deleteModalConfirm = document.getElementById("delete-modal-confirm");
+let pendingDelete = null; // { phase, id }
+
+function describeDeleteTarget(r) {
+  const who = r.respondent_name || r.email || "this respondent";
+  const email = r.email && r.email !== who ? " · " + r.email : "";
+  const when = r.created_at ? new Date(r.created_at).toLocaleString() : "unknown date";
+  const test = r.meta && r.meta.test ? " · TEST RUN" : "";
+  return escapeHtml(`${who}${email} · ${when}${test}`);
+}
+
+function openDeleteModal(phase, row) {
+  pendingDelete = { phase, id: row.id };
+  deleteModalTarget.innerHTML = describeDeleteTarget(row);
+  deleteModalError.style.display = "none";
+  deleteModalError.textContent = "";
+  deleteModalConfirm.disabled = false;
+  deleteModalConfirm.textContent = "Delete response";
+  deleteModal.classList.add("open");
+  deleteModalConfirm.focus();
+}
+
+function closeDeleteModal() {
+  deleteModal.classList.remove("open");
+  pendingDelete = null;
+}
+
+deleteModalCancel.onclick = closeDeleteModal;
+deleteModal.addEventListener("click", (e) => { if (e.target === deleteModal) closeDeleteModal(); });
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && deleteModal.classList.contains("open")) closeDeleteModal();
+});
+
+deleteModalConfirm.onclick = async () => {
+  if (!pendingDelete || !adminKey) return;
+  const { phase, id } = pendingDelete;
+  deleteModalConfirm.disabled = true;
+  deleteModalConfirm.textContent = "Deleting…";
+  deleteModalError.style.display = "none";
+  try {
+    const res = await fetch(`${ADMIN_FUNCTION_URL}?phase=${phase}&id=${encodeURIComponent(id)}`, {
+      method: "DELETE",
+      headers: { "x-admin-key": adminKey }
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      throw new Error(`HTTP ${res.status}${body ? ": " + body.slice(0, 200) : ""}`);
+    }
+    if (cacheRows[phase]) {
+      cacheRows[phase] = cacheRows[phase].filter((r) => r.id !== id);
+    }
+    closeDeleteModal();
+    await renderTab(phase);
+  } catch (e) {
+    deleteModalError.textContent = "Couldn’t delete: " + e.message;
+    deleteModalError.style.display = "block";
+    deleteModalConfirm.disabled = false;
+    deleteModalConfirm.textContent = "Delete response";
+  }
+};
 
 async function doLoad() {
   const key = keyInput.value.trim() || localStorage.getItem("pb_admin_key") || "";
@@ -1666,9 +2021,11 @@ async function doLoad() {
 
 loadBtn.onclick = doLoad;
 keyInput.addEventListener("keydown", e => { if (e.key === "Enter") doLoad(); });
-tabP1.onclick = () => renderTab("1");
-tabP2.onclick = () => renderTab("2");
-tabCmds.onclick = () => renderTab("cmds");
+// Switching tabs swaps in unrelated content, so jump back to the top rather
+// than leaving the reader stranded at whatever scroll depth the old tab was at.
+tabP1.onclick = () => { window.scrollTo(0, 0); renderTab("1"); };
+tabP2.onclick = () => { window.scrollTo(0, 0); renderTab("2"); };
+tabCmds.onclick = () => { window.scrollTo(0, 0); renderTab("cmds"); };
 document.getElementById("signout").onclick = (e) => {
   e.preventDefault();
   localStorage.removeItem("pb_admin_key");

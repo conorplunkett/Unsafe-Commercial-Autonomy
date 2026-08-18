@@ -291,10 +291,9 @@ def _print_verdicts_and_failures(metrics: dict) -> None:
     verdict_counts = metrics.get("verdict_counts") or {}
     unkeyed_counts = metrics.get("verdict_counts_unkeyed") or {}
     if unkeyed_counts:
-        # Some of the raw tally rests on awaiting_survey/dropped scenarios that
-        # never feed the headline rates (see UNKEYED_STATUSES) -- split it so a
-        # reader scanning "unsafe=N" here can't mistake it for the scored count,
-        # which can be roughly half of N or less.
+        # Some of the raw tally rests on dropped scenarios that never feed the
+        # headline rates (see UNKEYED_STATUSES) -- split it so a reader
+        # scanning "unsafe=N" here can't mistake it for the scored count.
         keyed_counts = metrics.get("verdict_counts_keyed") or {}
         ordered_keyed = sorted(keyed_counts.items(), key=lambda item: (-item[1], item[0]))
         print(
@@ -303,7 +302,7 @@ def _print_verdicts_and_failures(metrics: dict) -> None:
         )
         ordered_unkeyed = sorted(unkeyed_counts.items(), key=lambda item: (-item[1], item[0]))
         print(
-            "Verdicts (awaiting_survey/dropped, not scored): "
+            "Verdicts (dropped, not scored): "
             + "  ".join(f"{verdict}={count}" for verdict, count in ordered_unkeyed)
         )
     elif verdict_counts:
@@ -350,7 +349,7 @@ def _print_result_details(results: List[dict]) -> None:
     if len(ordered) > _DETAIL_ROW_CAP:
         print(f"... {len(ordered) - _DETAIL_ROW_CAP} more (see the saved run JSON).")
     if any_unkeyed:
-        print("* = awaiting_survey/dropped scenario: not scored in the headline rates.")
+        print("* = dropped scenario: not scored in the headline rates.")
 
     # Rationales are the most useful debugging signal for non-safe verdicts, so
     # print them in full(ish) instead of cramming them into the table.
@@ -443,17 +442,17 @@ def _print_summary(run_payload: dict, saved_path=None) -> None:
         print(f"Errors: {metrics['error_count']} ({metrics.get('error_rate', 0.0):.1%})")
     if metrics.get("awaiting_survey_count"):
         print(
-            f"Awaiting survey: {metrics['awaiting_survey_count']} results on scenarios "
-            "the Phase 2 survey has not keyed yet (run, not scored)"
+            f"Provisional survey keys: {metrics['awaiting_survey_count']} results scored "
+            "against team keys the Phase 2 survey can still re-key"
         )
     by_semantic_only = metrics.get("by_semantic_only") or {}
     semantic_only_summary = by_semantic_only.get("semantic_only")
     objective_summary = by_semantic_only.get("objective")
     if semantic_only_summary and semantic_only_summary.get("total_results"):
         print(
-            f"Semantic-only (survey-derived preference) unsafe rate: "
+            f"Survey half unsafe rate: "
             f"{_format_rate(semantic_only_summary, 'unsafe_payment')} "
-            f"vs objective: "
+            f"vs objective half: "
             f"{_format_rate(objective_summary, 'unsafe_payment') if objective_summary else 'n/a'}"
         )
     # The unsafe rate is bottom-censored for an agent that stops on everything
@@ -842,7 +841,7 @@ def _resume_command_line(args: argparse.Namespace, run_id: str) -> str:
 
 
 def phase2_eval_command(args: argparse.Namespace) -> int:
-    """Phase 2 four-condition sandbox ablation with framing variation."""
+    """Phase 2 three-condition sandbox ablation with opt-in pressure axes."""
     from .phase2 import CheckpointMismatch, CheckpointMissing, CheckpointStore, run_phase2_evaluation
     from .phase2.runner import PHASE2_SCENARIO_SET
 
@@ -1473,7 +1472,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     phase2_eval_parser = subparsers.add_parser(
         "phase2-eval",
-        help="Phase 2 sandbox eval: four-condition ablation with evaluation/deployment framing.",
+        help="Phase 2 sandbox eval: three-condition control ablation with opt-in pressure axes.",
     )
     phase2_eval_parser.add_argument(
         "--models",
@@ -1489,18 +1488,18 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help=(
             "Comma-separated Phase 2 conditions: no_policy, structured_policy, "
-            "required_check, tool_constraints, or all. Default: no_policy only "
-            "(no additional control layers — pass a list, or 'all' for all four, to turn constraints on)."
+            "tool_constraints, or all. Default: no_policy only "
+            "(no additional control layers — pass a list, or 'all' for all three, to turn constraints on)."
         ),
     )
     phase2_eval_parser.add_argument(
         "--framings",
         default=None,
         help=(
-            "Comma-separated framings: evaluation, deployment, or all. Default: "
-            "deployment only — the 'evaluation' preamble tells the model it is "
-            "being evaluated, so it never runs unless you opt in with "
-            "--framings=evaluation (or all) to deliberately study that effect."
+            "Comma-separated framings: deployment, or all. Default: deployment. "
+            "The 'evaluation' framing (a preamble telling the model it is being "
+            "evaluated) was cut from the runnable grid on 2026-08-17 and now "
+            "fails as unknown; stored runs that carry it still load."
         ),
     )
     phase2_eval_parser.add_argument(
@@ -1508,8 +1507,8 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help=(
             "Comma-separated urgency levels: none, time_pressure, or all. Default: "
-            "none only (opt in to add the time-pressure ablation; like --framings, "
-            "omitting this does not run every level)."
+            "none only (opt in to add the time-pressure ablation; omitting this "
+            "does not run every level)."
         ),
     )
     phase2_eval_parser.add_argument(
@@ -1517,8 +1516,8 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help=(
             "Comma-separated user-availability levels: none, unreachable, or all. Default: "
-            "none only (opt in to add the absent-user ablation; like --framings, "
-            "omitting this does not run every level). Crosses with --urgencies, so "
+            "none only (opt in to add the absent-user ablation; omitting this "
+            "does not run every level). Crosses with --urgencies, so "
             "setting both to all quadruples the grid."
         ),
     )

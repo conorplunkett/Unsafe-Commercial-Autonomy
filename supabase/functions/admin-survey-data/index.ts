@@ -1,8 +1,9 @@
-// Read-only admin endpoint for the survey tables, called by
-// web/public/admin.html. The service_role key stays server-side; the caller
-// authenticates with the admin passphrase, which grants nothing beyond reading
-// the whitelisted tables below. This file is the source of truth for the
-// deployed function — deploy from the repo, never edit in the dashboard:
+// Admin endpoint for the survey tables, called by web/public/admin.html. The
+// service_role key stays server-side; the caller authenticates with the admin
+// passphrase, which grants read (GET) and single-row delete (DELETE) access
+// to the whitelisted tables below — nothing else. This file is the source of
+// truth for the deployed function — deploy from the repo, never edit in the
+// dashboard:
 //
 //   supabase secrets set ADMIN_SURVEY_KEY="$(openssl rand -base64 30)" \
 //     --project-ref tethtzycfdplyzvrtknh
@@ -18,6 +19,9 @@ const TABLES: Record<string, string> = {
   "1": "phase1_survey_responses",
   "2": "phase2_survey_responses",
 };
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // The admin dashboard's own origins, nothing else. localhost covers
 // `vercel dev` / `next dev`; a passphrase is still required there.
@@ -36,7 +40,7 @@ function corsHeaders(req: Request): Record<string, string> {
       : "https://paybench.org",
     "Vary": "Origin",
     "Access-Control-Allow-Headers": "x-admin-key, content-type",
-    "Access-Control-Allow-Methods": "GET, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, DELETE, OPTIONS",
   };
 }
 
@@ -73,23 +77,59 @@ Deno.serve(async (req) => {
     return json(401, { error: "unauthorized" });
   }
 
-  const phase = new URL(req.url).searchParams.get("phase") || "1";
+  const reqUrl = new URL(req.url);
+  const phase = reqUrl.searchParams.get("phase") || "1";
   const table = TABLES[phase];
   if (!table) {
     return json(400, { error: "invalid phase" });
   }
 
-  const url = Deno.env.get("SUPABASE_URL");
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const serviceHeaders = {
+    apikey: serviceKey ?? "",
+    Authorization: `Bearer ${serviceKey}`,
+  };
+
+  if (req.method === "DELETE") {
+    const id = reqUrl.searchParams.get("id") || "";
+    if (!UUID_RE.test(id)) {
+      return json(400, { error: "invalid id" });
+    }
+    const res = await fetch(
+      `${supabaseUrl}/rest/v1/${table}?id=eq.${id}`,
+      {
+        method: "DELETE",
+        headers: { ...serviceHeaders, Prefer: "return=representation" },
+      },
+    );
+    const body = await res.text();
+    if (res.ok) {
+      // PostgREST returns the deleted rows as a JSON array; an empty array
+      // means the id didn't match anything (already deleted, or never existed).
+      let deleted: unknown[] = [];
+      try {
+        deleted = JSON.parse(body);
+      } catch {
+        // fall through with an empty array — treated as "not found" below
+      }
+      if (!Array.isArray(deleted) || deleted.length === 0) {
+        return json(404, { error: "not found" });
+      }
+    }
+    return new Response(body, {
+      status: res.status,
+      headers: { ...cors, "Content-Type": "application/json" },
+    });
+  }
+
+  if (req.method !== "GET") {
+    return json(405, { error: "method not allowed" });
+  }
 
   const res = await fetch(
-    `${url}/rest/v1/${table}?select=*&order=created_at.asc`,
-    {
-      headers: {
-        apikey: serviceKey ?? "",
-        Authorization: `Bearer ${serviceKey}`,
-      },
-    },
+    `${supabaseUrl}/rest/v1/${table}?select=*&order=created_at.asc`,
+    { headers: serviceHeaders },
   );
 
   const body = await res.text();

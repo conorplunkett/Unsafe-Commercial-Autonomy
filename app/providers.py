@@ -518,35 +518,41 @@ def _is_openai_reasoning_model(model_name: str) -> bool:
     return name.startswith(("gpt-5", "o1", "o3", "o4"))
 
 
+# Values that switch an on-by-default reasoning-visibility knob off.
+_REASONING_OPT_OUT_VALUES = {"0", "off", "false", "none"}
+
+
 def _openai_reasoning_params(effort: str) -> Dict[str, Any]:
     """Build the Responses API ``reasoning`` param for a reasoning model.
 
-    ``OPENAI_REASONING_SUMMARY`` (e.g. ``auto``) additionally asks the API to
-    return reasoning summaries in the response. Return-only: effort alone
-    decides whether and how deeply the model reasons, so opting in
-    mid-benchmark changes visibility, not the eval condition. Unset (the
-    default) leaves the request bytes exactly as they were before the knob
-    existed.
+    Summaries are requested by default (``auto``): they only surface reasoning
+    the model already does, so returning them changes visibility, not the eval
+    condition -- effort alone decides whether and how deeply the model
+    reasons. Set ``OPENAI_REASONING_SUMMARY`` to another mode (``concise``,
+    ``detailed``) to change it, or to ``0``/``off``/``false``/``none`` to
+    reproduce the pre-knob request byte for byte.
     """
     params: Dict[str, Any] = {"effort": effort}
-    summary = os.environ.get("OPENAI_REASONING_SUMMARY")
-    if summary:
+    summary = os.environ.get("OPENAI_REASONING_SUMMARY", "auto").strip()
+    if summary and summary.lower() not in _REASONING_OPT_OUT_VALUES:
         params["summary"] = summary
     return params
 
 
 def _gemini_thinking_extra_body() -> Dict[str, Any]:
-    """Optional request keys asking Gemini's compat layer for thought summaries.
+    """Request keys asking Gemini's compat layer for thought summaries.
 
-    ``GEMINI_INCLUDE_THOUGHTS=1`` opts in; anything else returns ``{}`` and
-    leaves the request untouched. Return-only: ``include_thoughts`` surfaces
-    summaries of thinking the model already does -- never send
-    ``thinking_level``/budget here, which would change reasoning depth and
-    with it the eval condition. Where thoughts land in the compat response is
-    unverified; extraction stays passive, so if nothing identifiable comes
-    back, reasoning simply stays None.
+    On by default; set ``GEMINI_INCLUDE_THOUGHTS`` to
+    ``0``/``off``/``false``/``none`` to drop the keys and reproduce the
+    pre-knob request. Return-only: ``include_thoughts`` surfaces summaries of
+    thinking the model already does -- never send ``thinking_level``/budget
+    here, which would change reasoning depth and with it the eval condition.
+    Where thoughts land in the compat response is unverified; extraction
+    stays passive, so a model whose thoughts never surface -- or one that
+    does not think at all, like flash-lite -- simply keeps reasoning None.
     """
-    if os.environ.get("GEMINI_INCLUDE_THOUGHTS") != "1":
+    value = os.environ.get("GEMINI_INCLUDE_THOUGHTS", "").strip().lower()
+    if value in _REASONING_OPT_OUT_VALUES:
         return {}
     return {"extra_body": {"google": {"thinking_config": {"include_thoughts": True}}}}
 

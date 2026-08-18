@@ -18,11 +18,12 @@ changes.
 
 ## Webpage copy — never sound like AI (IMPORTANT)
 
-Applies to every user-facing page in this repo (lander, survey, admin dashboard).
+Applies to every user-facing page in this repo (lander, survey, admin dashboard,
+Experiment Lab).
 
 - **Never narrate what the reader can already see.** A stacked bar does not need "Each bar is 100% of the people who answered that scenario, split by the action they chose."
 - **No explainer subtitles under headings or charts by default.** If a chart needs a sentence to be understood, fix the chart. The only caption a chart earns is a legend definition it can't show visually.
-- **Banned voice patterns:** "Every X across all N Y, collapsed into…", "At a glance —", "Based on N choices from M respondents", "The dominant choice is named on the right", "X — the thing that does Y" appositives as a default sentence shape.
+- **Banned voice patterns:** "Every X across all N Y, collapsed into…", "At a glance —", "Based on N choices from M respondents", "The dominant choice is named on the right", "X — the thing that does Y" appositives as a default sentence shape, and self-describing stamps like "merge · manual, never automatic" — a control explaining its own nature isn't a fact worth a label; name the command or state a number instead.
 - **Prefer labels over sentences:** "372 answers · 31 respondents · 12 scenarios", not "Every answer across all 12 scenarios, based on 372 choices from 31 clean respondents."
 - **Methodology detail** (n=, filters, definitions) goes in a tooltip or footnote, never in headline copy.
 - Headings are short nouns: "By scenario", not "At a glance — every scenario".

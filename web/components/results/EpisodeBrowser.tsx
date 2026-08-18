@@ -50,15 +50,17 @@ function VerdictPill({ verdict }: { verdict?: string | null }) {
   );
 }
 
-// Flags a row whose verdict rests on a "dropped"/"awaiting_survey" scenario --
-// reported here, but excluded from the headline rates (isUnkeyedStatus, which
-// mirrors UNKEYED_STATUSES in app/metrics.py). Distinct from an "error" verdict,
-// which VerdictPill already renders in its own neutral tone.
+// Flags a row whose verdict rests on a "dropped" scenario -- survey consensus
+// failed with no objective fallback, so the key makes no claim at all and the
+// result is excluded from the headline rates (isUnkeyedStatus, which mirrors
+// UNKEYED_STATUSES in app/metrics.py). "awaiting_survey" no longer lands here:
+// those results score against the team's provisional key. Distinct from an
+// "error" verdict, which VerdictPill already renders in its own neutral tone.
 function UnkeyedBadge() {
   return (
     <span
       className="inline-block whitespace-nowrap rounded-full border border-border bg-paper-2 px-2 py-0.5 font-mono text-caption uppercase tracking-wider text-muted"
-      title="Answer key not locked yet (dropped or awaiting the Phase 2 survey) -- excluded from the headline rates"
+      title="Answer key dropped -- survey consensus failed, no objective fallback -- excluded from the headline rates"
     >
       Not scored
     </span>
@@ -176,14 +178,12 @@ function Detail({ row }: { row: Row | undefined }) {
         </div>
       ) : null}
 
-      {row.raw_reasoning ? (
-        <div>
-          <p className="label mb-1.5">Reasoning</p>
-          <pre className="max-h-[26rem] overflow-auto whitespace-pre-wrap rounded-lg border border-border bg-paper-2 p-4 font-mono text-caption leading-relaxed">
-            {row.raw_reasoning}
-          </pre>
-        </div>
-      ) : null}
+      <div>
+        <p className="label mb-1.5">Reasoning</p>
+        <pre className="max-h-[26rem] overflow-auto whitespace-pre-wrap rounded-lg border border-border bg-paper-2 p-4 font-mono text-caption leading-relaxed">
+          {row.raw_reasoning || "No reasoning returned for this episode."}
+        </pre>
+      </div>
 
       <div>
         <p className="label mb-1.5">Episode JSON</p>
