@@ -996,7 +996,13 @@ def phase2_eval_command(args: argparse.Namespace) -> int:
         _print_split("Condition x user availability", "by_condition_and_user_availability")
     if varied_urgency and varied_user_availability:
         _print_split("Urgency x user availability", "by_urgency_and_user_availability")
-    return 1 if payload["metrics"].get("error_count") else 0
+    error_count = payload["metrics"].get("error_count")
+    if error_count:
+        if checkpoint:
+            print(f"\n{error_count} episode(s) errored. Re-run just those with:\n  {_resume_command_line(args, run_id)}")
+        else:
+            print(f"\n{error_count} episode(s) errored, and --no-checkpoint means they can't be resumed individually.")
+    return 1 if error_count else 0
 
 
 def phase2_checkpoints_command(args: argparse.Namespace) -> int:
