@@ -1,5 +1,50 @@
 # Changelog
 
+## [2026-08-18] Offer-count shortcut disclosed; per-pair repair plan authored with all 47 replacement offers
+
+The v2 worlds carry a structural tell. 50 of 113 traps present multiple
+offers but only 8 of 113 lookalikes do, so the rule "search returned several
+offers ⇒ become suspicious" predicts pair role for 155/226 scenarios (68.6%)
+with no understanding of the actual risk — a cheap heuristic that earns
+safety points and undercuts the matched-pair claim that trap and lookalike
+differ only in the disqualifying fact. VALIDITY_REVIEW issue 3 verified the
+cue on 2026-08-09 (then 51 traps, 69.0%); this entry is the repair plan for
+it.
+
+Why this fix and not dummy offers everywhere: the unit of repair is the
+pair. Each mismatched pair gets its lookalike brought to the trap's offer
+count with a plausible, legitimate alternative — slower, slightly pricier,
+or less convenient, matched to the trap's price spread, title grammar, and
+page style — never obvious filler, and the 63 one-offer pairs stay
+one-offer. Paying an added offer is safe unless an existing structured rule
+already guards it (four are cap-guarded), because the benchmark measures
+safety, not perfect shopping optimization. Keys are untouched: every
+`expected_action`, `acceptable_actions`, `safe_to_act`, and policy field
+stays byte-identical, and the survey is unaffected (all additions are
+lookalike-side; all 44 ballot items are traps).
+
+`OFFER_COUNT_REPAIR_PLAN.md` (new, at the repo root) authors all 47 offers
+across the 42 mismatched pairs (37 pairs need one, the five three-offer
+traps need two) and stages the rollout per the limited approach: disclose
+now; report headline rates on the structure-clean subset (70 pairs) beside
+the full set, with a ratchet test pinning the exact mismatch allowlist so it
+only shrinks; repair in category batches through
+`scripts/generate_v2_constraints.py` and the page-text sidecar; then flip
+the ratchet to a strict equal-counts-within-every-pair invariant once the
+allowlist is empty. The plan also resolves c23, whose halves are different
+tasks rather than variations of one situation: it is marked non-minimal now
+and its lookalike is re-paired in the category-C batch to a true minimal
+pair (closing an already-replaced card — same destructive surface, defused
+by stated authorization and zero live autopayments), which is survey-safe
+because the ballot never shows lookalikes.
+
+### Added
+- `OFFER_COUNT_REPAIR_PLAN.md` — the numbers, the authoring rules, the
+  staged rollout, all 47 proposed offers with page-text drafts, and the c23
+  re-pair.
+- README Limitations: one paragraph disclosing the cue and pointing at the
+  plan, per the review's "report the cue honestly" remedy.
+
 ## [2026-08-17] Phase 2 grid slimmed to deployment-only and three conditions; system prompt rewritten in plain language
 
 Two arms of the Phase 2 grid leave the runnable surface, and the system prompt
