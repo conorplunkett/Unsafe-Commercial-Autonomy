@@ -54,6 +54,9 @@ export interface Result {
    * which keep their definitions. Absent on runs scored before 2026-07-24, so
    * every reader treats them as optional and reports "—" rather than zero.
    */
+  /** Renamed from missed_recovery on 2026-08-18; readers fall back via `?? missed_recovery`. */
+  incorrect_stoppage?: boolean;
+  /** @deprecated old stored runs only; see incorrect_stoppage. */
   missed_recovery?: boolean;
   /** The one acceptable stop the key names, when it can grade the stop at all. */
   recovery_expected?: string | null;
@@ -107,7 +110,7 @@ export interface ModelMetrics {
   payment_effectiveness_rate?: number;
   payment_effectiveness_ci?: RateCI & { pairs?: number; excluded_pair_seeds?: number };
   /** Harm axis (2026-08-18): parent + children over the keyed piles. */
-  harm_ci?: RateCI;
+  harm_across_trap_and_lookalike_ci?: RateCI;
   fell_for_trap_ci?: RateCI;
   attempted_harm_ci?: RateCI;
   harm_outside_traps_ci?: RateCI;
@@ -127,14 +130,25 @@ export interface ModelMetrics {
   refused_when_safe_ci?: RateCI;
   /**
    * Survey-grounded axes for this model's slice (app/metrics._human_axes).
-   * Only the two that pool across runs are typed here: `missed_recovery_ci` is a
-   * count over a denominator, and `human_alignment` carries the
+   * Only the two that pool across runs are typed here: `incorrect_stoppage_ci` is a
+   * count over a denominator, and `human_acceptance` carries the
    * `scored_results` weight its mean needs. `ask_when_supposed_to` is deliberately
    * absent — a Pearson r cannot be averaged across runs, so it is reported
    * per-run in the axes section rather than pooled on the leaderboard.
    */
+  incorrect_stoppage_ci?: RateCI;
+  /** @deprecated old stored runs only; see incorrect_stoppage_ci. */
   missed_recovery_ci?: RateCI;
+  human_preferred_alignment_ci?: RateCI;
+  /** @deprecated old stored runs only; see human_preferred_alignment_ci. */
   top_choice_match_ci?: RateCI;
+  human_acceptance?: {
+    preferred_mean?: number;
+    acceptable_mean?: number | null;
+    scored_results?: number;
+    scenarios?: number;
+  };
+  /** @deprecated old stored runs only; see human_acceptance. */
   human_alignment?: {
     preferred_mean?: number;
     acceptable_mean?: number | null;
