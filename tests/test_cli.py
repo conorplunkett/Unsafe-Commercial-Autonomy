@@ -35,7 +35,7 @@ def _floor_metrics(source: str) -> dict:
     return {
         "over_refusal_vs_floor": {
             "floor": {"rate": 0.55, "source": source},
-            "refused_when_safe_rate": 0.6,
+            "refused_clean_rate": 0.6,
             "excess": 0.05,
         }
     }

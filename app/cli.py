@@ -240,12 +240,15 @@ def _format_rate(summary: dict, key: str) -> str:
     return f"{rate:.3f} [{ci.get('ci_low', 0.0):.3f}, {ci.get('ci_high', 0.0):.3f}]"
 
 
-def _format_acted(summary: dict) -> str:
-    """`acted/keyed` counts for a table cell; "-" when the group has no key."""
-    ci = summary.get("acted_ci") or {}
-    if not ci.get("total"):
-        return "-"
-    return f"{ci['count']}/{ci['total']}"
+def _format_pairs(summary: dict) -> str:
+    """Payment effectiveness with the pair count it was measured over."""
+    ci = summary.get("payment_effectiveness_ci") or {}
+    if not ci.get("pairs"):
+        return "n/a"
+    return (
+        f"{ci.get('rate', 0.0):.3f} [{ci.get('ci_low', 0.0):.3f}, "
+        f"{ci.get('ci_high', 0.0):.3f}] over {ci['pairs']} pairs"
+    )
 
 
 # How many per-result rows the detail table prints before collapsing into a
@@ -384,23 +387,24 @@ def _print_human_axes(metrics: dict) -> None:
     if "missed_recovery_rate" in metrics:
         ci = metrics["missed_recovery_ci"]
         lines.append(
-            f"Missed recovery:    {metrics['missed_recovery_rate']:.1%} "
+            f"Incorrect stoppage: {metrics['missed_recovery_rate']:.1%} "
             f"({ci['count']}/{ci['total']} graded stops took a different stop "
             f"than the answer key names)"
         )
     alignment = metrics.get("human_alignment")
     if alignment:
         acceptable = alignment.get("acceptable_mean")
-        acceptable_text = f", would-accept {acceptable:.3f}" if acceptable else ""
+        acceptable_text = f", preferred {alignment['preferred_mean']:.3f}" if alignment.get("preferred_mean") is not None else ""
+        accept_value = f"{acceptable:.3f}" if acceptable is not None else "n/a"
         lines.append(
-            f"Human alignment:    preferred {alignment['preferred_mean']:.3f}"
+            f"Human acceptance:   would-accept {accept_value}"
             f"{acceptable_text} "
             f"(mean share of respondents, {alignment['scenarios']} surveyed scenarios)"
         )
     top_choice = metrics.get("top_choice_match_ci")
     if top_choice and top_choice.get("total"):
         lines.append(
-            f"Top-choice match:   {metrics['top_choice_match_rate']:.1%} "
+            f"Human preferred alignment: {metrics['top_choice_match_rate']:.1%} "
             f"({top_choice['count']}/{top_choice['total']} graded actions were "
             f"the crowd's top pick)"
         )
@@ -421,7 +425,7 @@ def _print_human_axes(metrics: dict) -> None:
         caveat = " [Phase 1, provisional]" if floor.get("source") == "phase1_fallback" else ""
         lines.append(
             f"Vs reflexive floor: {floor_block['excess']:+.1%} "
-            f"(refused {floor_block['refused_when_safe_rate']:.1%} against a "
+            f"(refused clean {floor_block['refused_clean_rate']:.1%} against a "
             f"{floor['rate']:.1%} human floor){caveat}"
         )
     if not lines:
@@ -455,20 +459,22 @@ def _print_summary(run_payload: dict, saved_path=None) -> None:
             f"vs objective half: "
             f"{_format_rate(objective_summary, 'unsafe_payment') if objective_summary else 'n/a'}"
         )
-    # The unsafe rate is bottom-censored for an agent that stops on everything
-    # (it never faces a trap), so print how often the agent proceeded at all and
-    # how those proceeds went next to it.
-    acted_ci = metrics.get("acted_ci") or {}
-    if acted_ci.get("total"):
-        unsafe_when_acted = metrics.get("unsafe_when_acted_ci") or {}
-        conditional = (
-            f"{unsafe_when_acted.get('count', 0)}/{unsafe_when_acted.get('total', 0)}"
-            if acted_ci["count"]
-            else "n/a (never acted)"
-        )
+    pe_ci = metrics.get("payment_effectiveness_ci") or {}
+    if pe_ci.get("pairs"):
+        print(f"Payment effectiveness: {_format_pairs(metrics)}")
+    fell_ci = metrics.get("fell_for_trap_ci") or {}
+    if fell_ci.get("total"):
         print(
-            f"Acted autonomously: {acted_ci['count']}/{acted_ci['total']} keyed episodes "
-            f"({acted_ci.get('rate', 0.0):.1%}) · unsafe when acted: {conditional}"
+            f"Fell for trap: {_format_rate(metrics, 'fell_for_trap')} "
+            f"(realized {_format_rate(metrics, 'unsafe_payment')} · "
+            f"blocked {_format_rate(metrics, 'attempted_harm')})"
+        )
+    refused_ci = metrics.get("refused_when_safe_ci") or {}
+    if refused_ci.get("total"):
+        print(
+            f"Over-refusal: {_format_rate(metrics, 'refused_when_safe')} "
+            f"(clean {_format_rate(metrics, 'refused_clean')} · "
+            f"abandoned after block {_format_rate(metrics, 'abandoned_after_block')})"
         )
     quality = metrics.get("quality") or {}
     if quality.get("status") in ("degraded", "incomplete"):
@@ -486,13 +492,13 @@ def _print_summary(run_payload: dict, saved_path=None) -> None:
     print("")
     _print_verdicts_and_failures(metrics)
     print("")
-    print("Model/control                         Results      Acted  Unsafe payment CI      Refused when safe CI")
-    print("-" * 99)
+    print("Model/control                         Results  Fell for trap CI       Unsafe payment CI      Refused when safe CI")
+    print("-" * 113)
     for agent_id, summary in sorted(metrics.get("by_agent", {}).items()):
         print(
             f"{agent_id[:36]:36} "
             f"{summary['total_results']:7}  "
-            f"{_format_acted(summary):>9}  "
+            f"{_format_rate(summary, 'fell_for_trap'):22} "
             f"{_format_rate(summary, 'unsafe_payment'):22} "
             f"{_format_rate(summary, 'refused_when_safe')}"
         )
@@ -946,13 +952,13 @@ def phase2_eval_command(args: argparse.Namespace) -> int:
     phase2_metrics = payload["metrics"]["phase2"]
 
     def _print_split(title: str, group_key: str) -> None:
-        print(f"\n{title} (acted / unsafe payment CI / refused-when-safe CI):")
-        print("-" * 99)
+        print(f"\n{title} (fell for trap / unsafe payment CI / refused-when-safe CI):")
+        print("-" * 113)
         for key, summary in sorted(phase2_metrics[group_key].items()):
             print(
                 f"{key[:36]:36} "
                 f"{summary['total_results']:7}  "
-                f"{_format_acted(summary):>9}  "
+                f"{_format_rate(summary, 'fell_for_trap'):22} "
                 f"{_format_rate(summary, 'unsafe_payment'):22} "
                 f"{_format_rate(summary, 'refused_when_safe')}"
             )
