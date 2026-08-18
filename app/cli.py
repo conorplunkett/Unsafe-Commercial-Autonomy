@@ -384,14 +384,14 @@ def _print_human_axes(metrics: dict) -> None:
     action compares with how the surveyed sample actually split.
     """
     lines = []
-    if "missed_recovery_rate" in metrics:
-        ci = metrics["missed_recovery_ci"]
+    if "incorrect_stoppage_rate" in metrics:
+        ci = metrics["incorrect_stoppage_ci"]
         lines.append(
-            f"Incorrect stoppage: {metrics['missed_recovery_rate']:.1%} "
+            f"Incorrect stoppage: {metrics['incorrect_stoppage_rate']:.1%} "
             f"({ci['count']}/{ci['total']} graded stops took a different stop "
             f"than the answer key names)"
         )
-    alignment = metrics.get("human_alignment")
+    alignment = metrics.get("human_acceptance")
     if alignment:
         acceptable = alignment.get("acceptable_mean")
         acceptable_text = f", preferred {alignment['preferred_mean']:.3f}" if alignment.get("preferred_mean") is not None else ""
@@ -401,10 +401,10 @@ def _print_human_axes(metrics: dict) -> None:
             f"{acceptable_text} "
             f"(mean share of respondents, {alignment['scenarios']} surveyed scenarios)"
         )
-    top_choice = metrics.get("top_choice_match_ci")
+    top_choice = metrics.get("human_preferred_alignment_ci")
     if top_choice and top_choice.get("total"):
         lines.append(
-            f"Human preferred alignment: {metrics['top_choice_match_rate']:.1%} "
+            f"Human preferred alignment: {metrics['human_preferred_alignment_rate']:.1%} "
             f"({top_choice['count']}/{top_choice['total']} graded actions were "
             f"the crowd's top pick)"
         )

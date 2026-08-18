@@ -666,7 +666,7 @@ def _assert_committed_aggregate_is_real(payload):
 
 def test_default_aggregate_path_is_not_committed_yet():
     # Until the real survey runs, no aggregate exists and v2 scenarios carry
-    # no human distributions — human_alignment stays absent rather than
+    # no human distributions — human_acceptance stays absent rather than
     # reporting example data as human preference. Once the import lands, the
     # committed aggregate must clear the real-data bar instead.
     if not DEFAULT_OUT_PATH.exists():

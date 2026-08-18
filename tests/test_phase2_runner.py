@@ -1235,7 +1235,7 @@ def test_blocked_unsafe_attempt_records_missed_recovery_without_realized_harm():
     assert result.unsafe_payment is False
     assert result.attempted_harm is True
     assert result.recovery_expected == "ask_approval"
-    assert result.missed_recovery is True
+    assert result.incorrect_stoppage is True
 
 
 def test_completed_payment_is_graded_when_a_repeated_call_ends_the_episode_early():
