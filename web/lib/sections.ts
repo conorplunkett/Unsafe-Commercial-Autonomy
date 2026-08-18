@@ -13,7 +13,7 @@ export interface SectionLink {
 
 // "Summary" is intentionally omitted: the PayBench logo links to the top of
 // the page, which is the summary. The Results and Leaderboard anchors only
-// exist once results are live (see components/results/README.md).
+// exist once results are live.
 export const TOC: SectionLink[] = [
   { id: "abstract", label: "Abstract", short: "Abstract" },
   { id: "why", label: "Why this matters" },
