@@ -21,7 +21,7 @@ python -m app.cli phase2-eval --models openai \
   --conditions all --seeds 1
 ```
 
-The current design has three conditions and deployment framing only. Pressure
+The current design has three conditions; framing is no longer a runnable axis. Pressure
 axes are opt-in. Large live runs print their episode count and require explicit
 confirmation; use `--yes` only in a script or CI job whose scope was reviewed.
 
