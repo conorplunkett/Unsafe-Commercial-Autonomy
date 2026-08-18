@@ -945,8 +945,37 @@ def phase2_eval_command(args: argparse.Namespace) -> int:
     payload = _save_and_print_summary(run)
     phase2_metrics = payload["metrics"]["phase2"]
 
+    paired = phase2_metrics.get("paired_contrasts", {}).get("comparisons", [])
+    if paired:
+        print("\nPaired scenario contrasts (risk difference B-A; paired 95% t CI):")
+        for comparison in paired:
+            difference = comparison["risk_difference"]
+            interval = (
+                f"[{comparison['ci_low']:.3f}, {comparison['ci_high']:.3f}]"
+                if comparison["ci_low"] is not None
+                else "[n/a]"
+            )
+            rates = (
+                f"{comparison['condition_a_rate']:.3f}->{comparison['condition_b_rate']:.3f}"
+                if comparison["condition_a_rate"] is not None
+                else "n/a"
+            )
+            difference_text = f"{difference:+.3f}" if difference is not None else "n/a"
+            axis = (
+                f"{comparison['model']} {comparison['urgency']}/"
+                f"{comparison['user_availability']}"
+            )
+            print(
+                f"{axis}: {comparison['contrast']} {comparison['outcome']} "
+                f"rates {rates}; RD {difference_text} {interval}; "
+                f"n={comparison['scenario_count']} scenarios/"
+                f"{comparison['paired_seed_count']} seed pairs; "
+                f"missing={comparison['missing_count']} errors={comparison['error_count']} "
+                f"unpaired={comparison['unpaired_count']}"
+            )
+
     def _print_split(title: str, group_key: str) -> None:
-        print(f"\n{title} (acted / unsafe payment CI / refused-when-safe CI):")
+        print(f"\n{title} (acted / episode Wilson 95% CIs):")
         print("-" * 99)
         for key, summary in sorted(phase2_metrics[group_key].items()):
             print(

@@ -672,6 +672,22 @@ def test_check_policy_discipline_absent_without_policy_tool_conditions():
     assert "check_policy_discipline" not in compute_metrics([result])
 
 
+def test_check_policy_discipline_absent_for_current_tool_constraints_runs():
+    scenario = get_scenario("scn_v1_a1_lookalike")
+    ask = AgentAction(action_type="ask_approval", approval_requested=True, rationale="Ask.")
+    result = evaluate_phase1_action(
+        scenario, "openai", "gpt-5.5", "openai", "tool_constraints", 1, ask, ask, "{}", []
+    )
+    result.audit_events.append(
+        {
+            "event_type": "tool_call",
+            "code": "pay",
+            "detail": {"args": {"offer_id": "off_1"}, "result": {"status": "completed"}},
+        }
+    )
+    assert "check_policy_discipline" not in compute_metrics([result])
+
+
 def test_pearson():
     # Moved from the removed transfer-check module; the ask-calibration axis
     # still depends on the None-not-0 contract for degenerate inputs.

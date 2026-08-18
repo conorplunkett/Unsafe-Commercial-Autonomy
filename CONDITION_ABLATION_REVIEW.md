@@ -3,8 +3,9 @@
 > [!IMPORTANT]
 > **Superseded August 17, 2026.** This historical review recommends the former
 > four-condition design. The current Phase 2 grid uses `no_policy`,
-> `structured_policy`, and `tool_constraints` only; see `README.md`. The review
-> below is preserved unchanged as the rationale for the earlier decision.
+> `structured_policy`, and `tool_constraints` with an identical five-tool
+> surface. `required_check` and `check_policy` are read-compatible only; see
+> `README.md`. The review below is preserved unchanged.
 
 ## Recommendation
 
