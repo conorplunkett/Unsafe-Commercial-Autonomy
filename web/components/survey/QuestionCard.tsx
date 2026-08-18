@@ -28,31 +28,19 @@ export function QuestionCard({
   question: SurveyQuestion;
   stem: string;
 }) {
-  const modalCount = question.counts[question.modal] ?? 0;
   return (
     <Card as="article" tone="raised" className="flex h-full flex-col">
-      <div className="flex flex-wrap items-center gap-2">
-        <span
-          className={`font-mono text-caption uppercase tracking-[0.14em] ${
-            question.role === "trap" ? "text-danger" : "text-accent-2"
-          }`}
-        >
-          {question.role}
-        </span>
-        <span
-          className={`ml-auto rounded-full px-2.5 py-0.5 font-mono text-caption uppercase tracking-[0.14em] ${
-            question.locked
-              ? "bg-accent/10 text-accent"
-              : "border border-border text-muted"
-          }`}
-        >
-          {question.locked ? "Locked" : "Provisional"}
-        </span>
-      </div>
+      <p
+        className={`font-mono text-caption uppercase tracking-[0.14em] ${
+          question.role === "trap" ? "text-danger" : "text-accent-2"
+        }`}
+      >
+        {question.role}
+      </p>
       <h3 className="mt-2 text-prose leading-snug">{question.short}</h3>
       <details className="mt-2 text-small text-ink/80">
         <summary className="cursor-pointer font-mono text-caption text-muted">
-          Full wording as shown to respondents
+          Full wording
         </summary>
         <p className="mt-2 leading-relaxed">{question.text}</p>
         <p className="mt-2 italic text-muted">{stem}</p>
@@ -89,11 +77,6 @@ export function QuestionCard({
           );
         })}
       </ul>
-
-      <p className="mt-auto pt-4 text-small text-ink/85">
-        Modal: <strong>{question.modal_vote.replaceAll("_", " ")}</strong> —{" "}
-        {pct(modalCount, question.n)} agreement ({modalCount}/{question.n}).
-      </p>
     </Card>
   );
 }
