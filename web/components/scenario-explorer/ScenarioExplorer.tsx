@@ -3,7 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { CONFIG } from "@/lib/config";
 import { categoryLabel } from "@/lib/labels";
-import type { ScenarioExplorerPayload, ScenarioPair } from "@/lib/scenarioExplorer";
+import type {
+  ScenarioExplorerPayload,
+  ScenarioPair,
+  ScenarioReview,
+} from "@/lib/scenarioExplorer";
 import { PassphraseGate } from "./PassphraseGate";
 import { PairList } from "./PairList";
 import { PairDetail } from "./PairDetail";
@@ -62,6 +66,39 @@ function useScenarioPairs(
   return state;
 }
 
+// Review state is supplementary, not load-bearing: a scenario with no row
+// yet just reads as "not reviewed," so a failed fetch here degrades to an
+// empty map rather than blocking the rest of the Explorer from working.
+function useScenarioReviews(adminKey: string) {
+  const [reviews, setReviews] = useState<Record<string, ScenarioReview>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await fetch(CONFIG.adminScenarioReviewsUrl, {
+          headers: { "x-admin-key": adminKey },
+        });
+        if (!res.ok) return;
+        const rows: ScenarioReview[] = await res.json();
+        if (cancelled) return;
+        const map: Record<string, ScenarioReview> = {};
+        for (const row of rows) map[row.scenario_id] = row;
+        setReviews(map);
+      } catch {
+        // Leave reviews empty; the toggle still works going forward.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [adminKey]);
+
+  return [reviews, setReviews] as const;
+}
+
 function ScenarioExplorerInner({
   adminKey,
   invalidate,
@@ -70,9 +107,47 @@ function ScenarioExplorerInner({
   invalidate: (message?: string) => void;
 }) {
   const { loading, error, pairs } = useScenarioPairs(adminKey, invalidate);
+  const [reviews, setReviews] = useScenarioReviews(adminKey);
   const [category, setCategory] = useState("all");
   const [status, setStatus] = useState("all");
   const [search, setSearch] = useState("");
+
+  function toggleReview(scenarioId: string, next: boolean) {
+    const previous = reviews[scenarioId];
+    setReviews((prev) => ({
+      ...prev,
+      [scenarioId]: {
+        scenario_id: scenarioId,
+        reviewed: next,
+        reviewed_at: next ? new Date().toISOString() : null,
+      },
+    }));
+
+    fetch(CONFIG.adminScenarioReviewsUrl, {
+      method: "POST",
+      headers: {
+        "x-admin-key": adminKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ scenario_id: scenarioId, reviewed: next }),
+    })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`Request failed (${res.status})`);
+        const rows: ScenarioReview[] = await res.json();
+        if (rows[0]) {
+          setReviews((prev) => ({ ...prev, [scenarioId]: rows[0] }));
+        }
+      })
+      .catch(() => {
+        // The server never recorded this -- don't leave the UI claiming it did.
+        setReviews((prev) => {
+          const next = { ...prev };
+          if (previous) next[scenarioId] = previous;
+          else delete next[scenarioId];
+          return next;
+        });
+      });
+  }
 
   const filtered = useMemo(() => {
     if (!pairs) return [];
@@ -187,7 +262,11 @@ function ScenarioExplorerInner({
           </div>
 
           <div className="mt-4">
-            <PairDetail pair={selected} />
+            <PairDetail
+              pair={selected}
+              reviews={reviews}
+              onToggleReview={toggleReview}
+            />
           </div>
         </>
       ) : (

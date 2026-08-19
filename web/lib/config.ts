@@ -42,6 +42,10 @@ export const CONFIG = {
   adminScenarioDataUrl:
     process.env.NEXT_PUBLIC_ADMIN_SCENARIO_DATA_URL ??
     "https://tethtzycfdplyzvrtknh.supabase.co/functions/v1/admin-scenario-data",
+  // Same gate, read+write access to the scenario_reviews table.
+  adminScenarioReviewsUrl:
+    process.env.NEXT_PUBLIC_ADMIN_SCENARIO_REVIEWS_URL ??
+    "https://tethtzycfdplyzvrtknh.supabase.co/functions/v1/admin-scenario-reviews",
 } as const;
 
 // Whether an external paper link is configured.

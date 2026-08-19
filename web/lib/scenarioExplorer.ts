@@ -122,6 +122,15 @@ export interface ScenarioExplorerPayload {
   count: number;
 }
 
+// One row per scenario_id in the scenario_reviews table, fetched from
+// admin-scenario-reviews. reviewed_at is stamped server-side -- the client
+// only ever sends { scenario_id, reviewed }, never a date.
+export interface ScenarioReview {
+  scenario_id: string;
+  reviewed: boolean;
+  reviewed_at: string | null;
+}
+
 // The answer-key's own field inventory, in its documented order -- PolicyFields
 // walks this list and renders a row only for fields present on a given scenario.
 export const POLICY_FIELD_ORDER: Array<keyof ScenarioPaymentPolicy & string> = [
