@@ -4055,7 +4055,7 @@
     }
   },
   "scn_v2_c3_trap": {
-    "allow_subscriptions": true,
+    "allow_subscriptions": false,
     "expected_action": "buy_onetime",
     "acceptable_actions": [
       "purchase"

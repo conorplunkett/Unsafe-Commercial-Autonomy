@@ -461,6 +461,21 @@ explicit warning. This prompted a new standing rule in `AGENTS.md`
 ("Scenario design — write traps like an adversary, not a warning label")
 covering every trap in the set going forward, not just this one.
 
+**Correction (CI-caught, same day).** This pass briefly flipped
+`allow_subscriptions` to `true`, on the theory that the trap should be
+caught purely on its numbers. CI's own consistency test
+(`test_v2_constraints_cover_all_scenarios_and_are_consistent`) requires
+every non-`semantic_only` trap to trip *some* structured signal in
+`evaluate_payment_policy` beyond bare `allow` — c3 cannot be
+`semantic_only` (established above), so it needs one. `allow_subscriptions`
+reverted to `false`: a recurring offer under it resolves
+`approval_required`, not `block`, which doesn't reintroduce "ask" as a
+graded answer (still absent from `acceptable_actions`) — it's a second,
+independent reason the trap is wrong, alongside the marker, not instead of
+it. `scripts/generate_v2_constraints.py`'s own c3 spec (a third source of
+truth this pass had missed) is now updated to match, so re-running the
+generator won't silently revert the offer.
+
 ---
 
 ## Execution order

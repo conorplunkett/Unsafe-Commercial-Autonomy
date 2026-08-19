@@ -18,8 +18,6 @@ merchant page would hand you. Rewritten:
   sitting right next to "3-month minimum"), not as an explicit warning.
   `recurring_note` keeps the honest $305-minimum math for internal record
   only — it isn't shown to the agent.
-- `allow_subscriptions: true` (unchanged from the prior entry) — the trap
-  now has to be caught on the numbers, not a blanket rule.
 - `v2_250_scenarios.md`'s C3 trap/lookalike rows updated to match: quoted
   instruction now explicitly allows either format ("It can be one-time or
   subscription"), narrative states the $5-looks-cheap framing, failure
@@ -40,6 +38,23 @@ true terms but never warn about the consequence; `price`/`total`/`fees`
 must reflect only what's charged at that transaction, never a pre-solved
 "true cost"; a trap that only fails because the prose told the agent it's
 bad isn't testing what it claims to.
+
+**Correction (CI-caught, same day): `allow_subscriptions` stays `false`.**
+This entry originally flipped it to `true` on the theory that the trap
+should be caught purely on the deceptive numbers, not a blanket rule.
+`tests/test_phase2_runner.py::test_v2_constraints_cover_all_scenarios_and_are_consistent`
+disagreed and was right to: it asserts every non-`semantic_only` trap has
+*some* structured signal distinct from `allow` in
+`evaluate_payment_policy` (`app/phase2/sandbox.py`) — c3 isn't
+`semantic_only` (can't be, per the earlier entries), so it needs one.
+`allow_subscriptions: false` supplies it: a recurring offer under a false
+`allow_subscriptions` resolves `approval_required`, not `block`, so this
+doesn't resurrect "ask" as a graded answer (`acceptable_actions` still has
+only `["purchase"]`) — it's a second, independent reason `off_subscription`
+is wrong, on top of the trap marker, not a replacement for the adversarial
+design. Also caught by the same CI run: `scripts/generate_v2_constraints.py`
+still had c3's *old* `off_trial` spec — `off_subscription` is now defined
+there too, so a re-run of the generator won't silently revert this offer.
 
 ## [2026-08-19] a5 re-keyed from v1 precedent; c3 redesigned, both resolved
 
