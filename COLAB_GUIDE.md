@@ -6,12 +6,11 @@ Anthropic, Gemini, Kimi, Inkling, Grok, DeepSeek, Mistral, Qwen, OpenRouter).
 loads a model locally. That makes Colab's free GPU irrelevant to almost
 everything this repo does; Colab is useful here as a free, disposable Linux
 box with a browser-based editor and a built-in secrets store, not as compute.
-The one exception, self-hosting an open-weight model, is covered at the
-bottom.
+The one exception, self-hosting an open-weight model, is Steps 17-19.
 
-No code changes are required to run this repo in Colab. Everything below is
-operational: how to set up a notebook, run `phase2-eval`, and get the
-results back out.
+No code changes are required to run this repo in Colab. Every step below is
+something you do in a notebook cell, in the Colab UI, or on your own machine
+— never a change to this repo's code.
 
 ## What the GPU does and doesn't buy you
 
@@ -25,11 +24,11 @@ vendor's servers, and your side is just `httpx`/SDK calls plus JSON parsing.
 The repo ships no code to load or serve weights — that part is entirely on
 you, and it's the only path where a GPU matters.
 
-Practical consequence: pick Colab's **no-accelerator runtime** (Runtime →
-Change runtime type → Hardware accelerator: None) for ordinary provider
-evals. Requesting a GPU buys nothing for that workload and spends down your
-rationed free GPU quota for no reason. Only switch to a GPU runtime for the
-optional self-hosted open-weights path.
+Practical consequence: pick Colab's **no-accelerator runtime** (Step 1) for
+ordinary provider evals (Steps 2-16). Requesting a GPU buys nothing for that
+workload and spends down your rationed free GPU quota for no reason. Only
+switch to a GPU runtime for the optional self-hosted open-weights path
+(Steps 17-19).
 
 ## Free-tier limits and what they mean here
 
@@ -59,8 +58,8 @@ the full paid design (many providers × five seeds × hundreds of scenarios):
 that run will outlast a single session, and Colab's own policy is aimed at
 active use, not parking a multi-hour job and walking away. For that scale,
 either run it from a machine you control that can stay up unattended, or
-split it across several Colab sittings using checkpoints and `merge` (both
-covered below) — and expect it to take several sittings, not one.
+split it across several Colab sittings using checkpoints and `merge` (Steps
+10-12) — and expect it to take several sittings, not one.
 
 Source: [Google Colab FAQ](https://research.google.com/colaboratory/faq.html).
 
@@ -72,31 +71,39 @@ fixing:
 
 - **`.env` isn't hand-edited the normal way.** Colab has no persistent local
   editor session across restarts. Write `.env` at the start of each session
-  from Colab's Secrets store instead — covered in Setup below. It's the same
-  `.env` file and the same `load_env_file()` mechanism the CLI already uses
-  locally; nothing new to build.
+  from Colab's Secrets store instead (Step 6). It's the same `.env` file and
+  the same `load_env_file()` mechanism the CLI already uses locally; nothing
+  new to build.
 - **Large live grids need `--yes`.** A Colab cell is a scripted context, not
   an interactive terminal — treat it the way RUNBOOK.md already tells you to
-  treat CI: review the grid size with `--dry-run` or a small run first, then
-  pass `--yes` to run it live. This is the CLI's existing safety guard doing
-  its job, not a Colab-specific problem.
+  treat CI: review the grid size with `--dry-run` or a small run first (Step
+  4/8), then pass `--yes` to run it live (Step 9). This is the CLI's
+  existing safety guard doing its job, not a Colab-specific problem.
 - **Point run/checkpoint storage at Drive for anything longer than one
   sitting.** `RUN_STORAGE_DIR` and `RUN_CHECKPOINT_DIR` are both
   environment-variable overrides the CLI already supports (`app/storage.py`,
-  `app/phase2/checkpoint.py`). Setting them to a mounted Drive path is a
-  notebook-side choice, not a repo change.
+  `app/phase2/checkpoint.py`). Setting them to a mounted Drive path (Steps
+  10-11) is a notebook-side choice, not a repo change.
 
 Not doing it now, but worth it later if Colab becomes a regular workflow: a
-small `notebooks/colab_quickstart.ipynb` that wraps the cells below into one
+small `notebooks/colab_quickstart.ipynb` that wraps the steps below into one
 click. This task was scoped as research plus this guide, not new code.
 
-## Setup
+## Steps
 
-### Runtime and repo
+Each step says where it runs: a **Colab UI** action (click something, no
+code), a **Colab cell** (paste into a new cell, run it), or **your own
+machine** (not Colab at all). Steps 1-9 are the normal path for a small live
+run. Steps 10-12 only apply if a run needs more than one Colab sitting.
+Steps 13-16 get results out. Steps 17-19 are the optional self-hosted-GPU
+path.
 
-Open [colab.research.google.com](https://colab.research.google.com), start a
-new notebook, and set Runtime → Change runtime type → Hardware accelerator:
-**None**. Then:
+### 1. (Colab UI) New notebook, CPU runtime
+
+Open [colab.research.google.com](https://colab.research.google.com) → New
+notebook → Runtime → Change runtime type → Hardware accelerator: **None**.
+
+### 2. (Colab cell) Clone the repo
 
 ```python
 !git clone https://github.com/conorplunkett/Unsafe-Commercial-Autonomy.git
@@ -108,7 +115,7 @@ with a fine-grained personal access token stored as a Colab secret —
 `https://<token>@github.com/conorplunkett/Unsafe-Commercial-Autonomy.git` —
 never typed in plaintext into a cell.)
 
-### Dependencies
+### 3. (Colab cell) Install dependencies
 
 ```python
 !pip install -r requirements.txt
@@ -118,10 +125,7 @@ CI pins Python 3.11; nothing in `requirements.txt` needs that exact minor
 version, and Colab's preinstalled interpreter is normally close enough. Run
 `!python --version` if something behaves oddly.
 
-### Sanity check
-
-Do this before any API key touches the notebook — both commands are fully
-offline:
+### 4. (Colab cell) Sanity check — fully offline
 
 ```python
 !python -m pytest -q
@@ -131,23 +135,22 @@ offline:
   --conditions all --seeds 1
 ```
 
-If either fails, fix that before adding keys — it's a setup problem, not a
-model problem.
+Neither command touches an API key or the network. If either fails, fix that
+before adding keys — it's a setup problem, not a model problem.
 
-### API keys
+### 5. (Colab UI) Add API key secrets
 
-Click the key icon in the left sidebar → "Add new secret" → set the name
-(matching `.env.example`, e.g. `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`) and the
-real value → enable "Notebook access." Repeat per provider you plan to use.
+Key icon in the left sidebar → "Add new secret" → set the name to match
+`.env.example` (e.g. `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`) and the real
+value → enable "Notebook access." Repeat per provider you plan to use.
 
-Then write them into the repo's own `.env`, from secrets, without ever
-printing a value to cell output:
+### 6. (Colab cell) Write the keys into `.env`
 
 ```python
 from google.colab import userdata
 from pathlib import Path
 
-# List only the keys you actually added as secrets above.
+# List only the keys you actually added as secrets in Step 5.
 PROVIDER_KEYS = ["OPENAI_API_KEY", "ANTHROPIC_API_KEY"]
 
 lines = [f"{name}={userdata.get(name)}" for name in PROVIDER_KEYS]
@@ -155,15 +158,19 @@ Path(".env").write_text("\n".join(lines) + "\n")
 print(f"Wrote {len(lines)} key(s) to .env")
 ```
 
-Confirm a key actually works before spending on a real grid:
+Never `print(userdata.get(...))` directly — that echoes the raw key into
+cell output.
+
+### 7. (Colab cell) Confirm a key actually works
 
 ```python
 !python -m app.cli models --provider openai
 ```
 
-## Running evals
+Swap `openai` for whichever provider you're checking. Do this before
+spending on a real grid.
 
-### A small live run
+### 8. (Colab cell) Run a small live eval
 
 ```python
 !python -m app.cli phase2-eval --models openai \
@@ -171,9 +178,14 @@ Confirm a key actually works before spending on a real grid:
   --conditions all --seeds 1
 ```
 
-Grids at or under 50 total calls run without a prompt. Bigger ones print the
-call count and refuse in a non-interactive context — pass `--yes` once
-you've reviewed that count:
+Swap `openai` for any provider you added a key for in Step 5. Grids at or
+under 50 total calls run without a prompt.
+
+### 9. (Colab cell, only if the grid is bigger than 50 calls) Confirm and run the full grid
+
+The CLI prints the call count and refuses to proceed non-interactively above
+that — this is expected in a Colab cell, not a bug. Review the printed
+count, then re-run with `--yes`:
 
 ```python
 !python -m app.cli phase2-eval --models openai \
@@ -182,18 +194,23 @@ you've reviewed that count:
 
 `--concurrency N` cuts wall-clock by running episodes in parallel; bound it
 by the provider's rate limit, not by anything Colab-specific. (Colab's
-outbound IPs are shared across many users — if a provider starts throttling
-harder than expected, that's a plausible reason, not necessarily your key.)
+outbound IPs are shared across many users — if a provider throttles harder
+than expected, that's a plausible reason, not necessarily your key.)
 
-### Runs that outlast one sitting
+**If your run fits in one sitting, you're done with the run itself — skip to
+Step 13 to get results out.** Steps 10-12 are only for grids that will
+outlast one Colab session.
 
-Given the session caps in the limits section above, mount Drive and redirect
-storage there before starting anything long:
+### 10. (Colab cell) Mount Drive
 
 ```python
 from google.colab import drive
 drive.mount('/content/drive')
 ```
+
+### 11. (Colab cell) Point run/checkpoint storage at Drive
+
+Run this **before** Step 8 or 9, in the same session:
 
 ```python
 %env RUN_STORAGE_DIR=/content/drive/MyDrive/paybench/runs
@@ -201,9 +218,12 @@ drive.mount('/content/drive')
 ```
 
 Checkpointing is on by default (`--no-checkpoint` turns it off — don't, for
-anything paid). If the runtime disconnects or recycles mid-grid, start a
-fresh session, redo Setup (clone, install, mount Drive, re-set the two env
-vars above so the CLI finds the same directories), then:
+anything paid).
+
+### 12. (Colab cell, only after a disconnect) Resume
+
+Start a fresh session and repeat Steps 2, 3, 10, 11 (clone, install, mount
+Drive, re-point storage at the *same* Drive paths), then:
 
 ```python
 !python -m app.cli phase2-checkpoints
@@ -214,44 +234,41 @@ vars above so the CLI finds the same directories), then:
 errored. To stitch several sittings of the same model/scenario grid into one
 run, use `merge` (see RUNBOOK.md) — `--dry-run` first to check compatibility.
 
-## Getting results into the repo
+### 13. (Colab UI + cell) Get results out — Option A: publish straight from Colab
 
-`runtime/` (or wherever `RUN_STORAGE_DIR`/`RUN_CHECKPOINT_DIR` point) is
-gitignored on purpose. Raw run JSON is never meant to be committed — it goes
-in through one of these instead.
-
-### Publish from Colab
-
-If you're ready to publish an official run, add one more Colab secret,
-`SUPABASE_SERVICE_KEY`, and write it into `.env` the same way as the
-provider keys above. This key bypasses row-level security — treat it as more
-sensitive than any model-provider key; only add it to a notebook you trust.
+Add one more secret the same way as Step 5: `SUPABASE_SERVICE_KEY`. This key
+bypasses row-level security — treat it as more sensitive than any
+model-provider key, and only add it to a notebook you trust. Add it to
+`PROVIDER_KEYS` in Step 6 and re-run that cell, then:
 
 ```python
 !python -m app.cli publish --latest --label "Colab: <what this run is>"
 ```
 
 This is the actual mechanism that makes a run visible on the public site —
-nothing about it changes because it ran in Colab.
+nothing about it changes because it ran in Colab. Use this **or** Option B
+(Step 14), not both.
 
-### Publish from your own machine instead
+### 14. (Colab cell) Get results out — Option B: download the run instead
 
 The safer default if you'd rather not put the production Supabase key into a
-cloud notebook. Download the run:
+cloud notebook.
 
 ```python
 from google.colab import files
 files.download(f"runtime/runs/{run_id}.json")
 ```
 
-(If you used the Drive-backed paths above, it's already in your Drive
-folder — just sync it locally.) Then, from a normal local checkout:
+If you used the Drive-backed paths from Steps 10-11, the file is already in
+your Drive folder — just sync it locally instead of using `files.download`.
+
+### 15. (Your own machine, not Colab) Publish the downloaded run
 
 ```bash
 python -m app.cli publish --file path/to/run.json --label "..."
 ```
 
-### Writing up results
+### 16. (Your own machine, not Colab; optional) Write up results as a new versioned doc
 
 For a narrative write-up rather than just the raw run, CLAUDE.md's rule
 applies as-is: this is a new, separately-versioned document, never an edit
@@ -266,9 +283,12 @@ explicitly asked for).
 The one path where the GPU runtime matters — and it's entirely outside this
 repo's own code.
 
-Switch Runtime → Hardware accelerator → GPU (commonly a T4 on free tier; not
-guaranteed, see the limits section). Install and serve a model yourself,
-e.g. with vLLM (this install is large — a few minutes, several GB):
+### 17. (Colab UI) Switch to a GPU runtime
+
+Runtime → Change runtime type → Hardware accelerator: GPU (commonly a T4 on
+free tier; not guaranteed, see the limits section above).
+
+### 18. (Colab cell) Install and start a local model server
 
 ```python
 !pip install vllm
@@ -276,7 +296,9 @@ e.g. with vLLM (this install is large — a few minutes, several GB):
   --model Qwen/Qwen2.5-7B-Instruct --port 8001 &
 ```
 
-Then point the CLI at it:
+This install is large — a few minutes, several GB.
+
+### 19. (Colab cell) Point PayBench at it and run
 
 ```python
 %env OPENWEIGHTS_BASE_URL=http://127.0.0.1:8001/v1
@@ -298,36 +320,40 @@ Two things to know before trusting results from this path:
   vLLM needs `--enable-auto-tool-choice` plus a `--tool-call-parser` matched
   to the model family. Check that before trusting a Phase 2 run against it.
 
-And per the prohibited-uses list above: this starts a literal local web
+And per the prohibited-uses list above: Step 18 starts a literal local web
 server. Keep it inside the interactive session you started it in — don't
 leave it running unattended.
 
 ## Quick reference
 
+The same Steps 1-8 and 13, condensed, no explanation — for a repeat run once
+you've done this once already.
+
 ```python
-# --- one-time per session ---
+# Steps 1-4: one-time per session
 !git clone https://github.com/conorplunkett/Unsafe-Commercial-Autonomy.git
 %cd Unsafe-Commercial-Autonomy
 !pip install -r requirements.txt
 !python -m pytest -q
 
+# Steps 5-6: keys (edit PROVIDER_KEYS to match your Colab secrets)
 from google.colab import userdata
 from pathlib import Path
-PROVIDER_KEYS = ["OPENAI_API_KEY", "ANTHROPIC_API_KEY"]  # edit to match your secrets
+PROVIDER_KEYS = ["OPENAI_API_KEY", "ANTHROPIC_API_KEY"]
 Path(".env").write_text("\n".join(f"{k}={userdata.get(k)}" for k in PROVIDER_KEYS) + "\n")
 
-# optional, for runs that outlast one sitting
+# Steps 10-11: only for runs that outlast one sitting
 from google.colab import drive
 drive.mount('/content/drive')
 %env RUN_STORAGE_DIR=/content/drive/MyDrive/paybench/runs
 %env RUN_CHECKPOINT_DIR=/content/drive/MyDrive/paybench/checkpoints
 
-# --- a run ---
+# Step 8: a run
 !python -m app.cli phase2-eval --models openai \
   --scenario-ids scn_v2_a1_trap,scn_v2_a1_lookalike \
   --conditions all --seeds 1
 
-# --- get results out ---
+# Step 13/14: get results out
 !python -m app.cli publish --latest --label "Colab run"
 # or: from google.colab import files; files.download(f"runtime/runs/{run_id}.json")
 ```
