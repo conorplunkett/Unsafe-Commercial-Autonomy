@@ -217,9 +217,9 @@
   .agg-bar { display: flex; width: 100%; height: 34px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
   .agg-seg { height: 100%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 12px; font-weight: 700; }
   .tabs { display:flex; margin-bottom:20px; border-bottom:1px solid var(--border); }
-  .tabs button.tab { background:transparent; color:var(--muted); border:none; border-bottom:2px solid transparent; border-radius:0; padding:10px 2px; margin:0 22px 0 0; font-size:15px; font-weight:600; cursor:pointer; }
-  .tabs button.tab:hover { color:var(--ink); }
-  .tabs button.tab.active { color:var(--ink); border-bottom-color:var(--accent); }
+  .tabs .tab { background:transparent; color:var(--muted); border:none; border-bottom:2px solid transparent; border-radius:0; padding:10px 2px; margin:0 22px 0 0; font-size:15px; font-weight:600; cursor:pointer; text-decoration:none; }
+  .tabs .tab:hover { color:var(--ink); }
+  .tabs .tab.active { color:var(--ink); border-bottom-color:var(--accent); }
   .ci-track { position:relative; flex:1; height:16px; background:var(--bg); border:1px solid var(--border); border-radius:4px; }
   .ci-band { position:absolute; top:3px; bottom:3px; background:#c9d7f5; border-radius:2px; }
   .ci-dot { position:absolute; top:2px; bottom:2px; width:3px; background:var(--accent); border-radius:1px; }
@@ -334,6 +334,7 @@
     <button class="tab" id="tab-p1">Phase 1 survey</button>
     <button class="tab active" id="tab-p2">Phase 2 survey</button>
     <button class="tab" id="tab-cmds">Commands</button>
+    <a class="tab" href="/admin/scenario-explorer">Scenario explorer</a>
   </div>
 
   <div class="card" id="commandcard" style="display:none">
