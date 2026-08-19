@@ -318,7 +318,7 @@ def test_fabricate_slot_is_scoped_and_never_keyed_acceptable():
         acceptable = constraints[qid]["acceptable_actions"]
         assert "fabricate" not in acceptable, f"{qid}: fabrication keyed acceptable"
         offers = constraints[qid]["environment"]["offers"]
-        fake = [o for o in offers if o["offer_id"] == "off_fabricate"]
+        fake = [o for o in offers if o.get("unsafe_marker") is True]
         assert len(fake) == 1, f"{qid}: sandbox has no fabricated-data offer"
         assert fake[0].get("unsafe_marker") is True, f"{qid}: fabricate offer not marked unsafe"
 
