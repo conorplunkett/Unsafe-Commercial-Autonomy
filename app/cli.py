@@ -384,14 +384,14 @@ def _print_human_axes(metrics: dict) -> None:
     action compares with how the surveyed sample actually split.
     """
     lines = []
-    if "missed_recovery_rate" in metrics:
-        ci = metrics["missed_recovery_ci"]
+    if "incorrect_stoppage_rate" in metrics:
+        ci = metrics["incorrect_stoppage_ci"]
         lines.append(
-            f"Incorrect stoppage: {metrics['missed_recovery_rate']:.1%} "
+            f"Incorrect stoppage: {metrics['incorrect_stoppage_rate']:.1%} "
             f"({ci['count']}/{ci['total']} graded stops took a different stop "
             f"than the answer key names)"
         )
-    alignment = metrics.get("human_alignment")
+    alignment = metrics.get("human_acceptance")
     if alignment:
         acceptable = alignment.get("acceptable_mean")
         acceptable_text = f", preferred {alignment['preferred_mean']:.3f}" if alignment.get("preferred_mean") is not None else ""
@@ -401,10 +401,10 @@ def _print_human_axes(metrics: dict) -> None:
             f"{acceptable_text} "
             f"(mean share of respondents, {alignment['scenarios']} surveyed scenarios)"
         )
-    top_choice = metrics.get("top_choice_match_ci")
+    top_choice = metrics.get("human_preferred_alignment_ci")
     if top_choice and top_choice.get("total"):
         lines.append(
-            f"Human preferred alignment: {metrics['top_choice_match_rate']:.1%} "
+            f"Human preferred alignment: {metrics['human_preferred_alignment_rate']:.1%} "
             f"({top_choice['count']}/{top_choice['total']} graded actions were "
             f"the crowd's top pick)"
         )
@@ -1281,6 +1281,84 @@ def recompute_command(args: argparse.Namespace) -> int:
     return 1 if failures else 0
 
 
+def rescore_command(args: argparse.Namespace) -> int:
+    """Re-grade stored runs' episodes against today's answer key, without re-running any model."""
+    import json
+
+    from pydantic import ValidationError
+
+    from .metrics import recompute_run_metrics, rescore_run_results
+    from .models import BenchmarkRun, model_to_dict, parse_model
+
+    storage = RunStorage()
+    targets: List[tuple[str, Optional[Path]]] = []
+    try:
+        if args.file:
+            targets.append(("", Path(args.file)))
+        elif args.latest:
+            targets.append((storage.latest().run_id, None))
+        elif args.run_id:
+            targets.append((args.run_id, None))
+        elif args.all:
+            targets.extend((entry["run_id"], None) for entry in storage.list_runs())
+            if not targets:
+                print("No stored runs found under runtime/runs/.")
+                return 1
+        else:
+            print("Provide one of --run-id, --latest, --file, or --all.")
+            return 1
+    except KeyError as exc:
+        print(f"Could not load run: {exc}")
+        return 1
+
+    failures = 0
+    for run_id, file_path in targets:
+        try:
+            if file_path is not None:
+                run = parse_model(BenchmarkRun, json.loads(file_path.read_text(encoding="utf-8")))
+            else:
+                run = storage.read(run_id)
+        except (KeyError, FileNotFoundError, json.JSONDecodeError, ValidationError) as exc:
+            print(f"Could not load run {run_id or file_path}: {exc}")
+            failures += 1
+            continue
+
+        before = (run.metrics or {}).get("unsafe_payment_rate")
+        counts = rescore_run_results(run)
+        recompute_run_metrics(run)
+        if file_path is not None:
+            file_path.write_text(
+                json.dumps(model_to_dict(run), indent=2), encoding="utf-8"
+            )
+        else:
+            storage.save(run)
+        after = run.metrics.get("unsafe_payment_rate")
+        denominator = run.metrics.get("unsafe_denominator", "n/a")
+        skipped = (
+            counts["skipped_error"]
+            + counts["skipped_multi_payment"]
+            + counts["skipped_unknown_scenario"]
+        )
+        print(
+            f"{run.run_id}: {counts['rescored']} episode(s) rescored, {skipped} skipped "
+            f"(error {counts['skipped_error']}, multi-payment {counts['skipped_multi_payment']}, "
+            f"unknown scenario {counts['skipped_unknown_scenario']}); "
+            f"unsafe {before} -> {after} ({denominator})."
+        )
+
+        if args.publish:
+            publish_args = argparse.Namespace(
+                run_id=run.run_id if file_path is None else None,
+                latest=False,
+                file=str(file_path) if file_path is not None else None,
+                label=args.label,
+                allow_degraded=args.allow_degraded,
+            )
+            if publish_command(publish_args) != 0:
+                failures += 1
+    return 1 if failures else 0
+
+
 def merge_command(args: argparse.Namespace) -> int:
     """Stitch several sittings of one gauntlet into a single new run."""
     import json
@@ -1790,6 +1868,45 @@ def build_parser() -> argparse.ArgumentParser:
         help="With --publish: label for the dashboard run selector (existing labels are overwritten).",
     )
     recompute_parser.set_defaults(func=recompute_command)
+
+    rescore_parser = subparsers.add_parser(
+        "rescore",
+        help=(
+            "Re-grade stored runs' episodes against today's answer key (e.g. after a "
+            "Phase 2 survey re-key), without re-running any model. Skips error verdicts "
+            "and multi-payment episodes it cannot faithfully re-grade from the stored "
+            "result; then rebuilds run-level metrics same as recompute."
+        ),
+    )
+    rescore_group = rescore_parser.add_mutually_exclusive_group()
+    rescore_group.add_argument(
+        "--run-id", default=None, help="Run id from runtime/runs/ to rescore."
+    )
+    rescore_group.add_argument(
+        "--latest", action="store_true", help="Rescore the most recent stored run."
+    )
+    rescore_group.add_argument(
+        "--file", default=None, help="Rescore a run JSON file in place (path)."
+    )
+    rescore_group.add_argument(
+        "--all", action="store_true", help="Rescore every run under runtime/runs/."
+    )
+    rescore_parser.add_argument(
+        "--publish",
+        action="store_true",
+        help="Re-publish each rescored run to Supabase (same as the publish command).",
+    )
+    rescore_parser.add_argument(
+        "--allow-degraded",
+        action="store_true",
+        help="With --publish: publish even when the run's quality stamp is not 'ok'.",
+    )
+    rescore_parser.add_argument(
+        "--label",
+        default=None,
+        help="With --publish: label for the dashboard run selector (existing labels are overwritten).",
+    )
+    rescore_parser.set_defaults(func=rescore_command)
 
     return parser
 

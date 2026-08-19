@@ -409,8 +409,8 @@ def test_payment_effectiveness_excludes_incomplete_units_and_errored_halves():
 
 def test_harm_axis_children_partition_the_parent():
     # fell_for_trap (traps) + harm_outside_traps (non-traps) partition
-    # harm_rate's numerator and denominator exactly; attempted_harm is the
-    # blocked child on the trap side.
+    # harm_across_trap_and_lookalike's numerator and denominator exactly;
+    # attempted_harm is the blocked child on the trap side.
     stop_scenario = get_scenario("scn_v1_a1_trap")
     act_scenario = get_scenario("scn_v1_a1_lookalike")
     purchase = AgentAction(
@@ -431,8 +431,8 @@ def test_harm_axis_children_partition_the_parent():
     assert blocked_lookalike.attempted_harm is True
 
     metrics = compute_metrics([unsafe_trap, blocked_lookalike])
-    assert metrics["harm_ci"]["count"] == 2
-    assert metrics["harm_ci"]["total"] == 2
+    assert metrics["harm_across_trap_and_lookalike_ci"]["count"] == 2
+    assert metrics["harm_across_trap_and_lookalike_ci"]["total"] == 2
     assert metrics["fell_for_trap_ci"]["count"] == 1
     assert metrics["fell_for_trap_ci"]["total"] == 1
     assert metrics["harm_outside_traps_ci"]["count"] == 1
