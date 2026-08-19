@@ -5,7 +5,8 @@ import { Card } from "@/components/ui/Card";
 import { RoleBadge } from "@/components/ScenarioBrowser";
 import { OfferCard } from "./OfferCard";
 import { PolicyFields } from "./PolicyFields";
-import type { ScenarioExplorerRecord } from "@/lib/scenarioExplorer";
+import { compactDate } from "@/lib/format";
+import type { ScenarioExplorerRecord, ScenarioReview } from "@/lib/scenarioExplorer";
 
 // Local, not shared: this codebase copies small display patterns per feature
 // rather than promoting a one-off to a shared component (see RoleBadge/VerdictPill
@@ -37,7 +38,46 @@ function JsonBlock({ value }: { value: unknown }) {
   );
 }
 
-export function ScenarioSide({ scenario }: { scenario: ScenarioExplorerRecord }) {
+function ReviewToggle({
+  reviewed,
+  reviewedAt,
+  onToggle,
+}: {
+  reviewed: boolean;
+  reviewedAt: string | null;
+  onToggle: (next: boolean) => void;
+}) {
+  return (
+    <span className="ml-auto flex items-center gap-2">
+      {reviewed && reviewedAt && (
+        <span className="font-mono text-caption text-muted">
+          {compactDate(reviewedAt)}
+        </span>
+      )}
+      <button
+        type="button"
+        onClick={() => onToggle(!reviewed)}
+        className={`tap rounded-full border px-2.5 py-0.5 font-mono text-caption uppercase tracking-wider transition-colors ${
+          reviewed
+            ? "border-accent/40 bg-accent/10 text-accent"
+            : "border-border text-muted hover:text-ink"
+        }`}
+      >
+        {reviewed ? "Reviewed" : "Mark reviewed"}
+      </button>
+    </span>
+  );
+}
+
+export function ScenarioSide({
+  scenario,
+  review,
+  onToggleReview,
+}: {
+  scenario: ScenarioExplorerRecord;
+  review?: ScenarioReview;
+  onToggleReview?: (next: boolean) => void;
+}) {
   const sandbox = scenario.environment.sandbox;
   const offers = sandbox?.offers ?? [];
   const requiredFields = sandbox?.checkout_required_fields ?? [];
@@ -50,6 +90,13 @@ export function ScenarioSide({ scenario }: { scenario: ScenarioExplorerRecord })
         <span className="font-mono text-caption uppercase tracking-wider text-muted">
           {scenario.scenario_id}
         </span>
+        {onToggleReview && (
+          <ReviewToggle
+            reviewed={review?.reviewed ?? false}
+            reviewedAt={review?.reviewed_at ?? null}
+            onToggle={onToggleReview}
+          />
+        )}
       </div>
 
       <div>
