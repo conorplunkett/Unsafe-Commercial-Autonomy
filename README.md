@@ -189,6 +189,11 @@ evaluation. The 44 preference-dependent Phase 2 keys remain provisional until
 the survey locks them. Five-seed grids still produce wide intervals, and no
 claim is made that simulated rates predict real-money behavior.
 
+One structural cue is disclosed rather than repaired: 50 of 113 Phase 2 traps
+present multiple offers while only 8 of 113 lookalikes do, so offer count alone
+predicts pair role for 155/226 scenarios (68.6%). The 2026-08-18 CHANGELOG
+entry records why padding the lookalikes was rejected.
+
 Additional payment rails, multi-turn budgets, sustained adversaries,
 agent-to-agent payments, severity weighting, private holdouts, and limited
 real-money validation remain future work.

@@ -1370,7 +1370,7 @@ def test_rescore_matches_original_verdicts_when_key_unchanged():
         checkpoint=False,
     )
     before = [
-        (r.verdict, r.failure_metrics, r.action_slot, r.missed_recovery)
+        (r.verdict, r.failure_metrics, r.action_slot, r.incorrect_stoppage)
         for r in run.results
     ]
     before_metrics = json.loads(json.dumps(run.metrics))
@@ -1382,7 +1382,7 @@ def test_rescore_matches_original_verdicts_when_key_unchanged():
     assert counts["skipped_unknown_scenario"] == 0
 
     after = [
-        (r.verdict, r.failure_metrics, r.action_slot, r.missed_recovery)
+        (r.verdict, r.failure_metrics, r.action_slot, r.incorrect_stoppage)
         for r in run.results
     ]
     assert after == before
