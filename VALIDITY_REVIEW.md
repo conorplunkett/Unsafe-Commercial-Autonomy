@@ -388,12 +388,23 @@ fix the actual bug, since the seven-peer comparison shows
 `["<primary>", "purchase"]` is this scenario family's normal, intentional
 shape, not a value error.
 
-**Open, as of 2026-08-18:** real Phase 2 collection has not started
-(`data/survey/phase2_survey_responses.json` and any session file remain
-example-only), so reopening the instrument now would not invalidate any
-collected response — but it is still a deliberate exception to a standing
-constraint this document states without a collection-status qualifier.
-Recorded here for the project owner to decide; not resolved by this entry.
+**Open, as of 2026-08-18.** The paragraph originally here claimed real Phase
+2 collection had not started, citing
+`data/survey/phase2_survey_responses.json` as still example-only. That was
+wrong: the claim was checked against a periodic export snapshot, not the
+live state. The project's Supabase database (`uca-benchmark`,
+`public.phase2_survey_responses`) holds 48 real rows as of this writing, all
+`survey_version: v2_web_r3`, 47 past the 390s duration floor — near the
+pre-registered `expected_respondents: 50` and past the `lock_threshold: 35`.
+Collection is active and close to done, not at zero.
+
+That reverses the cost of reopening the instrument now: two new items would
+start at 0 of ~50 responses while the other 44 are already ~94% collected,
+producing exactly the lopsided, partially-covered instrument the
+byte-identical rule exists to prevent. Deferring to a genuinely separate
+future instrument revision is the stronger reading of the decision recorded
+above, not a toss-up — but it is still the project owner's call, not
+resolved by this entry.
 
 ---
 

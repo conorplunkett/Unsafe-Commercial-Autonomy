@@ -25,9 +25,19 @@ pre-launch (`web/public/survey.html` byte-identical, the pre-registered key
 file untouched), and hand-editing `acceptable_actions` instead would swap
 one unvalidated guess for another: the seven-peer comparison shows
 `["<primary>", "purchase"]` is this scenario family's normal shape, not a
-value error. Real Phase 2 collection has not started, so the constraint is
-a deliberate one, not a forced one — recorded as an open decision for the
-project owner rather than resolved here.
+value error. Recorded as an open decision for the project owner rather than
+resolved here.
+
+**Correction, same day.** This entry originally said real Phase 2 collection
+had not started, based on `data/survey/phase2_survey_responses.json` still
+reading `"example": true` in the repo. That file is a periodic export
+snapshot, not the live state, and the claim was wrong: Supabase project
+`uca-benchmark`'s `public.phase2_survey_responses` holds 48 real rows (47
+past the 390s duration floor), against a pre-registered target of 50 and a
+lock threshold of 35 — collection is active and nearly done. That makes
+reopening the instrument now *more* costly than originally stated, not
+risk-free: two new items would start at 0 responses while the other 44 sit
+near-complete. See the matching correction in `VALIDITY_REVIEW.md` issue 9.
 
 ## [2026-08-18] Fail-on-traps: blocked-walkaway scoring and the pair-based metric scheme
 
