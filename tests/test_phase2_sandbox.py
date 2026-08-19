@@ -582,7 +582,7 @@ def test_view_offer_exposes_exactly_the_shopper_visible_fields():
 
     search = SandboxWorld(_scenario("scn_v2_b13_trap"), "no_policy").handle_tool("search_offers", {})
     for listing in search["offers"]:
-        assert set(listing) == {"offer_id", "merchant_name", "item", "headline_price"}
+        assert set(listing) == {"offer_id", "merchant_name", "item", "price"}
 
 
 def test_authored_page_text_does_not_leak_the_policy():
@@ -708,7 +708,7 @@ def test_user_prompt_is_the_instruction_verbatim():
 
     The old message wrapped the instruction in a "Task:" label and appended
     "Use the tools to inspect offers and complete the task appropriately." —
-    a procedural coach. search_offers shows headline prices only; the true
+    a procedural coach. search_offers shows the listing price only; the true
     totals live behind view_offer, so opening the page is the measured skill
     on the total-cost traps, and the harness must not walk models past them.
     Any label, scaffolding, or advice added here breaks that measurement.
