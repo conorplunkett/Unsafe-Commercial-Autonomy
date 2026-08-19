@@ -1,8 +1,8 @@
 """Per-episode checkpointing for Phase 2 runs, so a crash costs one episode.
 
 The full grid is 13,560 episodes per model (3 conditions x 2 urgencies x
-2 user availabilities x 226 scenarios x 5 seeds, deployment framing only),
-each a tool loop of up to MAX_TURNS provider calls. Without this the whole run
+2 user availabilities x 226 scenarios x 5 seeds), each a tool loop of up to
+MAX_TURNS provider calls. Without this the whole run
 lives in memory until the CLI saves it at the end, so a Ctrl-C or a rate-limit
 cascade at episode 13,000 throws away every dollar already spent. Each finished episode is appended here
 as one JSON line and flushed, and `--resume` replays them instead of paying

@@ -21,13 +21,7 @@ const CATEGORIES = [
   "privacy_and_disclosure",
   "adversarial_robustness",
 ];
-const CONDITIONS = [
-  "no_policy",
-  "structured_policy",
-  "required_check",
-  "tool_constraints",
-];
-const FRAMINGS = ["evaluation", "deployment"];
+const CONDITIONS = ["no_policy", "structured_policy", "tool_constraints"];
 
 // Unsafe-payment likelihood falls as control layers strengthen; false-refusal
 // likelihood creeps up as enforcement strengthens. This is the
@@ -35,13 +29,11 @@ const FRAMINGS = ["evaluation", "deployment"];
 const UNSAFE_P: Record<string, number> = {
   no_policy: 0.62,
   structured_policy: 0.34,
-  required_check: 0.27,
   tool_constraints: 0.15,
 };
 const FALSE_P: Record<string, number> = {
   no_policy: 0.04,
   structured_policy: 0.07,
-  required_check: 0.09,
   tool_constraints: 0.12,
 };
 const FAILS: Record<string, string[]> = {
@@ -61,7 +53,6 @@ function makeResult(
   title: string,
   category: string,
   condition: string,
-  framing: string,
   model: { id: string; name: string },
   seed: number,
   safeToAct: boolean,
@@ -89,7 +80,6 @@ function makeResult(
     unsafe_payment: unsafe,
     refused_when_safe: refuse,
     control_condition: condition,
-    framing,
     safe_to_act: safeToAct,
     pair_role: isTrap ? "trap" : "lookalike",
     pair_id: scenarioId.replace(/^scn_/, "").replace(/_(trap|look)$/, ""),
@@ -111,45 +101,41 @@ function build(): Run {
   let modelCursor = 0;
   for (const category of CATEGORIES) {
     for (let k = 0; k < 3; k++) {
-      // Stable scenario ids reused across every condition/framing, so the
+      // Stable scenario ids reused across every condition, so the
       // distinct-scenario count reads like a real benchmark (30 here).
       const trapId = `scn_${category}_${k}_trap`;
       const lookId = `scn_${category}_${k}_look`;
       for (const condition of CONDITIONS) {
-        for (const framing of FRAMINGS) {
-          const model = MODELS[modelCursor++ % MODELS.length];
-          const seed = (modelCursor % 5) + 1;
-          results.push(
-            makeResult(
-              trapId,
-              `${category.replace(/_/g, " ")} trap ${k + 1}`,
-              category,
-              condition,
-              framing,
-              model,
-              seed,
-              false,
-              rng() < UNSAFE_P[condition],
-              false,
-              rng,
-            ),
-          );
-          results.push(
-            makeResult(
-              lookId,
-              `${category.replace(/_/g, " ")} lookalike ${k + 1}`,
-              category,
-              condition,
-              framing,
-              model,
-              seed,
-              true,
-              false,
-              rng() < FALSE_P[condition],
-              rng,
-            ),
-          );
-        }
+        const model = MODELS[modelCursor++ % MODELS.length];
+        const seed = (modelCursor % 5) + 1;
+        results.push(
+          makeResult(
+            trapId,
+            `${category.replace(/_/g, " ")} trap ${k + 1}`,
+            category,
+            condition,
+            model,
+            seed,
+            false,
+            rng() < UNSAFE_P[condition],
+            false,
+            rng,
+          ),
+        );
+        results.push(
+          makeResult(
+            lookId,
+            `${category.replace(/_/g, " ")} lookalike ${k + 1}`,
+            category,
+            condition,
+            model,
+            seed,
+            true,
+            false,
+            rng() < FALSE_P[condition],
+            rng,
+          ),
+        );
       }
     }
   }
