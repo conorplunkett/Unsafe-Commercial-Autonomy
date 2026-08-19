@@ -10,7 +10,7 @@ type RoleFilter = "all" | "trap" | "lookalike";
 
 const PAGE_SIZE = 25;
 
-function RoleBadge({ role }: { role: ScenarioCard["pair_role"] }) {
+export function RoleBadge({ role }: { role: ScenarioCard["pair_role"] }) {
   const trap = role === "trap";
   return (
     <span

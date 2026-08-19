@@ -34,6 +34,14 @@ export function compactDate(iso?: string | null): string {
   }).format(new Date(iso));
 }
 
+export function currency(v: number | null | undefined): string {
+  if (v == null || Number.isNaN(v)) return "—";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(v);
+}
+
 export function titleCase(value: string): string {
   return value.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }

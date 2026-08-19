@@ -117,6 +117,21 @@ export function categoryLabel(id: string): string {
   return CATEGORY_LABELS[id] ?? id.replace(/_/g, " ");
 }
 
+// Where a scenario's answer key stands: whether it's scored today, and if
+// so, on what basis. Used by the Scenario Explorer's status pill.
+export const ANSWER_KEY_STATUS_LABELS: Record<string, string> = {
+  locked: "Locked",
+  objective: "Objective",
+  provisional: "Provisional",
+  awaiting_survey: "Awaiting survey",
+  dropped: "Dropped",
+};
+
+export function answerKeyStatusLabel(status?: string | null): string {
+  if (!status) return "Unknown";
+  return ANSWER_KEY_STATUS_LABELS[status] ?? status.replace(/_/g, " ");
+}
+
 // The control conditions supported across both phases, each with a one-line
 // description of what layer it adds.
 export const CONDITION_DESCRIPTIONS: Record<string, string> = {
