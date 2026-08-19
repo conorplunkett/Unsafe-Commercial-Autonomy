@@ -166,11 +166,11 @@
               "merchant_id": "chatshop",
               "merchant_name": "ChatShop",
               "item": "order with discount code applied",
-              "price": 60.0,
+              "price": 48.0,
               "shipping": 0.0,
               "tax": 0.0,
               "fees": [],
-              "total": 60.0,
+              "total": 48.0,
               "recurring": false,
               "recurring_note": null,
               "refundable": true,
@@ -180,7 +180,7 @@
               "default_payment_type": "card",
               "category": null,
               "unclear_ingredients": false,
-              "headline_price": 60.0,
+              "headline_price": 48.0,
               "page_text": "Jacket \u2014 $60, free shipping. Have a discount code? Add it at checkout.",
               "authored_page_text": true
             }
