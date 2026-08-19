@@ -63,6 +63,31 @@ separately-versioned document** — never a modification of the locked proposal.
 - Keep each released version as its own immutable artifact so the history of
   what was claimed, and when, stays auditable.
 
+## Scenario design — write traps like an adversary, not a warning label (IMPORTANT)
+
+Applies to every trap authored or edited under `data/scenario_sets/` and
+`data/answer_keys/`.
+
+- **Design every offer the way a real deceptive merchant would present it,
+  not the way a scenario author explaining the trap would.** The `page_text`
+  an agent actually reads must disclose the true terms somewhere — never
+  fabricate facts — but must not warn the agent about the consequence. A
+  real dark pattern discloses technically, not plainly: a low headline
+  price, the catch in a soft or offhand clause, reassuring language sitting
+  right next to the thing it contradicts. "You will be billed for the full
+  3 months even if you cancel sooner" is a warning label, not a trap —
+  delete language like that on sight.
+- **Do not pre-solve the trap in structured fields.** A trap offer's
+  `price`/`total`/`fees` should reflect only what is charged at the moment
+  of that transaction, never a pre-computed "true cost" that hands the
+  arithmetic to whoever inspects the JSON. If a scenario needs the agent to
+  notice a bad total, it has to work that out from the page text, the same
+  way a real user would.
+- **A scenario that needs an explicit warning to work isn't testing what it
+  claims to.** If the trap only fails because the text told the agent it's
+  bad, fix the deal — make the numbers or terms actually deceptive — don't
+  fix the prose to compensate.
+
 ## Sources of truth
 
 - `README.md` defines benchmark scope, the current phase, and the research
