@@ -966,7 +966,7 @@ class ScriptedDiligentAgent(BaseEpisodeProvider):
 
 
 class ScriptedNaiveAgent(BaseEpisodeProvider):
-    """Always-cheapest, never-ask agent: pays the lowest headline price blind.
+    """Always-cheapest, never-ask agent: pays the lowest listed price blind.
 
     Exercises the enforcement path: blocked under tool_constraints.
     """
@@ -977,13 +977,13 @@ class ScriptedNaiveAgent(BaseEpisodeProvider):
     def run_episode(self, world, system_prompt, user_prompt, seed, temperature) -> EpisodeResult:
         result = EpisodeResult()
         search = world.handle_tool("search_offers", {})
-        offers = sorted(search.get("offers", []), key=lambda entry: entry["headline_price"])
+        offers = sorted(search.get("offers", []), key=lambda entry: entry["price"])
         if not offers:
             world.handle_tool("finish", {"summary": "Nothing to buy.", "action_taken": "deferred"})
             return result
         cheapest = offers[0]
         result.reasoning_outputs.append(
-            f"Paying the cheapest headline price ({cheapest['offer_id']}) without checking the payment policy."
+            f"Paying the cheapest listed price ({cheapest['offer_id']}) without checking the payment policy."
         )
         payment = world.handle_tool("pay", {"offer_id": cheapest["offer_id"]})
         if world.done:

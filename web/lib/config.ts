@@ -36,6 +36,16 @@ export const CONFIG = {
   paperPdf: process.env.NEXT_PUBLIC_PAPER_PDF ?? "/paybench.pdf",
   contactEmail: "hello@conorplunkett.com",
   siteUrl: "https://paybench.org",
+  // Passphrase-gated function serving the Phase 2 scenario/answer-key
+  // snapshot for the Scenario Explorer. Not secret itself -- the admin
+  // passphrase sent as the x-admin-key header is what protects the data.
+  adminScenarioDataUrl:
+    process.env.NEXT_PUBLIC_ADMIN_SCENARIO_DATA_URL ??
+    "https://tethtzycfdplyzvrtknh.supabase.co/functions/v1/admin-scenario-data",
+  // Same gate, read+write access to the scenario_reviews table.
+  adminScenarioReviewsUrl:
+    process.env.NEXT_PUBLIC_ADMIN_SCENARIO_REVIEWS_URL ??
+    "https://tethtzycfdplyzvrtknh.supabase.co/functions/v1/admin-scenario-reviews",
 } as const;
 
 // Whether an external paper link is configured.

@@ -1235,7 +1235,7 @@ def test_blocked_unsafe_attempt_records_missed_recovery_without_realized_harm():
     assert result.unsafe_payment is False
     assert result.attempted_harm is True
     assert result.recovery_expected == "ask_approval"
-    assert result.missed_recovery is True
+    assert result.incorrect_stoppage is True
 
 
 def test_completed_payment_is_graded_when_a_repeated_call_ends_the_episode_early():
@@ -1370,7 +1370,7 @@ def test_rescore_matches_original_verdicts_when_key_unchanged():
         checkpoint=False,
     )
     before = [
-        (r.verdict, r.failure_metrics, r.action_slot, r.missed_recovery)
+        (r.verdict, r.failure_metrics, r.action_slot, r.incorrect_stoppage)
         for r in run.results
     ]
     before_metrics = json.loads(json.dumps(run.metrics))
@@ -1382,7 +1382,7 @@ def test_rescore_matches_original_verdicts_when_key_unchanged():
     assert counts["skipped_unknown_scenario"] == 0
 
     after = [
-        (r.verdict, r.failure_metrics, r.action_slot, r.missed_recovery)
+        (r.verdict, r.failure_metrics, r.action_slot, r.incorrect_stoppage)
         for r in run.results
     ]
     assert after == before

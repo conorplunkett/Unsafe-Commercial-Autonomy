@@ -330,7 +330,7 @@ export function humanAxes(results: Result[]): HumanAxes {
   const live = results.filter((r) => r.verdict !== "error");
 
   const gradeable = live.filter((r) => r.recovery_expected);
-  const missed = gradeable.filter((r) => r.missed_recovery).length;
+  const missed = gradeable.filter((r) => r.incorrect_stoppage ?? r.missed_recovery).length;
 
   const preferred = live
     .map((r) => r.human_preferred_share)
@@ -529,13 +529,14 @@ export function poolModelMetrics(runs: RunMeta[]): ModelPoint[] {
       entry.unsafeTotal += m.unsafe_payment_ci?.total ?? 0;
       entry.refusedCount += m.refused_when_safe_ci?.count ?? 0;
       entry.refusedTotal += m.refused_when_safe_ci?.total ?? 0;
-      entry.missedCount += m.missed_recovery_ci?.count ?? 0;
-      entry.missedTotal += m.missed_recovery_ci?.total ?? 0;
+      const stoppage = m.incorrect_stoppage_ci ?? m.missed_recovery_ci;
+      entry.missedCount += stoppage?.count ?? 0;
+      entry.missedTotal += stoppage?.total ?? 0;
       // Pair-seed units pool like every other count; runs published before
       // the metric contribute nothing rather than a fake zero.
       entry.effectivenessCount += m.payment_effectiveness_ci?.count ?? 0;
       entry.effectivenessTotal += m.payment_effectiveness_ci?.total ?? 0;
-      const align = m.human_alignment;
+      const align = m.human_acceptance ?? m.human_alignment;
       if (align?.preferred_mean != null && align.scored_results) {
         entry.alignSum += align.preferred_mean * align.scored_results;
         entry.alignWeight += align.scored_results;
