@@ -535,7 +535,7 @@ def _pay(scenario, offer):
         # only clears_trap can flip it — the case a token-add alone would miss.
         ("scn_v2_c14_trap", "off_alice_smith"),
         # Fabrication, graded from unsafe_marker rather than the action type.
-        ("scn_v2_d13_trap", "off_fabricate"),
+        ("scn_v2_d13_trap", "off_2"),
     ],
 )
 def test_loader_adopts_a_locked_trap_and_stops_grading_it_as_the_failure(
