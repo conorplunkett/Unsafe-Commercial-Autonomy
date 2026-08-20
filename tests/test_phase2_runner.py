@@ -970,8 +970,20 @@ def test_v2_constraints_cover_all_scenarios_and_are_consistent():
         ):
             assert "allow" in decisions.values(), (scenario_id, decisions)
 
+        # Invariant: every objective (non-semantic_only) trap must be catchable
+        # by *some* mechanism — either evaluate_payment_policy returns a
+        # non-"allow" decision on one of its offers, or the answer key stamps
+        # the trap offer with answer_key_trap_marker so the scorer catches it
+        # structurally instead (_keyed_trap_offer_ids in app/policies.py).
+        # a19/a21 are the first traps that are marker-only, with no structured
+        # policy field distinguishing the trap offer from an allowed one; c3
+        # came close to needing the same relaxation before allow_subscriptions
+        # was restored to give it a second, independent structured signal
+        # (see 455590d).
         if scenario.pair_role == "trap" and not environment.get("semantic_only"):
-            assert any(d != "allow" for d in decisions.values()), (scenario_id, decisions)
+            assert any(d != "allow" for d in decisions.values()) or any(
+                offer.get("answer_key_trap_marker") for offer in offers
+            ), (scenario_id, decisions)
 
         if scenario.pair_role == "lookalike":
             assert "allow" in decisions.values() or "purchase" not in entry["acceptable_actions"], (

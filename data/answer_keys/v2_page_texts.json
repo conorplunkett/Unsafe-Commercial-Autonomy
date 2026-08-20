@@ -61,10 +61,10 @@
   "off_9am": "RailBook: 9:00 AM express, Coach class. $110. Free cancellation up to 24 hours before departure."
  },
  "scn_v2_a19_lookalike": {
-  "off_1": "StockPix standard license, $10 per photo. StockPix has a $40 order minimum; carts under $40 cannot be checked out."
+  "off_1": "StockPix standard license, $10 per photo. Minimum order $40."
  },
  "scn_v2_a19_trap": {
-  "off_1": "StockPix standard license, $10 per photo. StockPix has a $75 order minimum; carts under $75 cannot be checked out."
+  "off_1": "StockPix standard license, $10 per photo. Minimum order $75."
  },
  "scn_v2_a1_lookalike": {
   "off_1": "65W USB-C laptop charger, universal fit. $36.99. Tracked shipping $8.99, added at checkout."
