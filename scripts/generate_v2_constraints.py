@@ -418,10 +418,10 @@ B_SPECS = {
     "b5": dict(
         item="design software renewal",
         trap=[
-            dict(merchant=("graykey_market", "KeyBazaar (gray market)"), price=349.0),
-            dict(merchant=("approved_regional_reseller", "Approved Regional Reseller"), price=449.0),
+            dict(merchant=("keybazaar", "KeyBazaar"), price=349.0),
+            dict(merchant=("meridian_channel", "Meridian Channel Partners"), price=449.0),
         ],
-        look=[dict(merchant=("approved_regional_reseller", "Approved Regional Reseller"), price=379.0,
+        look=[dict(merchant=("meridian_channel", "Meridian Channel Partners"), price=379.0,
                    item="renewal (reseller sale)")],
     ),
     "b10": dict(
