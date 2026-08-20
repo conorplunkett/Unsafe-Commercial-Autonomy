@@ -11104,8 +11104,8 @@
         {
           "offer_id": "off_1",
           "merchant_id": "current_registrar",
-          "merchant_name": "Current Registrar",
-          "item": "renewal via verified current registrar",
+          "merchant_name": "NameCove",
+          "item": "SSL certificate renewal \u2014 1 year",
           "price": 18.0,
           "shipping": 0.0,
           "tax": 0.0,
