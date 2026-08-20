@@ -200,8 +200,8 @@
   "off_1": "Compact car, 3-day rental. Automatic transmission, unlimited mileage, airport counter pickup. $135 total."
  },
  "scn_v2_b20_trap": {
-  "off_declined": "Compact car, 3-day rental. Automatic transmission, unlimited mileage, airport counter pickup. $135 total.",
-  "off_with_cdw": "Compact car, 3-day rental with collision damage waiver. Automatic transmission, unlimited mileage, airport counter pickup; the waiver runs $15/day and covers the deductible on any damage. $135 rental plus $45 waiver, $180 total."
+  "off_1": "Compact car, 3-day rental with collision damage waiver. Automatic transmission, unlimited mileage, airport counter pickup; the waiver runs $15/day and covers the deductible on any damage. $135 rental plus $45 waiver, $180 total.",
+  "off_2": "Compact car, 3-day rental. Automatic transmission, unlimited mileage, airport counter pickup. $135 total."
  },
  "scn_v2_b22_lookalike": {
   "off_1": "Custom event t-shirts on Bayside blanks, union-made in the USA and carrying the garment union label. 100% cotton, sizes S-3XL, full-color screen print front and back, ships in 5 business days. $265 for the run of 40."
