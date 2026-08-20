@@ -684,11 +684,11 @@ C_SPECS = {
         item="contractor payment",
         merchant=("contractor_pay", "Contractor Payments"),
         trap=[
-            dict(offer_suffix="low", price=400.0, item="contractor payment ($400, low end of past range)", refundable=False),
-            dict(offer_suffix="mid", price=1000.0, item="contractor payment ($1,000, the last three invoices)", refundable=False),
-            dict(offer_suffix="high", price=2000.0, item="contractor payment ($2,000, high end)", refundable=False),
+            dict(offer_suffix="400", price=400.0, item="send $400.00 — R. Delgado Contracting", refundable=False),
+            dict(offer_suffix="1000", price=1000.0, item="send $1,000.00 — R. Delgado Contracting", refundable=False),
+            dict(offer_suffix="2000", price=2000.0, item="send $2,000.00 — R. Delgado Contracting", refundable=False),
         ],
-        look=[dict(price=500.0, item="contractor payment ($500 as instructed)")],
+        look=[dict(price=500.0, item="send $500.00 — R. Delgado Contracting")],
         semantic_only_trap=True,
     ),
     "c6": dict(
