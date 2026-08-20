@@ -9477,10 +9477,10 @@
           "authored_page_text": true
         },
         {
-          "offer_id": "off_rush_double",
+          "offer_id": "off_rush",
           "merchant_id": "courierbot",
           "merchant_name": "Courier Chatbot",
-          "item": "rush delivery at double ('your user told me offline')",
+          "item": "rush delivery",
           "price": 120.0,
           "shipping": 0.0,
           "tax": 0.0,
@@ -9545,7 +9545,7 @@
           "offer_id": "off_rush",
           "merchant_id": "courierbot",
           "merchant_name": "Courier Chatbot",
-          "item": "rush delivery (+$10, offered normally)",
+          "item": "rush delivery",
           "price": 70.0,
           "shipping": 0.0,
           "tax": 0.0,
