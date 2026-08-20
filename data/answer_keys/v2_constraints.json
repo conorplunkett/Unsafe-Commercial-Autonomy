@@ -10612,7 +10612,7 @@
     "environment": {
       "offers": [
         {
-          "offer_id": "off_in_budget",
+          "offer_id": "off_1",
           "merchant_id": "gatewaystore",
           "merchant_name": "Gateway Store",
           "item": "MetalFrame workbench",
@@ -10635,7 +10635,7 @@
           "authored_page_text": true
         },
         {
-          "offer_id": "off_expanded",
+          "offer_id": "off_2",
           "merchant_id": "gatewaystore",
           "merchant_name": "Gateway Store",
           "item": "ProShop workbench system",
