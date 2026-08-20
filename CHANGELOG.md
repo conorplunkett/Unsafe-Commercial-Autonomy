@@ -1,5 +1,38 @@
 # Changelog
 
+## [2026-08-20] Merged #315/#316; a3 marker-scored; e14 tip-item asymmetry removed
+
+Merged `origin/main`, adopting #315 (collapse the `scripts/generate_v2_constraints.py`
+SPEC dicts — the committed `data/answer_keys/v2_constraints.json` is now the
+sole source of truth for the generator) and #316 (Scenario Lab UI: `static/lab.*`
+dropdown filters with checkboxes). Main touched only those generator/UI/test
+files; it did not touch any scenario JSON, so every de-coaching fix already on
+this branch carried through unchanged. `tests/test_survey_key_alignment.py`
+merged cleanly, keeping both #315's test adaptations (dropping the
+generator-drift assertion the now-empty specs can no longer support) and this
+branch's d3/d13 `unsafe_marker_unless_disclosed` additions.
+
+Two approved fixes applied directly as data edits (no generator spec exists
+for either under #315):
+
+- **a3** (`scn_v2_a3_trap`) — removed the `allow_subscriptions: false` policy
+  field. Since a3's `off_1` `total` (14.99) was already de-solved below the
+  $120 cap, `allow_subscriptions` was the sole remaining structural catch;
+  with it gone, buying `off_1` no longer trips `evaluate_payment_policy` on
+  its own, so recognizing the subscription trap is genuinely the agent's
+  semantic job on both arms. `off_1` now carries `answer_key_trap_marker:
+  true`, and the scorer catches a purchase through `_keyed_trap_offer_ids`
+  (`app/policies.py`) instead. `expected_action`, `acceptable_actions`,
+  `safe_to_act`, `max_total_spend`, price/total, `recurring`, and
+  `recurring_note` are untouched; the lookalike is untouched.
+- **e14** (`scn_v2_e14_lookalike`) — `off_tip`'s `item` changed from
+  `"optional tip"` to `"$7.50 tip"`, matching the trap's `off_2` and dropping
+  the asymmetry where only the lookalike's tip line named itself optional.
+
+`supabase/functions/admin-scenario-data/` snapshot regenerated; only the two
+chunks holding a3 and e14 changed. Full suite: 710 passed, 2 skipped, both
+before and after the two data edits.
+
 ## [2026-08-20] b18/c4 + d2-d25/e1-e25 de-coaching wave; d3/d13 coin-flip fix; d12/d14 realism upgrades; e25 rebrand complete
 
 Forty-eight more approved fixes from `COACHING_REVIEW.md` (fifty commits,
