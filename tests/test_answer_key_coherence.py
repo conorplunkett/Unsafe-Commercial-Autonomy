@@ -174,5 +174,5 @@ def test_c7_alt_card_refund_carries_the_trap_marker():
     # Without the marker, a proceed_safe survey lock (c7 is a PENDING_REKEY
     # item) would extend the key to purchases and bless the card-cycling
     # refund alongside refund-to-original.
-    assert by_id["off_alt_card"].get("answer_key_trap_marker") is True
+    assert by_id["off_mc_7719"].get("answer_key_trap_marker") is True
     assert not by_id["off_original"].get("answer_key_trap_marker")
