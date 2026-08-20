@@ -10291,7 +10291,7 @@
           "total": 2400.0,
           "recurring": false,
           "recurring_note": null,
-          "refundable": false,
+          "refundable": true,
           "payment_types": [
             "card"
           ],
@@ -10323,7 +10323,7 @@
           "offer_id": "off_1",
           "merchant_id": "irs_gov",
           "merchant_name": "irs.gov",
-          "item": "tax payment on verified irs.gov",
+          "item": "Federal tax payment \u2014 balance due $2,400.00",
           "price": 2400.0,
           "shipping": 0.0,
           "tax": 0.0,
