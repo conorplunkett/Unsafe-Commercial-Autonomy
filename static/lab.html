@@ -6,7 +6,7 @@
     <title>Experiment Lab · Unsafe Commercial Autonomy</title>
     <link rel="icon" href="/favicon.ico">
     <link rel="stylesheet" href="/static/styles.css?v=13">
-    <link rel="stylesheet" href="/static/lab.css?v=17">
+    <link rel="stylesheet" href="/static/lab.css?v=18">
   </head>
   <body>
     <div class="lab-page-layout">
@@ -192,27 +192,45 @@
           <div class="results-filter-bar" id="resultsFilterBar">
             <div class="results-filter-field">
               <span class="run-select-label">Run</span>
-              <div id="resultRunFilter" class="chip-row"></div>
+              <div class="filter-dropdown">
+                <button type="button" class="filter-dropdown-trigger" id="resultRunFilterTrigger" aria-expanded="false" aria-controls="resultRunFilter">All runs</button>
+                <div id="resultRunFilter" class="filter-dropdown-panel" hidden></div>
+              </div>
             </div>
             <div class="results-filter-field">
               <span class="run-select-label">Verdict</span>
-              <div id="resultVerdictFilter" class="chip-row"></div>
+              <div class="filter-dropdown">
+                <button type="button" class="filter-dropdown-trigger" id="resultVerdictFilterTrigger" aria-expanded="false" aria-controls="resultVerdictFilter">All verdicts</button>
+                <div id="resultVerdictFilter" class="filter-dropdown-panel" hidden></div>
+              </div>
             </div>
             <div class="results-filter-field">
               <span class="run-select-label">Control</span>
-              <div id="resultConditionFilter" class="chip-row"></div>
+              <div class="filter-dropdown">
+                <button type="button" class="filter-dropdown-trigger" id="resultConditionFilterTrigger" aria-expanded="false" aria-controls="resultConditionFilter">All conditions</button>
+                <div id="resultConditionFilter" class="filter-dropdown-panel" hidden></div>
+              </div>
             </div>
             <div class="results-filter-field" hidden>
               <span class="run-select-label">Framing</span>
-              <div id="resultFramingFilter" class="chip-row"></div>
+              <div class="filter-dropdown">
+                <button type="button" class="filter-dropdown-trigger" id="resultFramingFilterTrigger" aria-expanded="false" aria-controls="resultFramingFilter">All framings</button>
+                <div id="resultFramingFilter" class="filter-dropdown-panel" hidden></div>
+              </div>
             </div>
             <div class="results-filter-field" hidden>
               <span class="run-select-label">Urgency</span>
-              <div id="resultUrgencyFilter" class="chip-row"></div>
+              <div class="filter-dropdown">
+                <button type="button" class="filter-dropdown-trigger" id="resultUrgencyFilterTrigger" aria-expanded="false" aria-controls="resultUrgencyFilter">All urgency</button>
+                <div id="resultUrgencyFilter" class="filter-dropdown-panel" hidden></div>
+              </div>
             </div>
             <div class="results-filter-field" hidden>
               <span class="run-select-label">User availability</span>
-              <div id="resultUserAvailabilityFilter" class="chip-row"></div>
+              <div class="filter-dropdown">
+                <button type="button" class="filter-dropdown-trigger" id="resultUserAvailabilityFilterTrigger" aria-expanded="false" aria-controls="resultUserAvailabilityFilter">All availability</button>
+                <div id="resultUserAvailabilityFilter" class="filter-dropdown-panel" hidden></div>
+              </div>
             </div>
             <button id="resultsFilterReset" type="button" class="chip" hidden>Reset filters</button>
           </div>
@@ -706,6 +724,6 @@
         }, { passive: true });
       })();
     </script>
-    <script src="/static/lab.js?v=17"></script>
+    <script src="/static/lab.js?v=18"></script>
   </body>
 </html>
