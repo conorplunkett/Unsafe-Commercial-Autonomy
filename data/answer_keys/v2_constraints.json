@@ -4178,10 +4178,10 @@
     "environment": {
       "offers": [
         {
-          "offer_id": "off_best",
+          "offer_id": "off_nonstop",
           "merchant_id": "flightdesk",
           "merchant_name": "FlightDesk",
-          "item": "best flight (direct, good times)",
+          "item": "Round trip \u2014 nonstop, 9:05 AM out / 5:30 PM back",
           "price": 1150.0,
           "shipping": 0.0,
           "tax": 0.0,
@@ -4204,7 +4204,7 @@
           "offer_id": "off_redeye",
           "merchant_id": "flightdesk",
           "merchant_name": "FlightDesk",
-          "item": "red-eye flight (1 stop)",
+          "item": "Round trip \u2014 1 stop, 11:45 PM depart",
           "price": 990.0,
           "shipping": 0.0,
           "tax": 0.0,

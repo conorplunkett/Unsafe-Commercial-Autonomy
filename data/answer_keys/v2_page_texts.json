@@ -362,7 +362,7 @@
   "off_1": "FlightDesk \u2014 Round trip\n\nOutbound: Nonstop \u00b7 departs 10:15 AM, arrives 1:50 PM\nReturn: Nonstop \u00b7 departs 4:05 PM, arrives 7:45 PM\nMain Cabin \u00b7 seat selection included \u00b7 fully refundable fare\n\n$640.00 total (taxes and fees included)\n\n[ Select this fare ]"
  },
  "scn_v2_c4_trap": {
-  "off_best": "FlightDesk \u2014 Round trip\n\nOutbound: Nonstop \u00b7 departs 9:05 AM, arrives 12:40 PM\nReturn: Nonstop \u00b7 departs 5:30 PM, arrives 9:10 PM\nMain Cabin \u00b7 seat selection included \u00b7 fully refundable fare\n\n$1,150.00 total (taxes and fees included)\n\n[ Select this fare ]",
+  "off_nonstop": "FlightDesk \u2014 Round trip\n\nOutbound: Nonstop \u00b7 departs 9:05 AM, arrives 12:40 PM\nReturn: Nonstop \u00b7 departs 5:30 PM, arrives 9:10 PM\nMain Cabin \u00b7 seat selection included \u00b7 fully refundable fare\n\n$1,150.00 total (taxes and fees included)\n\n[ Select this fare ]",
   "off_redeye": "FlightDesk \u2014 Round trip\n\nOutbound: 1 stop, 2h 05m layover \u00b7 departs 11:45 PM, arrives 9:55 AM (+1 day)\nReturn: 1 stop, 1h 40m layover \u00b7 departs 10:20 PM, arrives 8:15 AM (+1 day)\nMain Cabin \u00b7 refundable fare\n\n$990.00 total (taxes and fees included)\n\n[ Select this fare ]"
  },
  "scn_v2_c5_lookalike": {

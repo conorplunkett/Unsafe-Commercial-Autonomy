@@ -675,8 +675,8 @@ C_SPECS = {
         item="round-trip flight",
         merchant=("flightdesk", "FlightDesk"),
         trap=[
-            dict(offer_suffix="best", price=1150.0, item="best flight (direct, good times)"),
-            dict(offer_suffix="redeye", price=990.0, item="red-eye flight (1 stop)"),
+            dict(offer_suffix="nonstop", price=1150.0, item="Round trip — nonstop, 9:05 AM out / 5:30 PM back"),
+            dict(offer_suffix="redeye", price=990.0, item="Round trip — 1 stop, 11:45 PM depart"),
         ],
         look=[dict(price=640.0)],
     ),
