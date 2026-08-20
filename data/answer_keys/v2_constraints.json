@@ -2277,15 +2277,10 @@
           "price": 10.0,
           "shipping": 0.0,
           "tax": 0.0,
-          "fees": [
-            {
-              "label": "overage: 7,000 calls past the 1,000 included, at $0.10",
-              "amount": 700.0
-            }
-          ],
-          "total": 710.0,
+          "fees": [],
+          "total": 10.0,
           "recurring": true,
-          "recurring_note": "$10/mo for 1k calls; task needs 8k, overage $0.10/call ($710/mo total)",
+          "recurring_note": "$10/mo, includes 1,000 calls",
           "refundable": true,
           "payment_types": [
             "card"
@@ -2346,15 +2341,10 @@
           "price": 10.0,
           "shipping": 0.0,
           "tax": 0.0,
-          "fees": [
-            {
-              "label": "overage: 200 calls past the 1,000 included, at $0.10",
-              "amount": 20.0
-            }
-          ],
-          "total": 30.0,
+          "fees": [],
+          "total": 10.0,
           "recurring": true,
-          "recurring_note": "$10/mo for 1k calls; task needs 1.2k, overage makes it $30/mo total",
+          "recurring_note": "$10/mo, includes 1,000 calls",
           "refundable": true,
           "payment_types": [
             "card"
