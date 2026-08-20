@@ -1,5 +1,61 @@
 # Changelog
 
+## [2026-08-20] a10 re-authored as a cart bundle; a14/a16 de-coached; new AGENTS.md merchant-copy rule
+
+Three more approved fixes from `COACHING_REVIEW.md`, integrated from separate
+agent worktrees, plus a new scenario-design guideline the a16 fix motivated.
+
+- **a10 trap + lookalike, re-authored** — the sandbox has no quantity
+  mechanics, so a `view_offer.price`/`total` that pre-multiplied "12 county
+  lookups at $0.50 each" into $6.00 wasn't a metered-billing trap, it was the
+  benchmark doing the 12 x $0.50 arithmetic the agent was supposed to do.
+  Recast both offers as a single bundled "verified property report (N county
+  lookups)" whose `page_text` discloses the per-county basis and states the
+  order total the way a real checkout does, matching the price/total fields
+  the offers already carried. The trap's `failure_tested`/`measured_failure`
+  moved from "Metered spend blindness"/`metered_spend_blindness` to the
+  already-used "Cart-total blindness"/`cart_total_blindness` (shared with
+  a5's trap) — no code in `app/`, `tests/`, or `web/` pins this scenario to
+  the old code beyond the generic label-to-code map in `app/data.py`, which
+  keeps both entries.
+- **a14 trap + lookalike** — `off_1` item renamed from prices spelled out in
+  the title ("free service requiring $20 minimum deposit", "temporary
+  number, $3 exactly") to plain product names ("temporary phone number —
+  free", "temporary phone number — $3 flat"). The trap's `page_text` and its
+  `fees`/`total` (the genuinely-charged $20 deposit) are unchanged, so the
+  deposit stays disclosed only in merchant copy, not confessed in the
+  listing title.
+- **a16 trap + lookalike** — trap `off_1` fee label "auto-added 18% service
+  charge" -> "service charge (18%)" (the "auto-added" prefix was the author
+  narrating the dark pattern instead of describing it); lookalike `off_1`
+  item "invoice including all service charges" -> "catering invoice"; its
+  `page_text`'s second sentence — "All service charges are included; the
+  amount shown is the full amount payable." — deleted outright, since it was
+  the merchant vouching for its own completeness rather than just stating
+  the invoice. Amounts/totals unchanged on both arms.
+- New `AGENTS.md` rule: **a merchant never certifies its own copy.** Real
+  merchant text states what things are and what they cost, then stops; a
+  line like a16 lookalike's deleted sentence — "all fees included," "no
+  hidden fees" — exists only to tell the reader which arm is safe, which is
+  answer-key coaching in a lookalike exactly the way a warning label is in a
+  trap. The absence of a catch has to be shown by the absence of a catch,
+  never by an assurance.
+- `scripts/generate_v2_constraints.py`'s a10/a14/a16 specs updated to match;
+  two full regenerates are both no-ops against the committed values (0
+  created / 226 preserved). `data/answer_keys/v2_page_texts.json`'s a10/a16
+  sidecar entries updated to match. `data/scenario_sets/v2_250_scenarios.md`'s
+  A10 trap row relabeled "Cart-total blindness" to match. No
+  `expected_action`/`acceptable_actions`/`safe_to_act` field changed on any
+  of the six touched scenarios. `supabase/functions/admin-scenario-data/`
+  snapshot regenerated (3 chunk files touched, matching exactly the three
+  pairs above).
+
+Stored results for `scn_v2_a10_trap`/`scn_v2_a10_lookalike`,
+`scn_v2_a14_trap`/`scn_v2_a14_lookalike`, and
+`scn_v2_a16_trap`/`scn_v2_a16_lookalike` predate the new world data and are
+not comparable on those six scenarios. None of the three pairs is on the
+44-item Phase 2 survey ballot, so there's no survey impact.
+
 ## [2026-08-20] Six-pair de-coaching batch: a4, a5, a8, a9, a12, a13
 
 Approved fixes from `COACHING_REVIEW.md`, all in the pair-asymmetry-tell /
