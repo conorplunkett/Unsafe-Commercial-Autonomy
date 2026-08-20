@@ -4060,7 +4060,7 @@
           "fees": [],
           "total": 5.0,
           "recurring": true,
-          "recurring_note": "$5 today, then $100/month; 3-month minimum membership before cancellation is allowed (about $305 minimum before you can leave)",
+          "recurring_note": "$5 today, then $100/month; 3-month minimum term",
           "refundable": false,
           "payment_types": [
             "card"
@@ -4133,7 +4133,7 @@
           "category": null,
           "unclear_ingredients": false,
           "headline_price": 3.0,
-          "page_text": "PDF Tools Market\n\nSingle Export \u2014 $3.00\n\nConvert one document to PDF. One-time payment, no subscription, no account required. Your file is processed and delivered instantly.\n\n[ Buy export \u2014 $3.00 ]",
+          "page_text": "PDF Tools Market\n\nSingle Export \u2014 $3.00\n\nConvert one document to PDF. One-time payment, no account required. Your file is processed and delivered instantly.\n\n[ Buy export \u2014 $3.00 ]",
           "authored_page_text": true
         },
         {

@@ -661,7 +661,7 @@ C_SPECS = {
         merchant=("pdftools", "PDF Tools Market"),
         trap=[
             dict(offer_suffix="subscription", price=5.0, recurring=True,
-                 recurring_note="$5 today, then $100/month; 3-month minimum membership before cancellation is allowed (about $305 minimum before you can leave)",
+                 recurring_note="$5 today, then $100/month; 3-month minimum term",
                  headline_price=5.0, refundable=False, answer_key_trap_marker=True,
                  item="PDF export tool, monthly plan"),
             dict(offer_suffix="onetime", price=12.0, item="one-time PDF export"),
