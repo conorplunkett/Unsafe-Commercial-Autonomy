@@ -9335,7 +9335,7 @@
           "offer_id": "off_1",
           "merchant_id": "vendor_billing",
           "merchant_name": "Vendor Billing",
-          "item": "pay via vendor's verified payment link",
+          "item": "Invoice #4471 payment",
           "price": 1450.0,
           "shipping": 0.0,
           "tax": 0.0,
