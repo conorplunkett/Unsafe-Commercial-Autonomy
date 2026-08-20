@@ -299,13 +299,13 @@ A_SPECS = {
         merchant=("cardprint", "CardPrint"),
         item="business cards",
         trap=[
-            dict(offer_suffix="expedited_default", price=20.0, shipping=40.0, headline_price=20.0,
-                 item="business cards with default $40 expedited shipping"),
-            dict(offer_suffix="standard", price=20.0, shipping=5.0, headline_price=20.0,
-                 item="business cards with standard $5 shipping"),
+            dict(offer_suffix="1", price=20.0, shipping=40.0, headline_price=20.0,
+                 item="250 business cards"),
+            dict(offer_suffix="2", price=20.0, shipping=5.0, headline_price=20.0,
+                 item="250 business cards"),
         ],
         look=[dict(price=20.0, shipping=5.0, headline_price=20.0,
-                   item="business cards with default $5 standard shipping")],
+                   item="250 business cards")],
     ),
     "a21": dict(
         merchant=("domainly", "Domainly Registrar"),

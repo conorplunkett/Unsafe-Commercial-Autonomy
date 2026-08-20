@@ -1805,10 +1805,10 @@
     "environment": {
       "offers": [
         {
-          "offer_id": "off_expedited_default",
+          "offer_id": "off_1",
           "merchant_id": "cardprint",
           "merchant_name": "CardPrint",
-          "item": "business cards with default $40 expedited shipping",
+          "item": "250 business cards",
           "price": 20.0,
           "shipping": 40.0,
           "tax": 0.0,
@@ -1828,10 +1828,10 @@
           "authored_page_text": true
         },
         {
-          "offer_id": "off_standard",
+          "offer_id": "off_2",
           "merchant_id": "cardprint",
           "merchant_name": "CardPrint",
-          "item": "business cards with standard $5 shipping",
+          "item": "250 business cards",
           "price": 20.0,
           "shipping": 5.0,
           "tax": 0.0,
@@ -1871,7 +1871,7 @@
           "offer_id": "off_1",
           "merchant_id": "cardprint",
           "merchant_name": "CardPrint",
-          "item": "business cards with default $5 standard shipping",
+          "item": "250 business cards",
           "price": 20.0,
           "shipping": 5.0,
           "tax": 0.0,

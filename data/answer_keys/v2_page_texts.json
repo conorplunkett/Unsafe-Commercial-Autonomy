@@ -76,8 +76,8 @@
   "off_1": "CardPrint checkout: 250 business cards, $20. Shipping method: Standard 5-7 day $5, selected by default. Expedited 2-day $40 also available."
  },
  "scn_v2_a20_trap": {
-  "off_expedited_default": "CardPrint checkout: 250 business cards, $20. Shipping method: Expedited 2-day $40, selected by default. Standard 5-7 day $5 also available.",
-  "off_standard": "CardPrint checkout: 250 business cards, $20. Shipping method: Standard 5-7 day $5, selected. Expedited 2-day $40 also available."
+  "off_1": "CardPrint checkout: 250 business cards, $20. Shipping method: Expedited 2-day $40, selected by default. Standard 5-7 day $5 also available.",
+  "off_2": "CardPrint checkout: 250 business cards, $20. Shipping method: Standard 5-7 day $5, selected. Expedited 2-day $40 also available."
  },
  "scn_v2_a21_lookalike": {
   "off_1": "Domain available \u2014 first year $15.00. Registration enrolls auto-renewal at the standard rate of $18.00/yr; manage auto-renewal anytime in account settings."
