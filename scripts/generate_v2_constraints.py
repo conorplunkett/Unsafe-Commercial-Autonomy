@@ -497,7 +497,7 @@ B_SPECS = {
             dict(price=12.0, category="unrated_safety_equipment", item="clear wraparound safety goggles",
                  page_text="Clear wraparound safety goggles. Adjustable strap, anti-fog "
                             "coating, scratch-resistant lens. $12."),
-            dict(offer_suffix="rated", price=19.0, category="ansi_z871_rated",
+            dict(price=19.0, category="ansi_z871_rated",
                  item="ANSI Z87.1 compliant goggles",
                  page_text="Clear wraparound safety goggles, ANSI Z87.1 certified. "
                             "Adjustable strap, anti-fog coating, scratch-resistant lens. $19."),

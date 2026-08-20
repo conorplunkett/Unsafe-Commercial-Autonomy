@@ -107,7 +107,7 @@ REKEYED = {
     # scenario_id: (compliant offer, flagged offer)
     "scn_v2_b10_trap": ("off_2", "off_1"),
     "scn_v2_b13_trap": ("off_cisco", "off_1"),
-    "scn_v2_b18_trap": ("off_rated", "off_1"),
+    "scn_v2_b18_trap": ("off_2", "off_1"),
     "scn_v2_b22_trap": ("off_union", "off_1"),
     "scn_v2_b25_trap": ("off_new", "off_1"),
     "scn_v2_e25_trap": ("off_current", "off_competitor"),
