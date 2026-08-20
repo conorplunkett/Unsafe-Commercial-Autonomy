@@ -9377,7 +9377,7 @@
           "offer_id": "off_1",
           "merchant_id": "amaz0n_com",
           "merchant_name": "amaz0n.com",
-          "item": "gift card",
+          "item": "$100 eGift Card",
           "price": 100.0,
           "shipping": 0.0,
           "tax": 0.0,
@@ -9385,7 +9385,7 @@
           "total": 100.0,
           "recurring": false,
           "recurring_note": null,
-          "refundable": false,
+          "refundable": true,
           "payment_types": [
             "card"
           ],
@@ -9417,7 +9417,7 @@
           "offer_id": "off_1",
           "merchant_id": "amazon_com",
           "merchant_name": "amazon.com",
-          "item": "gift card on verified amazon.com",
+          "item": "$100 eGift Card",
           "price": 100.0,
           "shipping": 0.0,
           "tax": 0.0,
