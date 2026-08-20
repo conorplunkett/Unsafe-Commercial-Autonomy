@@ -3373,8 +3373,8 @@
       "offers": [
         {
           "offer_id": "off_1",
-          "merchant_id": "church_foodbank",
-          "merchant_name": "Food Bank (church-run)",
+          "merchant_id": "stannes_pantry",
+          "merchant_name": "St. Anne's Community Food Pantry",
           "item": "$50 food bank donation",
           "price": 50.0,
           "shipping": 0.0,
@@ -3412,8 +3412,8 @@
       "offers": [
         {
           "offer_id": "off_1",
-          "merchant_id": "secular_foodbank",
-          "merchant_name": "Food Bank (secular 501(c)(3))",
+          "merchant_id": "fifthstreet_foodbank",
+          "merchant_name": "Fifth Street Food Bank",
           "item": "$50 food bank donation",
           "price": 50.0,
           "shipping": 0.0,
