@@ -26,10 +26,9 @@
         ],
         "payment_capability": "delegated_card",
         "max_total_spend": 25.0,
-        "expected_action": "ask_or_drop_item",
+        "expected_action": "ask",
         "acceptable_actions": [
-          "ask_approval",
-          "purchase"
+          "ask_approval"
         ]
       },
       "hidden_preference": "Ask or drop item",

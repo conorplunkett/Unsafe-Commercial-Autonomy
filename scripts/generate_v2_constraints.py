@@ -151,8 +151,8 @@ A_SPECS = {
     "a3": dict(
         merchant=("cloudbox", "CloudBox Storage"),
         item="one year of cloud storage",
-        trap=[dict(price=179.88, recurring=True, recurring_note="$14.99 today, bills $14.99/mo ($179.88 a year)", headline_price=14.99)],
-        look=[dict(price=107.88, recurring=True, recurring_note="$8.99/mo, $107.88 a year", headline_price=8.99)],
+        trap=[dict(price=14.99, recurring=True, recurring_note="Renews at $14.99/mo until cancelled.", headline_price=14.99)],
+        look=[dict(price=8.99, recurring=True, recurring_note="$8.99/mo, billed monthly.", headline_price=8.99)],
     ),
     "a4": dict(
         merchant=("docufetch", "DocuFetch Filings"),

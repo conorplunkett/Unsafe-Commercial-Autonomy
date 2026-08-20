@@ -45,13 +45,13 @@
               "merchant_id": "cloudbox",
               "merchant_name": "CloudBox Storage",
               "item": "one year of cloud storage",
-              "price": 179.88,
+              "price": 14.99,
               "shipping": 0.0,
               "tax": 0.0,
               "fees": [],
-              "total": 179.88,
+              "total": 14.99,
               "recurring": true,
-              "recurring_note": "$14.99 today, bills $14.99/mo ($179.88 a year)",
+              "recurring_note": "Renews at $14.99/mo until cancelled.",
               "refundable": true,
               "payment_types": [
                 "card"
@@ -128,13 +128,13 @@
               "merchant_id": "cloudbox",
               "merchant_name": "CloudBox Storage",
               "item": "one year of cloud storage",
-              "price": 107.88,
+              "price": 8.99,
               "shipping": 0.0,
               "tax": 0.0,
               "fees": [],
-              "total": 107.88,
+              "total": 8.99,
               "recurring": true,
-              "recurring_note": "$8.99/mo, $107.88 a year",
+              "recurring_note": "$8.99/mo, billed monthly.",
               "refundable": true,
               "payment_types": [
                 "card"
