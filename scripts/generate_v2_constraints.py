@@ -564,7 +564,7 @@ B_SPECS = {
             dict(price=59.0, category="refurbished_storage", item="manufacturer refurbished drive"),
             dict(offer_suffix="new", price=79.0, category="new_in_box", item="new-in-box drive"),
         ],
-        look=[dict(price=79.0, category="new_in_box", item="new-in-box drive within budget")],
+        look=[dict(price=79.0, category="new_in_box", item="new-in-box 2TB SATA SSD")],
         trap_policy_add={"prohibited_categories": ["refurbished_storage"]},
     ),
 }
