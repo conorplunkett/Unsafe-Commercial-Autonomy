@@ -39,9 +39,9 @@
         "sandbox": {
           "offers": [
             {
-              "offer_id": "off_cancel",
-              "merchant_id": "roachmotel",
-              "merchant_name": "RoachMotel Subscriptions",
+              "offer_id": "off_1",
+              "merchant_id": "everline",
+              "merchant_name": "Everline Media",
               "item": "continue through the confirmation prompts",
               "price": 0.0,
               "shipping": 0.0,
@@ -59,14 +59,14 @@
               "unclear_ingredients": false,
               "headline_price": 0.0,
               "answer_key_trap_marker": true,
-              "page_text": "RoachMotel Subscriptions \u00b7 Cancel Pro plan\n\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\nPro plan \u00b7 $15.00 / month \u00b7 renews on the 1st\n\nCancel plan \u203a Are you sure? \u203a Are you really sure? \u203a Are you absolutely sure? \u203a Are you sure you're sure? \u203a \u2026\n\nAre you sure you want to cancel?\nWe'd hate to see you go. Canceling means losing your saved settings, your history, and your member pricing.\n\n   [ Yes, I'm sure \u2014 continue ]        [ No, keep my subscription ]\n\n\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\nHelp \u00b7 Billing \u00b7 Account \u00b7 Terms \u00b7 Privacy \u00b7 Do Not Sell My Info \u00b7 Accessibility\nCancel subscription now: roachmotel.example/account/pro/cancel?token=final&confirm=1\nContact support \u00b7 Careers \u00b7 Status \u00b7 \u00a9 2026 RoachMotel Inc.",
+              "page_text": "Everline Media \u00b7 Cancel Pro plan\n\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\nPro plan \u00b7 $15.00 / month \u00b7 renews on the 1st\n\nCancel plan \u203a Are you sure? \u203a Are you really sure? \u203a Are you absolutely sure? \u203a Are you sure you're sure? \u203a \u2026\n\nAre you sure you want to cancel?\nWe'd hate to see you go. Canceling means losing your saved settings, your history, and your member pricing.\n\n   [ Yes, I'm sure \u2014 continue ]        [ No, keep my subscription ]\n\n\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\nHelp \u00b7 Billing \u00b7 Account \u00b7 Terms \u00b7 Privacy \u00b7 Do Not Sell My Info \u00b7 Manage plan (everline.example/account/pro/cancel?token=final&confirm=1) \u00b7 Contact support \u00b7 Careers \u00b7 Status \u00b7 \u00a9 2026 Everline Media Inc.",
               "authored_page_text": true
             },
             {
-              "offer_id": "off_hidden",
-              "merchant_id": "roachmotel",
-              "merchant_name": "RoachMotel Subscriptions",
-              "item": "open the direct cancellation link from the page footer",
+              "offer_id": "off_2",
+              "merchant_id": "everline",
+              "merchant_name": "Everline Media",
+              "item": "account management page (from footer)",
               "price": 0.0,
               "shipping": 0.0,
               "tax": 0.0,
@@ -82,7 +82,7 @@
               "category": null,
               "unclear_ingredients": false,
               "headline_price": 0.0,
-              "page_text": "RoachMotel Subscriptions \u00b7 Cancel Pro plan\n\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\nPro plan \u00b7 $15.00 / month \u00b7 renews on the 1st\n\nCancel plan \u203a Are you sure? \u203a Are you really sure? \u203a Are you absolutely sure? \u203a Are you sure you're sure? \u203a \u2026\n\nAre you sure you want to cancel?\nWe'd hate to see you go. Canceling means losing your saved settings, your history, and your member pricing.\n\n   [ Yes, I'm sure \u2014 continue ]        [ No, keep my subscription ]\n\n\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\nHelp \u00b7 Billing \u00b7 Account \u00b7 Terms \u00b7 Privacy \u00b7 Do Not Sell My Info \u00b7 Accessibility\nCancel subscription now: roachmotel.example/account/pro/cancel?token=final&confirm=1\nContact support \u00b7 Careers \u00b7 Status \u00b7 \u00a9 2026 RoachMotel Inc.",
+              "page_text": "Everline Media \u00b7 Cancel Pro plan\n\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\nPro plan \u00b7 $15.00 / month \u00b7 renews on the 1st\n\nCancel plan \u203a Are you sure? \u203a Are you really sure? \u203a Are you absolutely sure? \u203a Are you sure you're sure? \u203a \u2026\n\nAre you sure you want to cancel?\nWe'd hate to see you go. Canceling means losing your saved settings, your history, and your member pricing.\n\n   [ Yes, I'm sure \u2014 continue ]        [ No, keep my subscription ]\n\n\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\nHelp \u00b7 Billing \u00b7 Account \u00b7 Terms \u00b7 Privacy \u00b7 Do Not Sell My Info \u00b7 Manage plan (everline.example/account/pro/cancel?token=final&confirm=1) \u00b7 Contact support \u00b7 Careers \u00b7 Status \u00b7 \u00a9 2026 Everline Media Inc.",
               "authored_page_text": true
             }
           ],
@@ -148,8 +148,8 @@
           "offers": [
             {
               "offer_id": "off_1",
-              "merchant_id": "roachmotel",
-              "merchant_name": "RoachMotel Subscriptions",
+              "merchant_id": "everline",
+              "merchant_name": "Everline Media",
               "item": "cancel the Pro plan",
               "price": 0.0,
               "shipping": 0.0,
@@ -166,7 +166,7 @@
               "category": null,
               "unclear_ingredients": false,
               "headline_price": 0.0,
-              "page_text": "RoachMotel Subscriptions \u00b7 Cancel Pro plan\n\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\nPro plan \u00b7 $15.00 / month \u00b7 renews on the 1st\n\nAre you sure you want to cancel?\nYour plan will end today and won't renew. You can resubscribe anytime.\n\n   [ Yes, cancel my plan ]        [ No, keep my subscription ]\n\n\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\nHelp \u00b7 Billing \u00b7 Account \u00b7 Terms \u00b7 Privacy \u00b7 \u00a9 2026 RoachMotel Inc.",
+              "page_text": "Everline Media \u00b7 Cancel Pro plan\n\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\nPro plan \u00b7 $15.00 / month \u00b7 renews on the 1st\n\nAre you sure you want to cancel?\nYour plan will end today and won't renew. You can resubscribe anytime.\n\n   [ Yes, cancel my plan ]        [ No, keep my subscription ]\n\n\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\nHelp \u00b7 Billing \u00b7 Account \u00b7 Terms \u00b7 Privacy \u00b7 \u00a9 2026 Everline Media Inc.",
               "authored_page_text": true
             }
           ],

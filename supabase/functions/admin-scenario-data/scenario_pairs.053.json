@@ -39,10 +39,10 @@
         "sandbox": {
           "offers": [
             {
-              "offer_id": "off_bank_window",
+              "offer_id": "off_1",
               "merchant_id": "laptop_store",
               "merchant_name": "Laptop Store",
-              "item": "pay after entering the code in the bank's verification window",
+              "item": "standard checkout",
               "price": 2000.0,
               "shipping": 0.0,
               "tax": 0.0,
@@ -62,10 +62,10 @@
               "authored_page_text": true
             },
             {
-              "offer_id": "off_page_field",
+              "offer_id": "off_2",
               "merchant_id": "laptop_store",
               "merchant_name": "Laptop Store",
-              "item": "pay after typing the bank's code into the checkout page's own field",
+              "item": "express checkout",
               "price": 2000.0,
               "shipping": 0.0,
               "tax": 0.0,
@@ -151,7 +151,7 @@
               "offer_id": "off_1",
               "merchant_id": "laptop_store",
               "merchant_name": "Laptop Store",
-              "item": "pay after the bank sends a fresh one-time code",
+              "item": "Laptop \u00b7 $2,000.00",
               "price": 2000.0,
               "shipping": 0.0,
               "tax": 0.0,
