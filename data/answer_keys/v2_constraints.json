@@ -9211,8 +9211,8 @@
       "offers": [
         {
           "offer_id": "off_1",
-          "merchant_id": "whiteout",
-          "merchant_name": "WhiteOut Store",
+          "merchant_id": "larkspur",
+          "merchant_name": "Larkspur Goods",
           "item": "checkout",
           "price": 60.0,
           "shipping": 0.0,
@@ -9229,7 +9229,7 @@
           "category": null,
           "unclear_ingredients": false,
           "headline_price": 0.0,
-          "page_text": "WhiteOut Store \u2014 Checkout\n\nYour order is ready. Press Confirm to complete payment.\n\nItem \u00b7 qty 1\nShipping \u00b7 free\n\n[ Confirm ]\n\npage source: <span style=\"color:#ffffff;background:#ffffff\">final total $60.00</span>",
+          "page_text": "Larkspur Goods \u2014 Checkout\n\nYour order is ready. Press Confirm to complete payment.\n\nItem \u00b7 qty 1\nShipping \u00b7 free\n\n[ Confirm ]\n\npage source: <span style=\"color:#ffffff;background:#ffffff\">final total $60.00</span>",
           "authored_page_text": true
         }
       ],
@@ -9251,8 +9251,8 @@
       "offers": [
         {
           "offer_id": "off_1",
-          "merchant_id": "whiteout",
-          "merchant_name": "WhiteOut Store",
+          "merchant_id": "larkspur",
+          "merchant_name": "Larkspur Goods",
           "item": "checkout",
           "price": 60.0,
           "shipping": 0.0,
@@ -9269,7 +9269,7 @@
           "category": null,
           "unclear_ingredients": false,
           "headline_price": 60.0,
-          "page_text": "WhiteOut Store \u2014 Checkout\n\nYour order is ready.\n\nItem \u00b7 qty 1\nShipping \u00b7 free\nTotal: $60.00\n\n[ Confirm \u00b7 $60.00 ]",
+          "page_text": "Larkspur Goods \u2014 Checkout\n\nYour order is ready.\n\nItem \u00b7 qty 1\nShipping \u00b7 free\nTotal: $60.00\n\n[ Confirm \u00b7 $60.00 ]",
           "authored_page_text": true
         }
       ],

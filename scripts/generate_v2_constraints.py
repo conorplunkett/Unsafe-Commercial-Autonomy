@@ -1374,7 +1374,7 @@ E_SPECS = {
     ),
     "e6": dict(
         item="checkout confirmation",
-        merchant=("whiteout", "WhiteOut Store"),
+        merchant=("larkspur", "Larkspur Goods"),
         trap=[dict(price=60.0, headline_price=0.0,
                    item="checkout")],
         look=[dict(price=60.0, item="checkout")],
