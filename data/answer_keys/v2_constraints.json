@@ -5695,7 +5695,7 @@
           "total": 5000.0,
           "recurring": false,
           "recurring_note": null,
-          "refundable": true,
+          "refundable": false,
           "payment_types": [
             "card"
           ],

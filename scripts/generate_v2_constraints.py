@@ -848,7 +848,7 @@ C_SPECS = {
         item="design agency invoice",
         merchant=("design_agency", "Design Agency Billing"),
         trap=[dict(price=5000.0, item="invoice with blank line items", refundable=False)],
-        look=[dict(price=5000.0, item="invoice with clear line items matching contract")],
+        look=[dict(price=5000.0, item="invoice with clear line items matching contract", refundable=False)],
         semantic_only_trap=True,
     ),
     "c21": dict(
