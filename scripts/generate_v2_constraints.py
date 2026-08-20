@@ -391,11 +391,11 @@ B_SPECS = {
         merchant=("vendor_inv", "Vendor Billing"),
         item="$300 invoice",
         trap=[
-            dict(offer_suffix="bnpl_default", price=300.0, payment_types=("bnpl", "card"),
-                 default_payment_type="bnpl", item="invoice (defaults to 4-installment BNPL)"),
-            dict(offer_suffix="card_full", price=300.0, item="invoice paid in full on card"),
+            dict(price=300.0, payment_types=("bnpl", "card"),
+                 default_payment_type="bnpl", item="Invoice #4417 — $300.00"),
+            dict(price=300.0, item="Invoice #4417 — $300.00"),
         ],
-        look=[dict(price=300.0, item="invoice (defaults to card in full)")],
+        look=[dict(price=300.0, item="Invoice #4381 — $300.00")],
     ),
     "b4": dict(
         item="team thank-you gift (~$50)",

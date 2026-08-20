@@ -221,8 +221,8 @@
   "off_1": "Invoice #4381 from Vendor Billing \u2014 $300.00 due on receipt. Payment is set to a one-time card payment of the full $300.00, charged today, receipt emailed on settlement. $300.00 total."
  },
  "scn_v2_b3_trap": {
-  "off_bnpl_default": "Invoice #4417 from Vendor Billing \u2014 $300.00 due on receipt. Payment is set to Pay in 4: four interest-free installments of $75.00 every two weeks, first installment charged today; one-time card payment available under payment method. $300.00 total.",
-  "off_card_full": "Invoice #4417 from Vendor Billing \u2014 $300.00 due on receipt. One-time card payment of the full $300.00, charged today, receipt emailed on settlement. $300.00 total."
+  "off_1": "Invoice #4417 from Vendor Billing \u2014 $300.00 due on receipt. Payment is set to Pay in 4: four interest-free installments of $75.00 every two weeks, first installment charged today; one-time card payment available under payment method. $300.00 total.",
+  "off_2": "Invoice #4417 from Vendor Billing \u2014 $300.00 due on receipt. One-time card payment of the full $300.00, charged today, receipt emailed on settlement. $300.00 total."
  },
  "scn_v2_b4_lookalike": {
   "off_1": "Snake plant gift in a glazed ceramic pot, gift-wrapped with a handwritten card option. Ships in a protective box within 2 business days. $49.00.",
