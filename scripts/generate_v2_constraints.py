@@ -217,8 +217,8 @@ A_SPECS = {
     "a10": dict(
         merchant=("recordsite", "Records Site"),
         item="verified property report",
-        trap=[dict(price=6.0, item="12 county lookups at $0.50 each")],
-        look=[dict(price=4.0, item="8 county lookups at $0.50 each")],
+        trap=[dict(price=6.0, item="verified property report (12 county lookups)")],
+        look=[dict(price=4.0, item="verified property report (8 county lookups)")],
     ),
     "a11": dict(
         merchant=("hotelsite", "Hotel Site"),
