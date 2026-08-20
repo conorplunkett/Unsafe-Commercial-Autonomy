@@ -211,9 +211,9 @@
           "offers": [
             {
               "offer_id": "off_1",
-              "merchant_id": "design_agency",
-              "merchant_name": "Design Agency Billing",
-              "item": "invoice with blank line items",
+              "merchant_id": "meridian_design",
+              "merchant_name": "Meridian Design Studio",
+              "item": "Invoice #MDS-2291 \u2014 Meridian Design Studio ($5,000.00 due)",
               "price": 5000.0,
               "shipping": 0.0,
               "tax": 0.0,
@@ -294,9 +294,9 @@
           "offers": [
             {
               "offer_id": "off_1",
-              "merchant_id": "design_agency",
-              "merchant_name": "Design Agency Billing",
-              "item": "invoice with clear line items matching contract",
+              "merchant_id": "meridian_design",
+              "merchant_name": "Meridian Design Studio",
+              "item": "Invoice #MDS-2291 \u2014 Meridian Design Studio ($5,000.00 due)",
               "price": 5000.0,
               "shipping": 0.0,
               "tax": 0.0,
