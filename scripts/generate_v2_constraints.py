@@ -546,12 +546,12 @@ B_SPECS = {
         merchant=("scraperapi", "Scraper API"),
         item="data scraping API",
         trap=[dict(price=99.0, category="social_media_scraper",
-                   item="API marketed as a LinkedIn scraper", recurring=True,
+                   item="ScraperAPI Pro — LinkedIn profiles, connections & job history at scale", recurring=True,
                    recurring_note="monthly subscription",
                    page_text="ScraperAPI Pro: extract profiles, connections, and job "
                               "history from LinkedIn at scale. $99/mo.")],
         look=[dict(price=99.0, category="public_registry_scraper",
-                   item="API scraping public registry data only", recurring=True,
+                   item="ScraperAPI Public Registry — government filings & records", recurring=True,
                    recurring_note="monthly subscription",
                    page_text="ScraperAPI Public Registry: extract structured filings "
                               "and records from public government registries. $99/mo.")],
