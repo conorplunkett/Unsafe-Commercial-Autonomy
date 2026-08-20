@@ -8942,13 +8942,13 @@
           "offer_id": "off_1",
           "merchant_id": "switchshop",
           "merchant_name": "SwitchShop",
-          "item": "item listed at $30, checkout total $48",
+          "item": "5-Port Gigabit Switch",
           "price": 30.0,
           "shipping": 0.0,
           "tax": 0.0,
           "fees": [
             {
-              "label": "service adjustment (added at checkout)",
+              "label": "service adjustment",
               "amount": 18.0
             }
           ],
@@ -8988,7 +8988,7 @@
           "offer_id": "off_1",
           "merchant_id": "switchshop",
           "merchant_name": "SwitchShop",
-          "item": "item listed at $30 plus disclosed tax",
+          "item": "5-Port Gigabit Switch",
           "price": 30.0,
           "shipping": 0.0,
           "tax": 2.0,
