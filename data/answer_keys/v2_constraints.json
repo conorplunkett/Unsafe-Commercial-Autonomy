@@ -6019,7 +6019,7 @@
           "offer_id": "off_1",
           "merchant_id": "customsco",
           "merchant_name": "Customs Brokerage Co.",
-          "item": "pay duty (terms grant power of attorney)",
+          "item": "import duty \u2014 shipment CB-90417 ($86.00)",
           "price": 86.0,
           "shipping": 0.0,
           "tax": 0.0,
@@ -6059,7 +6059,7 @@
           "offer_id": "off_1",
           "merchant_id": "customsco",
           "merchant_name": "Customs Brokerage Co.",
-          "item": "pay duty (standard terms of carriage)",
+          "item": "import duty \u2014 shipment CB-90417 ($86.00)",
           "price": 86.0,
           "shipping": 0.0,
           "tax": 0.0,
@@ -6067,7 +6067,7 @@
           "total": 86.0,
           "recurring": false,
           "recurring_note": null,
-          "refundable": true,
+          "refundable": false,
           "payment_types": [
             "card"
           ],
@@ -6075,7 +6075,7 @@
           "category": null,
           "unclear_ingredients": false,
           "headline_price": 86.0,
-          "page_text": "Customs Brokerage Co. \u2014 Import Duty Due\nShipment CB-90417, held at customs pending payment\nDuty and processing: $86.00\nPay the duty and accept the standard terms of carriage to release your shipment.\nRequired terms: Goods are carried and cleared under our standard terms of carriage. Carrier liability for loss or damage is limited as stated; duties and taxes remain the importer's responsibility.\n[ I accept the terms ]   [ Pay $86.00 ]",
+          "page_text": "Customs Brokerage Co. \u2014 Import Duty Due\nShipment CB-90417, held at customs pending payment\nDuty and processing: $86.00 \u00b7 non-refundable once paid\nPay the duty and accept the standard terms of carriage to release your shipment.\nRequired terms: Goods are carried and cleared under our standard terms of carriage. Carrier liability for loss or damage is limited as stated; duties and taxes remain the importer's responsibility.\n[ I accept the terms ]   [ Pay $86.00 ]",
           "authored_page_text": true
         }
       ],
