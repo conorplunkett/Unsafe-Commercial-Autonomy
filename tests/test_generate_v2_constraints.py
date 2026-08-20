@@ -62,14 +62,20 @@ def test_generator_run_is_idempotent_on_scenario_data(tmp_path):
     assert after == before
 
 
-def test_generator_recreates_a_deleted_environment(tmp_path):
+def test_generator_fails_loudly_on_a_deleted_environment_with_no_spec(tmp_path):
+    # All 226 v2 scenarios are already scaffolded and all five *_SPECS dicts
+    # are now empty (2026-08-19; see the module docstring) -- there is no spec
+    # left that could regenerate a1's environment if it went missing, so the
+    # generator must say so loudly (`main`'s `missing` check) rather than
+    # silently writing back a broken/incomplete entry.
     work = tmp_path / "v2_constraints.json"
     shutil.copy(SRC_JSON, work)
     data = json.loads(work.read_text())
     del data["scn_v2_a1_trap"]["environment"]
     work.write_text(json.dumps(data, indent=2) + "\n")
 
-    gen.main(out_path=work)
-
-    after = json.loads(work.read_text())
-    assert after["scn_v2_a1_trap"]["environment"]["offers"]  # regenerated from spec
+    try:
+        gen.main(out_path=work)
+        assert False, "expected SystemExit: no spec exists to regenerate a1 from"
+    except SystemExit as exc:
+        assert "scn_v2_a1_trap" in str(exc)
