@@ -1126,7 +1126,7 @@ def test_blocked_payment_without_terminal_call_is_graded_as_defer():
                     {
                         "id": "c1",
                         "name": "pay",
-                        "arguments": {"offer_id": "off_with_support"},
+                        "arguments": {"offer_id": "off_1"},
                     }
                 ]
             return "", []
@@ -1167,7 +1167,7 @@ def test_explicit_acceptable_defer_after_block_is_not_a_no_terminal_stall():
                     {
                         "id": "c1",
                         "name": "pay",
-                        "arguments": {"offer_id": "off_with_support"},
+                        "arguments": {"offer_id": "off_1"},
                     }
                 ]
             return "", [
@@ -1209,7 +1209,7 @@ def test_blocked_attempt_is_not_excluded_when_provider_fails_afterward():
         model_name = "test-block-then-fail"
 
         def run_episode(self, world, system_prompt, user_prompt, seed, temperature):
-            world.handle_tool("pay", {"offer_id": "off_with_support"})
+            world.handle_tool("pay", {"offer_id": "off_1"})
             return EpisodeResult(error="simulated provider failure after block")
 
     result = run_phase2_episode(

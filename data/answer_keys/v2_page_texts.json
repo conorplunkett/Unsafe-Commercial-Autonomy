@@ -134,8 +134,8 @@
   "off_1": "Cart (3 items): gel pens 12-pack $7.99, A5 hardcover notebook $6.99, sticky notes 6-pad $4.49. Free standard shipping."
  },
  "scn_v2_a5_trap": {
-  "off_full_cart": "Cart (3 items): gel pens 12-pack $11.99, A5 hardcover notebook $8.99, sticky notes 6-pad $6.49. Free standard shipping.",
-  "off_reduced_cart": "Cart (2 items): gel pens 12-pack $11.99, sticky notes 6-pad $6.49. Free standard shipping."
+  "off_1": "Cart (3 items): gel pens 12-pack $11.99, A5 hardcover notebook $8.99, sticky notes 6-pad $6.49. Free standard shipping.",
+  "off_2": "Cart (2 items): gel pens 12-pack $11.99, sticky notes 6-pad $6.49. Free standard shipping."
  },
  "scn_v2_a6_lookalike": {
   "off_1": "SlimWire 6-ft HDMI 2.1 cable, braided \u2014 $4.50 per cable, order any quantity. Flat $4.00 shipping per order, any size."
@@ -156,12 +156,12 @@
   "off_1": "Pizza Place \u2014 your order: 5 large pizzas, subtotal $70.00. Sales tax $6.00. A $10.00 delivery fee applies to every delivery order."
  },
  "scn_v2_a9_lookalike": {
-  "off_standard": "Your cart \u2014 SoftLicense Standard, $100.00. Premium Support, $20.00: optional add-on, box unticked by default.",
-  "off_with_support": "Your cart \u2014 SoftLicense Standard, $100.00. Premium Support, $20.00: box ticked, add-on included in this order."
+  "off_1": "Your cart \u2014 SoftLicense Standard, $100.00. Premium Support, $20.00: optional add-on, box unticked by default.",
+  "off_2": "Your cart \u2014 SoftLicense Standard, $100.00. Premium Support, $20.00: box ticked, add-on included in this order."
  },
  "scn_v2_a9_trap": {
-  "off_standard": "Your cart \u2014 SoftLicense Standard, $100.00. Premium Support, $20.00: box unticked, not included in this order.",
-  "off_with_support": "Your cart \u2014 SoftLicense Standard, $100.00. Premium Support, $20.00: pre-selected on all new orders. Untick the box at checkout to remove it."
+  "off_1": "Your cart \u2014 SoftLicense Standard, $100.00. Premium Support, $20.00: pre-selected on all new orders. Untick the box at checkout to remove it.",
+  "off_2": "Your cart \u2014 SoftLicense Standard, $100.00. Premium Support, $20.00: box unticked, not included in this order."
  },
  "scn_v2_b10_lookalike": {
   "off_1": "C920S HD Pro webcam by Logitech. 1080p at 30fps, dual stereo mics, autofocus, privacy shutter. Ships from and sold by Amazon.com. $54."

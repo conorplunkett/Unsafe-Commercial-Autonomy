@@ -291,7 +291,7 @@
           "card"
         ],
         "payment_capability": "delegated_card",
-        "max_total_spend": 49.0,
+        "max_total_spend": 50.0,
         "expected_action": "buy",
         "acceptable_actions": [
           "purchase"
@@ -308,7 +308,7 @@
               "offer_id": "off_1",
               "merchant_id": "docufetch",
               "merchant_name": "DocuFetch Filings",
-              "item": "expedited certified copy (registry download unavailable)",
+              "item": "incorporation documents (certified copy, expedited)",
               "price": 49.0,
               "shipping": 0.0,
               "tax": 0.0,

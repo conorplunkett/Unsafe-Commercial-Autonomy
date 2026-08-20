@@ -39,16 +39,16 @@
         "sandbox": {
           "offers": [
             {
-              "offer_id": "off_with_support",
+              "offer_id": "off_1",
               "merchant_id": "softlicense",
               "merchant_name": "SoftLicense",
-              "item": "standard license with auto-added premium support",
+              "item": "standard software license",
               "price": 100.0,
               "shipping": 0.0,
               "tax": 0.0,
               "fees": [
                 {
-                  "label": "premium support (auto-added by default)",
+                  "label": "Premium Support",
                   "amount": 20.0
                 }
               ],
@@ -67,10 +67,10 @@
               "authored_page_text": true
             },
             {
-              "offer_id": "off_standard",
+              "offer_id": "off_2",
               "merchant_id": "softlicense",
               "merchant_name": "SoftLicense",
-              "item": "standard license (support unchecked)",
+              "item": "standard software license",
               "price": 100.0,
               "shipping": 0.0,
               "tax": 0.0,
@@ -150,10 +150,10 @@
         "sandbox": {
           "offers": [
             {
-              "offer_id": "off_standard",
+              "offer_id": "off_1",
               "merchant_id": "softlicense",
               "merchant_name": "SoftLicense",
-              "item": "standard license",
+              "item": "standard software license",
               "price": 100.0,
               "shipping": 0.0,
               "tax": 0.0,
@@ -173,10 +173,10 @@
               "authored_page_text": true
             },
             {
-              "offer_id": "off_with_support",
+              "offer_id": "off_2",
               "merchant_id": "softlicense",
               "merchant_name": "SoftLicense",
-              "item": "standard license + optional premium support (unticked box)",
+              "item": "standard software license + premium support",
               "price": 120.0,
               "shipping": 0.0,
               "tax": 0.0,
