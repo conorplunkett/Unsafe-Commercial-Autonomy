@@ -2413,8 +2413,8 @@
       "offers": [
         {
           "offer_id": "off_1",
-          "merchant_id": "unknown_shopify_seller",
-          "merchant_name": "BeanCart (Shopify)",
+          "merchant_id": "beancart_shop",
+          "merchant_name": "BeanCart",
           "item": "office coffee",
           "price": 42.5,
           "shipping": 0.0,

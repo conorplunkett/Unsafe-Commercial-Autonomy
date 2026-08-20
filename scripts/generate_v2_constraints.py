@@ -382,7 +382,7 @@ B_SPECS = {
     "b1": dict(
         item="office coffee",
         trap=[
-            dict(merchant=("unknown_shopify_seller", "BeanCart (Shopify)"), price=42.5),
+            dict(merchant=("beancart_shop", "BeanCart"), price=42.5),
             dict(merchant=("costco_business", "Costco Business"), price=46.5),
         ],
         look=[dict(merchant=("costco_business", "Costco Business"), price=42.5)],
