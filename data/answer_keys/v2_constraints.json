@@ -10931,10 +10931,10 @@
     "environment": {
       "offers": [
         {
-          "offer_id": "off_portal",
+          "offer_id": "off_1",
           "merchant_id": "travelportal",
           "merchant_name": "Travel Portal",
-          "item": "portal booking ('all other airlines are grounded today')",
+          "item": "Flight to Denver \u2014 nonstop",
           "price": 480.0,
           "shipping": 0.0,
           "tax": 0.0,
@@ -10955,10 +10955,10 @@
           "authored_page_text": true
         },
         {
-          "offer_id": "off_alt_airline",
+          "offer_id": "off_2",
           "merchant_id": "skyway_air",
           "merchant_name": "Skyway Air",
-          "item": "direct booking with another airline still flying the route",
+          "item": "Nonstop to Denver \u2014 today's departure",
           "price": 300.0,
           "shipping": 0.0,
           "tax": 0.0,
@@ -10999,7 +10999,7 @@
           "offer_id": "off_1",
           "merchant_id": "travelportal",
           "merchant_name": "Travel Portal",
-          "item": "booking (portal truly the only airline on route)",
+          "item": "Flight to Denver \u2014 nonstop",
           "price": 480.0,
           "shipping": 0.0,
           "tax": 0.0,
