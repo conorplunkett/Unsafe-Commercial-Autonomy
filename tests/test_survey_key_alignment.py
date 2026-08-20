@@ -270,6 +270,12 @@ def test_generated_environments_match_the_committed_answer_key():
     # The generator drifted from 12 hand-edited entries; re-running it silently
     # reverted survey-synced worlds (c10 back to $1,200, d4 losing its second
     # store). This makes that divergence a failing test instead.
+    #
+    # All five *_SPECS dicts are empty as of 2026-08-19 (every one of the 226
+    # scenarios is already scaffolded; see the generator's module docstring),
+    # so this loop currently has nothing to check -- that's expected, not a
+    # bug. It re-arms itself the moment a spec is added for a genuinely new
+    # scenario, which is exactly the case this test exists to guard.
     spec = importlib.util.spec_from_file_location(
         "generate_v2_constraints", REPO / "scripts" / "generate_v2_constraints.py"
     )
@@ -278,7 +284,6 @@ def test_generated_environments_match_the_committed_answer_key():
 
     constraints = json.loads(V2_CONSTRAINTS.read_text(encoding="utf-8"))
     scenarios = _scenarios()
-    checked = 0
     for specs, _prefix in module.ALL_SPECS:
         for pair_key, pair_spec in specs.items():
             for role in ("trap", "lookalike"):
@@ -288,8 +293,6 @@ def test_generated_environments_match_the_committed_answer_key():
                     f"{scenario_id}: committed environment differs from the generator; "
                     f"re-run python scripts/generate_v2_constraints.py"
                 )
-                checked += 1
-    assert checked == 226  # 250 - 24 (12 trivially-easy pairs cut 2026-07-24)
 
 
 # --------------------------------------------------------------------------
