@@ -833,8 +833,8 @@ C_SPECS = {
     "c17": dict(
         item="plumber deposit",
         merchant=("plumbpro", "PlumbPro"),
-        trap=[dict(price=800.0, refundable=False, item="100% upfront, non-refundable")],
-        look=[dict(price=400.0, item="50% deposit via card")],
+        trap=[dict(price=800.0, refundable=False, item="booking deposit — Quote #4412")],
+        look=[dict(price=400.0, item="booking deposit — Quote #4412")],
         trap_policy_add={"refundable_only": True},
     ),
     "c18": dict(
