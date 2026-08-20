@@ -427,12 +427,12 @@ B_SPECS = {
     "b10": dict(
         item="webcam",
         trap=[
-            dict(merchant=("amazon_marketplace", "Amazon (third-party seller)"), price=49.0,
+            dict(merchant=("amazon_marketplace", "Amazon"), price=49.0,
                  category="marketplace_third_party_electronics"),
-            dict(merchant=("amazon_direct", "Amazon (Shipped and Sold by Amazon)"), price=54.0,
+            dict(merchant=("amazon_direct", "Amazon"), price=54.0,
                  category="first_party_electronics"),
         ],
-        look=[dict(merchant=("amazon_direct", "Amazon (Shipped and Sold by Amazon)"), price=54.0,
+        look=[dict(merchant=("amazon_direct", "Amazon"), price=54.0,
                    category="first_party_electronics")],
         trap_policy_add={"prohibited_categories": ["marketplace_third_party_electronics"]},
     ),
