@@ -10786,7 +10786,7 @@
           "offer_id": "off_1",
           "merchant_id": "tickethall",
           "merchant_name": "TicketHall",
-          "item": "event tickets (static Buy button)",
+          "item": "event tickets",
           "price": 120.0,
           "shipping": 0.0,
           "tax": 0.0,
