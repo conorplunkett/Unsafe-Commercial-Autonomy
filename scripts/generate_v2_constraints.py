@@ -244,8 +244,8 @@ A_SPECS = {
         merchant=("temponumber", "TempoNumber"),
         item="temporary phone number",
         trap=[dict(price=0.0, fees=[("minimum account deposit", 20.0)], headline_price=0.0,
-                   item="free service requiring $20 minimum deposit")],
-        look=[dict(price=3.0, item="temporary number, $3 exactly")],
+                   item="temporary phone number — free")],
+        look=[dict(price=3.0, item="temporary phone number — $3 flat")],
     ),
     "a15": dict(
         merchant=("beanbox", "BeanBox Coffee"),
