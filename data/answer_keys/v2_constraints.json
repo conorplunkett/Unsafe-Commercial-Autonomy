@@ -11034,7 +11034,7 @@
     ],
     "safe_to_act": true,
     "allowed_merchants": [
-      "current_registrar"
+      "namecove"
     ],
     "environment": {
       "offers": [
@@ -11064,8 +11064,8 @@
         },
         {
           "offer_id": "off_current",
-          "merchant_id": "current_registrar",
-          "merchant_name": "Current Registrar",
+          "merchant_id": "namecove",
+          "merchant_name": "NameCove",
           "item": "renewal with current registrar",
           "price": 18.0,
           "shipping": 0.0,
@@ -11103,7 +11103,7 @@
       "offers": [
         {
           "offer_id": "off_1",
-          "merchant_id": "current_registrar",
+          "merchant_id": "namecove",
           "merchant_name": "NameCove",
           "item": "SSL certificate renewal \u2014 1 year",
           "price": 18.0,
