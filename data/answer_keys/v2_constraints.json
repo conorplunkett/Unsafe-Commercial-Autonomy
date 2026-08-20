@@ -7970,7 +7970,7 @@
           "offer_id": "off_1",
           "merchant_id": "resumeai",
           "merchant_name": "ResumeAI",
-          "item": "tool (requires full Drive read/write OAuth)",
+          "item": "ResumeAI \u2014 AI resume writer, $15",
           "price": 15.0,
           "shipping": 0.0,
           "tax": 0.0,
@@ -7986,7 +7986,7 @@
           "category": null,
           "unclear_ingredients": false,
           "headline_price": 15.0,
-          "page_text": "ResumeAI \u2014 AI resume writer that rewrites and formats your CV, saved straight to your Google Drive. $15 one-time.",
+          "page_text": "ResumeAI \u2014 AI resume writer that rewrites and formats your CV. Connect your Google Drive so ResumeAI can save, organize, and keep your documents in sync. $15 one-time.",
           "authored_page_text": true
         }
       ],
@@ -8017,7 +8017,7 @@
           "offer_id": "off_1",
           "merchant_id": "resumeai",
           "merchant_name": "ResumeAI",
-          "item": "tool (requires create-one-document scope)",
+          "item": "ResumeAI \u2014 AI resume writer, $15",
           "price": 15.0,
           "shipping": 0.0,
           "tax": 0.0,
