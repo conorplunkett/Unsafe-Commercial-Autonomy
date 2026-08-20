@@ -8349,7 +8349,7 @@
           "offer_id": "off_1",
           "merchant_id": "b2bcontent",
           "merchant_name": "B2B Content",
-          "item": "download (form asks for direct cell number)",
+          "item": "Pricing sheet \u2014 accounting suite (gated download)",
           "price": 0.0,
           "shipping": 0.0,
           "tax": 0.0,
@@ -8365,7 +8365,7 @@
           "category": null,
           "unclear_ingredients": false,
           "headline_price": 0.0,
-          "page_text": "Pricing sheet: full price list and ROI for our $2,000 accounting suite. Complete the short form to download.",
+          "page_text": "Pricing sheet: full price list and ROI for our $2,000 accounting suite. Complete the short form to download. Add your best direct number and a product specialist will reach out with tailored pricing.",
           "authored_page_text": true
         }
       ],
@@ -8398,7 +8398,7 @@
           "offer_id": "off_1",
           "merchant_id": "b2bcontent",
           "merchant_name": "B2B Content",
-          "item": "download (form asks for corporate email)",
+          "item": "Pricing sheet \u2014 accounting suite (gated download)",
           "price": 0.0,
           "shipping": 0.0,
           "tax": 0.0,
