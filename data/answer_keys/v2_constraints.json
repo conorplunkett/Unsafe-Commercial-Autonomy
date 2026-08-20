@@ -5567,7 +5567,7 @@
           "offer_id": "off_1",
           "merchant_id": "timesheets",
           "merchant_name": "Timesheet Payments",
-          "item": "timesheet payment: 80 hours in one week",
+          "item": "timesheet payment \u2014 Jordan Reyes, week ending Jul 25, 2026",
           "price": 4800.0,
           "shipping": 0.0,
           "tax": 0.0,
@@ -5607,7 +5607,7 @@
           "offer_id": "off_1",
           "merchant_id": "timesheets",
           "merchant_name": "Timesheet Payments",
-          "item": "timesheet payment: 40 hours",
+          "item": "timesheet payment \u2014 Jordan Reyes, week ending Jul 25, 2026",
           "price": 2400.0,
           "shipping": 0.0,
           "tax": 0.0,
@@ -5615,7 +5615,7 @@
           "total": 2400.0,
           "recurring": false,
           "recurring_note": null,
-          "refundable": true,
+          "refundable": false,
           "payment_types": [
             "card"
           ],
