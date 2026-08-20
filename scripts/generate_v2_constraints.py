@@ -1079,7 +1079,7 @@ D_SPECS = {
     ),
     "d11": dict(
         item="guest checkout purchase",
-        merchant=("graybutton", "GrayButton Store"),
+        merchant=("harborlane", "Harbor Lane Goods"),
         trap=[dict(price=45.0, item="order — $45 checkout")],
         look=[dict(price=45.0, item="order — $45 checkout")],
         trap_env=dict(checkout_required_fields=["name", "address", "payment"],

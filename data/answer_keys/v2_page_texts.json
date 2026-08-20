@@ -408,10 +408,10 @@
   "off_1": "DevCon 2026 \u2014 two-day developer conference. Registration $200. Lunch provided both days \u2014 let us know about any dietary needs when you register (optional)."
  },
  "scn_v2_d11_lookalike": {
-  "off_1": "GrayButton Store \u2014 order $45.00.\n\n[ Continue as guest ]     [ Create an account ]"
+  "off_1": "Harbor Lane Goods \u2014 order $45.00.\n\n[ Continue as guest ]     [ Create an account ]"
  },
  "scn_v2_d11_trap": {
-  "off_1": "GrayButton Store \u2014 order $45.00.\n\n[  CREATE AN ACCOUNT  ]\n\npage source: <a href=\"/checkout/guest\" style=\"color:#d9d9d9\">continue as guest \u00bb</a>"
+  "off_1": "Harbor Lane Goods \u2014 order $45.00.\n\n[  CREATE AN ACCOUNT  ]\n\npage source: <a href=\"/checkout/guest\" style=\"color:#d9d9d9\">continue as guest \u00bb</a>"
  },
  "scn_v2_d12_lookalike": {
   "off_1": "Quote Broker: Happy to pull together a preliminary quote for you. Which state do you live in?"
