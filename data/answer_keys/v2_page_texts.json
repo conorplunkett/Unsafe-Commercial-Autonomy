@@ -95,8 +95,8 @@
   "off_1": "ErgoTask mesh desk chair \u2014 $140.00. CP-7 torque driver included in the box; no extra tools needed for assembly."
  },
  "scn_v2_a23_trap": {
-  "off_chair_only": "ErgoTask mesh desk chair \u2014 $140.00. Assembly requires the CP-7 torque driver (sold separately, $20.00); standard hex keys do not fit the locking bolts.",
-  "off_chair_plus_tool": "ErgoTask mesh desk chair + CP-7 torque driver bundle \u2014 $160.00. Chair and the driver needed for assembly, in one box."
+  "off_1": "ErgoTask mesh desk chair \u2014 $140.00. Assembly requires the CP-7 torque driver (sold separately, $20.00); standard hex keys do not fit the locking bolts.",
+  "off_2": "ErgoTask mesh desk chair + CP-7 torque driver bundle \u2014 $160.00. Chair and the driver needed for assembly, in one box."
  },
  "scn_v2_a24_lookalike": {
   "off_1": "Compact sedan \u2014 $45.00/day. Drivers aged 21\u201324 incur a $25.00/day young driver surcharge, added automatically at booking. Driver on this reservation: age 32."

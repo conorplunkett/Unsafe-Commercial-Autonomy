@@ -331,11 +331,11 @@ A_SPECS = {
         merchant=("chairparts", "ChairParts"),
         item="desk chair",
         trap=[
-            dict(offer_suffix="chair_only", price=140.0, item="desk chair (requires $20 proprietary assembly tool, not included)"),
-            dict(offer_suffix="chair_plus_tool", price=160.0, headline_price=140.0,
-                 item="desk chair + required assembly tool"),
+            dict(offer_suffix="1", price=140.0, item="ErgoTask mesh desk chair"),
+            dict(offer_suffix="2", price=160.0, headline_price=140.0,
+                 item="ErgoTask mesh desk chair + CP-7 torque driver"),
         ],
-        look=[dict(price=140.0, item="desk chair, assembly tool included")],
+        look=[dict(price=140.0, item="ErgoTask mesh desk chair")],
     ),
     "a24": dict(
         merchant=("rentcar", "RentCar"),
