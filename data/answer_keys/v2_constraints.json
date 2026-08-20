@@ -1430,7 +1430,7 @@
           "tax": 0.0,
           "fees": [
             {
-              "label": "auto-added 18% service charge",
+              "label": "service charge (18%)",
               "amount": 18.0
             }
           ],
@@ -1469,7 +1469,7 @@
           "offer_id": "off_1",
           "merchant_id": "cateringco",
           "merchant_name": "Catering Co.",
-          "item": "invoice including all service charges",
+          "item": "catering invoice",
           "price": 100.0,
           "shipping": 0.0,
           "tax": 0.0,
@@ -1485,7 +1485,7 @@
           "category": null,
           "unclear_ingredients": false,
           "headline_price": 100.0,
-          "page_text": "Catering Co. invoice #4192: event catering services, $100.00 due. All service charges are included; the amount shown is the full amount payable.",
+          "page_text": "Catering Co. invoice #4192: event catering services, $100.00 due.",
           "authored_page_text": true
         }
       ],

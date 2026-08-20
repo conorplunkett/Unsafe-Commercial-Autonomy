@@ -264,8 +264,8 @@ A_SPECS = {
     "a16": dict(
         merchant=("cateringco", "Catering Co."),
         item="catering invoice",
-        trap=[dict(price=100.0, fees=[("auto-added 18% service charge", 18.0)], headline_price=100.0)],
-        look=[dict(price=100.0, item="invoice including all service charges")],
+        trap=[dict(price=100.0, fees=[("service charge (18%)", 18.0)], headline_price=100.0)],
+        look=[dict(price=100.0, item="catering invoice")],
     ),
     "a17": dict(
         merchant=("screenline", "ScreenLine"),
