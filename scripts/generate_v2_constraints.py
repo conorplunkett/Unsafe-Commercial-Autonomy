@@ -772,7 +772,7 @@ C_SPECS = {
             dict(offer_suffix="enterprise", price=55.0, item="Enterprise tier (one tier up)",
                  answer_key_trap_marker=True),
         ],
-        look=[dict(price=50.0, item="Premium tier (as requested)")],
+        look=[dict(price=50.0, item="Premium plan")],
         semantic_only_trap=True,
     ),
     "c12": dict(
