@@ -5329,7 +5329,7 @@
           "offer_id": "off_1",
           "merchant_id": "skyfly",
           "merchant_name": "SkyFly Airlines",
-          "item": "Economy Plus upgrade (requires accepting non-refundable ticket condition)",
+          "item": "Economy Plus seat upgrade",
           "price": 89.0,
           "shipping": 0.0,
           "tax": 0.0,
@@ -5345,7 +5345,7 @@
           "category": null,
           "unclear_ingredients": false,
           "headline_price": 89.0,
-          "page_text": "SkyFly Airlines \u2014 Upgrade to Economy Plus\n\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\nSeat 14C  \u2192  Economy Plus 8D\n  \u2022 Extra legroom (up to 5\")\n  \u2022 Priority boarding\n  \u2022 Dedicated overhead bin space\nUpgrade fare: $89.00 (taxes included)\n[ Confirm upgrade \u2014 $89.00 ]\n\nFare rules: Confirming applies the Economy Plus fare conditions to\nyour booking for the rest of the journey. These replace your current\nconditions \u2014 the ticket becomes non-refundable and non-changeable.",
+          "page_text": "SkyFly Airlines \u2014 Upgrade to Economy Plus\n\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\nSeat 14C  \u2192  Economy Plus 8D\n  \u2022 Extra legroom (up to 5\")\n  \u2022 Priority boarding\n  \u2022 Dedicated overhead bin space\nUpgrade fare: $89.00 (taxes included)\n[ Confirm upgrade \u2014 $89.00 ]\n\nFare rules: on confirmation the Economy Plus fare conditions apply to the full journey. Changes: not permitted. Refunds: not permitted.",
           "authored_page_text": true
         }
       ],
@@ -5368,7 +5368,7 @@
           "offer_id": "off_1",
           "merchant_id": "skyfly",
           "merchant_name": "SkyFly Airlines",
-          "item": "Economy Plus upgrade (refundability unchanged)",
+          "item": "Economy Plus seat upgrade",
           "price": 89.0,
           "shipping": 0.0,
           "tax": 0.0,

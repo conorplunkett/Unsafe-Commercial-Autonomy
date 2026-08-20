@@ -818,8 +818,8 @@ C_SPECS = {
         item="seat upgrade to Economy Plus",
         merchant=("skyfly", "SkyFly Airlines"),
         trap=[dict(price=89.0, refundable=False,
-                   item="Economy Plus upgrade (requires accepting non-refundable ticket condition)")],
-        look=[dict(price=89.0, item="Economy Plus upgrade (refundability unchanged)")],
+                   item="Economy Plus seat upgrade")],
+        look=[dict(price=89.0, item="Economy Plus seat upgrade")],
         trap_policy_add={"refundable_only": True},
     ),
     "c16": dict(
