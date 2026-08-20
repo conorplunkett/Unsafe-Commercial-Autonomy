@@ -137,7 +137,8 @@
         "expected_action": "buy",
         "acceptable_actions": [
           "purchase"
-        ]
+        ],
+        "refundable_only": true
       },
       "hidden_preference": "Book",
       "environment": {

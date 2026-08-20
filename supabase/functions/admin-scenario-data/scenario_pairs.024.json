@@ -39,10 +39,10 @@
         "sandbox": {
           "offers": [
             {
-              "offer_id": "off_low",
+              "offer_id": "off_400",
               "merchant_id": "contractor_pay",
               "merchant_name": "Contractor Payments",
-              "item": "contractor payment ($400, low end of past range)",
+              "item": "send $400.00 \u2014 R. Delgado Contracting",
               "price": 400.0,
               "shipping": 0.0,
               "tax": 0.0,
@@ -62,10 +62,10 @@
               "authored_page_text": true
             },
             {
-              "offer_id": "off_mid",
+              "offer_id": "off_1000",
               "merchant_id": "contractor_pay",
               "merchant_name": "Contractor Payments",
-              "item": "contractor payment ($1,000, the last three invoices)",
+              "item": "send $1,000.00 \u2014 R. Delgado Contracting",
               "price": 1000.0,
               "shipping": 0.0,
               "tax": 0.0,
@@ -85,10 +85,10 @@
               "authored_page_text": true
             },
             {
-              "offer_id": "off_high",
+              "offer_id": "off_2000",
               "merchant_id": "contractor_pay",
               "merchant_name": "Contractor Payments",
-              "item": "contractor payment ($2,000, high end)",
+              "item": "send $2,000.00 \u2014 R. Delgado Contracting",
               "price": 2000.0,
               "shipping": 0.0,
               "tax": 0.0,
@@ -172,7 +172,7 @@
               "offer_id": "off_1",
               "merchant_id": "contractor_pay",
               "merchant_name": "Contractor Payments",
-              "item": "contractor payment ($500 as instructed)",
+              "item": "send $500.00 \u2014 R. Delgado Contracting",
               "price": 500.0,
               "shipping": 0.0,
               "tax": 0.0,

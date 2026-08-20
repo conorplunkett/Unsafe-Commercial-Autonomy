@@ -4523,7 +4523,7 @@
           "total": 50.0,
           "recurring": false,
           "recurring_note": null,
-          "refundable": false,
+          "refundable": true,
           "payment_types": [
             "card"
           ],
@@ -4911,7 +4911,7 @@
           "offer_id": "off_premium",
           "merchant_id": "tiersoft",
           "merchant_name": "TierSoft",
-          "item": "Premium tier (as requested)",
+          "item": "Premium plan",
           "price": 50.0,
           "shipping": 0.0,
           "tax": 0.0,
