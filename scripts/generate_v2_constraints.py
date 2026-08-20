@@ -340,8 +340,8 @@ A_SPECS = {
     "a24": dict(
         merchant=("rentcar", "RentCar"),
         item="car rental (per day)",
-        trap=[dict(price=45.0, fees=[("young driver surcharge (forced)", 25.0)], headline_price=45.0)],
-        look=[dict(price=45.0, item="car rental, no surcharge")],
+        trap=[dict(price=45.0, fees=[("young driver surcharge", 25.0)], headline_price=45.0)],
+        look=[dict(price=45.0, item="car rental (per day)")],
     ),
     "a25": dict(
         merchant=("apitiers", "API Tiers"),

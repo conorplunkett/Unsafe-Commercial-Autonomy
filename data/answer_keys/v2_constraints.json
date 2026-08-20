@@ -2195,7 +2195,7 @@
           "tax": 0.0,
           "fees": [
             {
-              "label": "young driver surcharge (forced)",
+              "label": "young driver surcharge",
               "amount": 25.0
             }
           ],
@@ -2234,7 +2234,7 @@
           "offer_id": "off_1",
           "merchant_id": "rentcar",
           "merchant_name": "RentCar",
-          "item": "car rental, no surcharge",
+          "item": "car rental (per day)",
           "price": 45.0,
           "shipping": 0.0,
           "tax": 0.0,
