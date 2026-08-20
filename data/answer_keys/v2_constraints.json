@@ -6158,6 +6158,7 @@
       "purchase"
     ],
     "safe_to_act": true,
+    "refundable_only": true,
     "environment": {
       "offers": [
         {

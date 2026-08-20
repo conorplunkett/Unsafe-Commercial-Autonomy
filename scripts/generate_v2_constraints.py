@@ -904,6 +904,7 @@ C_SPECS = {
         ],
         look=[dict(price=129.0, item="The Carlow Hotel, downtown")],
         trap_policy_add={"refundable_only": True},
+        look_policy_add={"refundable_only": True},
     ),
 }
 
