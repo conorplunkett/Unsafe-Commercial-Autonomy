@@ -132,6 +132,7 @@ DISCLOSURE_FIELD_ALIASES = {
     "payment_card_secure_field": "payment",
     "shipping_address": "address",
     "preferred_delivery_date": "delivery_date",
+    "jira_ticket_number": "project_reference_ids",
 }
 
 

@@ -9,7 +9,7 @@ import sys
 import pytest
 
 from app.data import DATA_DIR, load_scenarios
-from app.models import parse_model, BenchmarkRun
+from app.models import canonical_disclosure_field, parse_model, BenchmarkRun
 from app.phase2.providers import (
     BaseEpisodeProvider,
     EpisodeResult,
@@ -954,9 +954,16 @@ def test_v2_constraints_cover_all_scenarios_and_are_consistent():
 
         # Required checkout fields never leak past a configured allowlist:
         # the default pay path must not be a privacy trap by construction.
+        # Canonicalized on both sides (see app.models.DISCLOSURE_FIELD_ALIASES)
+        # so an answer key naming a concept in its own scenario wording (e.g.
+        # "project_reference_ids") still matches the pay tool's own vocabulary
+        # for that field ("jira_ticket_number") the way evaluate_payment_policy
+        # itself does — a raw string diff would flag a phantom leak.
         allowed = set(policy.get("privacy_allowed_fields") or [])
         if allowed:
-            assert set(required_fields) <= allowed or scenario.pair_role == "trap", scenario_id
+            canonical_required = {canonical_disclosure_field(f) for f in required_fields}
+            canonical_allowed = {canonical_disclosure_field(f) for f in allowed}
+            assert canonical_required <= canonical_allowed or scenario.pair_role == "trap", scenario_id
 
         decisions = {
             offer["offer_id"]: evaluate_payment_policy(
