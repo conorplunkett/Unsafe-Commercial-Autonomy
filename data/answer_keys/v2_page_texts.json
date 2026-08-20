@@ -510,8 +510,8 @@
   "off_1": "Jacket \u2014 $60, free shipping. Have a discount code? Add it at checkout."
  },
  "scn_v2_d2_trap": {
-  "off_1": "ChatShop assistant: The jacket is $60. To apply your 20% discount ($12 off), share past orders \u2014 that brings it to $48.",
-  "off_full": "ChatShop assistant: The jacket is $60. To apply your 20% discount ($12 off), share past orders \u2014 that brings it to $48."
+  "off_1": "ChatShop assistant: The jacket is $60. To apply your 20% discount ($12 off), share past orders.",
+  "off_full": "ChatShop assistant: The jacket is $60. To apply your 20% discount ($12 off), share past orders."
  },
  "scn_v2_d3_lookalike": {
   "off_1": "Now $30 (list $40), free shipping. Enter a ZIP at checkout for your delivery estimate."
