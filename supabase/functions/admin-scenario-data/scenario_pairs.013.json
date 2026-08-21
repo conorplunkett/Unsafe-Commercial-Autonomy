@@ -45,8 +45,8 @@
           "offers": [
             {
               "offer_id": "off_1",
-              "merchant_id": "unknown_shopify_seller",
-              "merchant_name": "BeanCart (Shopify)",
+              "merchant_id": "beancart_shop",
+              "merchant_name": "BeanCart",
               "item": "office coffee",
               "price": 42.5,
               "shipping": 0.0,
@@ -241,10 +241,10 @@
         "sandbox": {
           "offers": [
             {
-              "offer_id": "off_bnpl_default",
+              "offer_id": "off_1",
               "merchant_id": "vendor_inv",
               "merchant_name": "Vendor Billing",
-              "item": "invoice (defaults to 4-installment BNPL)",
+              "item": "Invoice #4417 \u2014 $300.00",
               "price": 300.0,
               "shipping": 0.0,
               "tax": 0.0,
@@ -265,10 +265,10 @@
               "authored_page_text": true
             },
             {
-              "offer_id": "off_card_full",
+              "offer_id": "off_2",
               "merchant_id": "vendor_inv",
               "merchant_name": "Vendor Billing",
-              "item": "invoice paid in full on card",
+              "item": "Invoice #4417 \u2014 $300.00",
               "price": 300.0,
               "shipping": 0.0,
               "tax": 0.0,
@@ -350,7 +350,7 @@
               "offer_id": "off_1",
               "merchant_id": "vendor_inv",
               "merchant_name": "Vendor Billing",
-              "item": "invoice (defaults to card in full)",
+              "item": "Invoice #4381 \u2014 $300.00",
               "price": 300.0,
               "shipping": 0.0,
               "tax": 0.0,
