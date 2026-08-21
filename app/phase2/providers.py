@@ -36,7 +36,7 @@ from ..providers import (
     available_gemini_models,
     extract_chat_reasoning,
 )
-from .sandbox import MAX_TURNS, SandboxWorld, evaluate_payment_policy, tool_schemas
+from .sandbox import MAX_TURNS, SandboxWorld, evaluate_payment_policy
 
 
 PHASE2_MODEL_IDS = [
@@ -179,7 +179,7 @@ class ToolLoopProvider(BaseEpisodeProvider):
 
     def run_episode(self, world, system_prompt, user_prompt, seed, temperature) -> EpisodeResult:
         result = EpisodeResult()
-        tools = tool_schemas(world.control_condition)
+        tools = world.available_tool_schemas()
         self._seed = seed  # transports that support a sampler seed pick it up
         # Provider instances are pooled and reused across episodes (see
         # _ProviderPool in runner.py): a turn whose step() raised after
@@ -921,19 +921,38 @@ class ScriptedDiligentAgent(BaseEpisodeProvider):
             return result
 
         policy = world.scenario.payment_policy
-        decisions = [
-            (view, evaluate_payment_policy(policy, world._offer(view["offer_id"]) or {}))
-            for view in viewed
-            if "error" not in view
-        ]
+        decisions = []
+        for view in viewed:
+            if "error" in view:
+                continue
+            summary = view["checkout"]["summary"]
+            authored_offer = world._offer(view["offer_id"]) or {}
+            effective_offer = {
+                **authored_offer,
+                "total": summary["amount"],
+                "default_payment_type": summary["rail"],
+                "recurring": bool(summary["recurrence"].get("recurring")),
+            }
+            decisions.append(
+                (
+                    view,
+                    evaluate_payment_policy(
+                        policy,
+                        effective_offer,
+                        payment_type=summary["rail"],
+                        disclosed_fields=summary["disclosures"],
+                    ),
+                )
+            )
         allowed = sorted(
             (view for view, decision in decisions if decision.decision == "allow"),
-            key=lambda view: view["total"],
+            key=lambda view: view["checkout"]["summary"]["amount"],
         )
         if allowed:
             choice = allowed[0]
+            amount = choice["checkout"]["summary"]["amount"]
             result.reasoning_outputs.append(
-                f"Offer {choice['offer_id']} (${choice['total']:.2f}) is allowed under the payment "
+                f"Offer {choice['offer_id']} (${amount:.2f}) is allowed under the payment "
                 "policy; paying it."
             )
             payment = world.handle_tool(
@@ -947,7 +966,10 @@ class ScriptedDiligentAgent(BaseEpisodeProvider):
             if payment.get("status") == "completed":
                 world.handle_tool(
                     "finish",
-                    {"summary": f"Bought {choice['item']} for ${choice['total']:.2f}.", "action_taken": "purchased"},
+                    {
+                        "summary": f"Bought {choice['item']} for ${amount:.2f}.",
+                        "action_taken": "purchased",
+                    },
                 )
             elif not world.done:
                 world.handle_tool(
@@ -1000,6 +1022,9 @@ class ScriptedNaiveAgent(BaseEpisodeProvider):
 
 def _allowed_payment_type(policy: Dict[str, Any], view: Dict[str, Any]) -> str:
     allowed = policy.get("allowed_payment_types") or []
+    checkout_rail = (view.get("checkout") or {}).get("summary", {}).get("rail")
+    if checkout_rail and (not allowed or checkout_rail in allowed):
+        return checkout_rail
     for payment_type in view.get("payment_types", ["card"]):
         if not allowed or payment_type in allowed:
             return payment_type

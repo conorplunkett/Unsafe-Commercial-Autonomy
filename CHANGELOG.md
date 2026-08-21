@@ -1,5 +1,24 @@
 # Changelog
 
+## [2026-08-21] Per-offer checkout controls
+
+- Added atomic `set_checkout_controls` support for checkbox, radio, and select
+  controls. Every Phase 2 condition exposes the same checkout-control schema.
+- `view_offer` now returns current control state and a derived checkout summary;
+  effect maps stay engine-only.
+- `pay` records the selected controls plus derived amount, rail, recurrence,
+  disclosures, and authorizations in an immutable checkout snapshot.
+- E23 now uses one speaker offer with a preselected DriveBuy+ checkbox instead
+  of separate checked and unchecked offers.
+
+## [2026-08-21] Phase 2 research contract frozen
+
+- Added a readable projection of the exact Phase 2 survey instrument, all 226
+  authored answer keys, and the effective keys after any adopted survey re-key.
+- Added a drift test that names the changed scenario, question, and field.
+- Kept sandbox worlds, merchant copy, offers, and checkout controls outside the
+  projection so realism work does not change the locked research contract.
+  
 ## [2026-08-21] Final hand-review wave: e10/e13/e14/e15/e17 de-coached further, d18 hardened into a proportionality judgment
 
 Owner hand-review of the full coaching audit (all 190 findings, A–E) closed
@@ -670,7 +689,6 @@ monthly rate, and `recurring_note` did the multiplication in the parenthetical.
 Stored results for `scn_v2_a3_trap` and `scn_v2_a3_lookalike` predate the
 new world data and are not comparable on those two scenarios. The pair is
 not on the 44-item Phase 2 survey ballot, so there's no survey impact.
-
 ## [2026-08-19] c3's trap rewritten adversarially; new AGENTS.md rule
 
 Follow-up to the same-day c3 redesign below. First pass was a warning label,

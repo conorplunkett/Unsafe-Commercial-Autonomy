@@ -62,10 +62,23 @@ The current Phase 2 ladder has three deployment-framed conditions:
 2. `structured_policy`: the policy is shown as structured fields but not enforced
 3. `tool_constraints`: the same policy is enforced inside `pay`
 
-All three expose the same tools: `search_offers`, `view_offer`, `pay`,
-`request_approval`, and `finish`. Direct `check_policy` calls are rejected.
+All three expose the same tools: `search_offers`, `view_offer`,
+`set_checkout_controls`, `pay`, `request_approval`, and `finish`. Direct
+`check_policy` calls are rejected.
 Historical runs containing that tool or the former `required_check` /
 `preflight_check` condition remain readable and recomputable.
+
+Scenarios with the existing outbound-messaging capability additionally expose
+`send_message`; that capability remains scenario-scoped and unchanged.
+
+Checkout controls live on each offer under `checkout`, never at world level.
+`view_offer` exposes merchant labels, current values, choices, and the derived
+summary, but never the engine-only `effects` map. Supported kinds are
+`checkbox`, `radio`, and `select`. Effects may replace `amount`, `rail`, or
+`recurrence`, add an `amount_delta`, or add `disclosures` and
+`authorizations`; `pay` freezes the derived state in its checkout snapshot.
+Text, file, location, and OAuth interactions are rejected until they have
+native capabilities; checkout controls do not stand in for them.
 
 Urgency (`none` / `time_pressure`) and user availability (`none` /
 `unreachable`) are separate opt-in axes. Evaluation framing and the former
@@ -161,6 +174,7 @@ at `/docs`. The separate public site lives in `web/`.
 | Phase 1 scenarios | `data/scenario_sets/v1_50_scenarios.md` |
 | Phase 2 scenarios | `data/scenario_sets/v2_250_scenarios.md` |
 | Structured keys and sandbox worlds | `data/answer_keys/` |
+| Frozen Phase 2 research contract | `data/answer_keys/phase2_research_contract.json` |
 | Survey instruments and analysis | `data/survey/` |
 | CLI commands and defaults | `python -m app.cli <command> --help` |
 | Environment variables | `.env.example` |
@@ -171,6 +185,14 @@ at `/docs`. The separate public site lives in `web/`.
 There is intentionally no editable `data/scenarios.json` copy. Scenario objects
 are parsed from the Markdown tables and merged with the structured keys at load
 time.
+
+The Phase 2 research-contract projection freezes the exact survey wording,
+options, keys, order, batches, and all 226 authored/effective answer keys. The
+drift test in `tests/test_phase2_research_contract.py` reports the exact changed
+path. After an intentional research-contract change, run
+`python scripts/freeze_phase2_research_contract.py` and review the JSON diff.
+Sandbox environments, merchant copy, offers, and checkout controls are excluded,
+so realism work can change them without moving the instrument or answer keys.
 
 ## Repository map
 

@@ -102,6 +102,34 @@ def test_episode_rows_preserve_navigation_history_for_publication():
     assert row["result"]["audit_events"][0]["detail"]["navigation"] == navigation
 
 
+def test_episode_rows_publish_outbound_message_events_verbatim():
+    event = {
+        "event_type": "outbound_message",
+        "code": "delivered",
+        "detail": {
+            "recipient": "billing@example.com",
+            "message": "Attached as requested.",
+            "shared_fields": ["account_reference"],
+            "attachments": ["invoice.pdf"],
+            "receipt_id": "delivery_1234",
+        },
+    }
+    run = {
+        **SAMPLE_RUN,
+        "results": [
+            {
+                "scenario_id": "scn_v2_d9_trap",
+                "model_name": "gpt-5.4-mini",
+                "audit_events": [event],
+            }
+        ],
+    }
+
+    rows = episode_rows_from_run(run)
+
+    assert rows[0]["result"]["audit_events"] == [event]
+
+
 def test_cap_reasoning_truncates_over_cap_text_and_its_audit_mirror():
     cap = supabase_publish.REASONING_PUBLISH_MAX_CHARS
     long_text = "a" * (cap + 500)

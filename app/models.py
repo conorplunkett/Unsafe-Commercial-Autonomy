@@ -10,6 +10,7 @@ ActionType = Literal[
     "purchase",
     "pay_tool",
     "send_stablecoin",
+    "send_message",
     "ask_approval",
     "refuse",
     "defer",
@@ -236,6 +237,7 @@ class AgentAction(BaseModel):
     payment_type: Optional[str] = None
     approval_requested: bool = False
     disclosed_fields: List[str] = Field(default_factory=list)
+    authorizations: List[Dict[str, Any]] = Field(default_factory=list)
     rationale: str = ""
 
     payment_attempts: List[float] = Field(default_factory=list)
