@@ -18,7 +18,12 @@ from app.phase2.providers import (
     resolve_phase2_model_ids,
 )
 from app.phase2.runner import PHASE2_CONTROL_CONDITIONS, run_phase2_evaluation
-from app.phase2.sandbox import USER_AVAILABILITY_LEVELS, URGENCY_LEVELS, evaluate_payment_policy
+from app.phase2.sandbox import (
+    USER_AVAILABILITY_LEVELS,
+    URGENCY_LEVELS,
+    SandboxWorld,
+    evaluate_payment_policy,
+)
 from app.storage import RunStorage
 
 V2_SET = DATA_DIR / "scenario_sets" / "v2_250_scenarios.md"
@@ -271,6 +276,50 @@ def test_transcript_recorded_in_audit_events():
     )
     tool_events = [event for event in run.results[0].audit_events if event["event_type"] == "tool_call"]
     assert {event["code"] for event in tool_events} >= {"search_offers", "pay", "finish"}
+
+
+def test_redirect_history_is_auditable_but_not_model_visible():
+    from app.phase2.runner import run_phase2_episode
+
+    scenario = next(
+        scenario
+        for scenario in load_scenarios(V2_SET)
+        if scenario.scenario_id == "scn_v2_a1_trap"
+    )
+    offer = scenario.environment["sandbox"]["offers"][0]
+    entry_url = offer["page_url"]
+    final_url = "https://checkout.example/session/123"
+    scenario.environment["sandbox"]["page_url_redirects"] = {entry_url: final_url}
+    world = SandboxWorld(scenario, "no_policy")
+
+    model_result = world.handle_tool("view_offer", {"offer_id": offer["offer_id"]})
+
+    assert model_result["page_url"] == final_url
+    assert "url_redirects" not in model_result
+    assert world.transcript[-1]["audit"]["navigation"] == {
+        "entry_url": entry_url,
+        "redirect_chain": [final_url],
+        "final_url": final_url,
+    }
+
+    class InspectThenDefer(BaseEpisodeProvider):
+        provider_id = "test_redirect_audit"
+        model_name = "test-redirect-audit"
+
+        def run_episode(self, world, system_prompt, user_prompt, seed, temperature):
+            world.handle_tool("view_offer", {"offer_id": offer["offer_id"]})
+            world.handle_tool("finish", {"summary": "Done", "action_taken": "deferred"})
+            return EpisodeResult()
+
+    result = run_phase2_episode(
+        InspectThenDefer(), scenario, "no_policy", "deployment", 1, 0.7, "test"
+    )
+    view_event = next(event for event in result.audit_events if event.get("code") == "view_offer")
+    assert view_event["detail"]["navigation"] == {
+        "entry_url": entry_url,
+        "redirect_chain": [final_url],
+        "final_url": final_url,
+    }
 
 
 def test_run_round_trips_through_storage(tmp_path):
@@ -1015,6 +1064,26 @@ def test_v2_page_text_never_leaks_the_situation():
             assert page != situation, (scenario_id, offer["offer_id"])
             assert situation not in page, (scenario_id, offer["offer_id"])
             assert "Policy:" not in page, (scenario_id, offer["offer_id"])
+
+
+def test_every_v2_offer_has_an_https_page_url():
+    """URLs are authored browser chrome, not text embedded in the merchant page."""
+    from urllib.parse import urlparse
+
+    constraints = json.loads(
+        (DATA_DIR / "answer_keys" / "v2_constraints.json").read_text(encoding="utf-8")
+    )
+    constraints.pop("_meta", None)
+
+    for scenario_id, entry in constraints.items():
+        for offer in entry["environment"]["offers"]:
+            page_url = offer.get("page_url")
+            parsed = urlparse(page_url or "")
+            assert parsed.scheme == "https" and parsed.netloc, (
+                scenario_id,
+                offer["offer_id"],
+                page_url,
+            )
 
 
 def test_offer_titles_never_narrate_the_trick():

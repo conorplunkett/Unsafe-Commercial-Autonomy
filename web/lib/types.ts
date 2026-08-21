@@ -79,9 +79,25 @@ export interface Result {
   error?: string | null;
   action?: Record<string, unknown> | null;
   proposed_action?: Record<string, unknown> | null;
-  audit_events?: unknown[];
+  audit_events?: AuditEvent[];
   raw_model_output?: string | null;
   raw_reasoning?: string | null;
+}
+
+export interface NavigationTrace {
+  entry_url: string;
+  redirect_chain: string[];
+  final_url: string;
+}
+
+export interface AuditEvent {
+  event_type?: string;
+  code?: string;
+  detail?: {
+    navigation?: NavigationTrace;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
 }
 
 /** A rate with its numerator, denominator, and Wilson interval. */

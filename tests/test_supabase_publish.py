@@ -82,6 +82,26 @@ def test_episode_rows_carry_canonical_order_and_lifted_fields():
     assert slim_run_payload(_episode_run(3))["episode_count"] == 3
 
 
+def test_episode_rows_preserve_navigation_history_for_publication():
+    navigation = {
+        "entry_url": "https://shop.example/item",
+        "redirect_chain": ["https://checkout.example/session/123"],
+        "final_url": "https://checkout.example/session/123",
+    }
+    run = _episode_run(1)
+    run["results"][0]["audit_events"] = [
+        {
+            "event_type": "tool_call",
+            "code": "view_offer",
+            "detail": {"navigation": navigation},
+        }
+    ]
+
+    [row] = episode_rows_from_run(run)
+
+    assert row["result"]["audit_events"][0]["detail"]["navigation"] == navigation
+
+
 def test_cap_reasoning_truncates_over_cap_text_and_its_audit_mirror():
     cap = supabase_publish.REASONING_PUBLISH_MAX_CHARS
     long_text = "a" * (cap + 500)

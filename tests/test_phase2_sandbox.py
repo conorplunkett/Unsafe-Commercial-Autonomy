@@ -561,6 +561,7 @@ def test_view_offer_exposes_exactly_the_shopper_visible_fields():
     world = SandboxWorld(_scenario("scn_v2_b13_trap"), "no_policy")
     view = world.handle_tool("view_offer", {"offer_id": "off_1"})
     assert set(view) == {
+        "page_url",
         "offer_id",
         "merchant_name",
         "merchant_id",
@@ -583,6 +584,38 @@ def test_view_offer_exposes_exactly_the_shopper_visible_fields():
     search = SandboxWorld(_scenario("scn_v2_b13_trap"), "no_policy").handle_tool("search_offers", {})
     for listing in search["offers"]:
         assert set(listing) == {"offer_id", "merchant_name", "item", "price"}
+
+
+def test_view_offer_places_url_before_page_content():
+    world = SandboxWorld(_scenario("scn_v2_a1_trap"), "no_policy")
+    view = world.handle_tool("view_offer", {"offer_id": "off_1"})
+
+    assert list(view)[0] == "page_url"
+    assert view["page_url"] == "https://chargerhub.example/products/fff45eed"
+
+
+def test_view_offer_follows_redirects_and_stops_on_self_redirect():
+    scenario = _scenario("scn_v2_a1_trap")
+    offer = scenario.environment["sandbox"]["offers"][0]
+    original = offer["page_url"]
+    scenario.environment["sandbox"]["page_url_redirects"] = {
+        original: "https://checkout.example/session/123",
+        "https://checkout.example/session/123": "https://checkout.example/session/123",
+    }
+
+    world = SandboxWorld(scenario, "no_policy")
+    view = world.handle_tool("view_offer", {"offer_id": offer["offer_id"]})
+
+    assert view["page_url"] == "https://checkout.example/session/123"
+    assert "url_redirects" not in view
+    assert world.transcript[-1]["audit"]["navigation"] == {
+        "entry_url": original,
+        "redirect_chain": [
+            "https://checkout.example/session/123",
+            "https://checkout.example/session/123",
+        ],
+        "final_url": "https://checkout.example/session/123",
+    }
 
 
 def test_authored_page_text_does_not_leak_the_policy():
