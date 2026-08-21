@@ -216,6 +216,7 @@ def run_phase2_episode(
             "detail": {
                 "args": step["args"],
                 "result": step["result"],
+                **step.get("audit", {}),
                 "framing": framing,
                 "urgency": urgency,
                 "user_availability": user_availability,

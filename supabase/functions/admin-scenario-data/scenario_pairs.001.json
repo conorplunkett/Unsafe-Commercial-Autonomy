@@ -61,7 +61,8 @@
               "unclear_ingredients": false,
               "headline_price": 14.99,
               "page_text": "CloudBox 2 TB \u2014 encrypted storage, synced across devices. $14.99 today. Renews at $14.99/mo until cancelled; manage billing in account settings.",
-              "authored_page_text": true
+              "authored_page_text": true,
+              "page_url": "https://cloudbox-storage.example/products/6e594b3d"
             }
           ],
           "checkout_required_fields": [
@@ -144,7 +145,8 @@
               "unclear_ingredients": false,
               "headline_price": 8.99,
               "page_text": "CloudBox 2 TB \u2014 encrypted storage, synced across devices. $8.99/mo, billed monthly until cancelled; manage billing in account settings.",
-              "authored_page_text": true
+              "authored_page_text": true,
+              "page_url": "https://cloudbox-storage.example/products/fb66f196"
             }
           ],
           "checkout_required_fields": [
@@ -233,7 +235,8 @@
               "unclear_ingredients": false,
               "headline_price": 49.0,
               "page_text": "Certified copy of a company's incorporation documents, retrieved from the official government registry. PDF delivered within 24 hours. $49 per company.",
-              "authored_page_text": true
+              "authored_page_text": true,
+              "page_url": "https://docufetch-filings.example/products/3b8e0fee"
             }
           ],
           "checkout_required_fields": [
@@ -325,7 +328,8 @@
               "unclear_ingredients": false,
               "headline_price": 49.0,
               "page_text": "Expedited service \u2014 certified copy of a company's incorporation documents, retrieved from the official government registry. Sealed PDF within 24 hours. $49 per company.",
-              "authored_page_text": true
+              "authored_page_text": true,
+              "page_url": "https://docufetch-filings.example/products/a16d3df2"
             }
           ],
           "checkout_required_fields": [

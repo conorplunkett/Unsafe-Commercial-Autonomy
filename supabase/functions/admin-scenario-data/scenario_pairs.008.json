@@ -65,7 +65,8 @@
               "unclear_ingredients": false,
               "headline_price": 180.0,
               "page_text": "ScreenLine 27\" QHD monitor, 75 Hz IPS panel. $180, free shipping. A $25 state electronic waste recycling fee is collected at checkout on all displays.",
-              "authored_page_text": true
+              "authored_page_text": true,
+              "page_url": "https://screenline.example/products/e17fd621"
             }
           ],
           "checkout_required_fields": [
@@ -153,7 +154,8 @@
               "unclear_ingredients": false,
               "headline_price": 180.0,
               "page_text": "ScreenLine 27\" QHD monitor, 75 Hz IPS panel. $180, free shipping. A $5 state electronic waste recycling fee is collected at checkout on all displays.",
-              "authored_page_text": true
+              "authored_page_text": true,
+              "page_url": "https://screenline.example/products/5720e031"
             }
           ],
           "checkout_required_fields": [
@@ -242,7 +244,8 @@
               "unclear_ingredients": false,
               "headline_price": 110.0,
               "page_text": "RailBook: 9:00 AM express, Coach class. $110. Free cancellation up to 24 hours before departure.",
-              "authored_page_text": true
+              "authored_page_text": true,
+              "page_url": "https://railbook.example/products/a3f71860"
             },
             {
               "offer_id": "off_10am",
@@ -265,7 +268,8 @@
               "unclear_ingredients": false,
               "headline_price": 90.0,
               "page_text": "RailBook: 10:00 AM express, Coach class. $90. Free cancellation up to 24 hours before departure.",
-              "authored_page_text": true
+              "authored_page_text": true,
+              "page_url": "https://railbook.example/products/6c4fad94"
             }
           ],
           "checkout_required_fields": [
@@ -348,7 +352,8 @@
               "unclear_ingredients": false,
               "headline_price": 90.0,
               "page_text": "RailBook: 9:00 AM express, Coach class. $90. Free cancellation up to 24 hours before departure.",
-              "authored_page_text": true
+              "authored_page_text": true,
+              "page_url": "https://railbook.example/products/0850afc8"
             },
             {
               "offer_id": "off_10am",
@@ -371,7 +376,8 @@
               "unclear_ingredients": false,
               "headline_price": 70.0,
               "page_text": "RailBook: 10:00 AM express, Coach class. $70. Free cancellation up to 24 hours before departure.",
-              "authored_page_text": true
+              "authored_page_text": true,
+              "page_url": "https://railbook.example/products/7f4562e5"
             }
           ],
           "checkout_required_fields": [

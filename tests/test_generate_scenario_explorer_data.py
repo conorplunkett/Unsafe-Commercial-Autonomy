@@ -34,6 +34,9 @@ def test_build_pairs_has_113_complete_pairs():
         assert pair["lookalike"]["pair_role"] == "lookalike"
         assert pair["trap"]["pair_id"] == pair["pair_id"]
         assert pair["lookalike"]["pair_id"] == pair["pair_id"]
+        for scenario in (pair["trap"], pair["lookalike"]):
+            for offer in scenario["environment"]["sandbox"]["offers"]:
+                assert offer["page_url"].startswith("https://")
 
     counts = {}
     for pair in pairs:
@@ -127,3 +130,19 @@ def test_shrinking_chunk_count_removes_stale_files(tmp_path, monkeypatch):
 
     assert after == {gen.chunk_filename(0)}
     assert before - after  # the old, now-stale chunk files were deleted
+
+
+def test_sync_index_chunks_updates_imports_and_spreads(tmp_path):
+    index_path = tmp_path / "index.ts"
+    index_path.write_text(
+        'before\nimport chunk000 from "./scenario_pairs.000.json" with { type: "json" };\n\n'
+        "const SCENARIO_PAIRS = [\n  ...chunk000\n];\nafter\n"
+    )
+    chunks = [tmp_path / gen.chunk_filename(i) for i in range(3)]
+
+    gen.sync_index_chunks(index_path, chunks)
+
+    result = index_path.read_text()
+    assert 'import chunk002 from "./scenario_pairs.002.json"' in result
+    assert "  ...chunk002" in result
+    assert result.startswith("before\n") and result.endswith("after\n")

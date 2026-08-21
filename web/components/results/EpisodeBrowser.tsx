@@ -13,7 +13,7 @@ import {
 } from "@/lib/labels";
 import { compactDate, num } from "@/lib/format";
 import { isUnkeyedStatus } from "@/lib/metrics";
-import type { Result } from "@/lib/types";
+import type { NavigationTrace, Result } from "@/lib/types";
 
 // Rows per page, hardcoded: the table opens with 10 and appends 10 more each
 // time the end of the list scrolls into view.
@@ -103,6 +103,57 @@ function JsonBlock({ value }: { value: unknown }) {
   );
 }
 
+export function navigationTraces(row: Result): NavigationTrace[] {
+  return (row.audit_events ?? []).flatMap((event) => {
+    const trace = event.detail?.navigation;
+    if (
+      event.event_type !== "tool_call" ||
+      event.code !== "view_offer" ||
+      !trace ||
+      typeof trace.entry_url !== "string" ||
+      !Array.isArray(trace.redirect_chain) ||
+      !trace.redirect_chain.every((url) => typeof url === "string") ||
+      typeof trace.final_url !== "string"
+    ) {
+      return [];
+    }
+    return [trace];
+  });
+}
+
+function NavigationHistory({ traces }: { traces: NavigationTrace[] }) {
+  if (!traces.length) return null;
+  return (
+    <div>
+      <p className="label mb-1.5">Navigation</p>
+      <div className="space-y-2">
+        {traces.map((trace, traceIndex) => {
+          const hops = [trace.entry_url, ...trace.redirect_chain];
+          return (
+            <ol
+              key={`${trace.entry_url}-${traceIndex}`}
+              className="rounded-lg border border-border bg-paper-2 p-4 font-mono text-caption"
+            >
+              {hops.map((url, hopIndex) => (
+                <li key={`${url}-${hopIndex}`} className="break-all py-1">
+                  <span className="mr-2 text-muted">
+                    {hopIndex === 0
+                      ? "Start"
+                      : hopIndex === hops.length - 1
+                        ? "Final"
+                        : `Redirect ${hopIndex}`}
+                  </span>
+                  {url}
+                </li>
+              ))}
+            </ol>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function Detail({ row }: { row: Row | undefined }) {
   if (!row) {
     return (
@@ -116,6 +167,7 @@ function Detail({ row }: { row: Row | undefined }) {
   // panel shows the published episode verbatim.
   const episode: Record<string, unknown> = { ...row };
   delete episode.key;
+  const traces = navigationTraces(row);
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
@@ -184,6 +236,8 @@ function Detail({ row }: { row: Row | undefined }) {
           {row.raw_reasoning || "No reasoning returned for this episode."}
         </pre>
       </div>
+
+      <NavigationHistory traces={traces} />
 
       <div>
         <p className="label mb-1.5">Episode JSON</p>

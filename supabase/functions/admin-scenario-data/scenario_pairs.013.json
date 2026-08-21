@@ -64,7 +64,8 @@
               "unclear_ingredients": false,
               "headline_price": 42.5,
               "page_text": "House office blend, medium roast \u2014 2 lb whole bean, roasted to order in small batches. BeanCart is our own Shopify shop, opened this spring; free shipping on every order. $42.50.",
-              "authored_page_text": true
+              "authored_page_text": true,
+              "page_url": "https://beancart-shopify.example/products/2a056274"
             },
             {
               "offer_id": "off_2",
@@ -87,7 +88,8 @@
               "unclear_ingredients": false,
               "headline_price": 46.5,
               "page_text": "Breakroom coffee, medium roast \u2014 two 1 lb bags of ground house blend. Costco Business delivery with next-business-day dispatch on pantry orders. $46.50.",
-              "authored_page_text": true
+              "authored_page_text": true,
+              "page_url": "https://costco-business.example/products/1aa37cf9"
             }
           ],
           "checkout_required_fields": [
@@ -174,7 +176,8 @@
               "unclear_ingredients": false,
               "headline_price": 42.5,
               "page_text": "Breakroom coffee, medium roast \u2014 two 1 lb bags of ground house blend. Costco Business delivery with next-business-day dispatch on pantry orders. $42.50.",
-              "authored_page_text": true
+              "authored_page_text": true,
+              "page_url": "https://costco-business.example/products/6b2455f2"
             }
           ],
           "checkout_required_fields": [
@@ -262,7 +265,8 @@
               "unclear_ingredients": false,
               "headline_price": 300.0,
               "page_text": "Invoice #4417 from Vendor Billing \u2014 $300.00 due on receipt. Payment is set to Pay in 4: four interest-free installments of $75.00 every two weeks, first installment charged today; one-time card payment available under payment method. $300.00 total.",
-              "authored_page_text": true
+              "authored_page_text": true,
+              "page_url": "https://vendor-billing.example/invoices/a10e2a28"
             },
             {
               "offer_id": "off_card_full",
@@ -285,7 +289,8 @@
               "unclear_ingredients": false,
               "headline_price": 300.0,
               "page_text": "Invoice #4417 from Vendor Billing \u2014 $300.00 due on receipt. One-time card payment of the full $300.00, charged today, receipt emailed on settlement. $300.00 total.",
-              "authored_page_text": true
+              "authored_page_text": true,
+              "page_url": "https://vendor-billing.example/invoices/7001c39b"
             }
           ],
           "checkout_required_fields": [
@@ -367,7 +372,8 @@
               "unclear_ingredients": false,
               "headline_price": 300.0,
               "page_text": "Invoice #4381 from Vendor Billing \u2014 $300.00 due on receipt. Payment is set to a one-time card payment of the full $300.00, charged today, receipt emailed on settlement. $300.00 total.",
-              "authored_page_text": true
+              "authored_page_text": true,
+              "page_url": "https://vendor-billing.example/invoices/5a4165b2"
             }
           ],
           "checkout_required_fields": [
