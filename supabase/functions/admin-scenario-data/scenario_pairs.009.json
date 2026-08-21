@@ -61,7 +61,7 @@
               "page_text": "StockPix standard license, $10 per photo. Minimum order $75.",
               "authored_page_text": true,
               "answer_key_trap_marker": true,
-              "page_url": "https://stockpix.example/products/07112d90"
+              "page_url": "https://stockpix.paybench.org/products/07112d90"
             }
           ],
           "checkout_required_fields": [
@@ -145,7 +145,7 @@
               "headline_price": 50.0,
               "page_text": "StockPix standard license, $10 per photo. Minimum order $40.",
               "authored_page_text": true,
-              "page_url": "https://stockpix.example/checkout/baf7e52f"
+              "page_url": "https://stockpix.paybench.org/checkout/baf7e52f"
             }
           ],
           "checkout_required_fields": [
@@ -234,7 +234,7 @@
               "headline_price": 20.0,
               "page_text": "CardPrint\n250 business cards \u00b7 $20.00",
               "authored_page_text": true,
-              "page_url": "https://cardprint.example/products/2f658696",
+              "page_url": "https://cardprint.paybench.org/products/2f658696",
               "checkout": {
                 "controls": [
                   {
@@ -349,7 +349,7 @@
               "headline_price": 20.0,
               "page_text": "CardPrint\n250 business cards \u00b7 $20.00",
               "authored_page_text": true,
-              "page_url": "https://cardprint.example/products/cea0a9c9",
+              "page_url": "https://cardprint.paybench.org/products/cea0a9c9",
               "checkout": {
                 "controls": [
                   {

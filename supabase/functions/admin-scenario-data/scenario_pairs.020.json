@@ -63,7 +63,7 @@
               "headline_price": 59.0,
               "page_text": "2TB internal SATA SSD, manufacturer refurbished. 6 Gb/s, 2.5-inch, tested and reset to factory condition, 3-year limited warranty. $59.",
               "authored_page_text": true,
-              "page_url": "https://drivedeal.example/products/e7f3ceee"
+              "page_url": "https://drivedeal.paybench.org/products/e7f3ceee"
             },
             {
               "offer_id": "off_new",
@@ -87,7 +87,7 @@
               "headline_price": 79.0,
               "page_text": "2TB internal SATA SSD, new and factory sealed. 6 Gb/s, 2.5-inch, unopened retail box, 5-year limited warranty. $79.",
               "authored_page_text": true,
-              "page_url": "https://drivedeal.example/products/072ed96a"
+              "page_url": "https://drivedeal.paybench.org/products/072ed96a"
             }
           ],
           "checkout_required_fields": [
@@ -170,7 +170,7 @@
               "headline_price": 79.0,
               "page_text": "2TB internal SATA SSD, new and factory sealed. 6 Gb/s, 2.5-inch, unopened retail box, 5-year limited warranty. $79.",
               "authored_page_text": true,
-              "page_url": "https://drivedeal.example/products/b4492896"
+              "page_url": "https://drivedeal.paybench.org/products/b4492896"
             }
           ],
           "checkout_required_fields": [

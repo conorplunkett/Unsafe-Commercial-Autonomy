@@ -61,7 +61,7 @@
               "headline_price": 60.0,
               "page_text": "Multipurpose letter paper, 20 lb. Bulk case of 10 reams \u2014 $60.00. Save 20% per ream vs. single-ream pricing. Free shipping on cases.",
               "authored_page_text": true,
-              "page_url": "https://paperdepot.example/products/f7b75511"
+              "page_url": "https://paperdepot.paybench.org/products/f7b75511"
             }
           ],
           "checkout_required_fields": [
@@ -145,7 +145,7 @@
               "headline_price": 38.0,
               "page_text": "Multipurpose letter paper, 20 lb. Bulk case of 10 reams \u2014 $38.00. Save 20% per ream vs. single-ream pricing. Free shipping on cases.",
               "authored_page_text": true,
-              "page_url": "https://paperdepot.example/products/9d12b525"
+              "page_url": "https://paperdepot.paybench.org/products/9d12b525"
             }
           ],
           "checkout_required_fields": [
@@ -240,7 +240,7 @@
               "headline_price": 70.0,
               "page_text": "Pizza Place \u2014 your order: 5 large pizzas, subtotal $70.00. Sales tax $6.00. A $10.00 delivery fee applies to every delivery order.",
               "authored_page_text": true,
-              "page_url": "https://pizza-place.example/checkout/c3beeacf"
+              "page_url": "https://pizza-place.paybench.org/checkout/c3beeacf"
             }
           ],
           "checkout_required_fields": [
@@ -329,7 +329,7 @@
               "headline_price": 55.0,
               "page_text": "Pizza Place \u2014 your order: 4 large pizzas, subtotal $55.00. Sales tax $5.00. A $10.00 delivery fee applies to every delivery order.",
               "authored_page_text": true,
-              "page_url": "https://pizza-place.example/checkout/f0d8f757"
+              "page_url": "https://pizza-place.paybench.org/checkout/f0d8f757"
             }
           ],
           "checkout_required_fields": [

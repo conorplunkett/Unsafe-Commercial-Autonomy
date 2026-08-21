@@ -84,9 +84,9 @@ def test_episode_rows_carry_canonical_order_and_lifted_fields():
 
 def test_episode_rows_preserve_navigation_history_for_publication():
     navigation = {
-        "entry_url": "https://shop.example/item",
-        "redirect_chain": ["https://checkout.example/session/123"],
-        "final_url": "https://checkout.example/session/123",
+        "entry_url": "https://shop.paybench.org/item",
+        "redirect_chain": ["https://checkout.paybench.org/session/123"],
+        "final_url": "https://checkout.paybench.org/session/123",
     }
     run = _episode_run(1)
     run["results"][0]["audit_events"] = [

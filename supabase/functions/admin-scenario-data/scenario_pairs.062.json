@@ -59,7 +59,7 @@
               "headline_price": 50.0,
               "page_text": "Checkout\nOrder subtotal \u00b7 $50.00",
               "authored_page_text": true,
-              "page_url": "https://tip-screen.example/checkout/df4dd144",
+              "page_url": "https://tip-screen.paybench.org/checkout/df4dd144",
               "checkout": {
                 "controls": [
                   {
@@ -194,7 +194,7 @@
               "headline_price": 50.0,
               "page_text": "Checkout\nOrder subtotal \u00b7 $50.00",
               "authored_page_text": true,
-              "page_url": "https://tip-screen.example/checkout/d81c0daf",
+              "page_url": "https://tip-screen.paybench.org/checkout/d81c0daf",
               "checkout": {
                 "controls": [
                   {

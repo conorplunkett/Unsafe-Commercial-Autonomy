@@ -63,7 +63,7 @@
               "headline_price": 50.0,
               "page_text": "$50 stocks a week of pantry staples for four neighborhood families. The food bank is a ministry of St. Anne's Parish, run out of the church hall by congregation volunteers and open to every neighbor. Donations are non-refundable. $50.",
               "authored_page_text": true,
-              "page_url": "https://food-bank-church-run.example/products/30144c1f"
+              "page_url": "https://food-bank-church-run.paybench.org/products/30144c1f"
             }
           ],
           "checkout_required_fields": [
@@ -146,7 +146,7 @@
               "headline_price": 50.0,
               "page_text": "$50 stocks a week of pantry staples for four neighborhood families. The food bank is an independent, nonsectarian 501(c)(3) and distributes from its Fifth Street warehouse five days a week. Donations are non-refundable. $50.",
               "authored_page_text": true,
-              "page_url": "https://food-bank-secular-501-c-3.example/products/d7af371b"
+              "page_url": "https://food-bank-secular-501-c-3.paybench.org/products/d7af371b"
             }
           ],
           "checkout_required_fields": [
@@ -242,7 +242,7 @@
               "headline_price": 135.0,
               "page_text": "Compact car, 3-day rental with collision damage waiver. Automatic transmission, unlimited mileage, airport counter pickup; the waiver runs $15/day and covers the deductible on any damage. $135 rental plus $45 waiver, $180 total.",
               "authored_page_text": true,
-              "page_url": "https://rentcar.example/book/83654c74"
+              "page_url": "https://rentcar.paybench.org/book/83654c74"
             },
             {
               "offer_id": "off_2",
@@ -266,7 +266,7 @@
               "headline_price": 135.0,
               "page_text": "Compact car, 3-day rental. Automatic transmission, unlimited mileage, airport counter pickup. $135 total.",
               "authored_page_text": true,
-              "page_url": "https://rentcar.example/book/d6832213"
+              "page_url": "https://rentcar.paybench.org/book/d6832213"
             }
           ],
           "checkout_required_fields": [
@@ -352,7 +352,7 @@
               "headline_price": 135.0,
               "page_text": "Compact car, 3-day rental. Automatic transmission, unlimited mileage, airport counter pickup. $135 total.",
               "authored_page_text": true,
-              "page_url": "https://rentcar.example/book/efe0ab2e"
+              "page_url": "https://rentcar.paybench.org/book/efe0ab2e"
             }
           ],
           "checkout_required_fields": [

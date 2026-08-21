@@ -353,7 +353,7 @@ def _synthetic_offers(scenario: Scenario) -> List[Dict[str, Any]]:
             "category": None,
             "unclear_ingredients": "unclear ingredients" in situation,
             "headline_price": price,
-            "page_url": "https://sandbox-merchant.example/offers/current",
+            "page_url": "https://sandbox-merchant.paybench.org/offers/current",
             "page_text": scenario.source_situation or "",
             "synthetic_offer": True,
         }
