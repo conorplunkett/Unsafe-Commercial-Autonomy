@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Card } from "@/components/ui/Card";
 import { CONDITION_LABELS, CONDITION_DESCRIPTIONS } from "@/lib/labels";
 import {
@@ -17,15 +17,8 @@ import {
   type ConditionId,
 } from "./script";
 
-const STEP_LABELS = [
-  "System",
-  "Task",
-  "search_offers",
-  "view_offer",
-  "pay",
-  "finish",
-];
-const LAST_STEP = STEP_LABELS.length - 1;
+const TOTAL_CALLS = CALLED_BY_STEP.length;
+const FLASH_MS = 1800;
 
 const VERDICT_TONE: Record<"danger" | "neutral", string> = {
   danger: "border-danger/40 bg-danger/10 text-danger",
@@ -57,14 +50,10 @@ function Block({ children }: { children: ReactNode }) {
   );
 }
 
-function stepContent(index: number, condition: ConditionId): ReactNode {
+function callResult(toolName: string, condition: ConditionId): ReactNode {
   const outcome = OUTCOMES[condition];
-  switch (index) {
-    case 0:
-      return <Block>{outcome.systemPrompt}</Block>;
-    case 1:
-      return <p className="text-ui">{USER_PROMPT}</p>;
-    case 2:
+  switch (toolName) {
+    case "search_offers":
       return (
         <>
           <p className="mb-1.5 font-mono text-small text-muted">
@@ -73,7 +62,7 @@ function stepContent(index: number, condition: ConditionId): ReactNode {
           <Block>{SEARCH_OFFERS_RESULT}</Block>
         </>
       );
-    case 3:
+    case "view_offer":
       return (
         <>
           <p className="mb-1.5 font-mono text-small text-muted">
@@ -82,14 +71,14 @@ function stepContent(index: number, condition: ConditionId): ReactNode {
           <Block>{VIEW_OFFER_RESULT}</Block>
         </>
       );
-    case 4:
+    case "pay":
       return (
         <>
           <p className="mb-1.5 font-mono text-small text-muted">{PAY_CALL}</p>
           <Block>{outcome.payResult}</Block>
         </>
       );
-    case 5:
+    case "finish":
       return (
         <>
           <p className="mb-1.5 font-mono text-small text-muted">
@@ -113,25 +102,46 @@ function stepContent(index: number, condition: ConditionId): ReactNode {
 
 export function AgentWalkthrough() {
   const [started, setStarted] = useState(false);
+  const [calledCount, setCalledCount] = useState(0);
   const [unlocked, setUnlocked] = useState(false);
   const [condition, setCondition] = useState<ConditionId>("no_policy");
-  const [step, setStep] = useState(0);
+  const [flash, setFlash] = useState<string | null>(null);
+  const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const usedTools = new Set(CALLED_BY_STEP.slice(0, Math.max(0, step - 1)));
-  const showTools = usedTools.size > 0;
+  useEffect(
+    () => () => {
+      if (flashTimer.current) clearTimeout(flashTimer.current);
+    },
+    [],
+  );
 
-  function selectCondition(next: ConditionId) {
-    if (next === condition) return;
-    setCondition(next);
-    setStep(0);
+  function pickTool(name: string) {
+    const expected = CALLED_BY_STEP[calledCount];
+    if (flashTimer.current) clearTimeout(flashTimer.current);
+    if (name !== expected) {
+      setFlash("Woah, a bit early for that.");
+      flashTimer.current = setTimeout(() => setFlash(null), FLASH_MS);
+      return;
+    }
+    setFlash(null);
+    const next = calledCount + 1;
+    setCalledCount(next);
+    if (next === TOTAL_CALLS) setUnlocked(true);
   }
 
-  function advance() {
-    setStep((s) => {
-      const next = Math.min(LAST_STEP, s + 1);
-      if (next === LAST_STEP) setUnlocked(true);
-      return next;
-    });
+  function goBack() {
+    setFlash(null);
+    if (calledCount > 0) {
+      setCalledCount((c) => c - 1);
+      return;
+    }
+    setStarted(false);
+  }
+
+  function replay(nextCondition: ConditionId) {
+    setCondition(nextCondition);
+    setCalledCount(0);
+    setFlash(null);
   }
 
   if (!started) {
@@ -142,14 +152,17 @@ export function AgentWalkthrough() {
           onClick={() => setStarted(true)}
           className="tap rounded-lg border border-ink px-5 text-ui transition-colors hover:bg-ink hover:text-paper"
         >
-          Start the episode
+          Ok, what do I do?
         </button>
       </section>
     );
   }
 
+  const outcome = OUTCOMES[condition];
+  const done = calledCount === TOTAL_CALLS;
+
   return (
-    <section className="mt-14">
+    <section className="mt-14 max-w-2xl">
       {unlocked && (
         <div className="mb-8">
           <p className="label mb-3">Try a different policy</p>
@@ -160,7 +173,7 @@ export function AgentWalkthrough() {
                 <li key={id}>
                   <button
                     type="button"
-                    onClick={() => selectCondition(id)}
+                    onClick={() => replay(id)}
                     aria-pressed={selected}
                     className={`tap flex w-full items-baseline gap-4 px-5 py-4 text-left transition-colors ${
                       selected ? "bg-accent/[0.06]" : "bg-paper-2 hover:bg-paper"
@@ -183,78 +196,76 @@ export function AgentWalkthrough() {
         </div>
       )}
 
-      <p className="label mb-3">Inside an episode</p>
-      <div
-        className={
-          showTools
-            ? "grid gap-8 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] lg:items-start"
-            : ""
-        }
-      >
-        <div>
-          <div aria-live="polite" className="space-y-5">
-            {Array.from({ length: step + 1 }, (_, i) => i).map((i) => (
-              <RevealStep key={`${condition}-${i}`}>
-                <p className="label mb-1.5">{STEP_LABELS[i]}</p>
-                {stepContent(i, condition)}
-              </RevealStep>
-            ))}
+      <div className="space-y-5">
+        <RevealStep key={`system-${condition}`}>
+          <p className="text-ui text-muted">You receive this initial system prompt:</p>
+          <div className="mt-1.5">
+            <Block>{outcome.systemPrompt}</Block>
           </div>
+        </RevealStep>
 
-          <div className="mt-6 flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setStep((s) => Math.max(0, s - 1))}
-              disabled={step === 0}
-              className="tap rounded-lg border border-border px-4 text-small text-muted transition-colors hover:text-ink disabled:opacity-40"
-            >
-              Back
-            </button>
-            {step < LAST_STEP ? (
-              <button
-                type="button"
-                onClick={advance}
-                className="tap rounded-lg border border-ink px-4 text-small transition-colors hover:bg-ink hover:text-paper"
-              >
-                Next
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setStep(0)}
-                className="tap rounded-lg border border-ink px-4 text-small transition-colors hover:bg-ink hover:text-paper"
-              >
-                Replay
-              </button>
-            )}
-            <div className="ml-auto flex items-center gap-1.5" aria-hidden>
-              {STEP_LABELS.map((label, i) => (
-                <span
-                  key={label}
-                  className={`h-1.5 w-1.5 rounded-full ${
-                    i <= step ? "bg-accent" : "bg-border"
-                  }`}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
+        <RevealStep key={`task-${condition}`}>
+          <p className="text-ui text-muted">Then you are given a task:</p>
+          <p className="mt-1.5 text-ui">{USER_PROMPT}</p>
+        </RevealStep>
 
-        {showTools && (
-          <div className="lg:sticky lg:top-20">
-            <p className="label mb-2">Tools called</p>
-            <Card as="ol" tone="bare" pad="none" className="overflow-hidden">
-              {TOOLS.filter((tool) => usedTools.has(tool.name)).map((tool) => (
-                <li key={tool.name} className="bg-accent/[0.06] px-4 py-3">
-                  <p className="font-mono text-small text-accent">{tool.name}</p>
-                  <p className="mt-0.5 text-caption leading-snug text-muted">
-                    {tool.description}
-                  </p>
+        {CALLED_BY_STEP.slice(0, calledCount).map((name) => (
+          <RevealStep key={`${condition}-${name}`}>{callResult(name, condition)}</RevealStep>
+        ))}
+      </div>
+
+      {!done && (
+        <div className="mt-8">
+          <p className="text-ui text-muted">
+            So you look at your toolkit. What can you do?
+          </p>
+          <p className="label mb-2 mt-4">What would you pick?</p>
+          <Card as="ol" tone="bare" pad="none" className="overflow-hidden">
+            {TOOLS.map((tool) => {
+              const toolDoneIndex = CALLED_BY_STEP.indexOf(tool.name);
+              const toolDone = toolDoneIndex !== -1 && toolDoneIndex < calledCount;
+              return (
+                <li key={tool.name}>
+                  <button
+                    type="button"
+                    onClick={() => pickTool(tool.name)}
+                    disabled={toolDone}
+                    className={`tap flex w-full flex-col items-start px-4 py-3 text-left transition-colors disabled:cursor-default ${
+                      toolDone ? "bg-accent/[0.06]" : "bg-paper-2 hover:bg-paper"
+                    }`}
+                  >
+                    <span
+                      className={`font-mono text-small ${toolDone ? "text-accent" : "text-ink"}`}
+                    >
+                      {tool.name}
+                    </span>
+                    <span className="mt-0.5 text-caption leading-snug text-muted">
+                      {tool.description}
+                    </span>
+                  </button>
                 </li>
-              ))}
-            </Card>
-          </div>
-        )}
+              );
+            })}
+          </Card>
+          <p
+            aria-live="polite"
+            className={`mt-3 text-small text-muted transition-opacity duration-300 ${
+              flash ? "opacity-100" : "opacity-0"
+            }`}
+          >
+            {flash || " "}
+          </p>
+        </div>
+      )}
+
+      <div className="mt-6">
+        <button
+          type="button"
+          onClick={goBack}
+          className="tap rounded-lg border border-border px-4 text-small text-muted transition-colors hover:text-ink"
+        >
+          Back
+        </button>
       </div>
     </section>
   );

@@ -15,9 +15,9 @@ export default function HowItWorksPage() {
       <Nav />
       <main className="mx-auto w-full max-w-5xl overflow-x-clip px-4 pb-16 sm:px-8">
         <header className="scroll-mt-20 pt-14 sm:pt-20">
-          <p className="label">How it works</p>
-          <h1 className="mt-4 text-h1 tracking-tight">
-            Imagine you are an agent.
+          <h1 className="text-h1 tracking-tight">
+            Imagine you are an agent with access to your human&rsquo;s credit
+            card.
           </h1>
         </header>
         <AgentWalkthrough />
