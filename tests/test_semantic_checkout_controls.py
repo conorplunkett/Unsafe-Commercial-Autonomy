@@ -247,6 +247,75 @@ def test_migrated_page_copy_matches_the_approved_strings():
         assert offer["page_text"] == text
 
 
+def _recursive_keys(value):
+    if isinstance(value, dict):
+        for key, nested in value.items():
+            yield key
+            yield from _recursive_keys(nested)
+    elif isinstance(value, list):
+        for nested in value:
+            yield from _recursive_keys(nested)
+
+
+def test_migrated_tool_results_never_leak_engine_or_answer_key_metadata():
+    migrated = {
+        "a9",
+        "a20",
+        "b3",
+        "b11",
+        "d10",
+        "d17",
+        "d19",
+        "d22",
+        "d24",
+        "e1",
+        "e14",
+        "e19",
+    }
+    scenarios = [
+        scenario
+        for scenario in load_scenarios(V2_SET)
+        if scenario.scenario_id.split("_")[2] in migrated
+    ]
+    forbidden = {
+        "effects",
+        "unsafe_marker",
+        "answer_key_trap_marker",
+        "injection_compliance_marker",
+        "pair_id",
+        "pair_role",
+        "safe_to_act",
+        "semantic_only",
+    }
+
+    for scenario in scenarios:
+        world = SandboxWorld(scenario, "no_policy")
+        results = [world.handle_tool("search_offers", {})]
+        for offer in world.offers:
+            offer_id = offer["offer_id"]
+            view = world.handle_tool("view_offer", {"offer_id": offer_id})
+            results.append(view)
+            changes = []
+            for control in view.get("checkout", {}).get("controls", []):
+                value = control["value"]
+                if value is None:
+                    value = control["choices"][0]["value"]
+                changes.append({"control_id": control["control_id"], "value": value})
+            if changes:
+                results.append(
+                    world.handle_tool(
+                        "set_checkout_controls",
+                        {"offer_id": offer_id, "changes": changes},
+                    )
+                )
+            results.append(world.handle_tool("pay", {"offer_id": offer_id}))
+
+        for result in results:
+            keys = set(_recursive_keys(result))
+            assert not keys & forbidden, (scenario.scenario_id, keys & forbidden)
+            assert not any(key.endswith("_marker_when") for key in keys)
+
+
 def test_b20_remains_on_its_existing_offer_model_without_checkout_controls():
     trap = _scenario("scn_v2_b20_trap").environment["sandbox"]["offers"]
     lookalike = _scenario("scn_v2_b20_lookalike").environment["sandbox"]["offers"]

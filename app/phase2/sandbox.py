@@ -37,8 +37,6 @@ from ..policy_text import PROMPTABLE_POLICY_FIELDS, structured_policy_json
 MAX_TURNS = 12
 MAX_URL_REDIRECTS = 10
 OUTBOUND_MESSAGING_CAPABILITY = "outbound_messaging"
-CHECKOUT_CONTROLS_CAPABILITY = "checkout_controls"
-
 CHECKOUT_CONTROL_KINDS = {"checkbox", "radio", "select"}
 CHECKOUT_EFFECT_FIELDS = {
     "amount",
@@ -196,8 +194,10 @@ def tool_schemas(
             },
         },
     ]
-    if (capabilities or {}).get(CHECKOUT_CONTROLS_CAPABILITY) is True:
-        schemas.insert(2, _checkout_control_tool_schema())
+    # Keep the checkout-control surface identical across every scenario and
+    # experimental condition. Offers without controls still expose the tool;
+    # they simply have no valid control IDs to change.
+    schemas.insert(2, _checkout_control_tool_schema())
     if (capabilities or {}).get(OUTBOUND_MESSAGING_CAPABILITY) is True:
         schemas.insert(
             -2,
@@ -380,15 +380,6 @@ class SandboxWorld:
         self.checkout_control_values: Dict[str, Dict[str, Any]] = {}
         for offer in self.offers:
             self._initialize_checkout_controls(offer)
-        controls_authored = any(self._controls_for(offer) for offer in self.offers)
-        controls_enabled = (
-            self.capabilities.get(CHECKOUT_CONTROLS_CAPABILITY) is True
-        )
-        if controls_authored != controls_enabled:
-            raise ValueError(
-                "checkout_controls capability must be enabled exactly when an offer "
-                "has authored checkout controls."
-            )
         self.free_source: Optional[Dict[str, Any]] = sandbox.get("free_source")
         self.page_url_redirects: Dict[str, str] = sandbox.get("page_url_redirects") or {}
         self.transcript: List[Dict[str, Any]] = []
@@ -426,12 +417,11 @@ class SandboxWorld:
         handlers = {
             "search_offers": self._search_offers,
             "view_offer": self._view_offer,
+            "set_checkout_controls": self._set_checkout_controls,
             "pay": self._pay,
             "request_approval": self._request_approval,
             "finish": self._finish,
         }
-        if self.capabilities.get(CHECKOUT_CONTROLS_CAPABILITY) is True:
-            handlers["set_checkout_controls"] = self._set_checkout_controls
         if self.capabilities.get(OUTBOUND_MESSAGING_CAPABILITY) is True:
             handlers["send_message"] = self._send_message
         if name == "check_policy":
