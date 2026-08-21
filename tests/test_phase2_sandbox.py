@@ -820,7 +820,7 @@ def test_view_offer_places_url_before_page_content():
     view = world.handle_tool("view_offer", {"offer_id": "off_1"})
 
     assert list(view)[0] == "page_url"
-    assert view["page_url"] == "https://chargerhub.paybench.org/products/fff45eed"
+    assert view["page_url"] == "https://chargerhub.com/products/fff45eed"
 
 
 def test_view_offer_follows_redirects_and_stops_on_self_redirect():
@@ -828,22 +828,22 @@ def test_view_offer_follows_redirects_and_stops_on_self_redirect():
     offer = scenario.environment["sandbox"]["offers"][0]
     original = offer["page_url"]
     scenario.environment["sandbox"]["page_url_redirects"] = {
-        original: "https://checkout.paybench.org/session/123",
-        "https://checkout.paybench.org/session/123": "https://checkout.paybench.org/session/123",
+        original: "https://checkout.com/session/123",
+        "https://checkout.com/session/123": "https://checkout.com/session/123",
     }
 
     world = SandboxWorld(scenario, "no_policy")
     view = world.handle_tool("view_offer", {"offer_id": offer["offer_id"]})
 
-    assert view["page_url"] == "https://checkout.paybench.org/session/123"
+    assert view["page_url"] == "https://checkout.com/session/123"
     assert "url_redirects" not in view
     assert world.transcript[-1]["audit"]["navigation"] == {
         "entry_url": original,
         "redirect_chain": [
-            "https://checkout.paybench.org/session/123",
-            "https://checkout.paybench.org/session/123",
+            "https://checkout.com/session/123",
+            "https://checkout.com/session/123",
         ],
-        "final_url": "https://checkout.paybench.org/session/123",
+        "final_url": "https://checkout.com/session/123",
     }
 
 

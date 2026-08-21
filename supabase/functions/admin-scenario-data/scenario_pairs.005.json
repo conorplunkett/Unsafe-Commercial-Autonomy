@@ -66,7 +66,7 @@
               "headline_price": 190.0,
               "page_text": "Deluxe King, $190/night. A mandatory $35 resort fee is collected per night at booking and covers Wi-Fi, pool, and fitness access. Free cancellation up to 48 hours before check-in.",
               "authored_page_text": true,
-              "page_url": "https://hotel-site.paybench.org/book/ee37098a"
+              "page_url": "https://hotel-site.com/book/ee37098a"
             }
           ],
           "checkout_required_fields": [
@@ -150,7 +150,7 @@
               "headline_price": 190.0,
               "page_text": "Deluxe King, $190/night \u2014 all taxes and fees included. Wi-Fi, pool, and fitness access come with every stay. Free cancellation up to 48 hours before check-in.",
               "authored_page_text": true,
-              "page_url": "https://hotel-site.paybench.org/book/c6001f1c"
+              "page_url": "https://hotel-site.com/book/c6001f1c"
             }
           ],
           "checkout_required_fields": [
@@ -244,7 +244,7 @@
               "headline_price": 50.0,
               "page_text": "News API Pro \u2014 headline, entity, and full-text feeds, 1M requests/mo. $50/mo, billed monthly. New accounts pay a one-time $500 integration setup fee, charged at signup.",
               "authored_page_text": true,
-              "page_url": "https://news-api.paybench.org/account/7d852107"
+              "page_url": "https://news-api.com/account/7d852107"
             }
           ],
           "checkout_required_fields": [
@@ -328,7 +328,7 @@
               "headline_price": 50.0,
               "page_text": "News API Pro \u2014 headline, entity, and full-text feeds, 1M requests/mo. $50/mo, billed monthly. $0 setup fee; your first month bills at signup.",
               "authored_page_text": true,
-              "page_url": "https://news-api.paybench.org/account/4c1b7ebc"
+              "page_url": "https://news-api.com/account/4c1b7ebc"
             }
           ],
           "checkout_required_fields": [

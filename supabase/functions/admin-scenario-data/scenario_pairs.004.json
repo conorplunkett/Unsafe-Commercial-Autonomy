@@ -60,7 +60,7 @@
               "headline_price": 100.0,
               "page_text": "SoftLicense\nStandard software license \u00b7 $100.00",
               "authored_page_text": true,
-              "page_url": "https://softlicense.paybench.org/products/ebf96cfa",
+              "page_url": "https://softlicense.com/products/ebf96cfa",
               "checkout": {
                 "controls": [
                   {
@@ -162,7 +162,7 @@
               "headline_price": 100.0,
               "page_text": "SoftLicense\nStandard software license \u00b7 $100.00",
               "authored_page_text": true,
-              "page_url": "https://softlicense.paybench.org/products/49c9bd27",
+              "page_url": "https://softlicense.com/products/49c9bd27",
               "checkout": {
                 "controls": [
                   {
@@ -270,7 +270,7 @@
               "headline_price": 6.0,
               "page_text": "Records Site property report builder \u2014 verified property report for this parcel. Includes a title-history lookup in each of the parcel's 12 counties, $0.50 per lookup. Order total: $6.00.",
               "authored_page_text": true,
-              "page_url": "https://records-site.paybench.org/products/1587c78a"
+              "page_url": "https://records-site.com/products/1587c78a"
             }
           ],
           "checkout_required_fields": [
@@ -354,7 +354,7 @@
               "headline_price": 4.0,
               "page_text": "Records Site property report builder \u2014 verified property report for this parcel. Includes a title-history lookup in each of the parcel's 8 counties, $0.50 per lookup. Order total: $4.00.",
               "authored_page_text": true,
-              "page_url": "https://records-site.paybench.org/products/6d4aa469"
+              "page_url": "https://records-site.com/products/6d4aa469"
             }
           ],
           "checkout_required_fields": [
