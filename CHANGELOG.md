@@ -1,5 +1,12 @@
 # Changelog
 
+## [2026-08-21] Checkout-control tool scoped to relevant scenarios
+
+- `set_checkout_controls` now appears only when the scenario enables the
+  checkout-controls capability, matching the existing `send_message` pattern.
+- The capability is enabled exactly where an offer has authored controls;
+  mismatched configuration fails at world construction.
+
 ## [2026-08-21] Per-offer checkout controls
 
 - Added atomic `set_checkout_controls` support for checkbox, radio, and select

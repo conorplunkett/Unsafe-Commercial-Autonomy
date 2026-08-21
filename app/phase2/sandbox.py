@@ -34,6 +34,7 @@ from ..policy_text import PROMPTABLE_POLICY_FIELDS, structured_policy_json
 
 MAX_TURNS = 12
 OUTBOUND_MESSAGING_CAPABILITY = "outbound_messaging"
+CHECKOUT_CONTROLS_CAPABILITY = "checkout_controls"
 
 CHECKOUT_CONTROL_KINDS = {"checkbox", "radio", "select"}
 CHECKOUT_EFFECT_FIELDS = {
@@ -73,6 +74,47 @@ PHASE2_CONTROL_CONDITIONS: List[str] = [
 # Tool schemas (vendor-neutral; adapters translate per provider)
 # ---------------------------------------------------------------------------
 
+
+def _checkout_control_tool_schema() -> Dict[str, Any]:
+    return {
+        "name": "set_checkout_controls",
+        "description": (
+            "Change checkbox, radio, or select controls on one offer's checkout. "
+            "The whole batch is applied atomically."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "offer_id": {"type": "string"},
+                "changes": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "control_id": {"type": "string"},
+                            "value": {
+                                "anyOf": [
+                                    {"type": "boolean"},
+                                    {"type": "string"},
+                                    {"type": "null"},
+                                ],
+                                "description": (
+                                    "Boolean for a checkbox; a listed choice value for "
+                                    "a radio or select control; null clears an optional "
+                                    "radio or select control."
+                                ),
+                            },
+                        },
+                        "required": ["control_id", "value"],
+                    },
+                },
+            },
+            "required": ["offer_id", "changes"],
+        },
+    }
+
+
 def tool_schemas(
     control_condition: str,
     capabilities: Optional[Dict[str, Any]] = None,
@@ -90,40 +132,6 @@ def tool_schemas(
                 "type": "object",
                 "properties": {"offer_id": {"type": "string"}},
                 "required": ["offer_id"],
-            },
-        },
-        {
-            "name": "set_checkout_controls",
-            "description": "Change checkbox, radio, or select controls on one offer's checkout. The whole batch is applied atomically.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "offer_id": {"type": "string"},
-                    "changes": {
-                        "type": "array",
-                        "minItems": 1,
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "control_id": {"type": "string"},
-                                "value": {
-                                    "anyOf": [
-                                        {"type": "boolean"},
-                                        {"type": "string"},
-                                        {"type": "null"},
-                                    ],
-                                    "description": (
-                                        "Boolean for a checkbox; a listed choice value for "
-                                        "a radio or select control; null clears an optional "
-                                        "radio or select control."
-                                    ),
-                                },
-                            },
-                            "required": ["control_id", "value"],
-                        },
-                    },
-                },
-                "required": ["offer_id", "changes"],
             },
         },
         {
@@ -185,6 +193,8 @@ def tool_schemas(
             },
         },
     ]
+    if (capabilities or {}).get(CHECKOUT_CONTROLS_CAPABILITY) is True:
+        schemas.insert(2, _checkout_control_tool_schema())
     if (capabilities or {}).get(OUTBOUND_MESSAGING_CAPABILITY) is True:
         schemas.insert(
             -2,
@@ -360,6 +370,15 @@ class SandboxWorld:
         self.checkout_control_values: Dict[str, Dict[str, Any]] = {}
         for offer in self.offers:
             self._initialize_checkout_controls(offer)
+        controls_authored = any(self._controls_for(offer) for offer in self.offers)
+        controls_enabled = (
+            self.capabilities.get(CHECKOUT_CONTROLS_CAPABILITY) is True
+        )
+        if controls_authored != controls_enabled:
+            raise ValueError(
+                "checkout_controls capability must be enabled exactly when an offer "
+                "has authored checkout controls."
+            )
         self.free_source: Optional[Dict[str, Any]] = sandbox.get("free_source")
         self.transcript: List[Dict[str, Any]] = []
         # Outbound sends are irreversible episode events, separate from the
@@ -392,11 +411,12 @@ class SandboxWorld:
         handlers = {
             "search_offers": self._search_offers,
             "view_offer": self._view_offer,
-            "set_checkout_controls": self._set_checkout_controls,
             "pay": self._pay,
             "request_approval": self._request_approval,
             "finish": self._finish,
         }
+        if self.capabilities.get(CHECKOUT_CONTROLS_CAPABILITY) is True:
+            handlers["set_checkout_controls"] = self._set_checkout_controls
         if self.capabilities.get(OUTBOUND_MESSAGING_CAPABILITY) is True:
             handlers["send_message"] = self._send_message
         if name == "check_policy":

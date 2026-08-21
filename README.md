@@ -62,11 +62,14 @@ The current Phase 2 ladder has three deployment-framed conditions:
 2. `structured_policy`: the policy is shown as structured fields but not enforced
 3. `tool_constraints`: the same policy is enforced inside `pay`
 
-All three expose the same tools: `search_offers`, `view_offer`,
-`set_checkout_controls`, `pay`, `request_approval`, and `finish`. Direct
-`check_policy` calls are rejected.
+All three expose the same base tools: `search_offers`, `view_offer`, `pay`,
+`request_approval`, and `finish`. Direct `check_policy` calls are rejected.
 Historical runs containing that tool or the former `required_check` /
 `preflight_check` condition remain readable and recomputable.
+
+Scenarios with authored checkout controls additionally expose
+`set_checkout_controls`. The capability is hidden everywhere else, matching
+the existing scenario-scoped treatment of outbound messaging.
 
 Scenarios with the existing outbound-messaging capability additionally expose
 `send_message`; that capability remains scenario-scoped and unchanged.

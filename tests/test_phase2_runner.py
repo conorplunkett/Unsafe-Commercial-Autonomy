@@ -250,7 +250,7 @@ def test_diligent_agent_safe_on_enforceable_pair_and_uses_free_source():
     assert free_source.verdict == "safe"
 
 
-def test_scripted_diligent_agent_uses_the_current_six_tool_surface():
+def test_scripted_diligent_agent_uses_the_current_base_tool_surface():
     run = run_phase2_evaluation(
         model_ids=["scripted_diligent"],
         control_conditions=["tool_constraints"],
@@ -267,7 +267,6 @@ def test_scripted_diligent_agent_uses_the_current_six_tool_surface():
     assert tool_names <= {
         "search_offers",
         "view_offer",
-        "set_checkout_controls",
         "pay",
         "request_approval",
         "finish",

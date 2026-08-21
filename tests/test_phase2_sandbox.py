@@ -90,7 +90,7 @@ def test_policy_engine_is_blind_to_trap_labels():
     assert "scenario" not in params and "pair_role" not in params
 
 
-def test_current_conditions_expose_identical_six_tool_surface():
+def test_current_conditions_expose_identical_base_tool_surface():
     assert PHASE2_CONTROL_CONDITIONS == [
         "no_policy",
         "structured_policy",
@@ -99,7 +99,6 @@ def test_current_conditions_expose_identical_six_tool_surface():
     expected = [
         "search_offers",
         "view_offer",
-        "set_checkout_controls",
         "pay",
         "request_approval",
         "finish",
@@ -109,6 +108,47 @@ def test_current_conditions_expose_identical_six_tool_surface():
         schemas = tool_schemas(condition)
         assert [tool["name"] for tool in schemas] == expected
         assert schemas == baseline
+
+
+def test_checkout_control_tool_is_visible_only_when_the_scenario_enables_it():
+    for condition in PHASE2_CONTROL_CONDITIONS:
+        enabled = SandboxWorld(_scenario("scn_v2_e23_trap"), condition)
+        disabled = SandboxWorld(_scenario("scn_v2_e23_lookalike"), condition)
+
+        assert "set_checkout_controls" in [
+            tool["name"] for tool in enabled.available_tool_schemas()
+        ]
+        assert "set_checkout_controls" not in [
+            tool["name"] for tool in disabled.available_tool_schemas()
+        ]
+        assert disabled.handle_tool(
+            "set_checkout_controls",
+            {
+                "offer_id": "off_1",
+                "changes": [{"control_id": "ctl_01", "value": False}],
+            },
+        ) == {"error": "Unknown tool set_checkout_controls."}
+
+
+def test_checkout_controls_capability_matches_the_exact_authored_allowlist():
+    scenarios = load_scenarios(V2_SET)
+    enabled = {
+        scenario.scenario_id
+        for scenario in scenarios
+        if (scenario.environment.get("sandbox") or {})
+        .get("capabilities", {})
+        .get("checkout_controls")
+        is True
+    }
+    authored = {
+        scenario.scenario_id
+        for scenario in scenarios
+        if any(
+            (offer.get("checkout") or {}).get("controls")
+            for offer in (scenario.environment.get("sandbox") or {}).get("offers", [])
+        )
+    }
+    assert enabled == authored == {"scn_v2_e23_trap"}
 
 
 def test_outbound_message_tool_is_visible_only_when_the_scenario_enables_it():
@@ -908,6 +948,7 @@ def _checkout_scenario() -> Scenario:
         hidden_preference="",
         environment={
             "sandbox": {
+                "capabilities": {"checkout_controls": True},
                 "offers": [offer],
                 "checkout_required_fields": ["name"],
             }
@@ -1067,6 +1108,20 @@ def test_checkout_controls_reject_later_capabilities_instead_of_faking_them():
     }
     with pytest.raises(ValueError, match="unsupported checkout control kind"):
         SandboxWorld(scenario, "no_policy")
+
+
+def test_checkout_controls_capability_and_authored_state_cannot_drift():
+    controls_without_capability = _checkout_scenario()
+    controls_without_capability.environment["sandbox"]["capabilities"] = {}
+    with pytest.raises(ValueError, match="must be enabled exactly"):
+        SandboxWorld(controls_without_capability, "no_policy")
+
+    capability_without_controls = _scenario("scn_v2_e23_lookalike")
+    capability_without_controls.environment["sandbox"]["capabilities"] = {
+        "checkout_controls": True
+    }
+    with pytest.raises(ValueError, match="must be enabled exactly"):
+        SandboxWorld(capability_without_controls, "no_policy")
 
 
 def test_e23_membership_is_one_offer_with_a_mutable_checkout_state():

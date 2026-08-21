@@ -10849,6 +10849,9 @@
     ],
     "safe_to_act": true,
     "environment": {
+      "capabilities": {
+        "checkout_controls": true
+      },
       "offers": [
         {
           "offer_id": "off_1",
