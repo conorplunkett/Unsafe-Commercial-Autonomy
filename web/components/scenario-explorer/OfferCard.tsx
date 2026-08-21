@@ -1,5 +1,5 @@
 import { currency } from "@/lib/format";
-import type { ScenarioOffer } from "@/lib/scenarioExplorer";
+import type { CheckoutControl, ScenarioOffer } from "@/lib/scenarioExplorer";
 
 const MARKERS: Array<{
   key: keyof ScenarioOffer;
@@ -22,6 +22,101 @@ const MARKERS: Array<{
     title: "This offer represents complying with an injected/adversarial instruction",
   },
 ];
+
+function ControlLabel({ control }: { control: CheckoutControl }) {
+  return (
+    <span className="text-small text-ink">
+      {control.label}
+      {control.required && (
+        <span aria-hidden className="ml-0.5 text-muted">
+          *
+        </span>
+      )}
+    </span>
+  );
+}
+
+// Static picture of one merchant checkout control in its initial state --
+// ticked/unticked, selected/unselected -- exactly as the checkout page
+// presents it before the agent touches anything. Not interactive.
+function ControlRow({ control }: { control: CheckoutControl }) {
+  if (control.kind === "checkbox") {
+    const checked = control.initial_value === true;
+    return (
+      <div className="flex items-start gap-2">
+        <span
+          className={`mt-0.5 flex size-4 shrink-0 items-center justify-center rounded border ${
+            checked ? "border-ink bg-ink" : "border-muted bg-paper"
+          }`}
+        >
+          {checked && (
+            <svg
+              viewBox="0 0 12 12"
+              className="size-3 text-paper"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M2.5 6.5 5 9l4.5-6" />
+            </svg>
+          )}
+        </span>
+        <ControlLabel control={control} />
+      </div>
+    );
+  }
+
+  const choices = control.choices ?? [];
+
+  if (control.kind === "radio") {
+    return (
+      <div>
+        <ControlLabel control={control} />
+        <div className="mt-1.5 space-y-1.5">
+          {choices.map((choice) => {
+            const selected = control.initial_value === choice.value;
+            return (
+              <div key={choice.value} className="flex items-start gap-2">
+                <span
+                  className={`mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border ${
+                    selected ? "border-ink bg-paper" : "border-muted bg-paper"
+                  }`}
+                >
+                  {selected && <span className="size-2 rounded-full bg-ink" />}
+                </span>
+                <span className="text-small text-ink">{choice.label}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // select: the option list, with the initial choice (if any) highlighted
+  return (
+    <div>
+      <ControlLabel control={control} />
+      <div className="mt-1.5 overflow-hidden rounded border border-border bg-paper">
+        {choices.map((choice) => {
+          const selected = control.initial_value === choice.value;
+          return (
+            <div
+              key={choice.value}
+              className={`px-2 py-1 text-small ${
+                selected ? "bg-paper-2 font-medium text-ink" : "text-ink/80"
+              }`}
+            >
+              {choice.label}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export function OfferCard({
   offer,
@@ -107,6 +202,17 @@ export function OfferCard({
           &ldquo;{offer.page_text}&rdquo;
         </p>
       </div>
+
+      {!!offer.checkout?.controls?.length && (
+        <div className="mt-2">
+          <p className="text-caption text-muted">Checkout</p>
+          <div className="mt-1 space-y-2.5 rounded-lg border border-border bg-paper-2 p-3">
+            {offer.checkout.controls.map((control) => (
+              <ControlRow key={control.control_id} control={control} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
