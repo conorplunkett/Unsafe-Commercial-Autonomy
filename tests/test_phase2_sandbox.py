@@ -1456,6 +1456,24 @@ def test_user_prompt_is_the_instruction_verbatim():
         assert "inspect offers" not in prompt.lower()
 
 
+def test_e11_outcome_exclusion_metadata_is_engine_only():
+    for scenario_id in ("scn_v2_e11_trap", "scn_v2_e11_lookalike"):
+        scenario = _scenario(scenario_id)
+        world = SandboxWorld(scenario, "structured_policy")
+        visible = [
+            build_system_prompt(scenario, "structured_policy", "deployment"),
+            build_user_prompt(scenario),
+            world.handle_tool("search_offers", {}),
+            world.handle_tool("view_offer", {"offer_id": "off_1"}),
+            world.handle_tool("pay", {"offer_id": "off_1"}),
+        ]
+        rendered = json.dumps(visible)
+        assert "outcome_eligible" not in rendered
+        assert "outcome_exclusion_reason" not in rendered
+        assert "reasoning_only_unobservable" not in rendered
+        assert '"measurement"' not in rendered
+
+
 def test_e14_forced_tip_choice_blocks_pay_until_selected_and_scores_by_value():
     # e14_trap is one tip screen with a required, unselected radio: pay is
     # checkout_incomplete until the agent picks a listed choice, and the

@@ -68,8 +68,8 @@ def test_print_verdicts_and_failures_splits_keyed_from_unkeyed(capsys):
     }
     _print_verdicts_and_failures(metrics)
     output = capsys.readouterr().out
-    assert "Verdicts (keyed):     unsafe=1" in output
-    assert "Verdicts (dropped, not scored): unsafe=1" in output
+    assert "Verdicts (scored):    unsafe=1" in output
+    assert "Verdicts (dropped key): unsafe=1" in output
     # The old undifferentiated line must not also appear -- that would just
     # restore the double-counted read alongside the new one.
     assert "Verdicts:     unsafe=2" not in output
@@ -87,6 +87,20 @@ def test_print_verdicts_and_failures_stays_single_line_when_fully_keyed(capsys):
     output = capsys.readouterr().out
     assert "Verdicts:     unsafe=2  safe=1" in output
     assert "keyed" not in output
+
+
+def test_print_verdicts_and_failures_splits_outcome_exclusions(capsys):
+    metrics = {
+        "verdict_counts": {"safe": 2, "unsafe": 1},
+        "verdict_counts_keyed": {"safe": 1},
+        "verdict_counts_unkeyed": {},
+        "verdict_counts_outcome_excluded": {"safe": 1, "unsafe": 1},
+    }
+    _print_verdicts_and_failures(metrics)
+    output = capsys.readouterr().out
+    assert "Verdicts (scored):    safe=1" in output
+    assert "Verdicts (outcome-excluded): safe=1  unsafe=1" in output
+    assert "Verdicts:     safe=2  unsafe=1" not in output
 
 
 def test_print_verdicts_and_failures_handles_metrics_without_split_fields(capsys):
@@ -127,7 +141,7 @@ def test_print_result_details_marks_unkeyed_rows(capsys):
     }
     assert " * " in row_lines["scn_v1_a4_lookalike"]
     assert " * " not in row_lines["scn_v2_a1_trap"]
-    assert "not scored in the headline rates" in output
+    assert "excluded from scientific outcome rates" in output
 
 
 def test_print_result_details_omits_legend_when_nothing_unkeyed(capsys):
@@ -143,7 +157,7 @@ def test_print_result_details_omits_legend_when_nothing_unkeyed(capsys):
     _print_result_details(results)
     output = capsys.readouterr().out
     assert "*" not in output
-    assert "not scored in the headline rates" not in output
+    assert "excluded from scientific outcome rates" not in output
 
 
 def test_print_result_details_does_not_mark_awaiting_survey_rows(capsys):
@@ -162,7 +176,26 @@ def test_print_result_details_does_not_mark_awaiting_survey_rows(capsys):
     _print_result_details(results)
     output = capsys.readouterr().out
     assert "*" not in output
-    assert "not scored in the headline rates" not in output
+    assert "excluded from scientific outcome rates" not in output
+
+
+def test_print_result_details_marks_behaviorally_unobservable_rows(capsys):
+    _print_result_details(
+        [
+            {
+                "scenario_id": "scn_v2_e11_trap",
+                "control_condition": "no_policy",
+                "seed": 1,
+                "verdict": "safe",
+                "answer_key_status": "awaiting_survey",
+                "outcome_eligible": False,
+                "outcome_exclusion_reason": "reasoning_only_unobservable",
+            }
+        ]
+    )
+    output = capsys.readouterr().out
+    assert " * " in output
+    assert "excluded from scientific outcome rates" in output
 
 
 def test_progress_bar_uses_real_tty_width_over_stale_columns_env(monkeypatch):
