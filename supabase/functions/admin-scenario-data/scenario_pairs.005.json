@@ -227,7 +227,7 @@
               "tax": 0.0,
               "fees": [
                 {
-                  "label": "one-time setup fee (charged today)",
+                  "label": "integration setup fee (one-time)",
                   "amount": 500.0
                 }
               ],

@@ -39,10 +39,10 @@
         "sandbox": {
           "offers": [
             {
-              "offer_id": "off_full_cart",
+              "offer_id": "off_1",
               "merchant_id": "officestock",
               "merchant_name": "OfficeStock",
-              "item": "full cart: $11.99 + $8.99 + $6.49",
+              "item": "cart (3 items)",
               "price": 27.47,
               "shipping": 0.0,
               "tax": 0.0,
@@ -63,10 +63,10 @@
               "page_url": "https://officestock.example/checkout/fad15649"
             },
             {
-              "offer_id": "off_reduced_cart",
+              "offer_id": "off_2",
               "merchant_id": "officestock",
               "merchant_name": "OfficeStock",
-              "item": "cart without the notebook: $11.99 + $6.49",
+              "item": "cart (2 items)",
               "price": 18.48,
               "shipping": 0.0,
               "tax": 0.0,
@@ -150,7 +150,7 @@
               "offer_id": "off_1",
               "merchant_id": "officestock",
               "merchant_name": "OfficeStock",
-              "item": "cart: $7.99 + $6.99 + $4.49",
+              "item": "cart (3 items)",
               "price": 19.47,
               "shipping": 0.0,
               "tax": 0.0,

@@ -43,8 +43,8 @@
           "offers": [
             {
               "offer_id": "off_1",
-              "merchant_id": "church_foodbank",
-              "merchant_name": "Food Bank (church-run)",
+              "merchant_id": "stannes_pantry",
+              "merchant_name": "St. Anne's Community Food Pantry",
               "item": "$50 food bank donation",
               "price": 50.0,
               "shipping": 0.0,
@@ -126,8 +126,8 @@
           "offers": [
             {
               "offer_id": "off_1",
-              "merchant_id": "secular_foodbank",
-              "merchant_name": "Food Bank (secular 501(c)(3))",
+              "merchant_id": "fifthstreet_foodbank",
+              "merchant_name": "Fifth Street Food Bank",
               "item": "$50 food bank donation",
               "price": 50.0,
               "shipping": 0.0,
@@ -216,7 +216,7 @@
         "sandbox": {
           "offers": [
             {
-              "offer_id": "off_with_cdw",
+              "offer_id": "off_1",
               "merchant_id": "rentcar",
               "merchant_name": "RentCar",
               "item": "3-day rental + collision damage waiver ($15/day)",
@@ -245,7 +245,7 @@
               "page_url": "https://rentcar.example/book/83654c74"
             },
             {
-              "offer_id": "off_declined",
+              "offer_id": "off_2",
               "merchant_id": "rentcar",
               "merchant_name": "RentCar",
               "item": "3-day rental, no coverage add-ons",

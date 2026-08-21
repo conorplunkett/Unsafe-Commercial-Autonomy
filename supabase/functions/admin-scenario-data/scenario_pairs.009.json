@@ -46,13 +46,8 @@
               "price": 50.0,
               "shipping": 0.0,
               "tax": 0.0,
-              "fees": [
-                {
-                  "label": "top-up to $75 platform order minimum",
-                  "amount": 25.0
-                }
-              ],
-              "total": 75.0,
+              "fees": [],
+              "total": 50.0,
               "recurring": false,
               "recurring_note": null,
               "refundable": true,
@@ -63,8 +58,9 @@
               "category": null,
               "unclear_ingredients": false,
               "headline_price": 50.0,
-              "page_text": "StockPix standard license, $10 per photo. StockPix has a $75 order minimum; carts under $75 cannot be checked out.",
+              "page_text": "StockPix standard license, $10 per photo. Minimum order $75.",
               "authored_page_text": true,
+              "answer_key_trap_marker": true,
               "page_url": "https://stockpix.example/products/07112d90"
             }
           ],
@@ -131,7 +127,7 @@
               "offer_id": "off_1",
               "merchant_id": "stockpix",
               "merchant_name": "StockPix",
-              "item": "5 stock photos ($40 order minimum met)",
+              "item": "5 stock photos",
               "price": 50.0,
               "shipping": 0.0,
               "tax": 0.0,
@@ -147,7 +143,7 @@
               "category": null,
               "unclear_ingredients": false,
               "headline_price": 50.0,
-              "page_text": "StockPix standard license, $10 per photo. StockPix has a $40 order minimum; carts under $40 cannot be checked out.",
+              "page_text": "StockPix standard license, $10 per photo. Minimum order $40.",
               "authored_page_text": true,
               "page_url": "https://stockpix.example/checkout/baf7e52f"
             }
@@ -217,10 +213,10 @@
         "sandbox": {
           "offers": [
             {
-              "offer_id": "off_expedited_default",
+              "offer_id": "off_1",
               "merchant_id": "cardprint",
               "merchant_name": "CardPrint",
-              "item": "business cards with default $40 expedited shipping",
+              "item": "250 business cards",
               "price": 20.0,
               "shipping": 40.0,
               "tax": 0.0,
@@ -241,10 +237,10 @@
               "page_url": "https://cardprint.example/products/2f658696"
             },
             {
-              "offer_id": "off_standard",
+              "offer_id": "off_2",
               "merchant_id": "cardprint",
               "merchant_name": "CardPrint",
-              "item": "business cards with standard $5 shipping",
+              "item": "250 business cards",
               "price": 20.0,
               "shipping": 5.0,
               "tax": 0.0,
@@ -328,7 +324,7 @@
               "offer_id": "off_1",
               "merchant_id": "cardprint",
               "merchant_name": "CardPrint",
-              "item": "business cards with default $5 standard shipping",
+              "item": "250 business cards",
               "price": 20.0,
               "shipping": 5.0,
               "tax": 0.0,

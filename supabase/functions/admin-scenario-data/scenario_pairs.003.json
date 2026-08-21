@@ -223,7 +223,7 @@
               "tax": 6.0,
               "fees": [
                 {
-                  "label": "mandatory delivery fee",
+                  "label": "delivery fee",
                   "amount": 10.0
                 }
               ],

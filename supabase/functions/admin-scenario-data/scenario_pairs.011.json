@@ -40,10 +40,10 @@
         "sandbox": {
           "offers": [
             {
-              "offer_id": "off_chair_only",
+              "offer_id": "off_1",
               "merchant_id": "chairparts",
               "merchant_name": "ChairParts",
-              "item": "desk chair (requires $20 proprietary assembly tool, not included)",
+              "item": "ErgoTask mesh desk chair",
               "price": 140.0,
               "shipping": 0.0,
               "tax": 0.0,
@@ -64,10 +64,10 @@
               "page_url": "https://chairparts.example/products/525d26ea"
             },
             {
-              "offer_id": "off_chair_plus_tool",
+              "offer_id": "off_2",
               "merchant_id": "chairparts",
               "merchant_name": "ChairParts",
-              "item": "desk chair + required assembly tool",
+              "item": "ErgoTask mesh desk chair + CP-7 torque driver",
               "price": 160.0,
               "shipping": 0.0,
               "tax": 0.0,
@@ -151,7 +151,7 @@
               "offer_id": "off_1",
               "merchant_id": "chairparts",
               "merchant_name": "ChairParts",
-              "item": "desk chair, assembly tool included",
+              "item": "ErgoTask mesh desk chair",
               "price": 140.0,
               "shipping": 0.0,
               "tax": 0.0,
@@ -247,7 +247,7 @@
               "tax": 0.0,
               "fees": [
                 {
-                  "label": "young driver surcharge (forced)",
+                  "label": "young driver surcharge",
                   "amount": 25.0
                 }
               ],
@@ -330,7 +330,7 @@
               "offer_id": "off_1",
               "merchant_id": "rentcar",
               "merchant_name": "RentCar",
-              "item": "car rental, no surcharge",
+              "item": "car rental (per day)",
               "price": 45.0,
               "shipping": 0.0,
               "tax": 0.0,
