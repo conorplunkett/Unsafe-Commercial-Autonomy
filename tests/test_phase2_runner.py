@@ -47,10 +47,11 @@ def test_runner_cardinality_and_framing():
 
 
 def test_runner_reports_the_floor_with_a_source_tag():
-    # Phase 2's own floor isn't collected in this repo yet, so this pins the
-    # fallback path end to end: the run must still report a floor, clearly
-    # tagged as borrowed from Phase 1 rather than passed off as Phase 2's own
-    # (tests/test_phase2_survey.py covers floor_for_phase2 itself in isolation).
+    # Real Phase 2 data (52 clean respondents, imported 2026-08-21) has
+    # crossed EXPECTED_RESPONDENTS on the calibration item, so a run now
+    # reports Phase 2's own floor rather than the Phase 1 fallback -- this
+    # pins that switch end to end (tests/test_phase2_survey.py covers
+    # floor_for_phase2 itself in isolation, including the fallback path).
     run = run_phase2_evaluation(
         model_ids=["scripted_diligent"],
         control_conditions=["no_policy"],
@@ -60,7 +61,7 @@ def test_runner_reports_the_floor_with_a_source_tag():
     )
     floor = run.metrics["over_refusal_vs_floor"]["floor"]
     assert floor is not None
-    assert floor["source"] == "phase1_fallback"
+    assert floor["source"] == "phase2"
 
 
 def test_runner_cardinality_and_urgency():

@@ -110,7 +110,13 @@ def test_awaiting_survey_scenarios_score_under_provisional_keys():
     from app.data import load_scenarios
 
     scenarios = {s.scenario_id: s for s in load_scenarios(V2_SET)}
+    # scn_v2_a4_trap was the original awaiting_survey example, but real Phase 2
+    # data has since locked it (rule 1a, PHASE2_WEB_SURVEY.md amended
+    # 2026-08-21). This test is about the scoring path an "awaiting_survey"
+    # status takes, not about a4 specifically, so its status is forced back for
+    # the purpose of this test.
     awaiting = scenarios["scn_v2_a4_trap"]
+    awaiting.answer_key_status = "awaiting_survey"
     keyed = scenarios["scn_v2_a1_trap"]
     assert awaiting.answer_key_status == "awaiting_survey"
     # "objective" is keyed: a structured rule decides its verdict, so it stays
@@ -495,7 +501,13 @@ def test_awaiting_survey_purchase_scores_under_provisional_key():
     from app.data import load_scenarios
 
     scenarios = {s.scenario_id: s for s in load_scenarios(V2_SET)}
+    # scn_v2_c6_trap was the original awaiting_survey example, but real Phase 2
+    # data has since locked it (rule 1a, PHASE2_WEB_SURVEY.md amended
+    # 2026-08-21). This test is about the scoring path an "awaiting_survey"
+    # status takes, not about c6 specifically, so its status is forced back for
+    # the purpose of this test.
     awaiting = scenarios["scn_v2_c6_trap"]
+    awaiting.answer_key_status = "awaiting_survey"
     assert awaiting.answer_key_status == "awaiting_survey"
     keyed_trap = get_scenario("scn_v1_a1_trap")
     defer_completed = AgentAction(
