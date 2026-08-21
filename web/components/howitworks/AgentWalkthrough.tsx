@@ -28,6 +28,24 @@ const VERDICT_TONE: Record<"danger" | "neutral", string> = {
   neutral: "border-border bg-paper-2 text-muted",
 };
 
+// A premature click reacts to what was actually clicked, not a generic nudge.
+const TOO_EARLY: Record<string, string> = {
+  view_offer: "Ok, which one? Let's search them first.",
+  pay: "Pay for what? You haven't checked the price.",
+  request_approval: "What are we requesting approval for?",
+  finish: "You sure? You didn't do anything.",
+};
+
+function headlineFor(stage: Stage, done: boolean): string {
+  if (stage === "landing") {
+    return "Imagine you are an agent with access to your human’s credit card.";
+  }
+  if (stage === "system") return "Your system prompt";
+  if (stage === "task") return "Your task";
+  if (done) return "Your outcome";
+  return "You see your toolkit.";
+}
+
 function ArrowRight() {
   return (
     <svg
@@ -64,11 +82,22 @@ function ContinueButton({
   );
 }
 
-// Capped so a long block (the system prompt, view_offer's JSON) scrolls
-// inside itself instead of stretching the whole screen.
-function Block({ children }: { children: ReactNode }) {
+// capped=true (default) scrolls a long block inside itself instead of
+// stretching the screen -- used for tool-call JSON. The system prompt reads
+// in full instead: capped=false.
+function Block({
+  children,
+  capped = true,
+}: {
+  children: ReactNode;
+  capped?: boolean;
+}) {
   return (
-    <pre className="max-h-56 overflow-y-auto whitespace-pre-wrap rounded-lg border border-border bg-paper-2 p-4 font-mono text-caption leading-relaxed">
+    <pre
+      className={`whitespace-pre-wrap rounded-lg border border-border bg-paper-2 p-4 font-mono text-caption leading-relaxed ${
+        capped ? "max-h-56 overflow-y-auto" : ""
+      }`}
+    >
       {children}
     </pre>
   );
@@ -158,7 +187,7 @@ export function AgentWalkthrough() {
     const expected = CALLED_BY_STEP[calledCount];
     if (name !== expected) {
       if (flashTimer.current) clearTimeout(flashTimer.current);
-      setFlash("Woah, a bit early for that.");
+      setFlash(TOO_EARLY[name] ?? "Woah, a bit early for that.");
       flashTimer.current = setTimeout(() => setFlash(null), FLASH_MS);
       return;
     }
@@ -238,26 +267,19 @@ export function AgentWalkthrough() {
       )}
 
       <div className={fadeClass}>
+        <h1 className="text-h1 tracking-tight">{headlineFor(stage, done)}</h1>
+
         {stage === "landing" && (
-          <>
-            <h1 className="text-h1 tracking-tight">
-              Imagine you are an agent with access to your human&rsquo;s
-              credit card.
-            </h1>
-            <div className="mt-8">
-              <ContinueButton onClick={() => transition(() => setStage("system"))}>
-                Ok, what do I do?
-              </ContinueButton>
-            </div>
-          </>
+          <div className="mt-8">
+            <ContinueButton onClick={() => transition(() => setStage("system"))}>
+              Ok, what do I do?
+            </ContinueButton>
+          </div>
         )}
 
         {stage === "system" && (
-          <Card tone="raised">
-            <p className="text-ui text-muted">Your system prompt</p>
-            <div className="mt-1.5">
-              <Block>{outcome.systemPrompt}</Block>
-            </div>
+          <Card tone="raised" className="mt-6">
+            <Block capped={false}>{outcome.systemPrompt}</Block>
             <div className="mt-4">
               <ContinueButton onClick={() => transition(() => setStage("task"))}>
                 What should I do?
@@ -267,9 +289,8 @@ export function AgentWalkthrough() {
         )}
 
         {stage === "task" && (
-          <Card tone="raised">
-            <p className="text-ui text-muted">Your task</p>
-            <p className="mt-1.5 text-ui">{USER_PROMPT}</p>
+          <Card tone="raised" className="mt-6">
+            <p className="text-ui">{USER_PROMPT}</p>
             <div className="mt-4">
               <ContinueButton onClick={() => transition(() => setStage("toolkit"))}>
                 What now?
@@ -279,16 +300,17 @@ export function AgentWalkthrough() {
         )}
 
         {stage === "toolkit" && done && (
-          <Card tone="raised">{callResult("finish", condition)}</Card>
+          <Card tone="raised" className="mt-6">
+            {callResult("finish", condition)}
+          </Card>
         )}
 
         {stage === "toolkit" && !done && (
-          <Card tone="raised">
-            <p className="text-ui text-muted">Your toolkit</p>
+          <Card tone="raised" className="mt-6">
             {calledCount > 0 && (
-              <div className="mt-4">{callResult(CALLED_BY_STEP[calledCount - 1], condition)}</div>
+              <div className="mb-4">{callResult(CALLED_BY_STEP[calledCount - 1], condition)}</div>
             )}
-            <Card as="ol" tone="bare" pad="none" className="mt-4 overflow-hidden">
+            <Card as="ol" tone="bare" pad="none" className="overflow-hidden">
               {TOOLS.map((tool) => {
                 const toolDoneIndex = CALLED_BY_STEP.indexOf(tool.name);
                 const toolDone = toolDoneIndex !== -1 && toolDoneIndex < calledCount;
@@ -343,7 +365,7 @@ export function AgentWalkthrough() {
           <button
             type="button"
             onClick={() => transition(goBack)}
-            className="tap rounded-lg border border-border px-4 text-small text-muted transition-colors hover:text-ink"
+            className="tap text-small text-muted/60 transition-colors hover:text-muted"
           >
             Back
           </button>
