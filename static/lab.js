@@ -55,6 +55,10 @@ const state = {
   framingFilters: new Set(),
   urgencyFilters: new Set(),
   userAvailabilityFilters: new Set(),
+  // Which of the six Results-panel filter dropdowns (keyed "run", "verdict",
+  // "condition", "framing", "urgency", "userAvailability") has its checkbox
+  // panel open, or null if none — at most one at a time.
+  openFilterDropdown: null,
   selectedKey: null,
   // The human reflexive-ask floor (share of respondents who want the agent to
   // check in before a trivially in-policy purchase), lifted from any loaded
@@ -132,8 +136,11 @@ for (const id of [
   "splitsTable",
   "splitsStamp",
   "resultFramingFilter",
+  "resultFramingFilterTrigger",
   "resultUrgencyFilter",
+  "resultUrgencyFilterTrigger",
   "resultUserAvailabilityFilter",
+  "resultUserAvailabilityFilterTrigger",
   "ladderFullGrid",
   "ladderEveryScenario",
   "ladderEverySeeds",
@@ -149,8 +156,11 @@ for (const id of [
   "failureNextPage",
   "failurePageLabel",
   "resultRunFilter",
+  "resultRunFilterTrigger",
   "resultVerdictFilter",
+  "resultVerdictFilterTrigger",
   "resultConditionFilter",
+  "resultConditionFilterTrigger",
   "resultsFilterReset",
   "modelResultsTable",
   "modelResultsStamp",
@@ -1859,96 +1869,143 @@ function toggleSetValue(set, value) {
   else set.add(value);
 }
 
-// Multi-select chip row for a Results-panel filter: one chip per value
-// actually present in state.allResults/state.runList (same "only offer what
-// exists" rule the old dropdowns used), each toggling membership in
-// `selected`. Prunes `selected` of any value that dropped out from under it
+// Fixed-positions a filter dropdown's panel just under its trigger, in
+// viewport coordinates from the trigger's own bounding box. position:
+// fixed rather than absolute is what lets the panel escape .result-panel's
+// overflow:hidden (there to keep the panel's own rounded corners), which
+// would otherwise clip a checkbox list hanging below the panel's bottom
+// edge — the Run field sits at the very top of a tall, often-scrolled panel.
+function positionFilterDropdown(triggerEl, panelEl) {
+  const rect = triggerEl.getBoundingClientRect();
+  panelEl.style.top = `${rect.bottom + 4}px`;
+  panelEl.style.left = `${rect.left}px`;
+}
+
+// Multi-select dropdown for a Results-panel filter: the trigger button
+// stays a fixed, compact size (a count, never a growing list of names) so
+// picking more values never resizes the filter bar or anything below it;
+// its checkbox panel — one row per value actually present in
+// state.allResults/state.runList, same "only offer what exists" rule the
+// old dropdowns used — floats over the page instead. Checking a box calls
+// this again (via renderAll), but the panel stays open across that
+// rebuild because "open" lives in state.openFilterDropdown, not transient
+// DOM state. Prunes `selected` of any value that dropped out from under it
 // (e.g. its run got deleted) before rendering, so a stale filter never
-// silently keeps hiding results for a value nobody can see selected anymore.
-// The whole field can hide itself below `minPresent` values — the three
-// Phase 2 axes disappear entirely on Phase-1-only data, since a chip row
-// that can only pick what's already showing is noise.
-function renderFilterChips(el, order, selected, labelFn, minPresent = 1) {
-  const wrap = el.closest(".results-filter-field") || el;
+// silently keeps hiding results for a value nobody can see selected
+// anymore. The whole field can hide itself below `minPresent` values — the
+// three Phase 2 axes disappear entirely on Phase-1-only data, since a
+// dropdown that can only pick what's already showing is noise.
+function renderFilterDropdown(key, triggerEl, panelEl, order, selected, labelFn, allLabel, minPresent = 1) {
+  const wrap = triggerEl.closest(".results-filter-field") || triggerEl;
   // Below the threshold the field is about to disappear, so drop every
   // selection it held rather than leave a value silently still filtering
   // behind a hidden, unlabeled control — full reset here, not just pruning
   // the stale ones, matching the old single-select's reset-on-hide.
   if (order.length < minPresent) {
     selected.clear();
+    if (state.openFilterDropdown === key) state.openFilterDropdown = null;
     wrap.hidden = true;
-    el.innerHTML = "";
+    panelEl.innerHTML = "";
     return;
   }
   for (const value of [...selected]) {
     if (!order.includes(value)) selected.delete(value);
   }
   wrap.hidden = false;
-  el.innerHTML = order
+  const open = state.openFilterDropdown === key;
+  triggerEl.textContent = selected.size ? `${selected.size} selected` : allLabel;
+  triggerEl.classList.toggle("has-selection", selected.size > 0);
+  triggerEl.setAttribute("aria-expanded", String(open));
+  panelEl.hidden = !open;
+  panelEl.innerHTML = order
     .map(
       (value) => `
-      <button type="button" class="chip ${selected.has(value) ? "chip-on" : ""}" data-value="${value}">
+      <label class="filter-checkbox-row">
+        <input type="checkbox" data-value="${value}" ${selected.has(value) ? "checked" : ""}>
         ${labelFn(value)}
-      </button>
+      </label>
     `
     )
     .join("");
+  if (open) positionFilterDropdown(triggerEl, panelEl);
 }
 
-// Rebuilds the six Results-panel filter chip-rows from whatever's actually in
+// Rebuilds the six Results-panel filter dropdowns from whatever's actually in
 // state.allResults/state.runList (same "only show options that exist"
 // pattern as the runner card's category filter).
 function renderResultsFilterOptions() {
   const runOrder = state.runList.map((run) => run.run_id);
-  renderFilterChips(els.resultRunFilter, runOrder, state.runFilters, (runId) =>
-    runOptionLabel(state.runList.find((run) => run.run_id === runId))
+  renderFilterDropdown(
+    "run",
+    els.resultRunFilterTrigger,
+    els.resultRunFilter,
+    runOrder,
+    state.runFilters,
+    (runId) => runOptionLabel(state.runList.find((run) => run.run_id === runId)),
+    "All runs"
   );
 
   const verdictsPresent = new Set(state.allResults.map((result) => result.verdict || "none"));
-  renderFilterChips(
+  renderFilterDropdown(
+    "verdict",
+    els.resultVerdictFilterTrigger,
     els.resultVerdictFilter,
     VERDICT_ORDER.filter((verdict) => verdictsPresent.has(verdict)),
     state.verdictFilters,
-    verdictLabel
+    verdictLabel,
+    "All verdicts"
   );
 
   const conditionsPresent = new Set(
     state.allResults.map((result) => result.control_condition || "legacy")
   );
-  renderFilterChips(
+  renderFilterDropdown(
+    "condition",
+    els.resultConditionFilterTrigger,
     els.resultConditionFilter,
     [...PHASE2_CONDITION_ORDER, "legacy"].filter((condition) => conditionsPresent.has(condition)),
     state.conditionFilters,
-    (condition) => controlConditionLabel(condition === "legacy" ? null : condition)
+    (condition) => controlConditionLabel(condition === "legacy" ? null : condition),
+    "All conditions"
   );
 
   // Framing, urgency and user availability are Phase 2 ablation axes, so their
   // fields hide entirely on a page holding only Phase 1 results, or where the
-  // axis never varied — a chip row with a single, already-showing value is noise.
+  // axis never varied — a dropdown that can only pick a single, already-showing
+  // value is noise.
   const framingsPresent = [...new Set(state.allResults.map((result) => result.framing).filter(Boolean))];
-  renderFilterChips(
+  renderFilterDropdown(
+    "framing",
+    els.resultFramingFilterTrigger,
     els.resultFramingFilter,
     FRAMING_ORDER.filter((framing) => framingsPresent.includes(framing)),
     state.framingFilters,
     framingLabel,
+    "All framings",
     2
   );
   const urgenciesPresent = [...new Set(state.allResults.map((result) => result.urgency).filter(Boolean))];
-  renderFilterChips(
+  renderFilterDropdown(
+    "urgency",
+    els.resultUrgencyFilterTrigger,
     els.resultUrgencyFilter,
     URGENCY_ORDER.filter((urgency) => urgenciesPresent.includes(urgency)),
     state.urgencyFilters,
     urgencyLabel,
+    "All urgency",
     2
   );
   const availabilitiesPresent = [
     ...new Set(state.allResults.map((result) => result.user_availability).filter(Boolean)),
   ];
-  renderFilterChips(
+  renderFilterDropdown(
+    "userAvailability",
+    els.resultUserAvailabilityFilterTrigger,
     els.resultUserAvailabilityFilter,
     USER_AVAILABILITY_ORDER.filter((availability) => availabilitiesPresent.includes(availability)),
     state.userAvailabilityFilters,
     userAvailabilityLabel,
+    "All availability",
     2
   );
 
@@ -2275,6 +2332,7 @@ function toolCallRow(event) {
   const head = [tool];
   let outcome = "";
   let quote = "";
+  let note = "";
   let tone = "";
   const reasons = Array.isArray(result.reasons) ? result.reasons.map(failureShort).join(", ") : "";
   if (tool === "search_offers") {
@@ -2325,6 +2383,16 @@ function toolCallRow(event) {
       outcome = result.error || compactJson(result);
       if (result.error) tone = "warn";
     }
+  } else if (tool === "send_message") {
+    if (args.recipient) head.push(`to ${args.recipient}`);
+    outcome =
+      result.error ||
+      (result.status === "delivered"
+        ? `delivered${result.receipt_id ? ` · ${result.receipt_id}` : ""}`
+        : compactJson(result));
+    quote = args.message || "";
+    note = messageInventory(args);
+    tone = result.error ? "warn" : "sent";
   } else if (tool === "request_approval") {
     outcome = "approval requested · episode ends";
     quote = args.reason || "";
@@ -2336,7 +2404,49 @@ function toolCallRow(event) {
     if (Object.keys(args).length) head.push(compactJson(args));
     outcome = compactJson(result);
   }
-  return auditStep(head.join(" · "), outcome, quote, result.notice || "", tone);
+  return auditStep(head.join(" · "), outcome, quote, note || result.notice || "", tone);
+}
+
+function messageInventory(detail) {
+  const parts = [];
+  if (Array.isArray(detail.shared_fields) && detail.shared_fields.length) {
+    parts.push(
+      `shared fields — ${detail.shared_fields
+        .map((field) => String(field).replaceAll("_", " "))
+        .join(", ")}`
+    );
+  }
+  if (Array.isArray(detail.attachments) && detail.attachments.length) {
+    parts.push(`attachments — ${detail.attachments.join(", ")}`);
+  }
+  return parts.join(" · ");
+}
+
+function outboundMessageEvents(result) {
+  const events = (result.audit_events || []).filter(
+    (event) => event.event_type === "outbound_message"
+  );
+  if (events.length) return events;
+  return (result.audit_events || [])
+    .filter((event) => event.event_type === "tool_call" && event.code === "send_message")
+    .map((event) => ({
+      detail: {
+        ...((event.detail && event.detail.args) || {}),
+        receipt_id: event.detail && event.detail.result && event.detail.result.receipt_id,
+      },
+    }));
+}
+
+function outboundMessagesBlock(result) {
+  const events = outboundMessageEvents(result);
+  if (!events.length) return "";
+  const rows = events.map((event) => {
+    const detail = event.detail || {};
+    const recipient = detail.recipient ? `to ${detail.recipient}` : "recipient unavailable";
+    const receipt = detail.receipt_id ? `delivered · ${detail.receipt_id}` : "delivered";
+    return auditStep(recipient, receipt, detail.message || "", messageInventory(detail), "sent");
+  });
+  return `<div class="detail-block"><h3>Sent messages</h3><ol class="audit-trail">${rows.join("")}</ol></div>`;
 }
 
 function transcriptBlock(result) {
@@ -2358,6 +2468,7 @@ const SCORING_SKIP = new Set([
   "effective_action",
   "agent_action",
   "tool_call",
+  "outbound_message",
 ]);
 
 function scoringBlock(result) {
@@ -2578,7 +2689,7 @@ function transcriptBlocks(detail, result) {
       detail.error || "unknown error"
     )}</p></div>`;
   }
-  return `${transcriptBlock(result)}${scoringBlock(result)}`;
+  return `${outboundMessagesBlock(result)}${transcriptBlock(result)}${scoringBlock(result)}`;
 }
 
 // The rest of the transcript-fed blocks, rendered after the scenario blocks so
@@ -3216,25 +3327,70 @@ function bindEvents() {
     state.resultsPage = 1;
     renderAll();
   });
-  // Shared toggle handler for the six Results-panel filter chip-rows: each is
-  // a multi-select Set keyed by the chip's data-value, same delegated-click
-  // pattern as the Run form's Phase 2 axis chips (bindAxisChips above).
-  function bindResultFilterChips(el, selectedSet) {
-    el.addEventListener("click", (event) => {
-      const chip = event.target.closest("[data-value]");
-      if (!chip) return;
-      toggleSetValue(selectedSet, chip.dataset.value);
+  // Shared wiring for the six Results-panel filter dropdowns: the trigger
+  // toggles state.openFilterDropdown (renderFilterDropdown reads that same
+  // key to decide which one panel, of the six, is open — so opening one
+  // closes any other), and a delegated `change` listener on the panel
+  // toggles the clicked checkbox's value in its Set. renderAll() rebuilds
+  // the panel still open (its open-ness lives in state, not the transient
+  // DOM), so checking several boxes in a row never closes the menu between
+  // clicks the way a native <select> would.
+  function bindFilterDropdown(key, triggerEl, panelEl, selectedSet) {
+    triggerEl.addEventListener("click", () => {
+      state.openFilterDropdown = state.openFilterDropdown === key ? null : key;
+      renderResultsFilterOptions();
+    });
+    panelEl.addEventListener("change", (event) => {
+      const checkbox = event.target.closest("input[data-value]");
+      if (!checkbox) return;
+      toggleSetValue(selectedSet, checkbox.dataset.value);
       state.selectedKey = null;
       state.resultsPage = 1;
       renderAll();
     });
   }
-  bindResultFilterChips(els.resultRunFilter, state.runFilters);
-  bindResultFilterChips(els.resultVerdictFilter, state.verdictFilters);
-  bindResultFilterChips(els.resultConditionFilter, state.conditionFilters);
-  bindResultFilterChips(els.resultFramingFilter, state.framingFilters);
-  bindResultFilterChips(els.resultUrgencyFilter, state.urgencyFilters);
-  bindResultFilterChips(els.resultUserAvailabilityFilter, state.userAvailabilityFilters);
+  bindFilterDropdown("run", els.resultRunFilterTrigger, els.resultRunFilter, state.runFilters);
+  bindFilterDropdown("verdict", els.resultVerdictFilterTrigger, els.resultVerdictFilter, state.verdictFilters);
+  bindFilterDropdown(
+    "condition",
+    els.resultConditionFilterTrigger,
+    els.resultConditionFilter,
+    state.conditionFilters
+  );
+  bindFilterDropdown("framing", els.resultFramingFilterTrigger, els.resultFramingFilter, state.framingFilters);
+  bindFilterDropdown("urgency", els.resultUrgencyFilterTrigger, els.resultUrgencyFilter, state.urgencyFilters);
+  bindFilterDropdown(
+    "userAvailability",
+    els.resultUserAvailabilityFilterTrigger,
+    els.resultUserAvailabilityFilter,
+    state.userAvailabilityFilters
+  );
+  // Close whichever filter dropdown is open on an outside click, Escape, or
+  // any scroll. Scroll uses capture:true because the event itself doesn't
+  // bubble, so a scroll inside a nested container (e.g. the Runs table)
+  // would otherwise never reach a listener on document.
+  document.addEventListener("click", (event) => {
+    if (state.openFilterDropdown && !event.target.closest(".filter-dropdown")) {
+      state.openFilterDropdown = null;
+      renderResultsFilterOptions();
+    }
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && state.openFilterDropdown) {
+      state.openFilterDropdown = null;
+      renderResultsFilterOptions();
+    }
+  });
+  document.addEventListener(
+    "scroll",
+    () => {
+      if (state.openFilterDropdown) {
+        state.openFilterDropdown = null;
+        renderResultsFilterOptions();
+      }
+    },
+    { capture: true, passive: true }
+  );
   els.resultsFilterReset.addEventListener("click", resetResultFilters);
   // Failure modes is closed by default and its chart is only built lazily
   // (see renderFailureChart/paintFailureChart) — paint it the moment it's

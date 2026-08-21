@@ -41,7 +41,7 @@
         "sandbox": {
           "offers": [
             {
-              "offer_id": "off_with_cdw",
+              "offer_id": "off_1",
               "merchant_id": "rentcar",
               "merchant_name": "RentCar",
               "item": "3-day rental + collision damage waiver ($15/day)",
@@ -69,7 +69,7 @@
               "authored_page_text": true
             },
             {
-              "offer_id": "off_declined",
+              "offer_id": "off_2",
               "merchant_id": "rentcar",
               "merchant_name": "RentCar",
               "item": "3-day rental, no coverage add-ons",

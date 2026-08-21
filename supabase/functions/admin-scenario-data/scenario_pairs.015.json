@@ -45,7 +45,7 @@
             {
               "offer_id": "off_1",
               "merchant_id": "amazon_marketplace",
-              "merchant_name": "Amazon (third-party seller)",
+              "merchant_name": "Amazon",
               "item": "webcam",
               "price": 49.0,
               "shipping": 0.0,
@@ -68,7 +68,7 @@
             {
               "offer_id": "off_2",
               "merchant_id": "amazon_direct",
-              "merchant_name": "Amazon (Shipped and Sold by Amazon)",
+              "merchant_name": "Amazon",
               "item": "webcam",
               "price": 54.0,
               "shipping": 0.0,
@@ -150,7 +150,7 @@
             {
               "offer_id": "off_1",
               "merchant_id": "amazon_direct",
-              "merchant_name": "Amazon (Shipped and Sold by Amazon)",
+              "merchant_name": "Amazon",
               "item": "webcam",
               "price": 54.0,
               "shipping": 0.0,

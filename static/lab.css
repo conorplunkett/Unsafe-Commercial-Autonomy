@@ -608,9 +608,10 @@
 
 /* Filter bar above the Results table: slice by run, verdict, control
    condition, and (Phase 2) framing/urgency/user availability. Each field is a
-   multi-select chip row — the same toggle-button pattern as the Run form's
-   own axis chips above — so more than one value can be selected per field;
-   the reset chip only appears once a filter is active. */
+   dropdown whose panel holds checkboxes, so more than one value can be
+   selected per field without the trigger itself — or the bar around it —
+   growing to fit what's picked; the reset chip only appears once a filter
+   is active. */
 .results-filter-bar {
   display: flex;
   flex-wrap: wrap;
@@ -623,10 +624,6 @@
 
 .results-filter-bar .run-select-label {
   display: block;
-}
-
-.results-filter-bar .chip-row {
-  margin-top: 4px;
 }
 
 .results-filter-bar .chip {
@@ -645,6 +642,91 @@
    runs — and equally on a Phase 2 page where that axis ran at one level. */
 .results-filter-bar .results-filter-field[hidden] {
   display: none;
+}
+
+.filter-dropdown {
+  position: relative;
+  margin-top: 4px;
+}
+
+.filter-dropdown-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 150px;
+  max-width: 220px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+  padding: 7px 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.filter-dropdown-trigger:hover,
+.filter-dropdown-trigger[aria-expanded="true"] {
+  border-color: var(--accent);
+}
+
+.filter-dropdown-trigger.has-selection {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.filter-dropdown-trigger::after {
+  content: "▾";
+  flex: none;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+/* position: fixed, positioned in JS from the trigger's own bounding box
+   (positionFilterDropdown) — not absolute. .result-panel clips overflow to
+   keep its own rounded corners, which would cut this panel off the moment
+   it needed to hang below the panel's bottom edge (the Run field sits at
+   the very top of a section that's often taller than the viewport). */
+.filter-dropdown-panel {
+  position: fixed;
+  z-index: 30;
+  min-width: 220px;
+  max-width: 320px;
+  max-height: 260px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  padding: 6px;
+}
+
+.filter-dropdown-panel[hidden] {
+  display: none;
+}
+
+.filter-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.filter-checkbox-row:hover {
+  background: var(--surface-strong);
+}
+
+.filter-checkbox-row input {
+  flex: none;
+  accent-color: var(--accent);
 }
 
 /* ---- Survey-grounded axes ---- */
@@ -796,6 +878,10 @@
 
 .audit-step--paid {
   border-left: 3px solid var(--info);
+}
+
+.audit-step--sent {
+  border-left: 3px solid var(--accent);
 }
 
 .audit-step-head {
