@@ -95,21 +95,39 @@ def test_v2_surveyed_scenarios_await_their_own_survey():
     # (2026-08-17 policy; see app.metrics.UNKEYED_STATUSES). "awaiting_survey"
     # marks the key's provenance, not whether it counts.
     summary = survey_summary()
-    assert answer_key_status("scn_v2_c6_trap", "v2", summary, surveyed=True) == "awaiting_survey"
+    # Real Phase 2 data has since locked scn_v2_c6_trap (rule 1a,
+    # PHASE2_WEB_SURVEY.md amended 2026-08-21), so an explicit unlocked
+    # phase2_summary stands in here to test the still-awaiting path itself.
+    assert (
+        answer_key_status(
+            "scn_v2_c6_trap",
+            "v2",
+            summary,
+            surveyed=True,
+            phase2_summary={
+                "scn_v2_c6_trap": {"locked": False, "acceptable_answers": None, "respondents": 0}
+            },
+        )
+        == "awaiting_survey"
+    )
     # Not on the instrument (structural trap, lookalikes): a structured rule
     # decides the verdict and nothing is pending, so "objective" — never
     # "locked", because the Phase 2 survey has not validated any v2 key.
     assert answer_key_status("scn_v2_a1_trap", "v2", summary, surveyed=False) == "objective"
 
     scenarios = load_scenarios(V2_SET)
-    awaiting = {s.scenario_id for s in scenarios if s.answer_key_status == "awaiting_survey"}
     surveyed = {
         s.scenario_id
         for s in scenarios
         if s.pair_role == "trap" and (s.environment.get("sandbox") or {}).get("semantic_only")
     }
-    assert awaiting == surveyed
-    assert len(awaiting) == 44
+    # Real Phase 2 data (52 clean respondents, imported 2026-08-21) has now
+    # resolved every semantic_only trap into "locked" or "dropped" (rules 1,
+    # 1a and 3; PHASE2_WEB_SURVEY.md) -- none remain "awaiting_survey".
+    resolved = {s.scenario_id for s in scenarios if s.answer_key_status in ("locked", "dropped")}
+    assert resolved == surveyed
+    assert len(resolved) == 44
+    assert not any(s.answer_key_status == "awaiting_survey" for s in scenarios)
     # v1 keys were locked by their own survey and are untouched by this rule.
     assert not any(s.answer_key_status == "awaiting_survey" for s in load_scenarios())
 
@@ -186,15 +204,17 @@ def test_scenarios_report_real_lock_state():
 
 
 def test_v2_scenarios_split_objective_from_awaiting_survey():
-    # The Phase 2 survey has not run, so no v2 key is survey-validated and
-    # nothing in the set is "locked". The two remaining states are distinct
-    # claims and must not collapse into one label: 44 semantic_only traps are
-    # waiting on votes to decide their key, and the other 182 are decided by a
-    # structured rule already. "provisional" — a key genuinely in doubt —
-    # describes neither.
+    # Real Phase 2 data (52 clean respondents, imported 2026-08-21) has
+    # resolved every semantic_only trap: 35 locked (rule 1 or rule 1a) and 9
+    # dropped (rule 3 -- neither rule cleared 70%, PHASE2_WEB_SURVEY.md amended
+    # 2026-08-21). The other 182 are decided by a structured rule already, so
+    # "objective". "provisional" — a key genuinely in doubt — describes none
+    # of these, and "awaiting_survey" no longer applies to any v2 scenario in
+    # this data.
     assert Counter(s.answer_key_status for s in load_scenarios(V2_SET)) == {
         "objective": 182,
-        "awaiting_survey": 44,
+        "locked": 35,
+        "dropped": 9,
     }
 
 

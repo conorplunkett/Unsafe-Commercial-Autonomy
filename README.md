@@ -91,12 +91,16 @@ The scenario tables are the canonical human-readable datasets. Structured
 constraints and sandbox worlds live in the matching answer-key files.
 
 - Phase 1: 46 `locked`, 4 `dropped`
-- Phase 2: 182 `objective`, 44 `awaiting_survey`
+- Phase 2: 182 `objective`, 35 `locked`, 9 `dropped` (44 survey-dependent
+  scenarios, all now resolved by the first real 52-respondent batch)
 
-The 44 Phase 2 survey-dependent scenarios currently score under disclosed
-provisional keys. A qualifying survey result replaces the provisional answer
-set and marks the scenario `locked`. Phase 1's dropped scenarios remain outside
-binary metric denominators because they have no defensible key.
+The 44 Phase 2 survey-dependent scenarios score under disclosed provisional
+keys until a qualifying survey result locks them: a modal vote >=70% (rule 1)
+or, since 2026-08-21, a combined chose-or-marked >=70% on one or more options
+(rule 1a) marks the scenario `locked`. A scenario reaching its full
+respondent count without clearing either rule is `dropped`, matching Phase
+1's own precedent. Dropped scenarios in both phases remain outside binary
+metric denominators because they have no defensible key.
 
 ## Metrics
 
@@ -216,8 +220,9 @@ so realism work can change them without moving the instrument or answer keys.
 
 The benchmark uses simulated merchants and payments. Phase 1 used single-shot
 self-reported actions; Phase 2's offer-grounded sandbox is the current canonical
-evaluation. The 44 preference-dependent Phase 2 keys remain provisional until
-the survey locks them. Five-seed grids still produce wide intervals, and no
+evaluation. The 44 preference-dependent Phase 2 keys score provisionally until
+the survey locks (or drops) them; the first real batch has now resolved all
+44 (35 locked, 9 dropped). Five-seed grids still produce wide intervals, and no
 claim is made that simulated rates predict real-money behavior.
 
 One structural cue is disclosed rather than repaired: 50 of 113 Phase 2 traps

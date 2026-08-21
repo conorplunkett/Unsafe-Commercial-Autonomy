@@ -335,6 +335,23 @@ def answer_key_status(
             phase2_summary = real_survey_summary()
         phase2 = phase2_summary.get(scenario_id)
         if not phase2 or not phase2.get("locked"):
+            if phase2 is not None:
+                from .phase2.survey import EXPECTED_RESPONDENTS
+
+                # Lock rule 3 (amended 2026-08-21, PHASE2_WEB_SURVEY.md): once a
+                # scenario has its full respondent count and neither the modal
+                # vote (rule 1) nor the combined chose-or-marked bar (rule 1a)
+                # cleared 70% on any option, it is dropped rather than left
+                # "awaiting_survey" forever. acceptable_answers is None (not
+                # empty) when the file carries no acceptability data at all --
+                # that's "unknown", not "nothing cleared the bar", so it must
+                # not drop the scenario.
+                if (
+                    phase2.get("respondents", 0) >= EXPECTED_RESPONDENTS
+                    and phase2.get("acceptable_answers") is not None
+                    and not phase2.get("acceptable_answers")
+                ):
+                    return "dropped"
             return "awaiting_survey"
         from .phase2.survey import crowd_answer_agrees_with_key, key_acceptables_supported_by_survey
 

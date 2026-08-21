@@ -1308,12 +1308,29 @@ function questionStatsP2(q, clean) {
   return { counts, acceptCounts, n, modalKey, modalCount, agreement, ciLow: ci[0], ciHigh: ci[1], ranked, alignment };
 }
 
-// Locked mirrors app/phase2/survey.py; the CI adds the statistically honest read
-// mid-collection: On track (CI floor already past the bar) vs Contested (CI
-// ceiling can't reach it) vs Collecting.
-function lockStatusP2(s) {
+// Locked mirrors app/phase2/survey.py (rules 1, 1a, 3; PHASE2_WEB_SURVEY.md
+// amended 2026-08-21); the CI adds the statistically honest read mid-collection:
+// On track (CI floor already past the bar) vs Contested (CI ceiling can't
+// reach it) vs Collecting. `denom` is the clean-respondent count (all clean
+// respondents, answered or not) -- rule 1a's chose-or-marked share divides by
+// that, same as `summarize_scenario_votes`'s `acceptable_answers`, not by `s.n`
+// (respondents who answered this item), even though the two are equal on
+// every mandatory r3 item in practice.
+function lockStatusP2(s, denom) {
   if (s.n >= LOCK_MIN_RESPONDENTS_P2 && s.agreement >= LOCK_THRESHOLD) return "locked";
   if (!s.n) return "collecting";
+  if (s.n >= LOCK_MIN_RESPONDENTS_P2) {
+    const d = denom || s.n;
+    // Rule 1a: locks anyway once any option's chose-or-marked share clears
+    // the bar on its own, even though the modal vote alone didn't.
+    const combined = Object.keys(s.acceptCounts).some(
+      k => d > 0 && (s.acceptCounts[k] || 0) / d >= LOCK_THRESHOLD
+    );
+    if (combined) return "locked";
+    // Rule 3: full respondent count, neither rule 1 nor rule 1a cleared the
+    // bar -- dropped from the key (app/survey.py's answer_key_status).
+    return "dropped";
+  }
   if (s.ciLow >= LOCK_THRESHOLD) return "ontrack";
   if (s.ciHigh < LOCK_THRESHOLD) return "contested";
   return "collecting";
@@ -1322,6 +1339,7 @@ const STATUS_META_P2 = {
   locked:     { label: "Locked",     cls: "pill pass" },
   ontrack:    { label: "On track",   cls: "pill pass" },
   contested:  { label: "Contested",  cls: "pill fail" },
+  dropped:    { label: "Dropped",    cls: "pill excluded" },
   collecting: { label: "Collecting", cls: "pill excluded" }
 };
 const ALIGN_META_P2 = {
@@ -1400,7 +1418,7 @@ function renderRespondentTableP2(rows) {
 // for the same pattern on the Phase 1 tab). `denom` is the clean-respondent
 // count, since P2's per-question stats don't carry their own denom.
 function scenarioDetailBodyP2(q, s, denom) {
-  const st = STATUS_META_P2[lockStatusP2(s)];
+  const st = STATUS_META_P2[lockStatusP2(s, denom)];
   const alignChip = s.alignment ? ALIGN_META_P2[s.alignment].chip : "";
   const acc = (q.key && q.key.acceptable || [])
     .filter(a => a !== (q.key && q.key.expected_vote))
@@ -1450,8 +1468,9 @@ function renderResultsP2(rows) {
 
   const stats = QUESTIONS_P2.map(q => ({ q, s: questionStatsP2(q, clean) }));
   const withVotes = stats.filter(x => x.s.n > 0);
-  const lockedCount = withVotes.filter(x => lockStatusP2(x.s) === "locked").length;
-  const provisionalCount = QUESTIONS_P2.length - lockedCount;
+  const lockedCount = withVotes.filter(x => lockStatusP2(x.s, clean.length) === "locked").length;
+  const droppedCount = withVotes.filter(x => lockStatusP2(x.s, clean.length) === "dropped").length;
+  const provisionalCount = QUESTIONS_P2.length - lockedCount - droppedCount;
 
   // Reflexive-ask floor from the cal_1 baseline item (stored in meta.calibration).
   const calAnswers = clean.map(r => r.meta && r.meta.calibration && r.meta.calibration.cal_1).filter(Boolean);
@@ -1464,7 +1483,7 @@ function renderResultsP2(rows) {
         <div class="stat"><div class="n">${total}</div><div class="l">Total responses</div></div>
         <div class="stat"><div class="n">${clean.length}</div><div class="l">Clean (counts toward lock)</div></div>
         <div class="stat"><div class="n">${excluded}</div><div class="l">Excluded</div></div>
-        <div class="stat"><div class="n">${lockedCount}/${QUESTIONS_P2.length}</div><div class="l">Locked (${provisionalCount} provisional, ≥${LOCK_MIN_RESPONDENTS_P2} @ ≥${Math.round(LOCK_THRESHOLD * 100)}%)</div></div>
+        <div class="stat"><div class="n">${lockedCount}/${QUESTIONS_P2.length}</div><div class="l">Locked (${provisionalCount} provisional${droppedCount ? `, ${droppedCount} dropped` : ""}, ≥${LOCK_MIN_RESPONDENTS_P2} @ ≥${Math.round(LOCK_THRESHOLD * 100)}%)</div></div>
         <div class="stat"><div class="n">${floorPctP2 === null ? "—" : floorPctP2 + "%"}</div><div class="l">Reflexive-ask floor (cal_1 baseline)</div></div>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;align-items:center">
@@ -1521,7 +1540,7 @@ function renderResultsP2(rows) {
     <div class="section-sub">band = 95% CI on modal agreement · dashed line = ${Math.round(LOCK_THRESHOLD * 100)}% bar · lock needs n≥${LOCK_MIN_RESPONDENTS_P2}</div>
     <div class="rank-list">`;
   frontier.forEach(({ q, s }) => {
-    const st = STATUS_META_P2[lockStatusP2(s)];
+    const st = STATUS_META_P2[lockStatusP2(s, clean.length)];
     html += `<div class="rank-row" title="${escapeHtml(q.text)}">
       <span class="rank-label" style="width:190px"><span class="gid" style="font-family:ui-monospace,monospace;font-size:11px;color:var(--muted)">${q.id}</span><br>${escapeHtml(shortTextP2(q.text, 40))}</span>
       ${ciTrackP2(s)}
@@ -1556,7 +1575,7 @@ function renderResultsP2(rows) {
     const c = cats[q.cat];
     if (s.n > 0) {
       c.scen++; c.agreements.push(s.agreement);
-      if (lockStatusP2(s) === "locked") c.locked++;
+      if (lockStatusP2(s, clean.length) === "locked") c.locked++;
       VOTE_META_P2.forEach(v => { c.counts[v.key] = (c.counts[v.key] || 0) + (s.counts[v.key] || 0); c.n += (s.counts[v.key] || 0); });
     }
   });
@@ -1712,7 +1731,7 @@ function exportSummaryCSVP2() {
   const rows = QUESTIONS_P2.map(q => {
     const s = questionStatsP2(q, clean);
     return [q.id, q.cat, s.n, s.n ? s.agreement.toFixed(4) : "", s.n ? s.ciLow.toFixed(4) : "", s.n ? s.ciHigh.toFixed(4) : "",
-      s.n ? lockStatusP2(s) : "no_votes", s.n ? s.modalKey : "",
+      s.n ? lockStatusP2(s, clean.length) : "no_votes", s.n ? s.modalKey : "",
       ...slotKeys.map(k => s.counts[k] || 0),
       ...slotKeys.map(k => s.acceptCounts[k] || 0),
       (q.key && q.key.expected) || "", (q.key && q.key.expected_vote) || "", (q.key && q.key.acceptable || []).join("|"),
@@ -1730,7 +1749,7 @@ function resultsTableMarkdownP2() {
   const rows = [];
   QUESTIONS_P2.forEach(q => {
     const s = questionStatsP2(q, clean);
-    const st = STATUS_META_P2[lockStatusP2(s)];
+    const st = STATUS_META_P2[lockStatusP2(s, clean.length)];
     const rankedAll = (q.options || []).map(o => o.key)
       .sort((a, b) => (s.counts[b] || 0) - (s.counts[a] || 0));
     rankedAll.forEach(k => {

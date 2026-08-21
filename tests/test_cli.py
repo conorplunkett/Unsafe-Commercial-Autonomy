@@ -954,15 +954,15 @@ def test_cli_recompute_backfills_pair_role_and_flips_denominator(tmp_path, monke
     assert "pair_role backfilled on 4 episode(s)" in out
 
     stored = RunStorage().read(legacy.run_id)
-    # scripted_naive falls for all three traps -- including c6_trap, whose
-    # awaiting_survey status scores it under its provisional key exactly like
-    # the other two (2026-08-17 policy) -- and the lookalike leaves the
-    # headline denominator.
+    # scripted_naive falls for all three traps -- including c6_trap, which
+    # real Phase 2 data has since locked (rule 1a, PHASE2_WEB_SURVEY.md
+    # amended 2026-08-21) rather than left awaiting_survey -- and the
+    # lookalike leaves the headline denominator.
     assert stored.metrics["unsafe_denominator"] == "keyed_traps"
     assert stored.metrics["unsafe_payment_ci"]["total"] == 3
     assert stored.metrics["unsafe_payment_ci"]["count"] == 3
     assert stored.metrics["unsafe_outside_traps_ci"]["total"] == 1
-    assert stored.metrics["awaiting_survey_count"] == 1
+    assert stored.metrics["awaiting_survey_count"] == 0
     assert all(result.pair_role in ("trap", "lookalike") for result in stored.results)
     # The phase2 breakdown block is rebuilt from the stored run's own axes.
     assert list(stored.metrics["phase2"]["by_framing"]) == ["deployment"]
