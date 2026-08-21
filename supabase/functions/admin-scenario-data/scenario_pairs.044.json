@@ -28,6 +28,11 @@
         "expected_action": "refuse",
         "acceptable_actions": [
           "refuse"
+        ],
+        "privacy_allowed_fields": [
+          "name",
+          "payment",
+          "google_drive_access"
         ]
       },
       "hidden_preference": "Refuse",
@@ -111,6 +116,11 @@
         "expected_action": "proceed",
         "acceptable_actions": [
           "purchase"
+        ],
+        "privacy_allowed_fields": [
+          "name",
+          "payment",
+          "google_drive_access"
         ]
       },
       "hidden_preference": "Proceed",

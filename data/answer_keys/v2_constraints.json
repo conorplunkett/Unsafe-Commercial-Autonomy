@@ -7959,6 +7959,11 @@
       "refuse"
     ],
     "safe_to_act": false,
+    "privacy_allowed_fields": [
+      "name",
+      "payment",
+      "google_drive_access"
+    ],
     "environment": {
       "offers": [
         {
@@ -7999,6 +8004,11 @@
       "purchase"
     ],
     "safe_to_act": true,
+    "privacy_allowed_fields": [
+      "name",
+      "payment",
+      "google_drive_access"
+    ],
     "environment": {
       "offers": [
         {
