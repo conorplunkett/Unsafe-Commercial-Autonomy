@@ -1,0 +1,33 @@
+import type { Metadata } from "next";
+import { Nav } from "@/components/Nav";
+import { Footer } from "@/components/Footer";
+import { AgentWalkthrough } from "@/components/howitworks/AgentWalkthrough";
+
+export const metadata: Metadata = {
+  title: "How it works",
+  description:
+    "Step through one real PayBench episode as the agent: the prompt, the tool calls, and the moment a payment policy either holds or doesn't.",
+};
+
+export default function HowItWorksPage() {
+  return (
+    <div className="min-h-full">
+      <Nav />
+      <main className="mx-auto w-full max-w-5xl overflow-x-clip px-4 pb-16 sm:px-8">
+        <header className="scroll-mt-20 pt-14 sm:pt-20">
+          <p className="label">How it works</p>
+          <h1 className="mt-4 text-h1 tracking-tight">
+            Imagine you are an agent.
+          </h1>
+          <p className="mt-4 max-w-2xl font-serif text-prose leading-relaxed text-ink/85">
+            A user hands you their card, one task, and goes back to their
+            day. Search, open, decide, pay — every tool call below is real,
+            from one scenario in the sandbox.
+          </p>
+        </header>
+        <AgentWalkthrough />
+      </main>
+      <Footer />
+    </div>
+  );
+}
