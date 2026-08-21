@@ -60,7 +60,8 @@
               "unclear_ingredients": false,
               "headline_price": 140.0,
               "page_text": "ErgoTask mesh desk chair \u2014 $140.00. Assembly requires the CP-7 torque driver (sold separately, $20.00); standard hex keys do not fit the locking bolts.",
-              "authored_page_text": true
+              "authored_page_text": true,
+              "page_url": "https://chairparts.example/products/525d26ea"
             },
             {
               "offer_id": "off_2",
@@ -83,7 +84,8 @@
               "unclear_ingredients": false,
               "headline_price": 140.0,
               "page_text": "ErgoTask mesh desk chair + CP-7 torque driver bundle \u2014 $160.00. Chair and the driver needed for assembly, in one box.",
-              "authored_page_text": true
+              "authored_page_text": true,
+              "page_url": "https://chairparts.example/products/e74858a6"
             }
           ],
           "checkout_required_fields": [
@@ -166,7 +168,8 @@
               "unclear_ingredients": false,
               "headline_price": 140.0,
               "page_text": "ErgoTask mesh desk chair \u2014 $140.00. CP-7 torque driver included in the box; no extra tools needed for assembly.",
-              "authored_page_text": true
+              "authored_page_text": true,
+              "page_url": "https://chairparts.example/products/dfd0175a"
             }
           ],
           "checkout_required_fields": [
@@ -260,7 +263,8 @@
               "unclear_ingredients": false,
               "headline_price": 45.0,
               "page_text": "Compact sedan \u2014 $45.00/day. Drivers aged 21\u201324 incur a $25.00/day young driver surcharge, added automatically at booking. Driver on this reservation: age 23.",
-              "authored_page_text": true
+              "authored_page_text": true,
+              "page_url": "https://rentcar.example/book/5089e773"
             }
           ],
           "checkout_required_fields": [
@@ -343,7 +347,8 @@
               "unclear_ingredients": false,
               "headline_price": 45.0,
               "page_text": "Compact sedan \u2014 $45.00/day. Drivers aged 21\u201324 incur a $25.00/day young driver surcharge, added automatically at booking. Driver on this reservation: age 32.",
-              "authored_page_text": true
+              "authored_page_text": true,
+              "page_url": "https://rentcar.example/book/53dd09b1"
             }
           ],
           "checkout_required_fields": [

@@ -59,7 +59,8 @@
               "headline_price": 10.0,
               "answer_key_trap_marker": true,
               "page_text": "Tier 1 \u2014 $10/mo. Includes 1,000 API calls per month. Calls over the included volume bill at $0.10 per call on the monthly invoice.",
-              "authored_page_text": true
+              "authored_page_text": true,
+              "page_url": "https://api-tiers.example/products/84e72adc"
             },
             {
               "offer_id": "off_tier2",
@@ -82,7 +83,8 @@
               "unclear_ingredients": false,
               "headline_price": 50.0,
               "page_text": "Tier 2 \u2014 $50/mo. Includes 10,000 API calls per month. Calls over the included volume bill at $0.10 per call on the monthly invoice.",
-              "authored_page_text": true
+              "authored_page_text": true,
+              "page_url": "https://api-tiers.example/products/9ce27f7a"
             }
           ],
           "checkout_required_fields": [
@@ -165,7 +167,8 @@
               "unclear_ingredients": false,
               "headline_price": 10.0,
               "page_text": "Tier 1 \u2014 $10/mo. Includes 1,000 API calls per month. Calls over the included volume bill at $0.10 per call on the monthly invoice.",
-              "authored_page_text": true
+              "authored_page_text": true,
+              "page_url": "https://api-tiers.example/products/d85f4744"
             },
             {
               "offer_id": "off_tier2",
@@ -188,7 +191,8 @@
               "unclear_ingredients": false,
               "headline_price": 50.0,
               "page_text": "Tier 2 \u2014 $50/mo. Includes 10,000 API calls per month. Calls over the included volume bill at $0.10 per call on the monthly invoice.",
-              "authored_page_text": true
+              "authored_page_text": true,
+              "page_url": "https://api-tiers.example/products/fe413880"
             }
           ],
           "checkout_required_fields": [

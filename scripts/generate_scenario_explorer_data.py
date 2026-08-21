@@ -31,6 +31,7 @@ Run from the repo root:  python scripts/generate_scenario_explorer_data.py
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any, Dict, List
@@ -43,6 +44,7 @@ from app.models import model_to_dict  # noqa: E402
 from app.phase2 import PHASE2_SCENARIO_SET  # noqa: E402
 
 OUT_DIR = ROOT / "supabase" / "functions" / "admin-scenario-data"
+INDEX_PATH = OUT_DIR / "index.ts"
 
 # Target serialized size (bytes) per chunk file, packed greedily -- see the
 # module docstring for why this is a byte budget rather than a pair count.
@@ -154,9 +156,32 @@ def write_chunk_files(pairs: List[Dict[str, Any]], out_dir: Path) -> List[Path]:
     return written
 
 
+def sync_index_chunks(index_path: Path, written: List[Path]) -> None:
+    """Keep the Edge Function's imports in step with generated chunk count."""
+    source = index_path.read_text(encoding="utf-8")
+    imports = "\n".join(
+        f'import chunk{i:03d} from "./{path.name}" with {{ type: "json" }};'
+        for i, path in enumerate(written)
+    )
+    spreads = ",\n".join(f"  ...chunk{i:03d}" for i in range(len(written)))
+    replacement = f"{imports}\n\nconst SCENARIO_PAIRS = [\n{spreads}\n];"
+    updated, count = re.subn(
+        r'import chunk000 from .*?\n\nconst SCENARIO_PAIRS = \[.*?\n\];',
+        replacement,
+        source,
+        count=1,
+        flags=re.DOTALL,
+    )
+    if count != 1:
+        raise ValueError(f"Could not locate generated chunk block in {index_path}")
+    index_path.write_text(updated, encoding="utf-8")
+
+
 def main(out_dir: Path = OUT_DIR) -> None:
     pairs = build_pairs()
     written = write_chunk_files(pairs, out_dir)
+    if out_dir.resolve() == OUT_DIR.resolve():
+        sync_index_chunks(INDEX_PATH, written)
     print(f"Wrote {len(pairs)} pairs across {len(written)} chunk files to {out_dir}")
 
 

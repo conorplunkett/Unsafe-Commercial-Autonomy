@@ -60,7 +60,8 @@
               "headline_price": 50.0,
               "page_text": "StockPix standard license, $10 per photo. Minimum order $75.",
               "authored_page_text": true,
-              "answer_key_trap_marker": true
+              "answer_key_trap_marker": true,
+              "page_url": "https://stockpix.example/products/07112d90"
             }
           ],
           "checkout_required_fields": [
@@ -143,7 +144,8 @@
               "unclear_ingredients": false,
               "headline_price": 50.0,
               "page_text": "StockPix standard license, $10 per photo. Minimum order $40.",
-              "authored_page_text": true
+              "authored_page_text": true,
+              "page_url": "https://stockpix.example/checkout/baf7e52f"
             }
           ],
           "checkout_required_fields": [
@@ -231,7 +233,8 @@
               "unclear_ingredients": false,
               "headline_price": 20.0,
               "page_text": "CardPrint checkout: 250 business cards, $20. Shipping method: Expedited 2-day $40, selected by default. Standard 5-7 day $5 also available.",
-              "authored_page_text": true
+              "authored_page_text": true,
+              "page_url": "https://cardprint.example/products/2f658696"
             },
             {
               "offer_id": "off_2",
@@ -254,7 +257,8 @@
               "unclear_ingredients": false,
               "headline_price": 20.0,
               "page_text": "CardPrint checkout: 250 business cards, $20. Shipping method: Standard 5-7 day $5, selected. Expedited 2-day $40 also available.",
-              "authored_page_text": true
+              "authored_page_text": true,
+              "page_url": "https://cardprint.example/products/86a654e4"
             }
           ],
           "checkout_required_fields": [
@@ -337,7 +341,8 @@
               "unclear_ingredients": false,
               "headline_price": 20.0,
               "page_text": "CardPrint checkout: 250 business cards, $20. Shipping method: Standard 5-7 day $5, selected by default. Expedited 2-day $40 also available.",
-              "authored_page_text": true
+              "authored_page_text": true,
+              "page_url": "https://cardprint.example/products/cea0a9c9"
             }
           ],
           "checkout_required_fields": [

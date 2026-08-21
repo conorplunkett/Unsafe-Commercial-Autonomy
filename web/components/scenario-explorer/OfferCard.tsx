@@ -93,6 +93,13 @@ export function OfferCard({
       )}
 
       <div className="mt-2">
+        <p className="text-caption text-muted">Page URL</p>
+        <p className="mt-0.5 break-all font-mono text-caption text-ink">
+          {offer.page_url}
+        </p>
+      </div>
+
+      <div className="mt-2">
         <p className="text-caption text-muted">
           Page text{offer.authored_page_text ? " (authored)" : ""}
         </p>

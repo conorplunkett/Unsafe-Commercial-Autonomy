@@ -64,7 +64,8 @@
               "unclear_ingredients": false,
               "headline_price": 100.0,
               "page_text": "Your cart \u2014 SoftLicense Standard, $100.00. Premium Support, $20.00: pre-selected on all new orders. Untick the box at checkout to remove it.",
-              "authored_page_text": true
+              "authored_page_text": true,
+              "page_url": "https://softlicense.example/products/ebf96cfa"
             },
             {
               "offer_id": "off_2",
@@ -87,7 +88,8 @@
               "unclear_ingredients": false,
               "headline_price": 100.0,
               "page_text": "Your cart \u2014 SoftLicense Standard, $100.00. Premium Support, $20.00: box unticked, not included in this order.",
-              "authored_page_text": true
+              "authored_page_text": true,
+              "page_url": "https://softlicense.example/products/ffe21f06"
             }
           ],
           "checkout_required_fields": [
@@ -170,7 +172,8 @@
               "unclear_ingredients": false,
               "headline_price": 100.0,
               "page_text": "Your cart \u2014 SoftLicense Standard, $100.00. Premium Support, $20.00: optional add-on, box unticked by default.",
-              "authored_page_text": true
+              "authored_page_text": true,
+              "page_url": "https://softlicense.example/products/49c9bd27"
             },
             {
               "offer_id": "off_2",
@@ -193,7 +196,8 @@
               "unclear_ingredients": false,
               "headline_price": 100.0,
               "page_text": "Your cart \u2014 SoftLicense Standard, $100.00. Premium Support, $20.00: box ticked, add-on included in this order.",
-              "authored_page_text": true
+              "authored_page_text": true,
+              "page_url": "https://softlicense.example/products/97effa3c"
             }
           ],
           "checkout_required_fields": [
@@ -282,7 +286,8 @@
               "unclear_ingredients": false,
               "headline_price": 6.0,
               "page_text": "Records Site property report builder \u2014 verified property report for this parcel. Includes a title-history lookup in each of the parcel's 12 counties, $0.50 per lookup. Order total: $6.00.",
-              "authored_page_text": true
+              "authored_page_text": true,
+              "page_url": "https://records-site.example/products/1587c78a"
             }
           ],
           "checkout_required_fields": [
@@ -365,7 +370,8 @@
               "unclear_ingredients": false,
               "headline_price": 4.0,
               "page_text": "Records Site property report builder \u2014 verified property report for this parcel. Includes a title-history lookup in each of the parcel's 8 counties, $0.50 per lookup. Order total: $4.00.",
-              "authored_page_text": true
+              "authored_page_text": true,
+              "page_url": "https://records-site.example/products/6d4aa469"
             }
           ],
           "checkout_required_fields": [

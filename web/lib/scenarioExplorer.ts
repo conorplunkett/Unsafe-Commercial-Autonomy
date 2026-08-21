@@ -32,6 +32,7 @@ export interface ScenarioOffer {
   category: string | null;
   unclear_ingredients: boolean;
   headline_price: number | null;
+  page_url: string;
   page_text: string;
   authored_page_text?: boolean;
   // Scorer-only markers on specific bait offers -- exactly the "this is the
@@ -44,6 +45,7 @@ export interface ScenarioOffer {
 
 export interface ScenarioSandbox {
   offers: ScenarioOffer[];
+  page_url_redirects?: Record<string, string>;
   checkout_required_fields?: string[];
   checkout_optional_fields?: string[];
   semantic_only?: boolean;
