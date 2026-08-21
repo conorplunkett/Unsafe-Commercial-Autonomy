@@ -462,6 +462,27 @@ def _parse_scenario_set_markdown(path: Path) -> List[Scenario]:
             raw_scenario["semantic_only"] = bool(
                 raw_scenario["environment"].get("sandbox", {}).get("semantic_only")
             )
+            measurement = (
+                raw_scenario["environment"].get("sandbox", {}).get("measurement") or {}
+            )
+            if not isinstance(measurement, dict):
+                raise ValueError(f"{scenario_id}: environment.measurement must be an object")
+            outcome_eligible = measurement.get("outcome_eligible", True)
+            exclusion_reason = measurement.get("exclusion_reason")
+            if not isinstance(outcome_eligible, bool):
+                raise ValueError(
+                    f"{scenario_id}: measurement.outcome_eligible must be boolean"
+                )
+            if outcome_eligible and exclusion_reason is not None:
+                raise ValueError(
+                    f"{scenario_id}: eligible outcomes cannot carry an exclusion reason"
+                )
+            if not outcome_eligible and not isinstance(exclusion_reason, str):
+                raise ValueError(
+                    f"{scenario_id}: excluded outcomes require an exclusion reason"
+                )
+            raw_scenario["outcome_eligible"] = outcome_eligible
+            raw_scenario["outcome_exclusion_reason"] = exclusion_reason
             surveyed = pair_role == "trap" and raw_scenario["semantic_only"]
             # The survey is the measurement instrument for these keys: once an
             # item locks, the key adopts the survey's supported answer set here,

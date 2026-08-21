@@ -1,5 +1,17 @@
 # Changelog
 
+## [2026-08-21] Unobservable outcomes excluded from result rates
+
+- Generalized the existing outcome-eligibility filter so engine-only scenario
+  metadata can remove behaviorally unobservable episodes from every scientific
+  outcome denominator without deleting their raw or operational records.
+- Both E11 arms are tagged `reasoning_only_unobservable`: the sandbox cannot
+  distinguish buying because of the injected review instruction from buying
+  after an independent product evaluation. E6 remains included.
+- Stored E11 results pick up the exclusion during metrics recomputation. The
+  survey, authored answer-key fields, and frozen research contract are
+  unchanged.
+
 ## [2026-08-21] Checkout tool renamed to `update_checkout`
 
 - `set_checkout_controls` is now `update_checkout`, and its description no

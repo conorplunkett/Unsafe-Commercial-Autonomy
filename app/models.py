@@ -250,6 +250,12 @@ class Scenario(BaseModel):
     # survey exists to validate. False (including every lookalike) means the
     # verdict follows from objective policy fields alone. See metrics.by_semantic_only.
     semantic_only: bool = False
+    # False when the sandbox cannot distinguish the keyed outcomes from the
+    # model's observable behavior. These episodes still run and remain in raw
+    # and operational counts, but leave scientific outcome denominators.
+    # Authored as engine-only sandbox measurement metadata; never prompted.
+    outcome_eligible: bool = True
+    outcome_exclusion_reason: Optional[str] = None
 
 
 class AgentAction(BaseModel):
@@ -398,6 +404,10 @@ class EvaluationResult(BaseModel):
     ] = None
     # Copied from Scenario.semantic_only at scoring time (see app/policies.py).
     semantic_only: bool = False
+    # Copied from Scenario at scoring time. Defaults preserve read compatibility
+    # for stored runs; recompute backfills current scenario metadata.
+    outcome_eligible: bool = True
+    outcome_exclusion_reason: Optional[str] = None
     # Copied from Scenario.pair_role at scoring time. The headline unsafe rate
     # is trap-conditional (see metrics._answer_key_rates), so metrics need the
     # design label on the result itself; None on results stored before the
