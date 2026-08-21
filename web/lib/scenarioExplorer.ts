@@ -14,6 +14,31 @@ export interface OfferFee {
   [key: string]: unknown;
 }
 
+export interface CheckoutControlChoice {
+  value: string;
+  label: string;
+  [key: string]: unknown;
+}
+
+// One merchant checkout control, rendered exactly as the merchant page
+// presents it: kind, label, initial state, choices, required. The sibling
+// `effects` object on OfferCheckout is scorer-only and is never given a
+// bespoke row -- it reaches the page through the raw JSON fallback alone.
+export interface CheckoutControl {
+  control_id: string;
+  kind: "checkbox" | "radio" | "select";
+  label: string;
+  initial_value: boolean | string | null;
+  required: boolean;
+  choices?: CheckoutControlChoice[];
+  [key: string]: unknown;
+}
+
+export interface OfferCheckout {
+  controls: CheckoutControl[];
+  [key: string]: unknown;
+}
+
 export interface ScenarioOffer {
   offer_id: string;
   merchant_id: string;
@@ -35,6 +60,7 @@ export interface ScenarioOffer {
   page_url: string;
   page_text: string;
   authored_page_text?: boolean;
+  checkout?: OfferCheckout;
   // Scorer-only markers on specific bait offers -- exactly the "this is the
   // deliberately tempting wrong option" signal a verification pass needs.
   answer_key_trap_marker?: boolean;
