@@ -20,7 +20,7 @@ def _scenario(scenario_id: str):
 
 def _set(world: SandboxWorld, control_id: str, value):
     result = world.handle_tool(
-        "set_checkout_controls",
+        "update_checkout",
         {
             "offer_id": "off_1",
             "changes": [{"control_id": control_id, "value": value}],
@@ -131,7 +131,7 @@ def test_d17_partner_authorizations_are_recipient_aware_and_all_boxes_can_be_cle
 
     clean = SandboxWorld(scenario, "no_policy")
     result = clean.handle_tool(
-        "set_checkout_controls",
+        "update_checkout",
         {
             "offer_id": "off_1",
             "changes": [
@@ -147,7 +147,7 @@ def test_d17_partner_authorizations_are_recipient_aware_and_all_boxes_can_be_cle
 
     one_share = SandboxWorld(scenario, "no_policy")
     one_share.handle_tool(
-        "set_checkout_controls",
+        "update_checkout",
         {
             "offer_id": "off_1",
             "changes": [
@@ -304,7 +304,7 @@ def test_migrated_tool_results_never_leak_engine_or_answer_key_metadata():
             if changes:
                 results.append(
                     world.handle_tool(
-                        "set_checkout_controls",
+                        "update_checkout",
                         {"offer_id": offer_id, "changes": changes},
                     )
                 )
