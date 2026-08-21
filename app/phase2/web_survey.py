@@ -523,13 +523,23 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         raise SystemExit("Expected the export to be a JSON array of response rows")
 
     instrument = load_instrument()
-    payload = analyze(rows, instrument)
+
+    # Write the votes file before scoring: `analyze()` learns what's already
+    # locked/re-keyed by calling `load_scenarios()`, which reads this file back
+    # off disk. Writing it first means a run that newly locks or re-keys an
+    # item is classified against its own data, not whatever was committed
+    # before this import.
     votes = votes_file_payload(rows, instrument)
+    args.votes_out.parent.mkdir(parents=True, exist_ok=True)
+    with args.votes_out.open("w", encoding="utf-8") as handle:
+        json.dump(votes, handle, indent=2, ensure_ascii=False)
+        handle.write("\n")
+
+    payload = analyze(rows, instrument)
     ledger = rekey_ledger_payload(payload)
 
     for out_path, out_payload in (
         (args.out, payload),
-        (args.votes_out, votes),
         (args.rekey_ledger_out, ledger),
     ):
         out_path.parent.mkdir(parents=True, exist_ok=True)

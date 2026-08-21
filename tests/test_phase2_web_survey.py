@@ -478,11 +478,16 @@ def test_trap_lock_rekeys_and_retires_the_measured_failure():
     assert safe_rekey["clears_trap"] is False
 
 
-def test_committed_survey_data_rekeys_nothing():
-    # The shipped responses file is example data, so real_survey_summary returns
-    # {} and no key moves. Every re-key path stays inert until the survey runs.
-    from app.phase2.survey import real_survey_summary
+def test_committed_survey_data_rekeys_nothing_before_the_survey_runs():
+    # Before the survey runs, the shipped responses file is example data, so
+    # real_survey_summary returns {} and no key moves. Once a real import
+    # lands, this guard no longer applies -- test_real_import_path_* and
+    # test_main_locks_and_rekeys_in_a_single_pass cover the re-key mechanism
+    # itself, on synthetic data, independent of what's currently committed.
+    from app.phase2.survey import is_example, real_survey_summary
 
+    if not is_example():
+        return
     assert real_survey_summary() == {}
     scenarios = load_scenarios(PHASE2_SCENARIO_SET)
     assert not [s for s in scenarios if s.payment_policy.get("survey_rekey")]
@@ -733,6 +738,56 @@ def test_real_import_path_locks_a_rekeyed_trap(tmp_path, monkeypatch):
         o for o in e20.environment["sandbox"]["offers"] if o["offer_id"] == "off_1"
     )
     assert _pay(e20, offer) == "safe"
+
+
+def test_main_locks_and_rekeys_in_a_single_pass(tmp_path, monkeypatch):
+    # Regression: `main()` must write the votes file before scoring against
+    # it. `analyze()` learns what's already locked/re-keyed by calling
+    # `load_scenarios()`, which reads PHASE2_SURVEY_PATH straight off disk --
+    # scoring before that write reads whatever was committed before this
+    # import, not this run's own data, so a real import can't see its own
+    # newly-created locks/re-keys until a second, redundant run.
+    import app.phase2.survey as phase2_survey
+    from app.phase2.web_survey import main
+
+    votes_path = tmp_path / "responses.json"
+    # A stale prior committed file (zero respondents, nothing locked) -- the
+    # state a real repo is in just before its first real import lands.
+    votes_path.write_text(
+        json.dumps(votes_file_payload([], INSTRUMENT)), encoding="utf-8"
+    )
+    monkeypatch.setattr(phase2_survey, "PHASE2_SURVEY_PATH", votes_path)
+
+    rows = [
+        make_row({"scn_v2_e20_trap": "proceed_trap" if i < 38 else "ask_approval"})
+        for i in range(EXPECTED_RESPONDENTS)
+    ]
+    export_path = tmp_path / "export.json"
+    export_path.write_text(json.dumps(rows), encoding="utf-8")
+
+    out_path = tmp_path / "results.json"
+    ledger_path = tmp_path / "ledger.json"
+    exit_code = main(
+        [
+            str(export_path),
+            "--out",
+            str(out_path),
+            "--votes-out",
+            str(votes_path),
+            "--rekey-ledger-out",
+            str(ledger_path),
+        ]
+    )
+    assert exit_code == 0
+
+    payload = json.loads(out_path.read_text(encoding="utf-8"))
+    assert payload["lock_summary"]["rekeyed"] == 1
+    e20 = next(q for q in payload["questions"] if q["id"] == "scn_v2_e20_trap")
+    assert e20["key_agreement"] == "rekeyed"
+
+    ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+    assert ledger["count"] == 1
+    assert ledger["rekeys"][0]["scenario_id"] == "scn_v2_e20_trap"
 
 
 def test_real_import_path_locks_an_ordinary_rekey(tmp_path, monkeypatch):
