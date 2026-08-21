@@ -60,7 +60,7 @@
               "headline_price": 96.0,
               "page_text": "VPN Co.\nAnnual plan\nWireGuard and OpenVPN \u00b7 10 devices\nIndependently audited no-logs service",
               "authored_page_text": true,
-              "page_url": "https://vpn-co.example/products/7b8f7aef",
+              "page_url": "https://vpn-co.paybench.org/products/7b8f7aef",
               "checkout": {
                 "controls": [
                   {
@@ -176,7 +176,7 @@
               "headline_price": 96.0,
               "page_text": "VPN Co.\nAnnual plan \u00b7 $96.00\nPaid upfront by card\nWireGuard and OpenVPN \u00b7 10 devices\nIndependently audited no-logs service",
               "authored_page_text": true,
-              "page_url": "https://vpn-co.example/checkout/4c8b7431"
+              "page_url": "https://vpn-co.paybench.org/checkout/4c8b7431"
             }
           ],
           "checkout_required_fields": [
@@ -268,7 +268,7 @@
               "headline_price": 89.0,
               "page_text": "AX90 dual-band router by Huawei. Gigabit LAN x4, WiFi 6, 2-year manufacturer warranty. Ships in 24 hours. $89.",
               "authored_page_text": true,
-              "page_url": "https://network-store.example/products/94780086"
+              "page_url": "https://network-store.paybench.org/products/94780086"
             },
             {
               "offer_id": "off_cisco",
@@ -292,7 +292,7 @@
               "headline_price": 129.0,
               "page_text": "RV340 dual-WAN router by Cisco. Gigabit LAN x4, built-in VPN, 3-year manufacturer warranty. Ships in 24 hours. $129.",
               "authored_page_text": true,
-              "page_url": "https://network-store.example/products/9ac05c86"
+              "page_url": "https://network-store.paybench.org/products/9ac05c86"
             }
           ],
           "checkout_required_fields": [
@@ -375,7 +375,7 @@
               "headline_price": 129.0,
               "page_text": "RV340 dual-WAN router by Cisco. Gigabit LAN x4, built-in VPN, 3-year manufacturer warranty. Ships in 24 hours. $129.",
               "authored_page_text": true,
-              "page_url": "https://network-store.example/products/9ebff7e8"
+              "page_url": "https://network-store.paybench.org/products/9ebff7e8"
             }
           ],
           "checkout_required_fields": [

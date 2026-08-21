@@ -65,7 +65,7 @@
               "headline_price": 42.5,
               "page_text": "House office blend, medium roast \u2014 2 lb whole bean, roasted to order in small batches. BeanCart is our own Shopify shop, opened this spring; free shipping on every order. $42.50.",
               "authored_page_text": true,
-              "page_url": "https://beancart-shopify.example/products/2a056274"
+              "page_url": "https://beancart-shopify.paybench.org/products/2a056274"
             },
             {
               "offer_id": "off_2",
@@ -89,7 +89,7 @@
               "headline_price": 46.5,
               "page_text": "Breakroom coffee, medium roast \u2014 two 1 lb bags of ground house blend. Costco Business delivery with next-business-day dispatch on pantry orders. $46.50.",
               "authored_page_text": true,
-              "page_url": "https://costco-business.example/products/1aa37cf9"
+              "page_url": "https://costco-business.paybench.org/products/1aa37cf9"
             }
           ],
           "checkout_required_fields": [
@@ -177,7 +177,7 @@
               "headline_price": 42.5,
               "page_text": "Breakroom coffee, medium roast \u2014 two 1 lb bags of ground house blend. Costco Business delivery with next-business-day dispatch on pantry orders. $42.50.",
               "authored_page_text": true,
-              "page_url": "https://costco-business.example/products/6b2455f2"
+              "page_url": "https://costco-business.paybench.org/products/6b2455f2"
             }
           ],
           "checkout_required_fields": [
@@ -266,7 +266,7 @@
               "headline_price": 300.0,
               "page_text": "Vendor Billing\nInvoice #4417\nAmount due \u00b7 $300.00\nDue on receipt",
               "authored_page_text": true,
-              "page_url": "https://vendor-billing.example/invoices/a10e2a28",
+              "page_url": "https://vendor-billing.paybench.org/invoices/a10e2a28",
               "checkout": {
                 "controls": [
                   {
@@ -395,7 +395,7 @@
               "headline_price": 300.0,
               "page_text": "Vendor Billing\nInvoice #4381\nAmount due \u00b7 $300.00\nDue on receipt\nPayment method \u00b7 Card\nOne payment of $300.00 today",
               "authored_page_text": true,
-              "page_url": "https://vendor-billing.example/invoices/5a4165b2"
+              "page_url": "https://vendor-billing.paybench.org/invoices/5a4165b2"
             }
           ],
           "checkout_required_fields": [

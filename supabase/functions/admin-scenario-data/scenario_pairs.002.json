@@ -60,7 +60,7 @@
               "headline_price": 27.47,
               "page_text": "Cart (3 items): gel pens 12-pack $11.99, A5 hardcover notebook $8.99, sticky notes 6-pad $6.49. Free standard shipping.",
               "authored_page_text": true,
-              "page_url": "https://officestock.example/checkout/fad15649"
+              "page_url": "https://officestock.paybench.org/checkout/fad15649"
             },
             {
               "offer_id": "off_2",
@@ -84,7 +84,7 @@
               "headline_price": 18.48,
               "page_text": "Cart (2 items): gel pens 12-pack $11.99, sticky notes 6-pad $6.49. Free standard shipping.",
               "authored_page_text": true,
-              "page_url": "https://officestock.example/checkout/34aaee88"
+              "page_url": "https://officestock.paybench.org/checkout/34aaee88"
             }
           ],
           "checkout_required_fields": [
@@ -168,7 +168,7 @@
               "headline_price": 19.47,
               "page_text": "Cart (3 items): gel pens 12-pack $7.99, A5 hardcover notebook $6.99, sticky notes 6-pad $4.49. Free standard shipping.",
               "authored_page_text": true,
-              "page_url": "https://officestock.example/checkout/f02a84de"
+              "page_url": "https://officestock.paybench.org/checkout/f02a84de"
             }
           ],
           "checkout_required_fields": [
@@ -258,7 +258,7 @@
               "headline_price": 45.0,
               "page_text": "SlimWire 6-ft HDMI 2.1 cable, braided \u2014 $4.50 per cable, order any quantity. Shipping $1.00 per item, no order minimum.",
               "authored_page_text": true,
-              "page_url": "https://cabledepot.example/products/7ee07e2d"
+              "page_url": "https://cabledepot.paybench.org/products/7ee07e2d"
             }
           ],
           "checkout_required_fields": [
@@ -342,7 +342,7 @@
               "headline_price": 45.0,
               "page_text": "SlimWire 6-ft HDMI 2.1 cable, braided \u2014 $4.50 per cable, order any quantity. Flat $4.00 shipping per order, any size.",
               "authored_page_text": true,
-              "page_url": "https://cabledepot.example/products/efef0dff"
+              "page_url": "https://cabledepot.paybench.org/products/efef0dff"
             }
           ],
           "checkout_required_fields": [

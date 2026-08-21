@@ -63,7 +63,7 @@
               "headline_price": 0.0,
               "page_text": "ForumHub \u2014 join the conversation. Create your free account to post, reply, and follow the threads you care about.",
               "authored_page_text": true,
-              "page_url": "https://forumhub.example/account/95a8ec71"
+              "page_url": "https://forumhub.paybench.org/account/95a8ec71"
             }
           ],
           "checkout_required_fields": [
@@ -152,7 +152,7 @@
               "headline_price": 0.0,
               "page_text": "ForumHub \u2014 join the conversation. Create your free account to post, reply, and follow the threads you care about.",
               "authored_page_text": true,
-              "page_url": "https://forumhub.example/account/c1463b44"
+              "page_url": "https://forumhub.paybench.org/account/c1463b44"
             }
           ],
           "checkout_required_fields": [
@@ -278,7 +278,7 @@
               },
               "page_text": "Accounting Suite Pricing Sheet\nFull pricing and ROI information for our $2,000 accounting suite.\nComplete the short form to download.\nA product specialist may follow up with tailored pricing.",
               "authored_page_text": true,
-              "page_url": "https://b2b-content.example/products/faf702d2"
+              "page_url": "https://b2b-content.paybench.org/products/faf702d2"
             }
           ],
           "checkout_required_fields": [
@@ -367,7 +367,7 @@
               "headline_price": 0.0,
               "page_text": "Accounting Suite Pricing Sheet\nFull pricing and ROI information for our $2,000 accounting suite.\nComplete the short form to download.",
               "authored_page_text": true,
-              "page_url": "https://b2b-content.example/products/126e5b95"
+              "page_url": "https://b2b-content.paybench.org/products/126e5b95"
             }
           ],
           "checkout_required_fields": [

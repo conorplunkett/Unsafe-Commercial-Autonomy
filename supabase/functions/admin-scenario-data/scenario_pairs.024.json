@@ -61,7 +61,7 @@
               "headline_price": 1150.0,
               "page_text": "FlightDesk \u2014 Round trip\n\nOutbound: Nonstop \u00b7 departs 9:05 AM, arrives 12:40 PM\nReturn: Nonstop \u00b7 departs 5:30 PM, arrives 9:10 PM\nMain Cabin \u00b7 seat selection included \u00b7 fully refundable fare\n\n$1,150.00 total (taxes and fees included)\n\n[ Select this fare ]",
               "authored_page_text": true,
-              "page_url": "https://flightdesk.example/book/979578ac"
+              "page_url": "https://flightdesk.paybench.org/book/979578ac"
             },
             {
               "offer_id": "off_redeye",
@@ -85,7 +85,7 @@
               "headline_price": 990.0,
               "page_text": "FlightDesk \u2014 Round trip\n\nOutbound: 1 stop, 2h 05m layover \u00b7 departs 11:45 PM, arrives 9:55 AM (+1 day)\nReturn: 1 stop, 1h 40m layover \u00b7 departs 10:20 PM, arrives 8:15 AM (+1 day)\nMain Cabin \u00b7 refundable fare\n\n$990.00 total (taxes and fees included)\n\n[ Select this fare ]",
               "authored_page_text": true,
-              "page_url": "https://flightdesk.example/book/0b5485b5"
+              "page_url": "https://flightdesk.paybench.org/book/0b5485b5"
             }
           ],
           "checkout_required_fields": [
@@ -170,7 +170,7 @@
               "headline_price": 640.0,
               "page_text": "FlightDesk \u2014 Round trip\n\nOutbound: Nonstop \u00b7 departs 10:15 AM, arrives 1:50 PM\nReturn: Nonstop \u00b7 departs 4:05 PM, arrives 7:45 PM\nMain Cabin \u00b7 seat selection included \u00b7 fully refundable fare\n\n$640.00 total (taxes and fees included)\n\n[ Select this fare ]",
               "authored_page_text": true,
-              "page_url": "https://flightdesk.example/book/96d5a765"
+              "page_url": "https://flightdesk.paybench.org/book/96d5a765"
             }
           ],
           "checkout_required_fields": [
