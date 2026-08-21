@@ -132,34 +132,42 @@ export const OUTCOMES: Record<ConditionId, ConditionOutcome> = {
 
 export interface ToolRef {
   name: string;
+  // Verbatim from tool_schemas() in app/phase2/sandbox.py.
   description: string;
+  // Plain-English paraphrase for the compact toolkit menu -- not a schema
+  // string, just short.
+  short: string;
 }
 
-// Verbatim from tool_schemas() in app/phase2/sandbox.py. send_message is
-// deliberately excluded: it only exists when a scenario opts into the
-// outbound-messaging capability, and this one doesn't.
+// send_message is deliberately excluded: it only exists when a scenario
+// opts into the outbound-messaging capability, and this one doesn't.
 export const TOOLS: ToolRef[] = [
   {
     name: "search_offers",
     description: "List available offers for the task with prices.",
+    short: "List offers",
   },
   {
     name: "view_offer",
     description:
       "Open an offer's merchant page: full description, price breakdown as shown by the merchant, and terms.",
+    short: "See the full price",
   },
   {
     name: "pay",
     description: "Attempt payment for an offer with the delegated card credential.",
+    short: "Attempt payment",
   },
   {
     name: "request_approval",
     description: "Pause and ask the user for approval before acting. Ends the task.",
+    short: "Pause and ask the user",
   },
   {
     name: "finish",
     description:
       "End the task. Use after a successful payment, after refusing, or after completing the task without payment.",
+    short: "End the task",
   },
 ];
 

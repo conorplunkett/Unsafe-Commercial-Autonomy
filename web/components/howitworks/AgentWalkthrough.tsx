@@ -17,6 +17,8 @@ import {
   type ConditionId,
 } from "./script";
 
+type Stage = "landing" | "system" | "task" | "toolkit";
+
 const TOTAL_CALLS = CALLED_BY_STEP.length;
 const FLASH_MS = 1800;
 
@@ -24,6 +26,42 @@ const VERDICT_TONE: Record<"danger" | "neutral", string> = {
   danger: "border-danger/40 bg-danger/10 text-danger",
   neutral: "border-border bg-paper-2 text-muted",
 };
+
+function ArrowRight() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-5 w-5 shrink-0"
+      aria-hidden="true"
+    >
+      <path d="M5 12h14M13 6l6 6-6 6" />
+    </svg>
+  );
+}
+
+function ContinueButton({
+  onClick,
+  children,
+}: {
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="tap flex items-center gap-2 rounded-lg bg-accent px-5 text-ui text-paper transition-colors hover:bg-ink"
+    >
+      {children}
+      <ArrowRight />
+    </button>
+  );
+}
 
 function RevealStep({ children }: { children: ReactNode }) {
   const [entered, setEntered] = useState(false);
@@ -101,7 +139,7 @@ function callResult(toolName: string, condition: ConditionId): ReactNode {
 }
 
 export function AgentWalkthrough() {
-  const [started, setStarted] = useState(false);
+  const [stage, setStage] = useState<Stage>("landing");
   const [calledCount, setCalledCount] = useState(0);
   const [unlocked, setUnlocked] = useState(false);
   const [condition, setCondition] = useState<ConditionId>("no_policy");
@@ -131,32 +169,36 @@ export function AgentWalkthrough() {
 
   function goBack() {
     setFlash(null);
-    if (calledCount > 0) {
-      setCalledCount((c) => c - 1);
+    if (stage === "toolkit") {
+      if (calledCount > 0) {
+        setCalledCount((c) => c - 1);
+      } else {
+        setStage("task");
+      }
       return;
     }
-    setStarted(false);
+    if (stage === "task") {
+      setStage("system");
+      return;
+    }
+    if (stage === "system") {
+      setStage("landing");
+    }
   }
 
   function replay(nextCondition: ConditionId) {
     setCondition(nextCondition);
     setCalledCount(0);
+    setStage("toolkit");
     setFlash(null);
   }
 
-  if (!started) {
+  if (stage === "landing") {
     return (
       <section className="mt-14">
-        <button
-          type="button"
-          onClick={() => setStarted(true)}
-          className="tap flex items-center gap-2 rounded-lg bg-accent px-5 text-ui text-paper transition-colors hover:bg-ink"
-        >
+        <ContinueButton onClick={() => setStage("system")}>
           Ok, what do I do?
-          <span className="text-h4 leading-none" aria-hidden="true">
-            →
-          </span>
-        </button>
+        </ContinueButton>
       </section>
     );
   }
@@ -205,25 +247,41 @@ export function AgentWalkthrough() {
           <div className="mt-1.5">
             <Block>{outcome.systemPrompt}</Block>
           </div>
+          {stage === "system" && (
+            <div className="mt-4">
+              <ContinueButton onClick={() => setStage("task")}>
+                What should I do?
+              </ContinueButton>
+            </div>
+          )}
         </RevealStep>
 
-        <RevealStep key={`task-${condition}`}>
-          <p className="text-ui text-muted">Then you are given a task:</p>
-          <p className="mt-1.5 text-ui">{USER_PROMPT}</p>
-        </RevealStep>
+        {(stage === "task" || stage === "toolkit") && (
+          <RevealStep key={`task-${condition}`}>
+            <p className="text-ui text-muted">Then you are given a task:</p>
+            <p className="mt-1.5 text-ui">{USER_PROMPT}</p>
+            {stage === "task" && (
+              <div className="mt-4">
+                <ContinueButton onClick={() => setStage("toolkit")}>
+                  Ok, so what do I do with this task?
+                </ContinueButton>
+              </div>
+            )}
+          </RevealStep>
+        )}
 
-        {CALLED_BY_STEP.slice(0, calledCount).map((name) => (
-          <RevealStep key={`${condition}-${name}`}>{callResult(name, condition)}</RevealStep>
-        ))}
+        {stage === "toolkit" &&
+          CALLED_BY_STEP.slice(0, calledCount).map((name) => (
+            <RevealStep key={`${condition}-${name}`}>{callResult(name, condition)}</RevealStep>
+          ))}
       </div>
 
-      {!done && (
+      {stage === "toolkit" && !done && (
         <div className="mt-8">
           <p className="text-ui text-muted">
             So you look at your toolkit. What can you do?
           </p>
-          <p className="label mb-2 mt-4">What would you pick?</p>
-          <Card as="ol" tone="bare" pad="none" className="overflow-hidden">
+          <Card as="ol" tone="bare" pad="none" className="mt-4 overflow-hidden">
             {TOOLS.map((tool) => {
               const toolDoneIndex = CALLED_BY_STEP.indexOf(tool.name);
               const toolDone = toolDoneIndex !== -1 && toolDoneIndex < calledCount;
@@ -234,7 +292,7 @@ export function AgentWalkthrough() {
                     type="button"
                     onClick={() => pickTool(tool.name)}
                     disabled={toolDone}
-                    className={`tap flex w-full items-center gap-3 border-l-4 px-3.5 py-3 text-left transition-colors disabled:cursor-default ${
+                    className={`tap flex w-full flex-col items-start border-l-4 px-3.5 py-3 text-left transition-colors disabled:cursor-default ${
                       toolDone
                         ? "border-l-transparent bg-accent/[0.06]"
                         : isNext
@@ -242,34 +300,20 @@ export function AgentWalkthrough() {
                           : "border-l-transparent bg-paper-2 hover:bg-paper"
                     }`}
                   >
-                    <span className="flex-1">
-                      <span className="flex items-center gap-2">
-                        <span
-                          className={`font-mono text-small ${
-                            toolDone || isNext ? "text-accent" : "text-muted"
-                          }`}
-                        >
-                          {tool.name}
-                        </span>
-                        {isNext && (
-                          <span className="rounded-full bg-accent px-2 py-0.5 font-mono text-caption uppercase tracking-wider text-paper">
-                            Next
-                          </span>
-                        )}
-                      </span>
-                      <span
-                        className={`mt-0.5 block text-caption leading-snug ${
-                          isNext ? "text-ink/70" : "text-muted"
-                        }`}
-                      >
-                        {tool.description}
-                      </span>
+                    <span
+                      className={`font-mono text-small ${
+                        toolDone || isNext ? "text-accent" : "text-muted"
+                      }`}
+                    >
+                      {tool.name}
                     </span>
-                    {isNext && (
-                      <span className="text-h4 leading-none text-accent" aria-hidden="true">
-                        →
-                      </span>
-                    )}
+                    <span
+                      className={`mt-0.5 text-caption leading-snug ${
+                        isNext ? "text-ink/70" : "text-muted"
+                      }`}
+                    >
+                      {tool.short}
+                    </span>
                   </button>
                 </li>
               );
@@ -281,7 +325,7 @@ export function AgentWalkthrough() {
               flash ? "opacity-100" : "opacity-0"
             }`}
           >
-            {flash || " "}
+            {flash || " "}
           </p>
         </div>
       )}
