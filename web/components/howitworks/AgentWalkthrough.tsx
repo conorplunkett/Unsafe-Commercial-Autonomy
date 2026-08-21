@@ -112,10 +112,13 @@ function stepContent(index: number, condition: ConditionId): ReactNode {
 }
 
 export function AgentWalkthrough() {
+  const [started, setStarted] = useState(false);
+  const [unlocked, setUnlocked] = useState(false);
   const [condition, setCondition] = useState<ConditionId>("no_policy");
   const [step, setStep] = useState(0);
 
   const usedTools = new Set(CALLED_BY_STEP.slice(0, Math.max(0, step - 1)));
+  const showTools = usedTools.size > 0;
 
   function selectCondition(next: ConditionId) {
     if (next === condition) return;
@@ -123,11 +126,33 @@ export function AgentWalkthrough() {
     setStep(0);
   }
 
+  function advance() {
+    setStep((s) => {
+      const next = Math.min(LAST_STEP, s + 1);
+      if (next === LAST_STEP) setUnlocked(true);
+      return next;
+    });
+  }
+
+  if (!started) {
+    return (
+      <section className="mt-14">
+        <button
+          type="button"
+          onClick={() => setStarted(true)}
+          className="tap rounded-lg border border-ink px-5 text-ui transition-colors hover:bg-ink hover:text-paper"
+        >
+          Start the episode
+        </button>
+      </section>
+    );
+  }
+
   return (
-    <section className="mt-12">
-      <p className="label mb-3">Inside an episode</p>
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] lg:items-start">
-        <div>
+    <section className="mt-14">
+      {unlocked && (
+        <div className="mb-8">
+          <p className="label mb-3">Try a different policy</p>
           <Card as="ol" tone="bare" pad="none" className="overflow-hidden">
             {CONDITIONS.map((id, i) => {
               const selected = id === condition;
@@ -155,8 +180,19 @@ export function AgentWalkthrough() {
               );
             })}
           </Card>
+        </div>
+      )}
 
-          <div aria-live="polite" className="mt-8 space-y-5">
+      <p className="label mb-3">Inside an episode</p>
+      <div
+        className={
+          showTools
+            ? "grid gap-8 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] lg:items-start"
+            : ""
+        }
+      >
+        <div>
+          <div aria-live="polite" className="space-y-5">
             {Array.from({ length: step + 1 }, (_, i) => i).map((i) => (
               <RevealStep key={`${condition}-${i}`}>
                 <p className="label mb-1.5">{STEP_LABELS[i]}</p>
@@ -177,7 +213,7 @@ export function AgentWalkthrough() {
             {step < LAST_STEP ? (
               <button
                 type="button"
-                onClick={() => setStep((s) => Math.min(LAST_STEP, s + 1))}
+                onClick={advance}
                 className="tap rounded-lg border border-ink px-4 text-small transition-colors hover:bg-ink hover:text-paper"
               >
                 Next
@@ -204,31 +240,21 @@ export function AgentWalkthrough() {
           </div>
         </div>
 
-        <div className="lg:sticky lg:top-20">
-          <p className="label mb-2">Tools available</p>
-          <Card as="ol" tone="bare" pad="none" className="overflow-hidden">
-            {TOOLS.map((tool) => {
-              const used = usedTools.has(tool.name);
-              return (
-                <li
-                  key={tool.name}
-                  className={`px-4 py-3 ${used ? "bg-accent/[0.06]" : "bg-paper-2"}`}
-                >
-                  <p
-                    className={`font-mono text-small ${
-                      used ? "text-accent" : "text-ink"
-                    }`}
-                  >
-                    {tool.name}
-                  </p>
+        {showTools && (
+          <div className="lg:sticky lg:top-20">
+            <p className="label mb-2">Tools called</p>
+            <Card as="ol" tone="bare" pad="none" className="overflow-hidden">
+              {TOOLS.filter((tool) => usedTools.has(tool.name)).map((tool) => (
+                <li key={tool.name} className="bg-accent/[0.06] px-4 py-3">
+                  <p className="font-mono text-small text-accent">{tool.name}</p>
                   <p className="mt-0.5 text-caption leading-snug text-muted">
                     {tool.description}
                   </p>
                 </li>
-              );
-            })}
-          </Card>
-        </div>
+              ))}
+            </Card>
+          </div>
+        )}
       </div>
     </section>
   );
