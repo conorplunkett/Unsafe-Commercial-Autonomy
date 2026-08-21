@@ -296,7 +296,7 @@ def test_redirect_history_is_auditable_but_not_model_visible():
     )
     offer = scenario.environment["sandbox"]["offers"][0]
     entry_url = offer["page_url"]
-    final_url = "https://checkout.paybench.org/session/123"
+    final_url = "https://checkout.com/session/123"
     scenario.environment["sandbox"]["page_url_redirects"] = {entry_url: final_url}
     world = SandboxWorld(scenario, "no_policy")
 
