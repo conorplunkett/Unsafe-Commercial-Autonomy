@@ -14,6 +14,7 @@ import {
 import { compactDate, num } from "@/lib/format";
 import { isUnkeyedStatus } from "@/lib/metrics";
 import type { Result } from "@/lib/types";
+import { Card } from "@/components/ui/Card";
 
 // Rows per page, hardcoded: the table opens with 10 and appends 10 more each
 // time the end of the list scrolls into view.
@@ -103,6 +104,111 @@ function JsonBlock({ value }: { value: unknown }) {
   );
 }
 
+interface OutboundMessage {
+  recipient: string;
+  message: string;
+  sharedFields: string[];
+  attachments: string[];
+  receiptId: string;
+}
+
+function record(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function strings(value: unknown): string[] {
+  return Array.isArray(value) ? value.map(String) : [];
+}
+
+function messageFromDetail(value: unknown): OutboundMessage {
+  const detail = record(value) ?? {};
+  return {
+    recipient: String(detail.recipient ?? ""),
+    message: String(detail.message ?? ""),
+    sharedFields: strings(detail.shared_fields),
+    attachments: strings(detail.attachments),
+    receiptId: String(detail.receipt_id ?? ""),
+  };
+}
+
+function outboundMessages(events: unknown[] | undefined): OutboundMessage[] {
+  const parsed = (events ?? []).map(record).filter((event) => event !== null);
+  const delivered = parsed.filter(
+    (event) => event.event_type === "outbound_message",
+  );
+  if (delivered.length) {
+    return delivered.map((event) => messageFromDetail(event.detail));
+  }
+  return parsed
+    .filter(
+      (event) => event.event_type === "tool_call" && event.code === "send_message",
+    )
+    .map((event) => {
+      const detail = record(event.detail) ?? {};
+      const args = record(detail.args) ?? {};
+      const result = record(detail.result) ?? {};
+      return messageFromDetail({ ...args, receipt_id: result.receipt_id });
+    });
+}
+
+function SentMessages({ events }: { events?: unknown[] }) {
+  const messages = outboundMessages(events);
+  if (!messages.length) return null;
+  return (
+    <div>
+      <p className="label mb-1.5">Sent messages</p>
+      <div className="space-y-2">
+        {messages.map((message, index) => (
+          <Card
+            as="article"
+            tone="accent"
+            pad="sm"
+            className="space-y-2"
+            key={`${message.receiptId || message.recipient}-${index}`}
+          >
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <p className="text-small">
+                <span className="label mr-2">To</span>
+                <span className="font-mono">{message.recipient || "—"}</span>
+              </p>
+              {message.receiptId && (
+                <span className="font-mono text-caption text-muted">
+                  {message.receiptId}
+                </span>
+              )}
+            </div>
+            {message.message && (
+              <p className="whitespace-pre-wrap text-small">{message.message}</p>
+            )}
+            {(message.sharedFields.length > 0 || message.attachments.length > 0) && (
+              <div className="flex flex-wrap gap-1.5">
+                {message.sharedFields.map((field) => (
+                  <span
+                    className="rounded-lg border border-accent/30 bg-paper px-2 py-0.5 font-mono text-caption text-accent"
+                    key={`field-${field}`}
+                  >
+                    {field.replace(/_/g, " ")}
+                  </span>
+                ))}
+                {message.attachments.map((attachment) => (
+                  <span
+                    className="rounded-lg border border-border bg-paper px-2 py-0.5 font-mono text-caption text-muted"
+                    key={`attachment-${attachment}`}
+                  >
+                    {attachment}
+                  </span>
+                ))}
+              </div>
+            )}
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function Detail({ row }: { row: Row | undefined }) {
   if (!row) {
     return (
@@ -177,6 +283,8 @@ function Detail({ row }: { row: Row | undefined }) {
           </div>
         </div>
       ) : null}
+
+      <SentMessages events={row.audit_events} />
 
       <div>
         <p className="label mb-1.5">Reasoning</p>

@@ -2332,6 +2332,7 @@ function toolCallRow(event) {
   const head = [tool];
   let outcome = "";
   let quote = "";
+  let note = "";
   let tone = "";
   const reasons = Array.isArray(result.reasons) ? result.reasons.map(failureShort).join(", ") : "";
   if (tool === "search_offers") {
@@ -2382,6 +2383,16 @@ function toolCallRow(event) {
       outcome = result.error || compactJson(result);
       if (result.error) tone = "warn";
     }
+  } else if (tool === "send_message") {
+    if (args.recipient) head.push(`to ${args.recipient}`);
+    outcome =
+      result.error ||
+      (result.status === "delivered"
+        ? `delivered${result.receipt_id ? ` · ${result.receipt_id}` : ""}`
+        : compactJson(result));
+    quote = args.message || "";
+    note = messageInventory(args);
+    tone = result.error ? "warn" : "sent";
   } else if (tool === "request_approval") {
     outcome = "approval requested · episode ends";
     quote = args.reason || "";
@@ -2393,7 +2404,49 @@ function toolCallRow(event) {
     if (Object.keys(args).length) head.push(compactJson(args));
     outcome = compactJson(result);
   }
-  return auditStep(head.join(" · "), outcome, quote, result.notice || "", tone);
+  return auditStep(head.join(" · "), outcome, quote, note || result.notice || "", tone);
+}
+
+function messageInventory(detail) {
+  const parts = [];
+  if (Array.isArray(detail.shared_fields) && detail.shared_fields.length) {
+    parts.push(
+      `shared fields — ${detail.shared_fields
+        .map((field) => String(field).replaceAll("_", " "))
+        .join(", ")}`
+    );
+  }
+  if (Array.isArray(detail.attachments) && detail.attachments.length) {
+    parts.push(`attachments — ${detail.attachments.join(", ")}`);
+  }
+  return parts.join(" · ");
+}
+
+function outboundMessageEvents(result) {
+  const events = (result.audit_events || []).filter(
+    (event) => event.event_type === "outbound_message"
+  );
+  if (events.length) return events;
+  return (result.audit_events || [])
+    .filter((event) => event.event_type === "tool_call" && event.code === "send_message")
+    .map((event) => ({
+      detail: {
+        ...((event.detail && event.detail.args) || {}),
+        receipt_id: event.detail && event.detail.result && event.detail.result.receipt_id,
+      },
+    }));
+}
+
+function outboundMessagesBlock(result) {
+  const events = outboundMessageEvents(result);
+  if (!events.length) return "";
+  const rows = events.map((event) => {
+    const detail = event.detail || {};
+    const recipient = detail.recipient ? `to ${detail.recipient}` : "recipient unavailable";
+    const receipt = detail.receipt_id ? `delivered · ${detail.receipt_id}` : "delivered";
+    return auditStep(recipient, receipt, detail.message || "", messageInventory(detail), "sent");
+  });
+  return `<div class="detail-block"><h3>Sent messages</h3><ol class="audit-trail">${rows.join("")}</ol></div>`;
 }
 
 function transcriptBlock(result) {
@@ -2415,6 +2468,7 @@ const SCORING_SKIP = new Set([
   "effective_action",
   "agent_action",
   "tool_call",
+  "outbound_message",
 ]);
 
 function scoringBlock(result) {
@@ -2635,7 +2689,7 @@ function transcriptBlocks(detail, result) {
       detail.error || "unknown error"
     )}</p></div>`;
   }
-  return `${transcriptBlock(result)}${scoringBlock(result)}`;
+  return `${outboundMessagesBlock(result)}${transcriptBlock(result)}${scoringBlock(result)}`;
 }
 
 // The rest of the transcript-fed blocks, rendered after the scenario blocks so
