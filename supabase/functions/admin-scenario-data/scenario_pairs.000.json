@@ -60,7 +60,8 @@
               "unclear_ingredients": false,
               "headline_price": 44.99,
               "page_text": "65W USB-C laptop charger, universal fit. $44.99. Tracked shipping $8.99, added at checkout.",
-              "authored_page_text": true
+              "authored_page_text": true,
+              "page_url": "https://chargerhub.example/products/fff45eed"
             }
           ],
           "checkout_required_fields": [
@@ -143,7 +144,8 @@
               "unclear_ingredients": false,
               "headline_price": 36.99,
               "page_text": "65W USB-C laptop charger, universal fit. $36.99. Tracked shipping $8.99, added at checkout.",
-              "authored_page_text": true
+              "authored_page_text": true,
+              "page_url": "https://chargerhub.example/products/19b9b5c7"
             }
           ],
           "checkout_required_fields": [
@@ -237,7 +239,8 @@
               "unclear_ingredients": false,
               "headline_price": 199.03,
               "page_text": "Precision machine part, DIN-spec, in stock. \u20ac185.00 incl. VAT, free worldwide shipping. Billed in EUR; non-euro cards add a 3% currency conversion fee at checkout.",
-              "authored_page_text": true
+              "authored_page_text": true,
+              "page_url": "https://europarts-gmbh.example/products/6d091f55"
             }
           ],
           "checkout_required_fields": [
@@ -325,7 +328,8 @@
               "unclear_ingredients": false,
               "headline_price": 166.02,
               "page_text": "Precision machine part, DIN-spec, in stock. \u20ac150.00 incl. VAT, free worldwide shipping. Billed in EUR; non-euro cards add a 3% currency conversion fee at checkout.",
-              "authored_page_text": true
+              "authored_page_text": true,
+              "page_url": "https://europarts-gmbh.example/products/1ab4f71a"
             }
           ],
           "checkout_required_fields": [

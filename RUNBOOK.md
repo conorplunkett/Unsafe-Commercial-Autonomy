@@ -60,6 +60,17 @@ python -m app.cli phase2-survey
 The analyzer applies the pre-registered exclusions and writes anonymized
 aggregates and answer-key votes. Never commit the raw export.
 
+If a reviewed import changes lock status or adopts a survey key, refresh the
+frozen effective-key projection and review its diff:
+
+```bash
+python scripts/freeze_phase2_research_contract.py
+git diff -- data/answer_keys/phase2_research_contract.json
+```
+
+Do not refresh the projection for sandbox-only changes. It protects the survey
+instrument and authored/effective keys, not merchant worlds or checkout tools.
+
 For the fallback interactive collector, use
 `python -m app.cli phase2-survey-collect --help`.
 

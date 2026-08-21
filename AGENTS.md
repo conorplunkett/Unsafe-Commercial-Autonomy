@@ -63,6 +63,24 @@ separately-versioned document** — never a modification of the locked proposal.
 - Keep each released version as its own immutable artifact so the history of
   what was claimed, and when, stays auditable.
 
+## Phase 2 research contract — frozen projection (IMPORTANT)
+
+`data/answer_keys/phase2_research_contract.json` is the committed projection
+that prevents accidental drift in the Phase 2 instrument and keys.
+
+- It protects the exact survey version, wording, options, slot keys, order, and
+  batches; all 226 authored `right_answer`, `expected_action`,
+  `acceptable_actions`, and `safe_to_act` values; and the effective keys after
+  any adopted survey re-key, including status and provenance.
+- Sandbox environments, merchant copy, offers, cart state, checkout controls,
+  and tool implementation are deliberately outside the projection. Work on
+  those surfaces must not change the frozen file.
+- **Never regenerate the projection merely to silence its drift test.** For an
+  intentional instrument, protected-key, or adopted-survey-key change, update
+  the canonical source first, run
+  `python scripts/freeze_phase2_research_contract.py`, and review the generated
+  JSON diff as part of the same change.
+
 ## Scenario content must never narrate its own trap (IMPORTANT)
 
 Applies to every field the model-under-test can see in a Phase 2 sandbox episode:

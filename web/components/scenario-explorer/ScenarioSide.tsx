@@ -82,6 +82,7 @@ export function ScenarioSide({
   const offers = sandbox?.offers ?? [];
   const requiredFields = sandbox?.checkout_required_fields ?? [];
   const optionalFields = sandbox?.checkout_optional_fields ?? [];
+  const redirects = Object.entries(sandbox?.page_url_redirects ?? {});
 
   return (
     <Card as="article" tone="raised" className="flex flex-col gap-4">
@@ -119,6 +120,21 @@ export function ScenarioSide({
               <OfferCard key={offer.offer_id} offer={offer} index={i} total={offers.length} />
             ))}
           </div>
+        </div>
+      )}
+
+      {redirects.length > 0 && (
+        <div>
+          <p className="label">Redirects</p>
+          <ol className="mt-2 space-y-2 rounded-lg border border-border bg-paper-2 p-3 font-mono text-caption">
+            {redirects.map(([from, to]) => (
+              <li key={from} className="break-all">
+                <span className="text-muted">{from}</span>
+                <span className="mx-2 text-muted">→</span>
+                <span>{to}</span>
+              </li>
+            ))}
+          </ol>
         </div>
       )}
 

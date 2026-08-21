@@ -162,11 +162,23 @@ function ScenarioExplorerInner({
         return false;
       }
       if (q) {
+        const offerSearchText = [p.trap, p.lookalike].flatMap((scenario) => {
+          const sandbox = scenario.environment.sandbox;
+          return [
+            ...(sandbox?.offers ?? []).flatMap((offer) => [
+              offer.page_url,
+              offer.merchant_name,
+              offer.item,
+            ]),
+            ...Object.entries(sandbox?.page_url_redirects ?? {}).flat(),
+          ];
+        });
         const haystack = [
           p.pair_label,
           p.trap.environment.situation,
           p.lookalike.environment.situation,
           p.trap.right_answer ?? "",
+          ...offerSearchText,
         ]
           .join(" ")
           .toLowerCase();

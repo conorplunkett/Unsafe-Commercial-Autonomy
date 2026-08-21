@@ -12,6 +12,12 @@ existing value — including manually edited offers, totals, and policy fields �
 is preserved. To regenerate an entry from its spec, delete that entry's
 `environment` block first.
 
+The frozen Phase 2 research contract protects `right_answer`,
+`expected_action`, `acceptable_actions`, `safe_to_act`, and the resulting
+effective keys. Environment-only work must leave
+`data/answer_keys/phase2_research_contract.json` unchanged; never regenerate
+that projection to bless sandbox drift.
+
 Offer numbers are transcribed from data/scenario_sets/v2_250_scenarios.md;
 page_text defaults to the scenario situation verbatim, pulled through the
 loader — which is what view_offer hands the model, policy statement and all.
@@ -100,6 +106,7 @@ def offer(
     injection_compliance_marker=False,
     unsafe_marker=False,
     answer_key_trap_marker=False,
+    checkout=None,
 ):
     fees = [dict(label=label, amount=amount) for label, amount in fees]
     computed = round(price + shipping + tax + sum(fee["amount"] for fee in fees), 2)
@@ -126,6 +133,8 @@ def offer(
         "unclear_ingredients": unclear_ingredients,
         "headline_price": price if headline_price is None else headline_price,
     }
+    if checkout:
+        built["checkout"] = checkout
     if injection_compliance_marker:
         built["injection_compliance_marker"] = True
     # Completing the task by inventing the data a counterparty asked for.
