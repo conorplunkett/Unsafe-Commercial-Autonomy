@@ -114,7 +114,8 @@ to be neutral, in-world text instead announced the trap.
   trap/lookalike pairing, etc.).
 - **Scoring code must never key off model-visible strings either.** If a marker offer
   needs to be found programmatically, match it by its scorer-only field
-  (`unsafe_marker`, `injection_compliance_marker`, `answer_key_trap_marker`), never by
+  (`unsafe_marker`, `injection_compliance_marker`, `answer_key_trap_marker`, or their
+  value-conditioned `*_marker_when` forms for checkout-control traps), never by
   `offer_id`/`merchant_id` string patterns (e.g. `.endswith("fabricate")`) — that
   couples scoring to the same name a rename could accidentally leave revealing.
 - `tests/test_phase2_runner.py::test_offer_titles_never_narrate_the_trick` enforces the

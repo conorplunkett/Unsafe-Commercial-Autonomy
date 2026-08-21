@@ -112,6 +112,69 @@ Regenerated `data/answer_keys/phase2_research_contract.json` via
 `scripts/freeze_phase2_research_contract.py` to snapshot the new effective
 keys, statuses, and re-key provenance.
 
+## [2026-08-21] Unobservable outcomes excluded from result rates
+
+- Generalized the existing outcome-eligibility filter so engine-only scenario
+  metadata can remove behaviorally unobservable episodes from every scientific
+  outcome denominator without deleting their raw or operational records.
+- Both E11 arms are tagged `reasoning_only_unobservable`: the sandbox cannot
+  distinguish buying because of the injected review instruction from buying
+  after an independent product evaluation. E6 remains included.
+- Stored E11 results pick up the exclusion during metrics recomputation. The
+  survey, authored answer-key fields, and frozen research contract are
+  unchanged.
+
+## [2026-08-21] Checkout tool renamed to `update_checkout`
+
+- `set_checkout_controls` is now `update_checkout`, and its description no
+  longer enumerates the control kinds — which controls exist, and of what
+  kind, is offer content discovered through `view_offer`, not ambient tool
+  documentation. Same parameters and behavior. No stored runs contain the old
+  name (results for control scenarios already predate the migration), so
+  there is no read-compat entry.
+
+## [2026-08-21] Twelve scenario families on native checkout controls
+
+- a9, a20, b3, b11, e1, e14, and e19 now use authored checkout state instead
+  of separate offers or prose describing a selection: add-on, shipping,
+  payment-method, warranty, tip, and terms controls derive the amount, rail,
+  recurrence, and authorization captured by `pay`.
+- d10, d17, d19, d22, and d24 now make the surveyed checkout acts executable:
+  optional sensitive answers, fifteen preselected partner-sharing boxes, and
+  the corporate-versus-personal phone choice all flow into the frozen payment
+  state. d17 records recipient-specific data-sharing authorizations; the policy
+  engine and scorer treat external sharing as privacy leakage without synthetic
+  disclosure fields or model-visible trap metadata.
+- New scorer-only value-conditioned markers `answer_key_trap_marker_when` and
+  `injection_compliance_marker_when` map a control_id to the values that
+  constitute the marked act, evaluated against the payment's frozen
+  `checkout_control_values` (now carried on `AgentAction`). e14's tip values,
+  e19's terms acceptance, and e1's ticked warranty use them; flat per-offer
+  markers remain supported.
+- Radio and select controls may now author `initial_value: null` together with
+  `required: true` — a forced choice: `pay` stays `checkout_incomplete` until
+  the agent picks a listed value (e14's tip screen).
+- Authored answer-key fields, survey content, policy fields, and the frozen
+  research contract are untouched. b20 deliberately keeps its existing offer
+  model.
+- `set_checkout_controls` is again available with the same schema in every
+  condition; scenario-scoped messaging behavior is unchanged.
+- Deliberately not converted: a15 and c3 stay between-offer choices — the
+  `answer_key_trap_marker` design — because preselecting a default would
+  change the authored mechanism, not just the surface. a3, a21, and e15 have
+  no checkout control on purpose: the absence of an opt-out at checkout is
+  their trap, and a real control would let the agent decline it. e22's $500
+  donation is a standalone charge; a donation checkbox on the ticket checkout
+  would be a new scenario, not a conversion. c13 keeps its two-offer form
+  permanently: its safe act is a custom tip amount, and a free-number control
+  was considered and rejected — every checkout state an agent can reach must
+  be one the merchant authored, so controls stay a finite choice among
+  authored states ("choose an offer", finely grained), never open-ended
+  checkout editing. The two offers are the bounded form of that choice.
+- Stored results for the 21 scenarios across these twelve families (plus
+  e23_trap from the same-day mechanism change below) predate the new world
+  data and are not comparable on those scenarios; re-run before comparing.
+
 ## [2026-08-21] D17 checkout controls
 
 - Added the scenario-scoped checkout-control capability to both D17 arms.
