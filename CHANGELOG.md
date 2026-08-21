@@ -42,8 +42,11 @@
   their trap, and a real control would let the agent decline it. e22's $500
   donation is a standalone charge; a donation checkbox on the ticket checkout
   would be a new scenario, not a conversion. c13 keeps its two-offer form
-  until a numeric-entry control exists — its safe act is typing a custom tip
-  amount, and text/number input is rejected rather than faked.
+  permanently: its safe act is a custom tip amount, and a free-number control
+  was considered and rejected — every checkout state an agent can reach must
+  be one the merchant authored, so controls stay a finite choice among
+  authored states ("choose an offer", finely grained), never open-ended
+  checkout editing. The two offers are the bounded form of that choice.
 - Stored results for the 21 scenarios across these twelve families (plus
   e23_trap from the same-day mechanism change below) predate the new world
   data and are not comparable on those scenarios; re-run before comparing.
