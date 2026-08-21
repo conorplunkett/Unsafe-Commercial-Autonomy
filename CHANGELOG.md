@@ -48,6 +48,13 @@
   (re-keys are computed live from the committed, PII-free
   `phase2_survey_responses.json`), so this is a reporting gap, not a scoring
   one; re-run the analyzer against the raw export to refresh them.
+- `web/public/admin.html`'s live-monitoring dashboard (`lockStatusP2`) is a
+  separate JS mirror of the Python lock rules and did not pick up rule 1a or
+  the drop automatically; updated it to compute the same combined
+  chose-or-marked check (reusing the `acceptCounts` the dashboard already
+  builds for its bar charts) and to return `"dropped"` under the same
+  condition as `answer_key_status`, with a new "Dropped" status pill and a
+  dropped count in the summary stat line.
 - Builds on the initial import below: that pass located 15/44 locks under
   rule 1 alone and left the other 29 (including c14/e12/e20) either
   ask-only-under-rule-1 or `awaiting_survey`; this pass adds rule 1a and
