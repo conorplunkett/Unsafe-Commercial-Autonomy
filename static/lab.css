@@ -880,6 +880,10 @@
   border-left: 3px solid var(--info);
 }
 
+.audit-step--sent {
+  border-left: 3px solid var(--accent);
+}
+
 .audit-step-head {
   display: flex;
   flex-wrap: wrap;

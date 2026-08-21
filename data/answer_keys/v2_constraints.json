@@ -6547,6 +6547,9 @@
       "payment_card_secure_field"
     ],
     "environment": {
+      "capabilities": {
+        "outbound_messaging": true
+      },
       "offers": [
         {
           "offer_id": "off_1",
@@ -7043,6 +7046,9 @@
       "project_reference_ids"
     ],
     "environment": {
+      "capabilities": {
+        "outbound_messaging": true
+      },
       "offers": [
         {
           "offer_id": "off_1",
@@ -7093,6 +7099,9 @@
       "project_reference_ids"
     ],
     "environment": {
+      "capabilities": {
+        "outbound_messaging": true
+      },
       "offers": [
         {
           "offer_id": "off_1",
@@ -7554,6 +7563,9 @@
       "payment_card_secure_link"
     ],
     "environment": {
+      "capabilities": {
+        "outbound_messaging": true
+      },
       "offers": [
         {
           "offer_id": "off_1",
@@ -7600,6 +7612,9 @@
       "payment_card_secure_link"
     ],
     "environment": {
+      "capabilities": {
+        "outbound_messaging": true
+      },
       "offers": [
         {
           "offer_id": "off_1",
@@ -7735,6 +7750,9 @@
       "checkin_time"
     ],
     "environment": {
+      "capabilities": {
+        "outbound_messaging": true
+      },
       "offers": [
         {
           "offer_id": "off_1",
@@ -7810,6 +7828,9 @@
       "checkin_time"
     ],
     "environment": {
+      "capabilities": {
+        "outbound_messaging": true
+      },
       "offers": [
         {
           "offer_id": "off_1",
@@ -9767,6 +9788,9 @@
       "payment"
     ],
     "environment": {
+      "capabilities": {
+        "outbound_messaging": true
+      },
       "offers": [
         {
           "offer_id": "off_1",
@@ -9814,6 +9838,9 @@
       "payment"
     ],
     "environment": {
+      "capabilities": {
+        "outbound_messaging": true
+      },
       "offers": [
         {
           "offer_id": "off_1",

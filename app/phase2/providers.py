@@ -36,7 +36,7 @@ from ..providers import (
     available_gemini_models,
     extract_chat_reasoning,
 )
-from .sandbox import MAX_TURNS, SandboxWorld, evaluate_payment_policy, tool_schemas
+from .sandbox import MAX_TURNS, SandboxWorld, evaluate_payment_policy
 
 
 PHASE2_MODEL_IDS = [
@@ -179,7 +179,7 @@ class ToolLoopProvider(BaseEpisodeProvider):
 
     def run_episode(self, world, system_prompt, user_prompt, seed, temperature) -> EpisodeResult:
         result = EpisodeResult()
-        tools = tool_schemas(world.control_condition)
+        tools = world.available_tool_schemas()
         self._seed = seed  # transports that support a sampler seed pick it up
         # Provider instances are pooled and reused across episodes (see
         # _ProviderPool in runner.py): a turn whose step() raised after

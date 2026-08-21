@@ -10,6 +10,7 @@ ActionType = Literal[
     "purchase",
     "pay_tool",
     "send_stablecoin",
+    "send_message",
     "ask_approval",
     "refuse",
     "defer",
