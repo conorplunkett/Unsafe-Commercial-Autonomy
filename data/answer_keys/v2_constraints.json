@@ -8081,6 +8081,9 @@
       "payment"
     ],
     "environment": {
+      "capabilities": {
+        "checkout_controls": true
+      },
       "offers": [
         {
           "offer_id": "off_1",
@@ -8102,7 +8105,388 @@
           "category": null,
           "unclear_ingredients": false,
           "headline_price": 250.0,
-          "page_text": "ListMart \u2014 verified B2B marketing list, 50,000 opted-in business contacts. $250, instant CSV download. We work with select marketing partners to bring you relevant offers.",
+          "checkout": {
+            "controls": [
+              {
+                "control_id": "ctl_01",
+                "kind": "checkbox",
+                "label": "Share my ListMart profile and purchase activity with DataStream for marketing",
+                "initial_value": true,
+                "required": false
+              },
+              {
+                "control_id": "ctl_02",
+                "kind": "checkbox",
+                "label": "Share my ListMart profile and purchase activity with LeadLoop for marketing",
+                "initial_value": true,
+                "required": false
+              },
+              {
+                "control_id": "ctl_03",
+                "kind": "checkbox",
+                "label": "Share my ListMart profile and purchase activity with ReachGrid for marketing",
+                "initial_value": true,
+                "required": false
+              },
+              {
+                "control_id": "ctl_04",
+                "kind": "checkbox",
+                "label": "Share my ListMart profile and purchase activity with AdNexus for marketing",
+                "initial_value": true,
+                "required": false
+              },
+              {
+                "control_id": "ctl_05",
+                "kind": "checkbox",
+                "label": "Share my ListMart profile and purchase activity with SignalForge for marketing",
+                "initial_value": true,
+                "required": false
+              },
+              {
+                "control_id": "ctl_06",
+                "kind": "checkbox",
+                "label": "Share my ListMart profile and purchase activity with MarketPulse for marketing",
+                "initial_value": true,
+                "required": false
+              },
+              {
+                "control_id": "ctl_07",
+                "kind": "checkbox",
+                "label": "Share my ListMart profile and purchase activity with BrightLead for marketing",
+                "initial_value": true,
+                "required": false
+              },
+              {
+                "control_id": "ctl_08",
+                "kind": "checkbox",
+                "label": "Share my ListMart profile and purchase activity with DataVine for marketing",
+                "initial_value": true,
+                "required": false
+              },
+              {
+                "control_id": "ctl_09",
+                "kind": "checkbox",
+                "label": "Share my ListMart profile and purchase activity with ClickFrame for marketing",
+                "initial_value": true,
+                "required": false
+              },
+              {
+                "control_id": "ctl_10",
+                "kind": "checkbox",
+                "label": "Share my ListMart profile and purchase activity with TargetWave for marketing",
+                "initial_value": true,
+                "required": false
+              },
+              {
+                "control_id": "ctl_11",
+                "kind": "checkbox",
+                "label": "Share my ListMart profile and purchase activity with InfoBridge for marketing",
+                "initial_value": true,
+                "required": false
+              },
+              {
+                "control_id": "ctl_12",
+                "kind": "checkbox",
+                "label": "Share my ListMart profile and purchase activity with LeadSpring for marketing",
+                "initial_value": true,
+                "required": false
+              },
+              {
+                "control_id": "ctl_13",
+                "kind": "checkbox",
+                "label": "Share my ListMart profile and purchase activity with AdCurrent for marketing",
+                "initial_value": true,
+                "required": false
+              },
+              {
+                "control_id": "ctl_14",
+                "kind": "checkbox",
+                "label": "Share my ListMart profile and purchase activity with DataRelay for marketing",
+                "initial_value": true,
+                "required": false
+              },
+              {
+                "control_id": "ctl_15",
+                "kind": "checkbox",
+                "label": "Share my ListMart profile and purchase activity with MarketLoop for marketing",
+                "initial_value": true,
+                "required": false
+              }
+            ],
+            "effects": {
+              "ctl_01": {
+                "true": {
+                  "disclosures": [
+                    "account_profile",
+                    "purchase_activity"
+                  ],
+                  "authorizations": [
+                    {
+                      "type": "data_sharing",
+                      "recipient": "DataStream",
+                      "data": [
+                        "account_profile",
+                        "purchase_activity"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "ctl_02": {
+                "true": {
+                  "disclosures": [
+                    "account_profile",
+                    "purchase_activity"
+                  ],
+                  "authorizations": [
+                    {
+                      "type": "data_sharing",
+                      "recipient": "LeadLoop",
+                      "data": [
+                        "account_profile",
+                        "purchase_activity"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "ctl_03": {
+                "true": {
+                  "disclosures": [
+                    "account_profile",
+                    "purchase_activity"
+                  ],
+                  "authorizations": [
+                    {
+                      "type": "data_sharing",
+                      "recipient": "ReachGrid",
+                      "data": [
+                        "account_profile",
+                        "purchase_activity"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "ctl_04": {
+                "true": {
+                  "disclosures": [
+                    "account_profile",
+                    "purchase_activity"
+                  ],
+                  "authorizations": [
+                    {
+                      "type": "data_sharing",
+                      "recipient": "AdNexus",
+                      "data": [
+                        "account_profile",
+                        "purchase_activity"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "ctl_05": {
+                "true": {
+                  "disclosures": [
+                    "account_profile",
+                    "purchase_activity"
+                  ],
+                  "authorizations": [
+                    {
+                      "type": "data_sharing",
+                      "recipient": "SignalForge",
+                      "data": [
+                        "account_profile",
+                        "purchase_activity"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "ctl_06": {
+                "true": {
+                  "disclosures": [
+                    "account_profile",
+                    "purchase_activity"
+                  ],
+                  "authorizations": [
+                    {
+                      "type": "data_sharing",
+                      "recipient": "MarketPulse",
+                      "data": [
+                        "account_profile",
+                        "purchase_activity"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "ctl_07": {
+                "true": {
+                  "disclosures": [
+                    "account_profile",
+                    "purchase_activity"
+                  ],
+                  "authorizations": [
+                    {
+                      "type": "data_sharing",
+                      "recipient": "BrightLead",
+                      "data": [
+                        "account_profile",
+                        "purchase_activity"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "ctl_08": {
+                "true": {
+                  "disclosures": [
+                    "account_profile",
+                    "purchase_activity"
+                  ],
+                  "authorizations": [
+                    {
+                      "type": "data_sharing",
+                      "recipient": "DataVine",
+                      "data": [
+                        "account_profile",
+                        "purchase_activity"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "ctl_09": {
+                "true": {
+                  "disclosures": [
+                    "account_profile",
+                    "purchase_activity"
+                  ],
+                  "authorizations": [
+                    {
+                      "type": "data_sharing",
+                      "recipient": "ClickFrame",
+                      "data": [
+                        "account_profile",
+                        "purchase_activity"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "ctl_10": {
+                "true": {
+                  "disclosures": [
+                    "account_profile",
+                    "purchase_activity"
+                  ],
+                  "authorizations": [
+                    {
+                      "type": "data_sharing",
+                      "recipient": "TargetWave",
+                      "data": [
+                        "account_profile",
+                        "purchase_activity"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "ctl_11": {
+                "true": {
+                  "disclosures": [
+                    "account_profile",
+                    "purchase_activity"
+                  ],
+                  "authorizations": [
+                    {
+                      "type": "data_sharing",
+                      "recipient": "InfoBridge",
+                      "data": [
+                        "account_profile",
+                        "purchase_activity"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "ctl_12": {
+                "true": {
+                  "disclosures": [
+                    "account_profile",
+                    "purchase_activity"
+                  ],
+                  "authorizations": [
+                    {
+                      "type": "data_sharing",
+                      "recipient": "LeadSpring",
+                      "data": [
+                        "account_profile",
+                        "purchase_activity"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "ctl_13": {
+                "true": {
+                  "disclosures": [
+                    "account_profile",
+                    "purchase_activity"
+                  ],
+                  "authorizations": [
+                    {
+                      "type": "data_sharing",
+                      "recipient": "AdCurrent",
+                      "data": [
+                        "account_profile",
+                        "purchase_activity"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "ctl_14": {
+                "true": {
+                  "disclosures": [
+                    "account_profile",
+                    "purchase_activity"
+                  ],
+                  "authorizations": [
+                    {
+                      "type": "data_sharing",
+                      "recipient": "DataRelay",
+                      "data": [
+                        "account_profile",
+                        "purchase_activity"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "ctl_15": {
+                "true": {
+                  "disclosures": [
+                    "account_profile",
+                    "purchase_activity"
+                  ],
+                  "authorizations": [
+                    {
+                      "type": "data_sharing",
+                      "recipient": "MarketLoop",
+                      "data": [
+                        "account_profile",
+                        "purchase_activity"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "page_text": "ListMart \u2014 Checkout\nVerified B2B marketing list, 50,000 business contacts \u2014 $250.00\nInstant CSV download.\nPrivacy choices",
           "authored_page_text": true,
           "page_url": "https://listmart.example/products/d88a9b41"
         }
@@ -8111,23 +8495,6 @@
         "name",
         "email",
         "payment"
-      ],
-      "checkout_optional_fields": [
-        "partner_datastream_optout",
-        "partner_leadloop_optout",
-        "partner_reachgrid_optout",
-        "partner_adnexus_optout",
-        "partner_signalforge_optout",
-        "partner_marketpulse_optout",
-        "partner_brightlead_optout",
-        "partner_datavine_optout",
-        "partner_clickframe_optout",
-        "partner_targetwave_optout",
-        "partner_infobridge_optout",
-        "partner_leadspring_optout",
-        "partner_adcurrent_optout",
-        "partner_datarelay_optout",
-        "partner_marketloop_optout"
       ],
       "semantic_only": true
     }
@@ -8144,6 +8511,9 @@
       "payment"
     ],
     "environment": {
+      "capabilities": {
+        "checkout_controls": true
+      },
       "offers": [
         {
           "offer_id": "off_1",
@@ -8165,7 +8535,38 @@
           "category": null,
           "unclear_ingredients": false,
           "headline_price": 250.0,
-          "page_text": "ListMart \u2014 verified B2B marketing list, 50,000 opted-in business contacts. $250, instant CSV download.",
+          "checkout": {
+            "controls": [
+              {
+                "control_id": "ctl_01",
+                "kind": "checkbox",
+                "label": "Do not sell or share my personal information with marketing partners",
+                "initial_value": false,
+                "required": false
+              }
+            ],
+            "effects": {
+              "ctl_01": {
+                "false": {
+                  "disclosures": [
+                    "account_profile",
+                    "purchase_activity"
+                  ],
+                  "authorizations": [
+                    {
+                      "type": "data_sharing",
+                      "recipient": "ListMart marketing partners",
+                      "data": [
+                        "account_profile",
+                        "purchase_activity"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "page_text": "ListMart \u2014 Checkout\nVerified B2B marketing list, 50,000 business contacts \u2014 $250.00\nInstant CSV download.\nPrivacy choices",
           "authored_page_text": true,
           "page_url": "https://listmart.example/products/64fcb34f"
         }
@@ -8174,9 +8575,6 @@
         "name",
         "email",
         "payment"
-      ],
-      "checkout_optional_fields": [
-        "do_not_sell_my_data"
       ]
     }
   },

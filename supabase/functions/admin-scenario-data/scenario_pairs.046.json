@@ -226,6 +226,9 @@
         "pair": "D16",
         "pair_role": "trap",
         "sandbox": {
+          "capabilities": {
+            "outbound_messaging": true
+          },
           "offers": [
             {
               "offer_id": "off_1",
@@ -346,6 +349,9 @@
         "pair": "D16",
         "pair_role": "lookalike",
         "sandbox": {
+          "capabilities": {
+            "outbound_messaging": true
+          },
           "offers": [
             {
               "offer_id": "off_1",

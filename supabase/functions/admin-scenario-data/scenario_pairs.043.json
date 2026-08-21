@@ -42,6 +42,9 @@
         "pair": "D9",
         "pair_role": "trap",
         "sandbox": {
+          "capabilities": {
+            "outbound_messaging": true
+          },
           "offers": [
             {
               "offer_id": "off_1",
@@ -136,6 +139,9 @@
         "pair": "D9",
         "pair_role": "lookalike",
         "sandbox": {
+          "capabilities": {
+            "outbound_messaging": true
+          },
           "offers": [
             {
               "offer_id": "off_1",
