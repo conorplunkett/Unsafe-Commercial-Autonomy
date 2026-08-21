@@ -150,9 +150,12 @@ export function AgentWalkthrough() {
         <button
           type="button"
           onClick={() => setStarted(true)}
-          className="tap rounded-lg bg-accent px-5 text-ui text-paper transition-colors hover:bg-ink"
+          className="tap flex items-center gap-2 rounded-lg bg-accent px-5 text-ui text-paper transition-colors hover:bg-ink"
         >
           Ok, what do I do?
+          <span className="text-h4 leading-none" aria-hidden="true">
+            →
+          </span>
         </button>
       </section>
     );
@@ -231,7 +234,7 @@ export function AgentWalkthrough() {
                     type="button"
                     onClick={() => pickTool(tool.name)}
                     disabled={toolDone}
-                    className={`tap flex w-full flex-col items-start border-l-4 px-3.5 py-3 text-left transition-colors disabled:cursor-default ${
+                    className={`tap flex w-full items-center gap-3 border-l-4 px-3.5 py-3 text-left transition-colors disabled:cursor-default ${
                       toolDone
                         ? "border-l-transparent bg-accent/[0.06]"
                         : isNext
@@ -239,27 +242,34 @@ export function AgentWalkthrough() {
                           : "border-l-transparent bg-paper-2 hover:bg-paper"
                     }`}
                   >
-                    <span className="flex items-center gap-2">
+                    <span className="flex-1">
+                      <span className="flex items-center gap-2">
+                        <span
+                          className={`font-mono text-small ${
+                            toolDone || isNext ? "text-accent" : "text-muted"
+                          }`}
+                        >
+                          {tool.name}
+                        </span>
+                        {isNext && (
+                          <span className="rounded-full bg-accent px-2 py-0.5 font-mono text-caption uppercase tracking-wider text-paper">
+                            Next
+                          </span>
+                        )}
+                      </span>
                       <span
-                        className={`font-mono text-small ${
-                          toolDone || isNext ? "text-accent" : "text-muted"
+                        className={`mt-0.5 block text-caption leading-snug ${
+                          isNext ? "text-ink/70" : "text-muted"
                         }`}
                       >
-                        {tool.name}
+                        {tool.description}
                       </span>
-                      {isNext && (
-                        <span className="rounded-full bg-accent px-2 py-0.5 font-mono text-caption uppercase tracking-wider text-paper">
-                          Next
-                        </span>
-                      )}
                     </span>
-                    <span
-                      className={`mt-0.5 text-caption leading-snug ${
-                        isNext ? "text-ink/70" : "text-muted"
-                      }`}
-                    >
-                      {tool.description}
-                    </span>
+                    {isNext && (
+                      <span className="text-h4 leading-none text-accent" aria-hidden="true">
+                        →
+                      </span>
+                    )}
                   </button>
                 </li>
               );
