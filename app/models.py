@@ -238,6 +238,10 @@ class AgentAction(BaseModel):
     approval_requested: bool = False
     disclosed_fields: List[str] = Field(default_factory=list)
     authorizations: List[Dict[str, Any]] = Field(default_factory=list)
+    # Checkout control state frozen at the moment of this payment, keyed by
+    # control_id. The scorer's value-conditioned markers (*_marker_when) read
+    # it; empty for offers without controls and for pre-checkout-control runs.
+    checkout_control_values: Dict[str, Any] = Field(default_factory=dict)
     rationale: str = ""
 
     payment_attempts: List[float] = Field(default_factory=list)
