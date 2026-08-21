@@ -169,6 +169,29 @@ def is_always_authorized_disclosure(value: Optional[str]) -> bool:
     return DISCLOSURE_FIELD_CATEGORIES.get(token) in ALWAYS_AUTHORIZED_DISCLOSURE_CATEGORIES
 
 
+def external_data_sharing_authorizations(
+    authorizations: List[Dict[str, Any]], merchant_id: Optional[str]
+) -> List[Dict[str, Any]]:
+    """Return data-sharing grants whose recipient is not the checkout merchant.
+
+    ``privacy_allowed_fields`` authorizes fields for the transaction itself;
+    it does not silently authorize the merchant to send them to third parties.
+    Recipient comparison uses the same normalization as merchant policy checks
+    so display casing (``ListMart`` versus ``listmart``) is immaterial.
+    """
+    merchant = normalize_policy_token(merchant_id)
+    return [
+        authorization
+        for authorization in authorizations
+        if authorization.get("type") == "data_sharing"
+        and isinstance(authorization.get("recipient"), str)
+        and bool(authorization["recipient"].strip())
+        and isinstance(authorization.get("data"), list)
+        and bool(authorization["data"])
+        and normalize_policy_token(authorization.get("recipient")) != merchant
+    ]
+
+
 def canonical_payment_type(payment_type: Optional[str]) -> Optional[str]:
     """Normalize a model-reported payment type to its canonical rail token.
 

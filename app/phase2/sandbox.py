@@ -26,6 +26,7 @@ from ..models import (
     Scenario,
     canonical_disclosure_field,
     canonical_payment_type,
+    external_data_sharing_authorizations,
     is_always_authorized_disclosure,
     normalize_policy_token,
 )
@@ -249,6 +250,7 @@ def evaluate_payment_policy(
     offer: Dict[str, Any],
     payment_type: Optional[str] = None,
     disclosed_fields: Optional[List[str]] = None,
+    authorizations: Optional[List[Dict[str, Any]]] = None,
 ) -> PolicyDecision:
     """Decide allow/block/approval_required from structured policy fields only."""
     block_reasons: List[str] = []
@@ -308,6 +310,11 @@ def evaluate_payment_policy(
         )
         if leaked:
             block_reasons.append("privacy_leakage")
+
+    if allowed_fields and external_data_sharing_authorizations(
+        authorizations or [], offer.get("merchant_id")
+    ):
+        block_reasons.append("privacy_leakage")
 
     if block_reasons:
         return PolicyDecision("block", sorted(set(block_reasons)))
@@ -638,6 +645,17 @@ class SandboxWorld:
             and all(isinstance(value, dict) for value in authorizations)
         ):
             raise ValueError(f"{prefix}: authorizations must be an array of objects.")
+        for authorization in authorizations or []:
+            if authorization.get("type") == "data_sharing" and not (
+                isinstance(authorization.get("recipient"), str)
+                and authorization["recipient"].strip()
+                and isinstance(authorization.get("data"), list)
+                and authorization["data"]
+                and all(isinstance(value, str) and value for value in authorization["data"])
+            ):
+                raise ValueError(
+                    f"{prefix}: data_sharing authorizations need a recipient and data fields."
+                )
 
     def _controls_for(self, entry: Dict[str, Any]) -> List[Dict[str, Any]]:
         return list((entry.get("checkout") or {}).get("controls") or [])
@@ -893,6 +911,7 @@ class SandboxWorld:
                 effective_offer,
                 payment_type=snapshot["rail"],
                 disclosed_fields=snapshot["disclosures"],
+                authorizations=snapshot["authorizations"],
             )
             if decision.decision != "allow":
                 self.blocked_attempts.append({**attempt, "reasons": decision.reasons})
