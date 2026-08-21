@@ -21,7 +21,7 @@ type Stage = "landing" | "system" | "task" | "toolkit";
 
 const TOTAL_CALLS = CALLED_BY_STEP.length;
 const FLASH_MS = 1800;
-const FADE_MS = 200;
+const FADE_MS = 300;
 
 const VERDICT_TONE: Record<"danger" | "neutral", string> = {
   danger: "border-danger/40 bg-danger/10 text-danger",
@@ -41,7 +41,7 @@ function headlineFor(stage: Stage, done: boolean): string {
     return "Imagine you are an agent with access to your human’s credit card.";
   }
   if (stage === "system") return "Your system prompt";
-  if (stage === "task") return "Your task";
+  if (stage === "task") return "You receive your task.";
   if (done) return "Your outcome";
   return "You see your toolkit.";
 }
@@ -227,47 +227,18 @@ export function AgentWalkthrough() {
 
   const outcome = OUTCOMES[condition];
   const done = calledCount === TOTAL_CALLS;
-  const fadeClass = `transition-opacity duration-200 motion-reduce:transition-none ${
+  const fadeClass = `transition-opacity duration-300 ease-in-out motion-reduce:transition-none ${
     visible ? "opacity-100" : "opacity-0"
   }`;
+  const showProtectionHint =
+    done && outcome.verdict.tone === "danger" && condition !== "tool_constraints";
 
   return (
-    <section className="max-w-2xl">
-      {unlocked && stage !== "landing" && (
-        <div className="mb-6">
-          <p className="label mb-3">Try a different policy</p>
-          <Card as="ol" tone="bare" pad="none" className="overflow-hidden">
-            {CONDITIONS.map((id, i) => {
-              const selected = id === condition;
-              return (
-                <li key={id}>
-                  <button
-                    type="button"
-                    onClick={() => transition(() => replay(id))}
-                    aria-pressed={selected}
-                    className={`tap flex w-full items-baseline gap-4 px-5 py-4 text-left transition-colors ${
-                      selected ? "bg-accent/[0.06]" : "bg-paper-2 hover:bg-paper"
-                    }`}
-                  >
-                    <span className="font-mono text-small text-accent">
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
-                    <span>
-                      <p className="text-prose">{CONDITION_LABELS[id]}</p>
-                      <p className="mt-0.5 text-small leading-snug text-muted">
-                        {CONDITION_DESCRIPTIONS[id]}
-                      </p>
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </Card>
-        </div>
-      )}
-
+    <section className="flex max-w-2xl flex-1 flex-col">
       <div className={fadeClass}>
+        {stage === "landing" && <p className="label mb-4">How it works</p>}
         <h1 className="text-h1 tracking-tight">{headlineFor(stage, done)}</h1>
+        {stage === "toolkit" && !done && <p className="label mt-2">What do you pick?</p>}
 
         {stage === "landing" && (
           <div className="mt-8">
@@ -293,7 +264,7 @@ export function AgentWalkthrough() {
             <p className="text-ui">{USER_PROMPT}</p>
             <div className="mt-4">
               <ContinueButton onClick={() => transition(() => setStage("toolkit"))}>
-                What now?
+                Ok, how do I do this?
               </ContinueButton>
             </div>
           </Card>
@@ -302,6 +273,11 @@ export function AgentWalkthrough() {
         {stage === "toolkit" && done && (
           <Card tone="raised" className="mt-6">
             {callResult("finish", condition)}
+            {showProtectionHint && (
+              <p className="mt-3 text-small text-muted">
+                Tool constraints would have stopped this.
+              </p>
+            )}
           </Card>
         )}
 
@@ -360,8 +336,41 @@ export function AgentWalkthrough() {
         )}
       </div>
 
-      {stage !== "landing" && (
+      {unlocked && stage !== "landing" && (
         <div className="mt-6">
+          <p className="label mb-3">Try a different policy</p>
+          <Card as="ol" tone="bare" pad="none" className="overflow-hidden">
+            {CONDITIONS.map((id, i) => {
+              const selected = id === condition;
+              return (
+                <li key={id}>
+                  <button
+                    type="button"
+                    onClick={() => transition(() => replay(id))}
+                    aria-pressed={selected}
+                    className={`tap flex w-full items-baseline gap-4 px-5 py-4 text-left transition-colors ${
+                      selected ? "bg-accent/[0.06]" : "bg-paper-2 hover:bg-paper"
+                    }`}
+                  >
+                    <span className="font-mono text-small text-accent">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <span>
+                      <p className="text-prose">{CONDITION_LABELS[id]}</p>
+                      <p className="mt-0.5 text-small leading-snug text-muted">
+                        {CONDITION_DESCRIPTIONS[id]}
+                      </p>
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </Card>
+        </div>
+      )}
+
+      {stage !== "landing" && (
+        <div className="mt-auto pt-6">
           <button
             type="button"
             onClick={() => transition(goBack)}

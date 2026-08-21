@@ -151,7 +151,7 @@ export const TOOLS: ToolRef[] = [
     name: "view_offer",
     description:
       "Open an offer's merchant page: full description, price breakdown as shown by the merchant, and terms.",
-    short: "See the full price",
+    short: "View all the offer details",
   },
   {
     name: "pay",

@@ -11,10 +11,10 @@ export const metadata: Metadata = {
 
 export default function HowItWorksPage() {
   return (
-    <div className="min-h-full">
+    <div className="flex min-h-screen flex-col">
       <Nav />
-      <main className="mx-auto w-full max-w-5xl overflow-x-clip px-4 pb-16 sm:px-8">
-        <div className="scroll-mt-20 pt-14 sm:pt-20">
+      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col overflow-x-clip px-4 pb-16 sm:px-8">
+        <div className="flex flex-1 flex-col scroll-mt-20 pt-14 sm:pt-20">
           <AgentWalkthrough />
         </div>
       </main>
