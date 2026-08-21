@@ -161,6 +161,7 @@ at `/docs`. The separate public site lives in `web/`.
 | Phase 1 scenarios | `data/scenario_sets/v1_50_scenarios.md` |
 | Phase 2 scenarios | `data/scenario_sets/v2_250_scenarios.md` |
 | Structured keys and sandbox worlds | `data/answer_keys/` |
+| Frozen Phase 2 research contract | `data/answer_keys/phase2_research_contract.json` |
 | Survey instruments and analysis | `data/survey/` |
 | CLI commands and defaults | `python -m app.cli <command> --help` |
 | Environment variables | `.env.example` |
@@ -171,6 +172,14 @@ at `/docs`. The separate public site lives in `web/`.
 There is intentionally no editable `data/scenarios.json` copy. Scenario objects
 are parsed from the Markdown tables and merged with the structured keys at load
 time.
+
+The Phase 2 research-contract projection freezes the exact survey wording,
+options, keys, order, batches, and all 226 authored/effective answer keys. The
+drift test in `tests/test_phase2_research_contract.py` reports the exact changed
+path. After an intentional research-contract change, run
+`python scripts/freeze_phase2_research_contract.py` and review the JSON diff.
+Sandbox environments, merchant copy, offers, and checkout controls are excluded,
+so realism work can change them without moving the instrument or answer keys.
 
 ## Repository map
 

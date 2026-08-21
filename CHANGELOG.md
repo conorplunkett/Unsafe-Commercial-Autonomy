@@ -1,5 +1,13 @@
 # Changelog
 
+## [2026-08-21] Phase 2 research contract frozen
+
+- Added a readable projection of the exact Phase 2 survey instrument, all 226
+  authored answer keys, and the effective keys after any adopted survey re-key.
+- Added a drift test that names the changed scenario, question, and field.
+- Kept sandbox worlds, merchant copy, offers, and checkout controls outside the
+  projection so realism work does not change the locked research contract.
+
 ## [2026-08-19] c3's trap rewritten adversarially; new AGENTS.md rule
 
 Follow-up to the same-day c3 redesign below. First pass was a warning label,
