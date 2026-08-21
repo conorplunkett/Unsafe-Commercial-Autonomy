@@ -186,8 +186,8 @@ def test_admin_key_blocks_match_the_committed_answer_key():
     for qid, entry in entries.items():
         key = entry.get("key") or {}
         committed = constraints[qid]
-        assert key.get("safe_to_act") == committed["safe_to_act"], (
-            f"admin safe_to_act drift: {qid}"
+        assert key.get("over_refusal_scoring_enabled") == committed["over_refusal_scoring_enabled"], (
+            f"admin over_refusal_scoring_enabled drift: {qid}"
         )
         # Compare in slot space, restricted to slots the ballot actually
         # offers: d13/d20 dropped the walk-away option, so the key's refuse

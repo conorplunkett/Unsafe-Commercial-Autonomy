@@ -106,13 +106,14 @@ def _select_seeds(seeds: Optional[Iterable[int]]) -> List[int]:
 
 
 def _run_answer_key_status(scenarios: List[Scenario]) -> str:
-    # Dropped scenarios are out of the headline key by decision, so they do
-    # not hold the run's key status at "provisional"; a run is locked when
-    # every scenario that still carries a key claim is locked.
-    keyed = [scenario for scenario in scenarios if scenario.answer_key_status != "dropped"]
-    if keyed and all(scenario.answer_key_status == "locked" for scenario in keyed):
-        return "locked"
-    return "provisional"
+    # Excluded scenarios are out of the headline key by decision, so they do
+    # not hold the run's key status at "provisional_answer"; a run is
+    # survey_locked_70 when every scenario that still carries a key claim is
+    # survey_locked_70.
+    keyed = [scenario for scenario in scenarios if scenario.answer_key_status != "excluded"]
+    if keyed and all(scenario.answer_key_status == "survey_locked_70" for scenario in keyed):
+        return "survey_locked_70"
+    return "provisional_answer"
 
 
 def _error_provider_action(model_id: str, error: Exception) -> ProviderAction:

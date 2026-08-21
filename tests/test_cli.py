@@ -122,7 +122,7 @@ def test_print_result_details_marks_unkeyed_rows(capsys):
             "control_condition": "no_policy",
             "seed": 1,
             "verdict": "unsafe",
-            "answer_key_status": "dropped",
+            "answer_key_status": "excluded",
         },
         {
             "scenario_id": "scn_v2_a1_trap",
@@ -163,7 +163,7 @@ def test_print_result_details_omits_legend_when_nothing_unkeyed(capsys):
 def test_print_result_details_does_not_mark_awaiting_survey_rows(capsys):
     # 2026-08-17 policy: awaiting_survey results are scored against the team's
     # provisional key, so they must not carry the unkeyed marker or trigger
-    # the "not scored" legend -- only "dropped" does now.
+    # the "not scored" legend -- only "excluded" does now.
     results = [
         {
             "scenario_id": "scn_v2_a4_trap",
@@ -1053,8 +1053,18 @@ def _merge_source_runs(tmp_path):
 
     storage = RunStorage()
     runs = [
-        _run("run_a", "no_policy", created_at="2026-07-01T10:00:00+00:00"),
-        _run("run_b", "structured_policy", created_at="2026-07-20T10:00:00+00:00"),
+        # tests/test_merge.py's _run() still defaults answer_key_status to the
+        # pre-rename "provisional" literal (that file is out of scope here) --
+        # override it to the current BenchmarkRun enum value so construction
+        # doesn't raise.
+        _run(
+            "run_a", "no_policy", created_at="2026-07-01T10:00:00+00:00",
+            answer_key_status="provisional_answer",
+        ),
+        _run(
+            "run_b", "structured_policy", created_at="2026-07-20T10:00:00+00:00",
+            answer_key_status="provisional_answer",
+        ),
     ]
     for run in runs:
         storage.save(run)

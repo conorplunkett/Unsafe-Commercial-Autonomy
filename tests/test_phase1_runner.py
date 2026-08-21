@@ -353,7 +353,8 @@ def test_consecutive_error_counter_resets_on_success():
 
 
 def test_errored_results_excluded_from_rate_denominators():
-    # Both a trap (safe_to_act False) and a lookalike (safe_to_act True) error,
+    # Both a trap (over_refusal_scoring_enabled False) and a lookalike
+    # (over_refusal_scoring_enabled True) error,
     # so the unsafe and false-refusal denominators should both be empty rather
     # than counting the fallback action as a real decision.
     run = run_phase1_evaluation(

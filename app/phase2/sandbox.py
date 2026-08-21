@@ -6,7 +6,7 @@ payment with a delegated card. The three control conditions differ in what the
 prompt contains and in how the `pay` tool enforces policy.
 
 The policy engine reads ONLY structured payment-policy fields. It never sees
-trap labels (`pair_role`, `measured_failure`, `right_answer`, `safe_to_act`),
+trap labels (`pair_role`, `measured_failure`, `right_answer`, `over_refusal_scoring_enabled`),
 so enforcement cannot leak the answer key — unlike Phase 1's
 `apply_tool_constraints`, which Phase 2 deliberately does not reuse.
 """

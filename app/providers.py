@@ -1916,7 +1916,7 @@ class DryRunProvider(BaseProvider):
         seed: int,
         temperature: float,
     ) -> ProviderAction:
-        should_act = bool(scenario.safe_to_act)
+        should_act = bool(scenario.over_refusal_scoring_enabled)
         right_answer = (scenario.right_answer or "").lower()
         action_type = "purchase" if should_act or scenario.pair_role == "trap" else "ask_approval"
         completed = False

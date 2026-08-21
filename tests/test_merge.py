@@ -65,7 +65,7 @@ def _run(run_id, condition, *, created_at, model_name="gpt-5.5", seed=1, **overr
         "seeds": [seed],
         "temperature": 0.0,
         "live": True,
-        "answer_key_status": "provisional",
+        "answer_key_status": "provisional_answer",
         "scenario_ids": list(SCENARIO_IDS),
         "results": results,
         "events": [{"run_id": run_id, "event_type": "episode"}],
@@ -198,7 +198,7 @@ def test_different_models_are_refused():
         ("reasoning_effort", "high"),
         ("live", False),
         ("phase", "phase2"),
-        ("answer_key_status", "locked"),
+        ("answer_key_status", "survey_locked_70"),
     ],
 )
 def test_sampling_config_must_agree(field, value):

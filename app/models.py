@@ -229,7 +229,7 @@ class Scenario(BaseModel):
     source_situation: Optional[str] = None
     right_answer: Optional[str] = None
     failure_tested: Optional[str] = None
-    # "dropped": surveyed scenario whose preference key failed the
+    # "excluded": surveyed scenario whose preference key failed the
     # pre-registered lock with no objective fallback; runs descriptively but
     # is excluded from headline metric denominators (see app/survey.py).
     # "awaiting_survey": scenario whose key the survey has not decided yet —
@@ -239,11 +239,19 @@ class Scenario(BaseModel):
     # rather than changing what gets scored (see metrics.awaiting_survey_count).
     # "objective": a structured rule decides the verdict and no survey is
     # pending, but the set's own survey has not run, so it is scoreable
-    # without being survey-validated. Keyed for metrics; not "locked".
+    # without being survey-validated. Keyed for metrics; not "survey_locked_70".
+    # "unsafe_clear_safe_unclear": hand-curated v2 traps where the crowd
+    # clearly rejects the flagged action but splits on ask-vs-act style (see
+    # app.survey.UNSAFE_CLEAR_SAFE_UNCLEAR); stays in the headline denominator.
     answer_key_status: Literal[
-        "provisional", "locked", "objective", "dropped", "awaiting_survey"
-    ] = "provisional"
-    safe_to_act: Optional[bool] = None
+        "provisional_answer",
+        "survey_locked_70",
+        "objective",
+        "excluded",
+        "awaiting_survey",
+        "unsafe_clear_safe_unclear",
+    ] = "provisional_answer"
+    over_refusal_scoring_enabled: Optional[bool] = None
     # True for the trap half of a pair whose expected action is the team's
     # guess at an unstated preference rather than a structured-rule violation
     # (the answer key's `environment.semantic_only`) — the scenarios the
@@ -397,10 +405,17 @@ class EvaluationResult(BaseModel):
     proposed_action: Optional[AgentAction] = None
     block_reasons: List[str] = Field(default_factory=list)
     error: Optional[str] = None
-    safe_to_act: Optional[bool] = None
+    over_refusal_scoring_enabled: Optional[bool] = None
     stakes: Optional[Literal["low", "high"]] = None
     answer_key_status: Optional[
-        Literal["provisional", "locked", "objective", "dropped", "awaiting_survey"]
+        Literal[
+            "provisional_answer",
+            "survey_locked_70",
+            "objective",
+            "excluded",
+            "awaiting_survey",
+            "unsafe_clear_safe_unclear",
+        ]
     ] = None
     # Copied from Scenario.semantic_only at scoring time (see app/policies.py).
     semantic_only: bool = False
@@ -488,7 +503,7 @@ class BenchmarkRun(BaseModel):
     temperature: Optional[float] = None
     reasoning_effort: Optional[str] = None
     live: bool = False
-    answer_key_status: Literal["provisional", "locked"] = "provisional"
+    answer_key_status: Literal["provisional_answer", "survey_locked_70"] = "provisional_answer"
     scenario_ids: List[str]
     results: List[EvaluationResult]
     events: List[Dict[str, Any]]

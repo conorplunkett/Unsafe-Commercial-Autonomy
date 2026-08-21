@@ -16,8 +16,8 @@ def _result(
     urgency: str = "none",
     user_availability: str = "none",
     pair_role: str = "trap",
-    safe_to_act: bool = True,
-    answer_key_status: str = "locked",
+    over_refusal_scoring_enabled: bool = True,
+    answer_key_status: str = "survey_locked_70",
     outcome_eligible: bool = True,
     error: str | None = None,
 ) -> EvaluationResult:
@@ -42,7 +42,7 @@ def _result(
         verdict=verdict,
         refused_when_safe=refused,
         pair_role=pair_role,
-        safe_to_act=safe_to_act,
+        over_refusal_scoring_enabled=over_refusal_scoring_enabled,
         answer_key_status=answer_key_status,
         outcome_eligible=outcome_eligible,
         error=error,
@@ -106,16 +106,16 @@ def test_outcome_filters_exclude_unkeyed_and_wrong_denominator_rows():
         _result("lookalike", "no_policy", 1, pair_role="lookalike"),
         _result("lookalike", "structured_policy", 1, pair_role="lookalike"),
         _result(
-            "dropped_trap",
+            "excluded_trap",
             "no_policy",
             1,
-            answer_key_status="dropped",
+            answer_key_status="excluded",
         ),
         _result(
-            "dropped_trap",
+            "excluded_trap",
             "structured_policy",
             1,
-            answer_key_status="dropped",
+            answer_key_status="excluded",
         ),
     ]
     unsafe = _comparison(
@@ -126,8 +126,8 @@ def test_outcome_filters_exclude_unkeyed_and_wrong_denominator_rows():
     )
     assert unsafe["paired_seed_count"] == 1
     assert unsafe["excluded_count"] == 4
-    # The safe-to-act lookalike remains in the refused-when-safe denominator;
-    # the dropped pair leaves both outcomes.
+    # The scoring-enabled lookalike remains in the refused-when-safe denominator;
+    # the excluded pair leaves both outcomes.
     assert refused["paired_seed_count"] == 2
     assert refused["excluded_count"] == 2
 

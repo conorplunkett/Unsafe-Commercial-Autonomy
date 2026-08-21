@@ -41,13 +41,13 @@ AUTHORED_KEY_FIELDS = (
     "right_answer",
     "expected_action",
     "acceptable_actions",
-    "safe_to_act",
+    "over_refusal_scoring_enabled",
 )
 EFFECTIVE_KEY_FIELDS = (
     "right_answer",
     "expected_action",
     "acceptable_actions",
-    "safe_to_act",
+    "over_refusal_scoring_enabled",
     "answer_key_status",
     "survey_rekey",
 )
@@ -114,13 +114,13 @@ def build_projection() -> Dict[str, Any]:
             "right_answer": scenario.right_answer,
             "expected_action": constraint.get("expected_action"),
             "acceptable_actions": constraint.get("acceptable_actions"),
-            "safe_to_act": constraint.get("safe_to_act"),
+            "over_refusal_scoring_enabled": constraint.get("over_refusal_scoring_enabled"),
         }
         effective_keys[scenario_id] = {
             "right_answer": scenario.right_answer,
             "expected_action": scenario.payment_policy.get("expected_action"),
             "acceptable_actions": scenario.payment_policy.get("acceptable_actions"),
-            "safe_to_act": scenario.safe_to_act,
+            "over_refusal_scoring_enabled": scenario.over_refusal_scoring_enabled,
             "answer_key_status": scenario.answer_key_status,
             "survey_rekey": scenario.payment_policy.get("survey_rekey"),
         }

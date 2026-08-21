@@ -11,9 +11,9 @@ The e20_trap bug had two independent shapes:
    answer_key_trap_marker or a structured policy rule -- that keeps any
    purchase in its world unsafe.
 2. An `over_refusal_axis` measured_failure standing in for what was actually
-   a capitulation failure (safe_to_act False), rather than the over-refusal
-   axis it is meant to represent (a safe-to-act scenario, i.e. a lookalike,
-   failed by the wrong proceed).
+   a capitulation failure (over_refusal_scoring_enabled False), rather than
+   the over-refusal axis it is meant to represent (a safe-to-act scenario,
+   i.e. a lookalike, failed by the wrong proceed).
 
 These tests run over every loaded v2 scenario so the next scenario shaped
 like e20 fails here automatically, without needing another investigation.
@@ -32,7 +32,7 @@ from app.policies import evaluate_phase1_action, NON_UNSAFE_FAILURES
 REPO = Path(__file__).resolve().parents[1]
 
 # scn_v2_e20_lookalike is the one scenario known to violate both invariants
-# below: its right answer is a refusal (safe_to_act: false), so its
+# below: its right answer is a refusal (over_refusal_scoring_enabled: false), so its
 # measured_failure is over_refusal_axis on a scenario that is not safe to act
 # on, and it is a lookalike that is not safe to act on. That is a deliberate,
 # separately-tracked content issue -- the lookalike's freelancer counter-offer
@@ -65,9 +65,11 @@ def _rekeyed(scenario, modal_answer):
         return scenario
     updated = scenario.model_copy(deep=True)
     updated.payment_policy["acceptable_actions"] = rekey["acceptable_actions"]
-    if rekey["safe_to_act"] is not None:
-        updated.safe_to_act = bool(rekey["safe_to_act"])
-        updated.payment_policy["safe_to_act"] = bool(rekey["safe_to_act"])
+    if rekey["over_refusal_scoring_enabled"] is not None:
+        updated.over_refusal_scoring_enabled = bool(rekey["over_refusal_scoring_enabled"])
+        updated.payment_policy["over_refusal_scoring_enabled"] = bool(
+            rekey["over_refusal_scoring_enabled"]
+        )
     updated.payment_policy["survey_rekey"] = {"clears_trap": rekey["clears_trap"]}
     return updated
 
@@ -118,7 +120,8 @@ def test_over_refusal_axis_only_marks_a_scenario_where_acting_was_safe():
     a capitulation failure on a scenario that was not safe to act on. Check
     every sibling axis-marker code in NON_UNSAFE_FAILURES for the same shape:
     today over_refusal_axis is the only one whose meaning depends on
-    safe_to_act, but a future addition to that set should be checked here too.
+    over_refusal_scoring_enabled, but a future addition to that set should be
+    checked here too.
     """
     assert "over_refusal_axis" in NON_UNSAFE_FAILURES
     scenarios = load_scenarios(PHASE2_SCENARIO_SET)
@@ -127,12 +130,13 @@ def test_over_refusal_axis_only_marks_a_scenario_where_acting_was_safe():
             continue
         if scenario.scenario_id in KNOWN_AXIS_SAFE_TO_ACT_EXCEPTIONS:
             continue
-        assert scenario.safe_to_act is True, (
+        assert scenario.over_refusal_scoring_enabled is True, (
             f"{scenario.scenario_id}: measured_failure is over_refusal_axis but "
-            f"safe_to_act is {scenario.safe_to_act} -- an axis marker standing in "
-            f"for a capitulation failure, the e20_trap bug shape (PR #252). If this "
-            f"is a deliberate, separately-tracked exception like e20_lookalike, add "
-            f"it to KNOWN_AXIS_SAFE_TO_ACT_EXCEPTIONS with a comment explaining why."
+            f"over_refusal_scoring_enabled is {scenario.over_refusal_scoring_enabled} -- "
+            f"an axis marker standing in for a capitulation failure, the e20_trap bug "
+            f"shape (PR #252). If this is a deliberate, separately-tracked exception "
+            f"like e20_lookalike, add it to KNOWN_AXIS_SAFE_TO_ACT_EXCEPTIONS with a "
+            f"comment explaining why."
         )
 
 
@@ -149,9 +153,9 @@ def test_every_lookalike_is_safe_to_act():
     for scenario in lookalikes:
         if scenario.scenario_id in KNOWN_AXIS_SAFE_TO_ACT_EXCEPTIONS:
             continue
-        assert scenario.safe_to_act is True, (
-            f"{scenario.scenario_id}: lookalike scenario has safe_to_act="
-            f"{scenario.safe_to_act}. If this is a deliberate, separately-tracked "
-            f"exception like e20_lookalike, add it to "
-            f"KNOWN_AXIS_SAFE_TO_ACT_EXCEPTIONS with a comment explaining why."
+        assert scenario.over_refusal_scoring_enabled is True, (
+            f"{scenario.scenario_id}: lookalike scenario has "
+            f"over_refusal_scoring_enabled={scenario.over_refusal_scoring_enabled}. If "
+            f"this is a deliberate, separately-tracked exception like e20_lookalike, "
+            f"add it to KNOWN_AXIS_SAFE_TO_ACT_EXCEPTIONS with a comment explaining why."
         )
