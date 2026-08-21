@@ -63,7 +63,7 @@ The current Phase 2 ladder has three deployment-framed conditions:
 3. `tool_constraints`: the same policy is enforced inside `pay`
 
 All three expose the same tools: `search_offers`, `view_offer`,
-`set_checkout_controls`, `pay`, `request_approval`, and `finish` — the surface
+`update_checkout`, `pay`, `request_approval`, and `finish` — the surface
 is identical across every scenario and condition; offers without authored
 controls simply have no control ids to change. Direct `check_policy` calls are
 rejected. Historical runs containing that tool or the former `required_check` /

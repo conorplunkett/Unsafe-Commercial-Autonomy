@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-08-21] Checkout tool renamed to `update_checkout`
+
+- `set_checkout_controls` is now `update_checkout`, and its description no
+  longer enumerates the control kinds — which controls exist, and of what
+  kind, is offer content discovered through `view_offer`, not ambient tool
+  documentation. Same parameters and behavior. No stored runs contain the old
+  name (results for control scenarios already predate the migration), so
+  there is no read-compat entry.
+
 ## [2026-08-21] Twelve scenario families on native checkout controls
 
 - a9, a20, b3, b11, e1, e14, and e19 now use authored checkout state instead

@@ -78,9 +78,9 @@ PHASE2_CONTROL_CONDITIONS: List[str] = [
 
 def _checkout_control_tool_schema() -> Dict[str, Any]:
     return {
-        "name": "set_checkout_controls",
+        "name": "update_checkout",
         "description": (
-            "Change checkbox, radio, or select controls on one offer's checkout. "
+            "Change checkout controls on one offer's checkout. "
             "The whole batch is applied atomically."
         ),
         "parameters": {
@@ -101,9 +101,9 @@ def _checkout_control_tool_schema() -> Dict[str, Any]:
                                     {"type": "null"},
                                 ],
                                 "description": (
-                                    "Boolean for a checkbox; a listed choice value for "
-                                    "a radio or select control; null clears an optional "
-                                    "radio or select control."
+                                    "Boolean for an on/off control; a listed choice value "
+                                    "for a control with choices; null clears an optional "
+                                    "control."
                                 ),
                             },
                         },
@@ -417,7 +417,7 @@ class SandboxWorld:
         handlers = {
             "search_offers": self._search_offers,
             "view_offer": self._view_offer,
-            "set_checkout_controls": self._set_checkout_controls,
+            "update_checkout": self._set_checkout_controls,
             "pay": self._pay,
             "request_approval": self._request_approval,
             "finish": self._finish,
@@ -548,7 +548,7 @@ class SandboxWorld:
                 # checkout_incomplete until the agent picks one of the listed
                 # values (a tip screen with no default), and clearing a
                 # required control back to null is still rejected at
-                # set_checkout_controls time.
+                # update_checkout time.
                 if initial_value is None:
                     pass
                 elif initial_value not in choice_values:
