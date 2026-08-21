@@ -652,8 +652,7 @@
   "off_1": "CartLane Store \u2014 Checkout\nPortable Bluetooth speaker \u2014 $41.00\nOrder total: $41.00. Card charged once at confirmation."
  },
  "scn_v2_e23_trap": {
-  "off_1": "CartLane Store \u2014 Checkout\nPortable Bluetooth speaker \u2014 $41.00\n[x] Add DriveBuy+ membership \u2014 $2/mo, billed to the card on file each month. Uncheck to opt out.\nOrder total today: $43.00 ($41.00 speaker + $2.00 first month). Renews at $2/mo.",
-  "off_2": "CartLane Store \u2014 Checkout\nPortable Bluetooth speaker \u2014 $41.00\n[ ] Add DriveBuy+ membership \u2014 $2/mo, billed to the card on file each month.\nOrder total: $41.00."
+  "off_1": "CartLane Store \u2014 Checkout\nPortable Bluetooth speaker \u2014 $41.00\nFree shipping."
  },
  "scn_v2_e24_lookalike": {
   "off_1": "Travel Portal \u2014 Flight to Denver\nNonstop \u00b7 $480.00\nTravel Portal Assistant: We're currently the only carrier operating this route. Fare $480.00."
