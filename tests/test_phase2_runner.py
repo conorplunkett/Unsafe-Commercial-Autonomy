@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from itertools import product
 import re
 import sys
 
@@ -18,7 +19,12 @@ from app.phase2.providers import (
     resolve_phase2_model_ids,
 )
 from app.phase2.runner import PHASE2_CONTROL_CONDITIONS, run_phase2_evaluation
-from app.phase2.sandbox import USER_AVAILABILITY_LEVELS, URGENCY_LEVELS, evaluate_payment_policy
+from app.phase2.sandbox import (
+    USER_AVAILABILITY_LEVELS,
+    URGENCY_LEVELS,
+    SandboxWorld,
+    evaluate_payment_policy,
+)
 from app.storage import RunStorage
 
 V2_SET = DATA_DIR / "scenario_sets" / "v2_250_scenarios.md"
@@ -244,7 +250,7 @@ def test_diligent_agent_safe_on_enforceable_pair_and_uses_free_source():
     assert free_source.verdict == "safe"
 
 
-def test_scripted_diligent_agent_uses_the_current_five_tool_surface():
+def test_scripted_diligent_agent_uses_the_current_six_tool_surface():
     run = run_phase2_evaluation(
         model_ids=["scripted_diligent"],
         control_conditions=["tool_constraints"],
@@ -258,7 +264,14 @@ def test_scripted_diligent_agent_uses_the_current_five_tool_surface():
         if event["event_type"] == "tool_call"
     }
     assert "check_policy" not in tool_names
-    assert tool_names <= {"search_offers", "view_offer", "pay", "request_approval", "finish"}
+    assert tool_names <= {
+        "search_offers",
+        "view_offer",
+        "set_checkout_controls",
+        "pay",
+        "request_approval",
+        "finish",
+    }
 
 
 def test_transcript_recorded_in_audit_events():
@@ -1006,17 +1019,49 @@ def test_v2_constraints_cover_all_scenarios_and_are_consistent():
             canonical_allowed = {canonical_disclosure_field(f) for f in allowed}
             assert canonical_required <= canonical_allowed or scenario.pair_role == "trap", scenario_id
 
-        decisions = {
-            offer["offer_id"]: evaluate_payment_policy(
-                policy, offer, disclosed_fields=list(required_fields)
-            ).decision
-            for offer in offers
-        }
+        world = SandboxWorld(scenario, "tool_constraints")
+        decisions = {}
+        for offer in offers:
+            world_offer = world._offer(offer["offer_id"])
+            controls = world._controls_for(world_offer)
+            value_sets = []
+            for control in controls:
+                if control["kind"] == "checkbox":
+                    value_sets.append([False, True])
+                else:
+                    values = [choice["value"] for choice in control["choices"]]
+                    if not control.get("required", False):
+                        values.append(None)
+                    value_sets.append(values)
+            reachable = set()
+            for values in product(*value_sets) if value_sets else [()]:
+                world.checkout_control_values[offer["offer_id"]] = {
+                    control["control_id"]: value
+                    for control, value in zip(controls, values)
+                }
+                summary = world._checkout_summary(world_offer)
+                effective_offer = {
+                    **world_offer,
+                    "total": summary["amount"],
+                    "default_payment_type": summary["rail"],
+                    "recurring": summary["recurrence"]["recurring"],
+                }
+                reachable.add(
+                    evaluate_payment_policy(
+                        policy,
+                        effective_offer,
+                        payment_type=summary["rail"],
+                        disclosed_fields=summary["disclosures"],
+                    ).decision
+                )
+            decisions[offer["offer_id"]] = reachable
+
+        all_decisions = {decision for reachable in decisions.values() for decision in reachable}
 
         if "purchase" in entry["acceptable_actions"] and not (
             scenario.pair_role == "trap" and environment.get("semantic_only")
         ):
-            assert "allow" in decisions.values(), (scenario_id, decisions)
+            assert "allow" in all_decisions, (scenario_id, decisions)
 
         # Invariant: every objective (non-semantic_only) trap must be catchable
         # by *some* mechanism — either evaluate_payment_policy returns a
@@ -1029,12 +1074,12 @@ def test_v2_constraints_cover_all_scenarios_and_are_consistent():
         # was restored to give it a second, independent structured signal
         # (see 455590d).
         if scenario.pair_role == "trap" and not environment.get("semantic_only"):
-            assert any(d != "allow" for d in decisions.values()) or any(
+            assert any(d != "allow" for d in all_decisions) or any(
                 offer.get("answer_key_trap_marker") for offer in offers
             ), (scenario_id, decisions)
 
         if scenario.pair_role == "lookalike":
-            assert "allow" in decisions.values() or "purchase" not in entry["acceptable_actions"], (
+            assert "allow" in all_decisions or "purchase" not in entry["acceptable_actions"], (
                 scenario_id, decisions,
             )
 
@@ -1078,8 +1123,7 @@ def test_v2_page_text_never_leaks_the_situation():
 
 
 def test_offer_titles_never_narrate_the_trick():
-    """No listing title, merchant name, or merchant id carries author stage
-    directions about its own trap.
+    """No listing or checkout-control copy carries author stage directions.
 
     search_offers shows every offer's `item` and `merchant_name` before any
     inspection, and view_offer additionally shows `merchant_id` — so a title
@@ -1109,8 +1153,22 @@ def test_offer_titles_never_narrate_the_trick():
     )
     for scenario_id, entry in constraints.items():
         for offer in entry["environment"]["offers"]:
-            for field in ("offer_id", "item", "merchant_name", "merchant_id"):
-                text = offer.get(field) or ""
+            visible_copy = [
+                (field, offer.get(field) or "")
+                for field in ("offer_id", "item", "merchant_name", "merchant_id")
+            ]
+            for control in (offer.get("checkout") or {}).get("controls", []):
+                visible_copy.extend(
+                    [
+                        ("control_id", control.get("control_id") or ""),
+                        ("control_label", control.get("label") or ""),
+                    ]
+                )
+                visible_copy.extend(
+                    ("choice_label", choice.get("label") or "")
+                    for choice in control.get("choices", [])
+                )
+            for field, text in visible_copy:
                 match = stage_directions.search(text)
                 assert not match, (
                     f"{scenario_id}/{offer['offer_id']}: {field} {text!r} narrates the "

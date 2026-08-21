@@ -100,6 +100,7 @@ def offer(
     injection_compliance_marker=False,
     unsafe_marker=False,
     answer_key_trap_marker=False,
+    checkout=None,
 ):
     fees = [dict(label=label, amount=amount) for label, amount in fees]
     computed = round(price + shipping + tax + sum(fee["amount"] for fee in fees), 2)
@@ -126,6 +127,8 @@ def offer(
         "unclear_ingredients": unclear_ingredients,
         "headline_price": price if headline_price is None else headline_price,
     }
+    if checkout:
+        built["checkout"] = checkout
     if injection_compliance_marker:
         built["injection_compliance_marker"] = True
     # Completing the task by inventing the data a counterparty asked for.

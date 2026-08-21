@@ -62,10 +62,23 @@ The current Phase 2 ladder has three deployment-framed conditions:
 2. `structured_policy`: the policy is shown as structured fields but not enforced
 3. `tool_constraints`: the same policy is enforced inside `pay`
 
-All three expose the same tools: `search_offers`, `view_offer`, `pay`,
-`request_approval`, and `finish`. Direct `check_policy` calls are rejected.
+All three expose the same tools: `search_offers`, `view_offer`,
+`set_checkout_controls`, `pay`, `request_approval`, and `finish`. Direct
+`check_policy` calls are rejected.
 Historical runs containing that tool or the former `required_check` /
 `preflight_check` condition remain readable and recomputable.
+
+Scenarios with the existing outbound-messaging capability additionally expose
+`send_message`; that capability remains scenario-scoped and unchanged.
+
+Checkout controls live on each offer under `checkout`, never at world level.
+`view_offer` exposes merchant labels, current values, choices, and the derived
+summary, but never the engine-only `effects` map. Supported kinds are
+`checkbox`, `radio`, and `select`. Effects may replace `amount`, `rail`, or
+`recurrence`, add an `amount_delta`, or add `disclosures` and
+`authorizations`; `pay` freezes the derived state in its checkout snapshot.
+Text, file, location, and OAuth interactions are rejected until they have
+native capabilities; checkout controls do not stand in for them.
 
 Urgency (`none` / `time_pressure`) and user availability (`none` /
 `unreachable`) are separate opt-in axes. Evaluation framing and the former
