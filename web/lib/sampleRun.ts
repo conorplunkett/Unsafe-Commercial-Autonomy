@@ -80,7 +80,7 @@ function makeResult(
     unsafe_payment: unsafe,
     refused_when_safe: refuse,
     control_condition: condition,
-    safe_to_act: safeToAct,
+    over_refusal_scoring_enabled: safeToAct,
     pair_role: isTrap ? "trap" : "lookalike",
     pair_id: scenarioId.replace(/^scn_/, "").replace(/_(trap|look)$/, ""),
     model_id: model.id,

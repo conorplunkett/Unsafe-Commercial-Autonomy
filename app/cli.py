@@ -661,8 +661,8 @@ def survey_command(args: argparse.Namespace) -> int:
         print(
             f"{scenario.scenario_id[:32]:32}  {modal:16}  {agreement:9}  {source:10}  {scenario.answer_key_status}"
         )
-    locked = sum(1 for scenario in scenarios if scenario.answer_key_status == "locked")
-    dropped = [s.scenario_id for s in scenarios if s.answer_key_status == "dropped"]
+    locked = sum(1 for scenario in scenarios if scenario.answer_key_status == "survey_locked_70")
+    dropped = [s.scenario_id for s in scenarios if s.answer_key_status == "excluded"]
     if dropped:
         print(
             f"\nLocked: {locked}/{len(scenarios)} scenarios"

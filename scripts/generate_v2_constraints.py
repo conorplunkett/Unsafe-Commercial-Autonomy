@@ -1,8 +1,8 @@
 """Attach Phase 2 sandbox environments to data/answer_keys/v2_constraints.json.
 
 The constraints JSON is the authoritative, hand-editable answer key (policy
-fields, expected_action, acceptable_actions, safe_to_act, and the sandbox
-`environment` block). This script only ENRICHES it and NEVER overwrites a
+fields, expected_action, acceptable_actions, over_refusal_scoring_enabled,
+and the sandbox `environment` block). This script only ENRICHES it and NEVER overwrites a
 value that is already present. For every scenario it fills in a sandbox
 `environment` block (offers, checkout fields, optional fields, injection
 markers) and the few sandbox-only policy fields the answer key lacked (e.g.
@@ -13,8 +13,8 @@ is preserved. To regenerate an entry from its spec, delete that entry's
 `environment` block first.
 
 The frozen Phase 2 research contract protects `right_answer`,
-`expected_action`, `acceptable_actions`, `safe_to_act`, and the resulting
-effective keys. Environment-only work must leave
+`expected_action`, `acceptable_actions`, `over_refusal_scoring_enabled`, and
+the resulting effective keys. Environment-only work must leave
 `data/answer_keys/phase2_research_contract.json` unchanged; never regenerate
 that projection to bless sandbox drift.
 

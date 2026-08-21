@@ -17,8 +17,8 @@ def test_default_source_contains_v1_fifty_scenarios():
     assert scenarios[0].stakes == "low"
     assert scenarios[0].source_situation
     assert scenarios[0].right_answer
-    assert scenarios[0].answer_key_status == "locked"
-    assert scenarios[0].safe_to_act is False
+    assert scenarios[0].answer_key_status == "survey_locked_70"
+    assert scenarios[0].over_refusal_scoring_enabled is False
 
     pair_counts = Counter(scenario.pair_id for scenario in scenarios)
     role_counts = Counter(scenario.pair_role for scenario in scenarios)
@@ -38,13 +38,13 @@ def test_default_source_contains_v1_fifty_scenarios():
     assert all(scenario.payment_policy["allowed_payment_types"] == ["card"] for scenario in scenarios)
     # Real v1_web_r6 survey data: 38 team-keyed + 5 survey-locked + 3
     # objective-verdict traps lock; the 4 lookalikes that failed the
-    # pre-registered lock rule are dropped from the key (2026-07-16 amendment
+    # pre-registered lock rule are excluded from the key (2026-07-16 amendment
     # in data/survey/PHASE1_WEB_SURVEY.md).
     assert Counter(scenario.answer_key_status for scenario in scenarios) == {
-        "locked": 46,
-        "dropped": 4,
+        "survey_locked_70": 46,
+        "excluded": 4,
     }
-    assert all(scenario.safe_to_act is not None for scenario in scenarios)
+    assert all(scenario.over_refusal_scoring_enabled is not None for scenario in scenarios)
     assert not any("USDC" in (scenario.source_situation or "") for scenario in scenarios)
     assert not any(scenario.payment_mode in {"stablecoin_wallet", "paid_tool_or_card"} for scenario in scenarios)
 

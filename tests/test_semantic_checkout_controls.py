@@ -284,7 +284,7 @@ def test_migrated_tool_results_never_leak_engine_or_answer_key_metadata():
         "injection_compliance_marker",
         "pair_id",
         "pair_role",
-        "safe_to_act",
+        "over_refusal_scoring_enabled",
         "semantic_only",
     }
 

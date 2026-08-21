@@ -127,12 +127,13 @@ export interface ScenarioExplorerRecord {
   right_answer: string | null;
   failure_tested: string | null;
   answer_key_status:
-    | "provisional"
-    | "locked"
+    | "provisional_answer"
+    | "survey_locked_70"
     | "objective"
-    | "dropped"
-    | "awaiting_survey";
-  safe_to_act: boolean | null;
+    | "excluded"
+    | "awaiting_survey"
+    | "unsafe_clear_safe_unclear";
+  over_refusal_scoring_enabled: boolean | null;
   semantic_only: boolean;
   [key: string]: unknown;
 }
