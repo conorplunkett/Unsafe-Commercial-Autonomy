@@ -293,21 +293,32 @@ def _result_notes(result: dict) -> str:
 def _print_verdicts_and_failures(metrics: dict) -> None:
     verdict_counts = metrics.get("verdict_counts") or {}
     unkeyed_counts = metrics.get("verdict_counts_unkeyed") or {}
-    if unkeyed_counts:
-        # Some of the raw tally rests on dropped scenarios that never feed the
-        # headline rates (see UNKEYED_STATUSES) -- split it so a reader
-        # scanning "unsafe=N" here can't mistake it for the scored count.
+    outcome_excluded_counts = metrics.get("verdict_counts_outcome_excluded") or {}
+    if unkeyed_counts or outcome_excluded_counts:
+        # Split raw verdicts that never feed scientific outcome rates so a
+        # reader scanning "unsafe=N" cannot mistake them for scored counts.
         keyed_counts = metrics.get("verdict_counts_keyed") or {}
         ordered_keyed = sorted(keyed_counts.items(), key=lambda item: (-item[1], item[0]))
         print(
-            "Verdicts (keyed):     "
+            "Verdicts (scored):    "
             + "  ".join(f"{verdict}={count}" for verdict, count in ordered_keyed)
         )
-        ordered_unkeyed = sorted(unkeyed_counts.items(), key=lambda item: (-item[1], item[0]))
-        print(
-            "Verdicts (dropped, not scored): "
-            + "  ".join(f"{verdict}={count}" for verdict, count in ordered_unkeyed)
-        )
+        if unkeyed_counts:
+            ordered_unkeyed = sorted(
+                unkeyed_counts.items(), key=lambda item: (-item[1], item[0])
+            )
+            print(
+                "Verdicts (dropped key): "
+                + "  ".join(f"{verdict}={count}" for verdict, count in ordered_unkeyed)
+            )
+        if outcome_excluded_counts:
+            ordered_excluded = sorted(
+                outcome_excluded_counts.items(), key=lambda item: (-item[1], item[0])
+            )
+            print(
+                "Verdicts (outcome-excluded): "
+                + "  ".join(f"{verdict}={count}" for verdict, count in ordered_excluded)
+            )
     elif verdict_counts:
         ordered = sorted(verdict_counts.items(), key=lambda item: (-item[1], item[0]))
         print("Verdicts:     " + "  ".join(f"{verdict}={count}" for verdict, count in ordered))
@@ -336,23 +347,26 @@ def _print_result_details(results: List[dict]) -> None:
     header = f"{'Scenario':26} {'Condition':16} {'Sd':>2} {'K':1} {'Verdict':13} {'Action':32} Notes"
     print(header)
     print("-" * max(len(header), 96))
-    any_unkeyed = False
+    any_unscored = False
     for result in printed:
-        unkeyed = result.get("answer_key_status") in UNKEYED_STATUSES
-        any_unkeyed = any_unkeyed or unkeyed
+        unscored = (
+            result.get("answer_key_status") in UNKEYED_STATUSES
+            or result.get("outcome_eligible") is False
+        )
+        any_unscored = any_unscored or unscored
         print(
             f"{(result.get('scenario_id') or '-')[:26]:26} "
             f"{(result.get('control_condition') or '-')[:16]:16} "
             f"{(str(result.get('seed')) if result.get('seed') is not None else '-'):>2} "
-            f"{'*' if unkeyed else ' '} "
+            f"{'*' if unscored else ' '} "
             f"{(result.get('verdict') or '-')[:13]:13} "
             f"{_format_action(result.get('action'))[:32]:32} "
             f"{_result_notes(result)}"
         )
     if len(ordered) > _DETAIL_ROW_CAP:
         print(f"... {len(ordered) - _DETAIL_ROW_CAP} more (see the saved run JSON).")
-    if any_unkeyed:
-        print("* = dropped scenario: not scored in the headline rates.")
+    if any_unscored:
+        print("* = excluded from scientific outcome rates.")
 
     # Rationales are the most useful debugging signal for non-safe verdicts, so
     # print them in full(ish) instead of cramming them into the table.
@@ -448,6 +462,15 @@ def _print_summary(run_payload: dict, saved_path=None) -> None:
         print(
             f"Provisional survey keys: {metrics['awaiting_survey_count']} results scored "
             "against team keys the Phase 2 survey can still re-key"
+        )
+    if metrics.get("outcome_excluded_count"):
+        reasons = metrics.get("outcome_exclusion_reasons") or {}
+        reason_text = ", ".join(
+            f"{reason}={count}" for reason, count in sorted(reasons.items())
+        )
+        print(
+            f"Outcome exclusions: {metrics['outcome_excluded_count']} result(s)"
+            + (f" ({reason_text})" if reason_text else "")
         )
     by_semantic_only = metrics.get("by_semantic_only") or {}
     semantic_only_summary = by_semantic_only.get("semantic_only")
@@ -638,8 +661,8 @@ def survey_command(args: argparse.Namespace) -> int:
         print(
             f"{scenario.scenario_id[:32]:32}  {modal:16}  {agreement:9}  {source:10}  {scenario.answer_key_status}"
         )
-    locked = sum(1 for scenario in scenarios if scenario.answer_key_status == "locked")
-    dropped = [s.scenario_id for s in scenarios if s.answer_key_status == "dropped"]
+    locked = sum(1 for scenario in scenarios if scenario.answer_key_status == "survey_locked_70")
+    dropped = [s.scenario_id for s in scenarios if s.answer_key_status == "excluded"]
     if dropped:
         print(
             f"\nLocked: {locked}/{len(scenarios)} scenarios"
@@ -1265,6 +1288,7 @@ def recompute_command(args: argparse.Namespace) -> int:
         denominator = run.metrics.get("unsafe_denominator", "n/a")
         print(
             f"{run.run_id}: pair_role backfilled on {stamped} episode(s); "
+            f"outcome-excluded {run.metrics.get('outcome_excluded_count', 0)}; "
             f"unsafe {before} -> {after} ({denominator})."
         )
 

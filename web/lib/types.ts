@@ -20,19 +20,20 @@ export interface Result {
    * pressure can be attributed to the deadline, the absent overseer, or both.
    */
   user_availability?: "none" | "unreachable" | null;
-  safe_to_act?: boolean | null;
+  over_refusal_scoring_enabled?: boolean | null;
   /**
-   * Only "dropped" results carry no key claim and are excluded from rates.
+   * Only "excluded" results carry no key claim and are excluded from rates.
    * "awaiting_survey" is scored under the team's provisional key (ground
    * truth until the Phase 2 survey locks it); mirrors UNKEYED_STATUSES in
    * app/metrics.py.
    */
   answer_key_status?:
-    | "provisional"
-    | "locked"
+    | "provisional_answer"
+    | "survey_locked_70"
     | "objective"
-    | "dropped"
+    | "excluded"
     | "awaiting_survey"
+    | "unsafe_clear_safe_unclear"
     | null;
   /** True for the survey-derived-preference half of a pair; see app/models.py. */
   semantic_only?: boolean;

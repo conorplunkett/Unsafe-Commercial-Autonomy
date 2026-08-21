@@ -401,8 +401,8 @@ def _parse_scenario_set_markdown(path: Path) -> List[Scenario]:
                     "right_answer": right_answer,
                     "failure_tested": failure_tested,
                     "stakes": stakes.lower(),
-                    "answer_key_status": "provisional",
-                    "safe_to_act": safe_autonomous_allowed,
+                    "answer_key_status": "provisional_answer",
+                    "over_refusal_scoring_enabled": safe_autonomous_allowed,
                     "allowed_payment_types": ["card"],
                     "payment_capability": "delegated_card",
                 },
@@ -425,8 +425,8 @@ def _parse_scenario_set_markdown(path: Path) -> List[Scenario]:
                 "source_situation": situation,
                 "right_answer": right_answer,
                 "failure_tested": failure_tested,
-                "answer_key_status": "provisional",
-                "safe_to_act": safe_autonomous_allowed,
+                "answer_key_status": "provisional_answer",
+                "over_refusal_scoring_enabled": safe_autonomous_allowed,
             }
             scenario_id = raw_scenario["scenario_id"]
             scenario_constraints = constraints.get(scenario_id)
@@ -449,12 +449,17 @@ def _parse_scenario_set_markdown(path: Path) -> List[Scenario]:
                 elif sandbox_overrides:
                     raw_scenario["environment"]["sandbox"] = sandbox_overrides
                 raw_scenario["payment_policy"].update(scenario_constraints)
-                # An explicit answer-key safe_to_act overrides the wording
-                # heuristic, which is sensitive to right-answer phrasing.
-                if "safe_to_act" in scenario_constraints:
-                    explicit_safe = bool(scenario_constraints["safe_to_act"])
-                    raw_scenario["safe_to_act"] = explicit_safe
-                    raw_scenario["payment_policy"]["safe_to_act"] = explicit_safe
+                # An explicit answer-key over_refusal_scoring_enabled overrides the
+                # wording heuristic, which is sensitive to right-answer phrasing.
+                # v1_constraints.json is locked and keeps its legacy JSON key
+                # ("safe_to_act") forever; v2 (and any future source_version) reads
+                # the renamed key. Either branch assigns into the same renamed
+                # internal keys below.
+                override_key = "safe_to_act" if source_version == "v1" else "over_refusal_scoring_enabled"
+                if override_key in scenario_constraints:
+                    explicit_safe = bool(scenario_constraints[override_key])
+                    raw_scenario["over_refusal_scoring_enabled"] = explicit_safe
+                    raw_scenario["payment_policy"]["over_refusal_scoring_enabled"] = explicit_safe
                     raw_scenario["expected_safe_behavior"]["safe_autonomous_allowed"] = explicit_safe
             # The Phase 2 instrument surveys exactly the `semantic_only` traps
             # (guard-tested in tests/test_phase2_web_instrument.py), so that
@@ -462,6 +467,27 @@ def _parse_scenario_set_markdown(path: Path) -> List[Scenario]:
             raw_scenario["semantic_only"] = bool(
                 raw_scenario["environment"].get("sandbox", {}).get("semantic_only")
             )
+            measurement = (
+                raw_scenario["environment"].get("sandbox", {}).get("measurement") or {}
+            )
+            if not isinstance(measurement, dict):
+                raise ValueError(f"{scenario_id}: environment.measurement must be an object")
+            outcome_eligible = measurement.get("outcome_eligible", True)
+            exclusion_reason = measurement.get("exclusion_reason")
+            if not isinstance(outcome_eligible, bool):
+                raise ValueError(
+                    f"{scenario_id}: measurement.outcome_eligible must be boolean"
+                )
+            if outcome_eligible and exclusion_reason is not None:
+                raise ValueError(
+                    f"{scenario_id}: eligible outcomes cannot carry an exclusion reason"
+                )
+            if not outcome_eligible and not isinstance(exclusion_reason, str):
+                raise ValueError(
+                    f"{scenario_id}: excluded outcomes require an exclusion reason"
+                )
+            raw_scenario["outcome_eligible"] = outcome_eligible
+            raw_scenario["outcome_exclusion_reason"] = exclusion_reason
             surveyed = pair_role == "trap" and raw_scenario["semantic_only"]
             # The survey is the measurement instrument for these keys: once an
             # item locks, the key adopts the survey's supported answer set here,
@@ -484,10 +510,10 @@ def _parse_scenario_set_markdown(path: Path) -> List[Scenario]:
                     raw_scenario["payment_policy"]["acceptable_actions"] = rekey[
                         "acceptable_actions"
                     ]
-                    if rekey["safe_to_act"] is not None:
-                        rekeyed_safe = bool(rekey["safe_to_act"])
-                        raw_scenario["safe_to_act"] = rekeyed_safe
-                        raw_scenario["payment_policy"]["safe_to_act"] = rekeyed_safe
+                    if rekey["over_refusal_scoring_enabled"] is not None:
+                        rekeyed_safe = bool(rekey["over_refusal_scoring_enabled"])
+                        raw_scenario["over_refusal_scoring_enabled"] = rekeyed_safe
+                        raw_scenario["payment_policy"]["over_refusal_scoring_enabled"] = rekeyed_safe
                         raw_scenario["expected_safe_behavior"][
                             "safe_autonomous_allowed"
                         ] = rekeyed_safe

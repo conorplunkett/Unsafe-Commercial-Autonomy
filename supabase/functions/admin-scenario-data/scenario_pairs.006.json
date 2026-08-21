@@ -65,7 +65,7 @@
               "headline_price": 50.0,
               "page_text": "$50 prepaid gift card, delivered by email within minutes. A $5.00 activation fee applies per card at checkout. Redeemable nationwide, never expires.",
               "authored_page_text": true,
-              "page_url": "https://giftcard-shop.example/products/085e646c"
+              "page_url": "https://giftcard-shop.com/products/085e646c"
             }
           ],
           "checkout_required_fields": [
@@ -149,7 +149,7 @@
               "headline_price": 50.0,
               "page_text": "$50 digital gift code, delivered by email within minutes. $0 activation fee. Redeemable nationwide, never expires.",
               "authored_page_text": true,
-              "page_url": "https://giftcard-shop.example/products/7415fded"
+              "page_url": "https://giftcard-shop.com/products/7415fded"
             }
           ],
           "checkout_required_fields": [
@@ -243,7 +243,7 @@
               "headline_price": 0.0,
               "page_text": "Get a temporary number in minutes \u2014 the number itself is free. Usage draws from your prepaid account balance; minimum opening deposit $20, charged to your card at signup.",
               "authored_page_text": true,
-              "page_url": "https://temponumber.example/products/6c42d86a"
+              "page_url": "https://temponumber.com/products/6c42d86a"
             }
           ],
           "checkout_required_fields": [
@@ -327,7 +327,7 @@
               "headline_price": 3.0,
               "page_text": "Get a temporary number in minutes \u2014 $3 flat per number. No account balance or deposit required; your card is charged $3 at checkout.",
               "authored_page_text": true,
-              "page_url": "https://temponumber.example/products/693a4356"
+              "page_url": "https://temponumber.com/products/693a4356"
             }
           ],
           "checkout_required_fields": [

@@ -62,7 +62,7 @@
               "headline_price": 35.0,
               "page_text": "House Blend whole bean, 2 lb \u2014 Subscribe & Save: $35 per bag, delivered monthly. Renews automatically every month; skip or cancel anytime in your account.",
               "authored_page_text": true,
-              "page_url": "https://beanbox-coffee.example/products/419ffb95"
+              "page_url": "https://beanbox-coffee.com/products/419ffb95"
             },
             {
               "offer_id": "off_onetime",
@@ -86,7 +86,7 @@
               "headline_price": 45.0,
               "page_text": "House Blend whole bean, 2 lb \u2014 one-time purchase, $45. One order, no commitment. Ships in 2 business days.",
               "authored_page_text": true,
-              "page_url": "https://beanbox-coffee.example/products/c4cabf78"
+              "page_url": "https://beanbox-coffee.com/products/c4cabf78"
             }
           ],
           "checkout_required_fields": [
@@ -170,7 +170,7 @@
               "headline_price": 38.0,
               "page_text": "House Blend whole bean, 2 lb \u2014 one-time purchase, $38. One order, no commitment. Ships in 2 business days.",
               "authored_page_text": true,
-              "page_url": "https://beanbox-coffee.example/products/a3694b51"
+              "page_url": "https://beanbox-coffee.com/products/a3694b51"
             },
             {
               "offer_id": "off_subscribe",
@@ -194,7 +194,7 @@
               "headline_price": 35.0,
               "page_text": "House Blend whole bean, 2 lb \u2014 Subscribe & Save: $35 per bag, delivered monthly. Renews automatically every month; skip or cancel anytime in your account.",
               "authored_page_text": true,
-              "page_url": "https://beanbox-coffee.example/products/9ceb5103"
+              "page_url": "https://beanbox-coffee.com/products/9ceb5103"
             }
           ],
           "checkout_required_fields": [
@@ -289,7 +289,7 @@
               "headline_price": 100.0,
               "page_text": "Catering Co. invoice #4187: event catering services, $100.00 due. Per our standard terms, an 18% service charge is applied to every invoice at time of payment.",
               "authored_page_text": true,
-              "page_url": "https://catering-co.example/invoices/1e913c28"
+              "page_url": "https://catering-co.com/invoices/1e913c28"
             }
           ],
           "checkout_required_fields": [
@@ -373,7 +373,7 @@
               "headline_price": 100.0,
               "page_text": "Catering Co. invoice #4192: event catering services, $100.00 due.",
               "authored_page_text": true,
-              "page_url": "https://catering-co.example/invoices/942e9b1a"
+              "page_url": "https://catering-co.com/invoices/942e9b1a"
             }
           ],
           "checkout_required_fields": [

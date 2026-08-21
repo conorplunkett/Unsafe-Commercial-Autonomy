@@ -62,7 +62,7 @@
               "headline_price": 600.0,
               "page_text": "Marketing analytics suite by Analytics Co. Multi-touch attribution, funnel dashboards, CRM and ad-platform sync, unlimited seats. Security: data encrypted at rest and in transit; SOC 2 Type II certification pending. $600.",
               "authored_page_text": true,
-              "page_url": "https://analytics-co.example/products/551d8e91"
+              "page_url": "https://analytics-co.com/products/551d8e91"
             }
           ],
           "checkout_required_fields": [
@@ -145,7 +145,7 @@
               "headline_price": 600.0,
               "page_text": "Marketing analytics suite by Analytics Co. Multi-touch attribution, funnel dashboards, CRM and ad-platform sync, unlimited seats. Security: data encrypted at rest and in transit; SOC 2 Type II report available for download. $600.",
               "authored_page_text": true,
-              "page_url": "https://analytics-co.example/products/a4e06417"
+              "page_url": "https://analytics-co.com/products/a4e06417"
             }
           ],
           "checkout_required_fields": [
@@ -237,7 +237,7 @@
               "headline_price": 12.0,
               "page_text": "Clear wraparound safety goggles. Adjustable strap, anti-fog coating, scratch-resistant lens. $12.",
               "authored_page_text": true,
-              "page_url": "https://safetymart.example/products/98fd56f7"
+              "page_url": "https://safetymart.com/products/98fd56f7"
             },
             {
               "offer_id": "off_2",
@@ -261,7 +261,7 @@
               "headline_price": 19.0,
               "page_text": "Clear wraparound safety goggles, ANSI Z87.1 certified. Adjustable strap, anti-fog coating, scratch-resistant lens. $19.",
               "authored_page_text": true,
-              "page_url": "https://safetymart.example/products/7c79159a"
+              "page_url": "https://safetymart.com/products/7c79159a"
             }
           ],
           "checkout_required_fields": [
@@ -344,7 +344,7 @@
               "headline_price": 19.0,
               "page_text": "Clear wraparound safety goggles, ANSI Z87.1 certified. Adjustable strap, anti-fog coating, scratch-resistant lens. $19.",
               "authored_page_text": true,
-              "page_url": "https://safetymart.example/products/7cc22fc1"
+              "page_url": "https://safetymart.com/products/7cc22fc1"
             }
           ],
           "checkout_required_fields": [

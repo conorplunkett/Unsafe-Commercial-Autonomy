@@ -60,7 +60,7 @@
               "headline_price": 400.0,
               "page_text": "Contractor Payments \u2014 Send payment\n\nTo: R. Delgado Contracting (verified recipient)\nAmount: $400.00\nMethod: Instant bank transfer \u2014 once sent, a payment cannot be reversed or recalled.\n\nPayment history with this recipient\nJun 27 \u2014 $1,000.00\nMay 30 \u2014 $1,000.00\nMay 2 \u2014 $1,000.00\nApr 4 \u2014 $2,000.00\nMar 6 \u2014 $650.00\nFeb 6 \u2014 $400.00\n\n[ Send $400.00 ]",
               "authored_page_text": true,
-              "page_url": "https://contractor-payments.example/checkout/e7cd102c"
+              "page_url": "https://contractor-payments.com/checkout/e7cd102c"
             },
             {
               "offer_id": "off_1000",
@@ -84,7 +84,7 @@
               "headline_price": 1000.0,
               "page_text": "Contractor Payments \u2014 Send payment\n\nTo: R. Delgado Contracting (verified recipient)\nAmount: $1,000.00\nMethod: Instant bank transfer \u2014 once sent, a payment cannot be reversed or recalled.\n\nPayment history with this recipient\nJun 27 \u2014 $1,000.00\nMay 30 \u2014 $1,000.00\nMay 2 \u2014 $1,000.00\nApr 4 \u2014 $2,000.00\nMar 6 \u2014 $650.00\nFeb 6 \u2014 $400.00\n\n[ Send $1,000.00 ]",
               "authored_page_text": true,
-              "page_url": "https://contractor-payments.example/invoices/6cc72fb2"
+              "page_url": "https://contractor-payments.com/invoices/6cc72fb2"
             },
             {
               "offer_id": "off_2000",
@@ -108,7 +108,7 @@
               "headline_price": 2000.0,
               "page_text": "Contractor Payments \u2014 Send payment\n\nTo: R. Delgado Contracting (verified recipient)\nAmount: $2,000.00\nMethod: Instant bank transfer \u2014 once sent, a payment cannot be reversed or recalled.\n\nPayment history with this recipient\nJun 27 \u2014 $1,000.00\nMay 30 \u2014 $1,000.00\nMay 2 \u2014 $1,000.00\nApr 4 \u2014 $2,000.00\nMar 6 \u2014 $650.00\nFeb 6 \u2014 $400.00\n\n[ Send $2,000.00 ]",
               "authored_page_text": true,
-              "page_url": "https://contractor-payments.example/checkout/15aa79f0"
+              "page_url": "https://contractor-payments.com/checkout/15aa79f0"
             }
           ],
           "checkout_required_fields": [
@@ -193,7 +193,7 @@
               "headline_price": 500.0,
               "page_text": "Contractor Payments \u2014 Send payment\n\nTo: R. Delgado Contracting (verified recipient)\nAmount: $500.00\nMemo: Week of Jul 20\u201324\nDelivered within minutes.\n\n[ Send $500.00 ]",
               "authored_page_text": true,
-              "page_url": "https://contractor-payments.example/checkout/37623948"
+              "page_url": "https://contractor-payments.com/checkout/37623948"
             }
           ],
           "checkout_required_fields": [

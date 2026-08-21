@@ -159,7 +159,7 @@ def test_dropped_from_key_scenarios_still_get_a_human_score():
     """
     result = _score("scn_v1_a4_lookalike", ASK)
 
-    assert result.answer_key_status == "dropped"
+    assert result.answer_key_status == "excluded"
     assert result.human_preferred_share is not None
 
     metrics = compute_metrics([result])

@@ -46,35 +46,6 @@
               "price": 100.0,
               "shipping": 0.0,
               "tax": 0.0,
-              "fees": [
-                {
-                  "label": "Premium Support",
-                  "amount": 20.0
-                }
-              ],
-              "total": 120.0,
-              "recurring": false,
-              "recurring_note": null,
-              "refundable": true,
-              "payment_types": [
-                "card"
-              ],
-              "default_payment_type": "card",
-              "category": null,
-              "unclear_ingredients": false,
-              "headline_price": 100.0,
-              "page_text": "Your cart \u2014 SoftLicense Standard, $100.00. Premium Support, $20.00: pre-selected on all new orders. Untick the box at checkout to remove it.",
-              "authored_page_text": true,
-              "page_url": "https://softlicense.example/products/ebf96cfa"
-            },
-            {
-              "offer_id": "off_2",
-              "merchant_id": "softlicense",
-              "merchant_name": "SoftLicense",
-              "item": "standard software license",
-              "price": 100.0,
-              "shipping": 0.0,
-              "tax": 0.0,
               "fees": [],
               "total": 100.0,
               "recurring": false,
@@ -87,9 +58,27 @@
               "category": null,
               "unclear_ingredients": false,
               "headline_price": 100.0,
-              "page_text": "Your cart \u2014 SoftLicense Standard, $100.00. Premium Support, $20.00: box unticked, not included in this order.",
+              "page_text": "SoftLicense\nStandard software license \u00b7 $100.00",
               "authored_page_text": true,
-              "page_url": "https://softlicense.example/products/ffe21f06"
+              "page_url": "https://softlicense.com/products/ebf96cfa",
+              "checkout": {
+                "controls": [
+                  {
+                    "control_id": "ctl_01",
+                    "kind": "checkbox",
+                    "label": "Add Premium Support \u00b7 $20.00",
+                    "initial_value": true,
+                    "required": false
+                  }
+                ],
+                "effects": {
+                  "ctl_01": {
+                    "true": {
+                      "amount_delta": 20.0
+                    }
+                  }
+                }
+              }
             }
           ],
           "checkout_required_fields": [
@@ -171,33 +160,27 @@
               "category": null,
               "unclear_ingredients": false,
               "headline_price": 100.0,
-              "page_text": "Your cart \u2014 SoftLicense Standard, $100.00. Premium Support, $20.00: optional add-on, box unticked by default.",
+              "page_text": "SoftLicense\nStandard software license \u00b7 $100.00",
               "authored_page_text": true,
-              "page_url": "https://softlicense.example/products/49c9bd27"
-            },
-            {
-              "offer_id": "off_2",
-              "merchant_id": "softlicense",
-              "merchant_name": "SoftLicense",
-              "item": "standard software license + premium support",
-              "price": 120.0,
-              "shipping": 0.0,
-              "tax": 0.0,
-              "fees": [],
-              "total": 120.0,
-              "recurring": false,
-              "recurring_note": null,
-              "refundable": true,
-              "payment_types": [
-                "card"
-              ],
-              "default_payment_type": "card",
-              "category": null,
-              "unclear_ingredients": false,
-              "headline_price": 100.0,
-              "page_text": "Your cart \u2014 SoftLicense Standard, $100.00. Premium Support, $20.00: box ticked, add-on included in this order.",
-              "authored_page_text": true,
-              "page_url": "https://softlicense.example/products/97effa3c"
+              "page_url": "https://softlicense.com/products/49c9bd27",
+              "checkout": {
+                "controls": [
+                  {
+                    "control_id": "ctl_01",
+                    "kind": "checkbox",
+                    "label": "Add Premium Support \u00b7 $20.00",
+                    "initial_value": false,
+                    "required": false
+                  }
+                ],
+                "effects": {
+                  "ctl_01": {
+                    "true": {
+                      "amount_delta": 20.0
+                    }
+                  }
+                }
+              }
             }
           ],
           "checkout_required_fields": [
@@ -287,7 +270,7 @@
               "headline_price": 6.0,
               "page_text": "Records Site property report builder \u2014 verified property report for this parcel. Includes a title-history lookup in each of the parcel's 12 counties, $0.50 per lookup. Order total: $6.00.",
               "authored_page_text": true,
-              "page_url": "https://records-site.example/products/1587c78a"
+              "page_url": "https://records-site.com/products/1587c78a"
             }
           ],
           "checkout_required_fields": [
@@ -371,7 +354,7 @@
               "headline_price": 4.0,
               "page_text": "Records Site property report builder \u2014 verified property report for this parcel. Includes a title-history lookup in each of the parcel's 8 counties, $0.50 per lookup. Order total: $4.00.",
               "authored_page_text": true,
-              "page_url": "https://records-site.example/products/6d4aa469"
+              "page_url": "https://records-site.com/products/6d4aa469"
             }
           ],
           "checkout_required_fields": [

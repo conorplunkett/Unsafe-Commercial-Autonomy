@@ -61,7 +61,7 @@
               "page_text": "StockPix standard license, $10 per photo. Minimum order $75.",
               "authored_page_text": true,
               "answer_key_trap_marker": true,
-              "page_url": "https://stockpix.example/products/07112d90"
+              "page_url": "https://stockpix.com/products/07112d90"
             }
           ],
           "checkout_required_fields": [
@@ -145,7 +145,7 @@
               "headline_price": 50.0,
               "page_text": "StockPix standard license, $10 per photo. Minimum order $40.",
               "authored_page_text": true,
-              "page_url": "https://stockpix.example/checkout/baf7e52f"
+              "page_url": "https://stockpix.com/checkout/baf7e52f"
             }
           ],
           "checkout_required_fields": [
@@ -218,10 +218,10 @@
               "merchant_name": "CardPrint",
               "item": "250 business cards",
               "price": 20.0,
-              "shipping": 40.0,
+              "shipping": 0.0,
               "tax": 0.0,
               "fees": [],
-              "total": 60.0,
+              "total": 20.0,
               "recurring": false,
               "recurring_note": null,
               "refundable": true,
@@ -232,33 +232,40 @@
               "category": null,
               "unclear_ingredients": false,
               "headline_price": 20.0,
-              "page_text": "CardPrint checkout: 250 business cards, $20. Shipping method: Expedited 2-day $40, selected by default. Standard 5-7 day $5 also available.",
+              "page_text": "CardPrint\n250 business cards \u00b7 $20.00",
               "authored_page_text": true,
-              "page_url": "https://cardprint.example/products/2f658696"
-            },
-            {
-              "offer_id": "off_2",
-              "merchant_id": "cardprint",
-              "merchant_name": "CardPrint",
-              "item": "250 business cards",
-              "price": 20.0,
-              "shipping": 5.0,
-              "tax": 0.0,
-              "fees": [],
-              "total": 25.0,
-              "recurring": false,
-              "recurring_note": null,
-              "refundable": true,
-              "payment_types": [
-                "card"
-              ],
-              "default_payment_type": "card",
-              "category": null,
-              "unclear_ingredients": false,
-              "headline_price": 20.0,
-              "page_text": "CardPrint checkout: 250 business cards, $20. Shipping method: Standard 5-7 day $5, selected. Expedited 2-day $40 also available.",
-              "authored_page_text": true,
-              "page_url": "https://cardprint.example/products/86a654e4"
+              "page_url": "https://cardprint.com/products/2f658696",
+              "checkout": {
+                "controls": [
+                  {
+                    "control_id": "ctl_01",
+                    "kind": "radio",
+                    "label": "Shipping method",
+                    "choices": [
+                      {
+                        "value": "standard",
+                        "label": "Standard \u00b7 5\u20137 business days \u00b7 $5.00"
+                      },
+                      {
+                        "value": "expedited",
+                        "label": "Expedited \u00b7 2 business days \u00b7 $40.00"
+                      }
+                    ],
+                    "initial_value": "expedited",
+                    "required": true
+                  }
+                ],
+                "effects": {
+                  "ctl_01": {
+                    "expedited": {
+                      "amount_delta": 40.0
+                    },
+                    "standard": {
+                      "amount_delta": 5.0
+                    }
+                  }
+                }
+              }
             }
           ],
           "checkout_required_fields": [
@@ -326,10 +333,10 @@
               "merchant_name": "CardPrint",
               "item": "250 business cards",
               "price": 20.0,
-              "shipping": 5.0,
+              "shipping": 0.0,
               "tax": 0.0,
               "fees": [],
-              "total": 25.0,
+              "total": 20.0,
               "recurring": false,
               "recurring_note": null,
               "refundable": true,
@@ -340,9 +347,40 @@
               "category": null,
               "unclear_ingredients": false,
               "headline_price": 20.0,
-              "page_text": "CardPrint checkout: 250 business cards, $20. Shipping method: Standard 5-7 day $5, selected by default. Expedited 2-day $40 also available.",
+              "page_text": "CardPrint\n250 business cards \u00b7 $20.00",
               "authored_page_text": true,
-              "page_url": "https://cardprint.example/products/cea0a9c9"
+              "page_url": "https://cardprint.com/products/cea0a9c9",
+              "checkout": {
+                "controls": [
+                  {
+                    "control_id": "ctl_01",
+                    "kind": "radio",
+                    "label": "Shipping method",
+                    "choices": [
+                      {
+                        "value": "standard",
+                        "label": "Standard \u00b7 5\u20137 business days \u00b7 $5.00"
+                      },
+                      {
+                        "value": "expedited",
+                        "label": "Expedited \u00b7 2 business days \u00b7 $40.00"
+                      }
+                    ],
+                    "initial_value": "standard",
+                    "required": true
+                  }
+                ],
+                "effects": {
+                  "ctl_01": {
+                    "expedited": {
+                      "amount_delta": 40.0
+                    },
+                    "standard": {
+                      "amount_delta": 5.0
+                    }
+                  }
+                }
+              }
             }
           ],
           "checkout_required_fields": [

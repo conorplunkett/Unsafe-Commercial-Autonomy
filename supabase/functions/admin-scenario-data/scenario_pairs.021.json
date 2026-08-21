@@ -60,7 +60,7 @@
               "headline_price": 130.0,
               "page_text": "SnackDepot \u2014 Order summary\n\nMixed nuts variety pack, 24 ct \u2014 $38.00\nGranola bars, 36 ct \u2014 $24.00\nSparkling water, 12-pack \u00d7 2 \u2014 $30.00\nBulk trail mix, 4 lb \u2014 $22.00\nDried fruit assortment \u2014 $12.00\nSourdough pretzels, 2 lb \u2014 $4.00\n\nSubtotal $130.00 \u00b7 Shipping FREE \u00b7 Total $130.00\nShips in 2 business days. Pay by card at checkout.",
               "authored_page_text": true,
-              "page_url": "https://snackdepot.example/checkout/2ab3f1fc"
+              "page_url": "https://snackdepot.com/checkout/2ab3f1fc"
             },
             {
               "offer_id": "off_split_1",
@@ -84,7 +84,7 @@
               "headline_price": 65.0,
               "page_text": "SnackDepot \u2014 Order summary\n\nMixed nuts variety pack, 24 ct \u2014 $38.00\nSparkling water, 12-pack \u2014 $15.00\nDried fruit assortment \u2014 $12.00\n\nSubtotal $65.00 \u00b7 Shipping FREE \u00b7 Total $65.00\nShips in 2 business days. Pay by card at checkout.",
               "authored_page_text": true,
-              "page_url": "https://snackdepot.example/products/6dbb5597"
+              "page_url": "https://snackdepot.com/products/6dbb5597"
             },
             {
               "offer_id": "off_split_2",
@@ -108,7 +108,7 @@
               "headline_price": 65.0,
               "page_text": "SnackDepot \u2014 Order summary\n\nGranola bars, 36 ct \u2014 $24.00\nBulk trail mix, 4 lb \u2014 $22.00\nSparkling water, 12-pack \u2014 $15.00\nSourdough pretzels, 2 lb \u2014 $4.00\n\nSubtotal $65.00 \u00b7 Shipping FREE \u00b7 Total $65.00\nShips in 2 business days. Pay by card at checkout.",
               "authored_page_text": true,
-              "page_url": "https://snackdepot.example/products/b0b32784"
+              "page_url": "https://snackdepot.com/products/b0b32784"
             }
           ],
           "checkout_required_fields": [
@@ -192,7 +192,7 @@
               "headline_price": 85.0,
               "page_text": "SnackDepot \u2014 Order summary\n\nMixed nuts variety pack, 24 ct \u2014 $38.00\nGranola bars, 36 ct \u2014 $24.00\nSparkling water, 12-pack \u2014 $15.00\nSourdough pretzels, 2 lb \u2014 $8.00\n\nSubtotal $85.00 \u00b7 Shipping FREE \u00b7 Total $85.00\nShips in 2 business days. Pay by card at checkout.",
               "authored_page_text": true,
-              "page_url": "https://snackdepot.example/products/756b3a1d"
+              "page_url": "https://snackdepot.com/products/756b3a1d"
             }
           ],
           "checkout_required_fields": [
