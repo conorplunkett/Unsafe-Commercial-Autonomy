@@ -63,7 +63,11 @@ function ContinueButton({
   );
 }
 
-function RevealStep({ children }: { children: ReactNode }) {
+// Callers pass a `key` that changes per screen (e.g. `key="system"`,
+// `key={`toolkit-${condition}-${calledCount}`}`), which remounts this
+// component -- that's what resets `entered` and re-triggers the fade-in.
+// The walkthrough shows one screen at a time, not a growing transcript.
+function Panel({ children }: { children: ReactNode }) {
   const [entered, setEntered] = useState(false);
   useEffect(() => {
     const id = requestAnimationFrame(() => setEntered(true));
@@ -71,8 +75,8 @@ function RevealStep({ children }: { children: ReactNode }) {
   }, []);
   return (
     <div
-      className={`transition-all duration-300 motion-reduce:transition-none ${
-        entered ? "translate-y-0 opacity-100" : "translate-y-1 opacity-0"
+      className={`transition-opacity duration-200 motion-reduce:transition-none ${
+        entered ? "opacity-100" : "opacity-0"
       }`}
     >
       {children}
@@ -209,7 +213,7 @@ export function AgentWalkthrough() {
   return (
     <section className="mt-14 max-w-2xl">
       {unlocked && (
-        <div className="mb-8">
+        <div className="mb-6">
           <p className="label mb-3">Try a different policy</p>
           <Card as="ol" tone="bare" pad="none" className="overflow-hidden">
             {CONDITIONS.map((id, i) => {
@@ -241,94 +245,94 @@ export function AgentWalkthrough() {
         </div>
       )}
 
-      <div className="space-y-5">
-        <RevealStep key={`system-${condition}`}>
-          <p className="text-ui text-muted">You receive this initial system prompt:</p>
-          <div className="mt-1.5">
-            <Block>{outcome.systemPrompt}</Block>
-          </div>
-          {stage === "system" && (
+      <Card tone="raised">
+        {stage === "system" && (
+          <Panel key="system">
+            <p className="text-ui text-muted">You receive this initial system prompt:</p>
+            <div className="mt-1.5">
+              <Block>{outcome.systemPrompt}</Block>
+            </div>
             <div className="mt-4">
               <ContinueButton onClick={() => setStage("task")}>
                 What should I do?
               </ContinueButton>
             </div>
-          )}
-        </RevealStep>
-
-        {(stage === "task" || stage === "toolkit") && (
-          <RevealStep key={`task-${condition}`}>
-            <p className="text-ui text-muted">Then you are given a task:</p>
-            <p className="mt-1.5 text-ui">{USER_PROMPT}</p>
-            {stage === "task" && (
-              <div className="mt-4">
-                <ContinueButton onClick={() => setStage("toolkit")}>
-                  Ok, so what do I do with this task?
-                </ContinueButton>
-              </div>
-            )}
-          </RevealStep>
+          </Panel>
         )}
 
-        {stage === "toolkit" &&
-          CALLED_BY_STEP.slice(0, calledCount).map((name) => (
-            <RevealStep key={`${condition}-${name}`}>{callResult(name, condition)}</RevealStep>
-          ))}
-      </div>
+        {stage === "task" && (
+          <Panel key="task">
+            <p className="text-ui text-muted">Then you are given a task:</p>
+            <p className="mt-1.5 text-ui">{USER_PROMPT}</p>
+            <div className="mt-4">
+              <ContinueButton onClick={() => setStage("toolkit")}>
+                Ok, so what do I do with this task?
+              </ContinueButton>
+            </div>
+          </Panel>
+        )}
 
-      {stage === "toolkit" && !done && (
-        <div className="mt-8">
-          <p className="text-ui text-muted">
-            So you look at your toolkit. What can you do?
-          </p>
-          <Card as="ol" tone="bare" pad="none" className="mt-4 overflow-hidden">
-            {TOOLS.map((tool) => {
-              const toolDoneIndex = CALLED_BY_STEP.indexOf(tool.name);
-              const toolDone = toolDoneIndex !== -1 && toolDoneIndex < calledCount;
-              const isNext = tool.name === CALLED_BY_STEP[calledCount];
-              return (
-                <li key={tool.name}>
-                  <button
-                    type="button"
-                    onClick={() => pickTool(tool.name)}
-                    disabled={toolDone}
-                    className={`tap flex w-full flex-col items-start border-l-4 px-3.5 py-3 text-left transition-colors disabled:cursor-default ${
-                      toolDone
-                        ? "border-l-transparent bg-accent/[0.06]"
-                        : isNext
-                          ? "border-l-accent bg-accent/10"
-                          : "border-l-transparent bg-paper-2 hover:bg-paper"
-                    }`}
-                  >
-                    <span
-                      className={`font-mono text-small ${
-                        toolDone || isNext ? "text-accent" : "text-muted"
+        {stage === "toolkit" && done && (
+          <Panel key={`done-${condition}`}>{callResult("finish", condition)}</Panel>
+        )}
+
+        {stage === "toolkit" && !done && (
+          <Panel key={`toolkit-${condition}-${calledCount}`}>
+            <p className="text-ui text-muted">
+              So you look at your toolkit. What can you do?
+            </p>
+            {calledCount > 0 && (
+              <div className="mt-4">{callResult(CALLED_BY_STEP[calledCount - 1], condition)}</div>
+            )}
+            <Card as="ol" tone="bare" pad="none" className="mt-4 overflow-hidden">
+              {TOOLS.map((tool) => {
+                const toolDoneIndex = CALLED_BY_STEP.indexOf(tool.name);
+                const toolDone = toolDoneIndex !== -1 && toolDoneIndex < calledCount;
+                const isNext = tool.name === CALLED_BY_STEP[calledCount];
+                return (
+                  <li key={tool.name}>
+                    <button
+                      type="button"
+                      onClick={() => pickTool(tool.name)}
+                      disabled={toolDone}
+                      className={`tap flex w-full flex-col items-start border-l-4 px-3.5 py-3 text-left transition-colors disabled:cursor-default ${
+                        toolDone
+                          ? "border-l-transparent bg-accent/[0.06]"
+                          : isNext
+                            ? "border-l-accent bg-accent/10"
+                            : "border-l-transparent bg-paper-2 hover:bg-paper"
                       }`}
                     >
-                      {tool.name}
-                    </span>
-                    <span
-                      className={`mt-0.5 text-caption leading-snug ${
-                        isNext ? "text-ink/70" : "text-muted"
-                      }`}
-                    >
-                      {tool.short}
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </Card>
-          <p
-            aria-live="polite"
-            className={`mt-3 text-small text-muted transition-opacity duration-300 ${
-              flash ? "opacity-100" : "opacity-0"
-            }`}
-          >
-            {flash || " "}
-          </p>
-        </div>
-      )}
+                      <span
+                        className={`font-mono text-small ${
+                          toolDone || isNext ? "text-accent" : "text-muted"
+                        }`}
+                      >
+                        {tool.name}
+                      </span>
+                      <span
+                        className={`mt-0.5 text-caption leading-snug ${
+                          isNext ? "text-ink/70" : "text-muted"
+                        }`}
+                      >
+                        {tool.short}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </Card>
+            <p
+              aria-live="polite"
+              className={`mt-3 text-small text-muted transition-opacity duration-300 ${
+                flash ? "opacity-100" : "opacity-0"
+              }`}
+            >
+              {flash || " "}
+            </p>
+          </Panel>
+        )}
+      </Card>
 
       <div className="mt-6">
         <button
