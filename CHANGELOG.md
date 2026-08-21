@@ -1,5 +1,13 @@
 # Changelog
 
+## [2026-08-21] Phase 2 research contract frozen
+
+- Added a readable projection of the exact Phase 2 survey instrument, all 226
+  authored answer keys, and the effective keys after any adopted survey re-key.
+- Added a drift test that names the changed scenario, question, and field.
+- Kept sandbox worlds, merchant copy, offers, and checkout controls outside the
+  projection so realism work does not change the locked research contract.
+  
 ## [2026-08-21] Final hand-review wave: e10/e13/e14/e15/e17 de-coached further, d18 hardened into a proportionality judgment
 
 Owner hand-review of the full coaching audit (all 190 findings, A–E) closed
