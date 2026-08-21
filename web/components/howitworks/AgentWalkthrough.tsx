@@ -150,7 +150,7 @@ export function AgentWalkthrough() {
         <button
           type="button"
           onClick={() => setStarted(true)}
-          className="tap rounded-lg border border-ink px-5 text-ui transition-colors hover:bg-ink hover:text-paper"
+          className="tap rounded-lg bg-accent px-5 text-ui text-paper transition-colors hover:bg-ink"
         >
           Ok, what do I do?
         </button>
@@ -224,22 +224,40 @@ export function AgentWalkthrough() {
             {TOOLS.map((tool) => {
               const toolDoneIndex = CALLED_BY_STEP.indexOf(tool.name);
               const toolDone = toolDoneIndex !== -1 && toolDoneIndex < calledCount;
+              const isNext = tool.name === CALLED_BY_STEP[calledCount];
               return (
                 <li key={tool.name}>
                   <button
                     type="button"
                     onClick={() => pickTool(tool.name)}
                     disabled={toolDone}
-                    className={`tap flex w-full flex-col items-start px-4 py-3 text-left transition-colors disabled:cursor-default ${
-                      toolDone ? "bg-accent/[0.06]" : "bg-paper-2 hover:bg-paper"
+                    className={`tap flex w-full flex-col items-start border-l-4 px-3.5 py-3 text-left transition-colors disabled:cursor-default ${
+                      toolDone
+                        ? "border-l-transparent bg-accent/[0.06]"
+                        : isNext
+                          ? "border-l-accent bg-accent/10"
+                          : "border-l-transparent bg-paper-2 hover:bg-paper"
                     }`}
                   >
-                    <span
-                      className={`font-mono text-small ${toolDone ? "text-accent" : "text-ink"}`}
-                    >
-                      {tool.name}
+                    <span className="flex items-center gap-2">
+                      <span
+                        className={`font-mono text-small ${
+                          toolDone || isNext ? "text-accent" : "text-muted"
+                        }`}
+                      >
+                        {tool.name}
+                      </span>
+                      {isNext && (
+                        <span className="rounded-full bg-accent px-2 py-0.5 font-mono text-caption uppercase tracking-wider text-paper">
+                          Next
+                        </span>
+                      )}
                     </span>
-                    <span className="mt-0.5 text-caption leading-snug text-muted">
+                    <span
+                      className={`mt-0.5 text-caption leading-snug ${
+                        isNext ? "text-ink/70" : "text-muted"
+                      }`}
+                    >
                       {tool.description}
                     </span>
                   </button>
