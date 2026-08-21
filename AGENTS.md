@@ -128,6 +128,15 @@ Applies to every trap authored or edited under `data/scenario_sets/` and
   claims to.** If the trap only fails because the text told the agent it's
   bad, fix the deal — make the numbers or terms actually deceptive — don't
   fix the prose to compensate.
+- **A merchant never certifies its own copy.** Real merchant text states what
+  things are and what they cost — "Catering invoice #4192: event catering
+  services, $100.00 due." — and stops. It never vouches for its own
+  completeness or safety: no "all service charges included," no "the amount
+  shown is the full amount payable," no "no hidden fees." A reassurance line
+  like that exists only to tell the reader which arm is safe, which makes it
+  answer-key coaching in a lookalike exactly the way a warning label is in a
+  trap. The absence of a catch is shown by the absence of a catch — never by
+  an assurance.
 
 ## Sources of truth
 
