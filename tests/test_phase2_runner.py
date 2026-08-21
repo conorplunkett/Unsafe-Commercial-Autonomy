@@ -47,10 +47,29 @@ def test_runner_cardinality_and_framing():
 
 
 def test_runner_reports_the_floor_with_a_source_tag():
-    # Phase 2's own floor isn't collected in this repo yet, so this pins the
-    # fallback path end to end: the run must still report a floor, clearly
-    # tagged as borrowed from Phase 1 rather than passed off as Phase 2's own
+    # The 2026-08-21 import crossed EXPECTED_RESPONDENTS on cal_1, so a run now
+    # reports Phase 2's own floor by construction -- no code change needed,
+    # per floor_for_phase2's docstring (app/phase2/survey.py).
+    run = run_phase2_evaluation(
+        model_ids=["scripted_diligent"],
+        control_conditions=["no_policy"],
+        framings=["deployment"],
+        scenario_ids=PAIR_IDS,
+        seeds=[1],
+    )
+    floor = run.metrics["over_refusal_vs_floor"]["floor"]
+    assert floor is not None
+    assert floor["source"] == "phase2"
+
+
+def test_runner_falls_back_to_phase1_floor_when_phase2s_own_is_unavailable(monkeypatch):
+    # Pins the fallback path end to end, independent of what's currently
+    # committed: the run must still report a floor, clearly tagged as
+    # borrowed from Phase 1 rather than passed off as Phase 2's own
     # (tests/test_phase2_survey.py covers floor_for_phase2 itself in isolation).
+    import app.phase2.survey as phase2_survey
+
+    monkeypatch.setattr(phase2_survey, "phase2_reflexive_ask_floor", lambda *a, **k: None)
     run = run_phase2_evaluation(
         model_ids=["scripted_diligent"],
         control_conditions=["no_policy"],

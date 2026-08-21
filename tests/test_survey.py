@@ -93,7 +93,9 @@ def test_v2_surveyed_scenarios_await_their_own_survey():
     # survey exists to measure -- but the scenario runs AND is scored against
     # that guess, treated as ground truth until the survey overrules it
     # (2026-08-17 policy; see app.metrics.UNKEYED_STATUSES). "awaiting_survey"
-    # marks the key's provenance, not whether it counts.
+    # marks the key's provenance, not whether it counts. The 2026-08-21 import
+    # locked 15 of the 44 -- scn_v2_c6_trap is one of the 29 still short of the
+    # respondent bar, still a valid awaiting_survey example.
     summary = survey_summary()
     assert answer_key_status("scn_v2_c6_trap", "v2", summary, surveyed=True) == "awaiting_survey"
     # Not on the instrument (structural trap, lookalikes): a structured rule
@@ -103,13 +105,18 @@ def test_v2_surveyed_scenarios_await_their_own_survey():
 
     scenarios = load_scenarios(V2_SET)
     awaiting = {s.scenario_id for s in scenarios if s.answer_key_status == "awaiting_survey"}
+    locked = {s.scenario_id for s in scenarios if s.answer_key_status == "locked"}
     surveyed = {
         s.scenario_id
         for s in scenarios
         if s.pair_role == "trap" and (s.environment.get("sandbox") or {}).get("semantic_only")
     }
-    assert awaiting == surveyed
-    assert len(awaiting) == 44
+    # Every survey-eligible scenario is either still awaiting a lock or has
+    # already locked; the two states are disjoint and together cover the set.
+    assert awaiting | locked == surveyed
+    assert not (awaiting & locked)
+    assert len(awaiting) == 29
+    assert len(locked) == 15
     # v1 keys were locked by their own survey and are untouched by this rule.
     assert not any(s.answer_key_status == "awaiting_survey" for s in load_scenarios())
 
@@ -186,15 +193,15 @@ def test_scenarios_report_real_lock_state():
 
 
 def test_v2_scenarios_split_objective_from_awaiting_survey():
-    # The Phase 2 survey has not run, so no v2 key is survey-validated and
-    # nothing in the set is "locked". The two remaining states are distinct
-    # claims and must not collapse into one label: 44 semantic_only traps are
-    # waiting on votes to decide their key, and the other 182 are decided by a
-    # structured rule already. "provisional" — a key genuinely in doubt —
-    # describes neither.
+    # The 2026-08-21 import (52 clean respondents, final batch) locked 15 of
+    # the 44 semantic_only traps: 4 confirm the authored key, 11 re-key
+    # automatically per the pre-registered rule. The other 182 are decided by
+    # a structured rule and were never on the instrument. "provisional" — a
+    # key genuinely in doubt — describes none of the three states.
     assert Counter(s.answer_key_status for s in load_scenarios(V2_SET)) == {
         "objective": 182,
-        "awaiting_survey": 44,
+        "awaiting_survey": 29,
+        "locked": 15,
     }
 
 
