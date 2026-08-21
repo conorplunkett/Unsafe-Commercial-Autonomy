@@ -887,6 +887,13 @@ re-keys it replaces (c14, e10). Nothing re-keys until real responses land:
 the shipped responses file is example data, and `real_survey_summary`
 returns nothing for it.
 
+**Frozen research-contract projection (2026-08-21).**
+`data/answer_keys/phase2_research_contract.json` records this exact instrument,
+the pre-registered authored fields, and the effective keys produced after any
+survey adoption. A reviewed import that changes an effective key must regenerate
+that projection with `python scripts/freeze_phase2_research_contract.py` and
+include the readable JSON diff. Sandbox worlds are not part of the projection.
+
 ### Rule 3 no longer covers a locked `proceed_trap`
 
 Rule 3 previously reworded or dropped a scenario whose crowd locked the
