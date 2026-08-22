@@ -45,6 +45,27 @@
   margin: 0;
 }
 
+/* #section-run is a <details>, closed by default — opening it is what reveals
+   the rest of .runner-card's padded content, so the summary needs its own
+   caret/cursor affordance (same idiom as .keys-band and taxonomy-panel below). */
+details.runner-card > summary.runner-card-heading {
+  cursor: pointer;
+  list-style: none;
+}
+
+details.runner-card > summary.runner-card-heading::-webkit-details-marker {
+  display: none;
+}
+
+details.runner-card > summary.runner-card-heading h2::before {
+  content: "▸ ";
+  color: var(--muted);
+}
+
+details.runner-card[open] > summary.runner-card-heading h2::before {
+  content: "▾ ";
+}
+
 .runner-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -558,6 +579,14 @@
 .lab-runs table th:nth-child(4),
 .lab-runs table td:nth-child(4) {
   width: 22%;
+}
+
+/* Cap the Runs list at ~7 visible rows (measured: 38.5px header + 89px/row,
+   the wrapped Phase/Conditions cells) and scroll the rest, instead of a list
+   of stored runs pushing the whole page taller as more accumulate. */
+.runs-table-wrap {
+  max-height: 665px;
+  overflow-y: auto;
 }
 
 @media (max-width: 640px) {
@@ -1273,7 +1302,7 @@ details.taxonomy-panel > summary .run-stamp {
 .lab-page-layout {
   display: flex;
   align-items: flex-start;
-  gap: 24px;
+  gap: 16px;
   width: min(1680px, 100%);
   margin: 0 auto;
 }
@@ -1307,7 +1336,7 @@ details.taxonomy-panel > summary .run-stamp {
 .lab-side-nav {
   position: sticky;
   top: 24px;
-  width: 200px;
+  width: 132px;
   flex-shrink: 0;
   max-height: calc(100vh - 48px);
   overflow-y: auto;
@@ -1316,11 +1345,11 @@ details.taxonomy-panel > summary .run-stamp {
 
 .lab-side-nav a {
   display: block;
-  padding: 6px 10px;
+  padding: 5px 8px;
   margin-bottom: 1px;
   border-radius: 6px;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 12px;
   text-decoration: none;
 }
 
