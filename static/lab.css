@@ -546,20 +546,6 @@
   margin-bottom: 8px;
 }
 
-/* 11 columns split evenly (the table-layout:fixed default, styles.css)
-   starves Conditions, forcing its pills to wrap more than they need to. Give
-   it real room and Phase a little more (its checklist can run two lines);
-   the remaining columns split what's left. */
-.lab-runs table th:nth-child(3),
-.lab-runs table td:nth-child(3) {
-  width: 13%;
-}
-
-.lab-runs table th:nth-child(4),
-.lab-runs table td:nth-child(4) {
-  width: 22%;
-}
-
 @media (max-width: 640px) {
   .runner-grid,
   .keys-fields,
