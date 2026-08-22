@@ -968,6 +968,18 @@ def phase2_eval_command(args: argparse.Namespace) -> int:
         # walking the episode grid and saving an all-error run.
         print(f"Cannot start phase2-eval: {exc}")
         return 2
+    except KeyError as exc:
+        # Bad --scenario-ids/--conditions/etc slip past the confirmation
+        # prompt uncaught (_phase2_grid_size only counts ids, it doesn't
+        # validate them) and would otherwise surface as a raw traceback here.
+        message = str(exc.args[0]) if exc.args else str(exc)
+        print(f"Cannot start phase2-eval: {message}")
+        if "scenarios" in message.lower():
+            print(
+                "Scenario ids look like 'scn_v2_a1_trap' / 'scn_v2_a1_lookalike', "
+                "not the pair label ('A1') from the scenario set doc."
+            )
+        return 2
     finally:
         if not interrupted:
             progress.finish()
