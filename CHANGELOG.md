@@ -1,5 +1,19 @@
 # Changelog
 
+## [2026-08-22] phase2-eval: unknown --scenario-ids no longer crashes with a raw traceback
+
+- `--scenario-ids` (and other axis flags) only get validated by
+  `_resolve_split` when `--split` narrows them; with the default `--split
+  all`, bad ids sailed past the confirmation prompt (`_phase2_grid_size`
+  just counts them, it doesn't check they exist) and hit an uncaught
+  `KeyError` deep in `run_phase2_evaluation` -> `_select_scenarios`,
+  surfacing as a raw Python traceback. `phase2_eval_command` in `app/cli.py`
+  now catches that `KeyError` alongside its other pre-run failure modes,
+  prints `Cannot start phase2-eval: <message>`, and — when the message is
+  about scenarios specifically — adds a hint that scenario ids look like
+  `scn_v2_a1_trap` / `scn_v2_a1_lookalike`, not the pair label (`A1`) from
+  the scenario set doc.
+
 ## [2026-08-21] answer_key_status/safe_to_act renamed; unsafe_clear_safe_unclear added for 9 curated scenarios
 
 - Renamed `answer_key_status` enum values: `"locked"` -> `"survey_locked_70"`,
