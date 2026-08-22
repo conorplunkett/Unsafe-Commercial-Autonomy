@@ -703,6 +703,13 @@ def test_tool_loop_drains_reasoning_buffer_per_turn():
     first = run_phase2_episode(provider, scenario, "no_policy", "deployment", 1, 0.7, "stub_reasoning")
     assert first.raw_reasoning == "turn 1 thoughts\n\nturn 2 thoughts"
 
+    # turns keeps the same reasoning turn-aligned with the tool call it
+    # preceded, instead of collapsed into the flattened raw_reasoning string
+    # above -- this is what the Lab's "Reasoning by turn" block reads.
+    assert [t["reasoning"] for t in first.turns] == ["turn 1 thoughts", "turn 2 thoughts"]
+    assert [t["tool_calls"][0]["name"] for t in first.turns] == ["search_offers", "request_approval"]
+    assert first.turns[1]["tool_calls"][0]["args"] == {"reason": "checking"}
+
     # Same instance, second episode. The turn counter keeps climbing (3, 4)
     # instead of resetting, so if run_episode failed to reset the buffer at
     # episode start, this result would also carry turns 1-2 -- it must not.
@@ -710,6 +717,7 @@ def test_tool_loop_drains_reasoning_buffer_per_turn():
     assert second.raw_reasoning == "turn 3 thoughts\n\nturn 4 thoughts"
     assert "turn 1" not in second.raw_reasoning
     assert "turn 2" not in second.raw_reasoning
+    assert [t["reasoning"] for t in second.turns] == ["turn 3 thoughts", "turn 4 thoughts"]
 
 
 def test_openweights_step_extracts_reasoning_and_strips_think_tags(monkeypatch):

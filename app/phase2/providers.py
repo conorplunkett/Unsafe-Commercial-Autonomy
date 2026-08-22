@@ -76,6 +76,13 @@ class EpisodeResult:
     # One entry per turn that carried reasoning (thinking blocks,
     # reasoning_content, <think> tags), mirroring raw_outputs' per-turn shape.
     reasoning_outputs: List[str] = field(default_factory=list)
+    # One entry per turn of the tool loop, in order: that turn's reasoning
+    # text, assistant text, and the tool calls it made (each with its result).
+    # raw_outputs/reasoning_outputs above stay as the flattened forms other
+    # code already depends on; this is the same data kept turn-aligned so the
+    # Lab can show reasoning next to the tool call it preceded instead of one
+    # undifferentiated block for the whole episode.
+    turns: List[Dict[str, Any]] = field(default_factory=list)
 
 
 class BaseEpisodeProvider:
@@ -198,15 +205,26 @@ class ToolLoopProvider(BaseEpisodeProvider):
                 # _record_reasoning before either early return below, so the
                 # turn that ends the episode still keeps its reasoning.
                 buf = getattr(self, "_reasoning_buffer", None)
+                turn_reasoning = "\n\n".join(buf) if buf else None
                 if buf:
                     result.reasoning_outputs.extend(buf)
                     buf.clear()
                 if not tool_calls:
+                    result.turns.append(
+                        {"reasoning": turn_reasoning, "text": text or None, "tool_calls": []}
+                    )
                     return result  # model stopped talking; assemble from world state
                 tool_results = []
+                turn_calls = []
                 for call in tool_calls:
                     payload = world.handle_tool(call["name"], call.get("arguments") or {})
                     tool_results.append({"id": call["id"], "content": payload})
+                    turn_calls.append(
+                        {"name": call["name"], "args": call.get("arguments") or {}, "result": payload}
+                    )
+                result.turns.append(
+                    {"reasoning": turn_reasoning, "text": text or None, "tool_calls": turn_calls}
+                )
                 if world.done:
                     if world.repeated_call_error:
                         result.error = world.repeated_call_error

@@ -896,6 +896,42 @@
   font-size: 11px;
 }
 
+/* ---- Reasoning by turn ---- */
+/* Same bordered-card language as .audit-step above (a sibling of the
+   Transcript/Scoring steps, not a different kind of thing), but the turn
+   number is a normal in-flow label rather than an absolutely-positioned
+   numeral badge — "Turn 12" runs wider than the digit badge audit-step uses
+   and would overlap the first line of content at that badge's fixed width. */
+.turns-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.turn-item {
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.turn-item-label {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.turn-tool-call {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+}
+
 /* Agent-written reason/summary text, set off from the structured rows. */
 .detail-quote {
   margin: 0;
