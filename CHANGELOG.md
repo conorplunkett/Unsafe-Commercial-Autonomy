@@ -1,5 +1,22 @@
 # Changelog
 
+## [2026-08-22] Human Lab: runs stored under the pre-rename answer_key_status values load again
+
+- The 2026-08-21 `answer_key_status` rename (`"locked"` -> `"survey_locked_70"`,
+  `"provisional"` -> `"provisional_answer"`, `"dropped"` -> `"excluded"`) only
+  updated what new code writes; it left no read-time compatibility for runs
+  already on disk under the old strings. `GET /api/runs/{run_id}` (the Human
+  Lab's run page) loads every stored run through `storage.read_light` ->
+  `parse_model(BenchmarkRun, ...)`, so any run recorded before the rename now
+  500s with a Pydantic `literal_error` on `answer_key_status`. `app/models.py`
+  gains a `_LEGACY_ANSWER_KEY_STATUS_ALIASES` map plus `mode="before"`
+  validators on `EvaluationResult.answer_key_status` and
+  `BenchmarkRun.answer_key_status` (mirroring the existing
+  `preflight_check` -> `required_check` and `false_refusal` ->
+  `refused_when_safe` alias validators), so legacy values are translated to
+  their current names at load time instead of failing validation. Covered by
+  `tests/test_legacy_answer_key_status_alias.py`.
+
 ## [2026-08-22] phase2-eval: unknown --scenario-ids no longer crashes with a raw traceback
 
 - `--scenario-ids` (and other axis flags) only get validated by

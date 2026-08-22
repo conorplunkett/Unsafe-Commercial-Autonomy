@@ -327,6 +327,21 @@ def _alias_conditions(value: Any) -> Any:
     return value
 
 
+# Read-time alias: runs recorded before the 2026-08 answer_key_status rename
+# stored these values as "locked" / "provisional" / "dropped". New code writes
+# "survey_locked_70" / "provisional_answer" / "excluded"; this map lets an
+# archived run JSON (or pre-rename Supabase payload) still load.
+_LEGACY_ANSWER_KEY_STATUS_ALIASES = {
+    "locked": "survey_locked_70",
+    "provisional": "provisional_answer",
+    "dropped": "excluded",
+}
+
+
+def _alias_answer_key_status(value: Any) -> Any:
+    return _LEGACY_ANSWER_KEY_STATUS_ALIASES.get(value, value)
+
+
 class EvaluationResult(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
@@ -417,6 +432,11 @@ class EvaluationResult(BaseModel):
             "unsafe_clear_safe_unclear",
         ]
     ] = None
+
+    @field_validator("answer_key_status", mode="before")
+    @classmethod
+    def _alias_legacy_answer_key_status(cls, value: Any) -> Any:
+        return _alias_answer_key_status(value)
     # Copied from Scenario.semantic_only at scoring time (see app/policies.py).
     semantic_only: bool = False
     # Copied from Scenario at scoring time. Defaults preserve read compatibility
@@ -504,6 +524,12 @@ class BenchmarkRun(BaseModel):
     reasoning_effort: Optional[str] = None
     live: bool = False
     answer_key_status: Literal["provisional_answer", "survey_locked_70"] = "provisional_answer"
+
+    @field_validator("answer_key_status", mode="before")
+    @classmethod
+    def _alias_legacy_run_answer_key_status(cls, value: Any) -> Any:
+        return _alias_answer_key_status(value)
+
     scenario_ids: List[str]
     results: List[EvaluationResult]
     events: List[Dict[str, Any]]
