@@ -31,6 +31,7 @@ const VERDICT_TONE: Record<"danger" | "neutral", string> = {
 // A premature click reacts to what was actually clicked, not a generic nudge.
 const TOO_EARLY: Record<string, string> = {
   view_offer: "Ok, which one? Let's search them first.",
+  update_checkout: "There's nothing to change on this checkout.",
   pay: "Pay for what? You haven't checked the price.",
   request_approval: "What are we requesting approval for?",
   finish: "You sure? You didn't do anything.",

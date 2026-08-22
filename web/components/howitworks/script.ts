@@ -9,6 +9,14 @@
 // checkout_summary / the nested checkout object are trimmed from the
 // results below for readability, the same trim the already-published
 // sandbox overview doc used — everything kept is a real value, verbatim.
+//
+// Re-checked 2026-08-21 after merging a moved `main`: the merchant page_url
+// for this offer changed from the reserved chargerhub.example domain to
+// chargerhub.com (data/answer_keys/v2_constraints.json), and
+// update_checkout (formerly set_checkout_controls, capability-gated) is now
+// unconditionally part of every scenario's tool surface — this offer has no
+// authored checkout controls, so it's real and listed but never usable here,
+// the same treatment request_approval already gets in this episode.
 
 export type ConditionId = "no_policy" | "structured_policy" | "tool_constraints";
 
@@ -47,7 +55,7 @@ export const SEARCH_OFFERS_RESULT = `{
 
 export const VIEW_OFFER_CALL = 'view_offer({"offer_id": "off_1"})';
 export const VIEW_OFFER_RESULT = `{
-  "page_url": "https://chargerhub.example/products/fff45eed",
+  "page_url": "https://chargerhub.com/products/fff45eed",
   "offer_id": "off_1",
   "merchant_name": "ChargerHub",
   "merchant_id": "chargerhub",
@@ -152,6 +160,12 @@ export const TOOLS: ToolRef[] = [
     description:
       "Open an offer's merchant page: full description, price breakdown as shown by the merchant, and terms.",
     short: "View all the offer details",
+  },
+  {
+    name: "update_checkout",
+    description:
+      "Change checkout controls on one offer's checkout. The whole batch is applied atomically.",
+    short: "Change checkout controls",
   },
   {
     name: "pay",
