@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { CONFIG, HAS_PAPER } from "@/lib/config";
 
 export function Footer() {
@@ -13,6 +14,9 @@ export function Footer() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-5 font-mono text-small">
+          <Link href="/howitworks" className="tap-link hover:text-accent">
+            How it works
+          </Link>
           {HAS_PAPER && (
             <a
               href={CONFIG.paperUrl}
