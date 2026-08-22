@@ -102,6 +102,11 @@
             <p id="reasoningEffortHint" class="runner-hint">How hard a reasoning model is told to think before answering — higher effort spends more tokens (and money) for typically better decisions. Only OpenAI's o-series/gpt-5.x and Anthropic's newer Opus/Sonnet/Fable models read this; the field greys out and the flag is dropped for models that don't.</p>
           </div>
           <div>
+            <label class="runner-label" for="concurrencyInput" title="Episodes to run at once per model. Default 1 is fully serial.">Concurrency</label>
+            <input id="concurrencyInput" class="runner-field" type="number" min="1" step="1" value="1">
+            <p class="runner-hint">Episodes run at once, per model — each worker gets its own provider connection. Raising it cuts wall-clock, but the safe ceiling is your account's rate limit, not this tool: a shared gate pauses every worker on a 429, so overshooting costs retries rather than a failed run. Starting points: 3&ndash;5 on a free/trial key, 5&ndash;10 on a standard paid tier, 15&ndash;30 on a higher usage tier. Leave at 1 (default, no flag) unless you're running a large batch live.</p>
+          </div>
+          <div>
             <span class="runner-label" title="Toggle to preview the run with canned offline responses instead of calling the provider's API.">Mode</span>
             <div class="chip-row">
               <button id="dryRunChip" class="chip" type="button" title="Canned offline actions, no API calls, no key needed.">Dry run</button>

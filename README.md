@@ -171,6 +171,30 @@ python -m app.cli phase2-eval --models openai \
   --conditions all --seeds 1
 ```
 
+### Concurrency
+
+`--concurrency N` (default `1`, fully serial) runs N episodes at once, each on
+its own provider connection. It cuts wall-clock on a full run, but the safe
+ceiling depends on your account's rate limit with that provider, not the tool
+— there's no hardcoded cap. A shared gate already protects you from a bad
+guess: when any worker hits a 429, every worker holds its next attempt until
+the window clears, so overshooting costs retries, not a failed run.
+
+Starting points by account standing (raise from there if you don't see
+rate-limit stalls in the output; lower if you do):
+
+| Account tier                                   | Suggested `--concurrency` |
+| ----------------------------------------------- | -------------------------- |
+| Free / trial / brand-new key                     | 3–5                        |
+| Standard paid tier (e.g. OpenAI tier 1–2)         | 5–10                       |
+| Higher usage tier (e.g. OpenAI tier 3+, established Anthropic org) | 15–30 |
+
+This applies per provider — each provider in `--models` gets its own pool of
+workers sized to `--concurrency`, so running `--models openai,anthropic` at
+`--concurrency 10` is 10 concurrent OpenAI calls *and* 10 concurrent
+Anthropic calls, not 10 total. Pick the number for the tightest provider in
+the run.
+
 Use `python -m app.cli --help` and
 `python -m app.cli <command> --help` for the current command surface. Long-run,
 survey-import, merge, recompute, and publishing workflows are in

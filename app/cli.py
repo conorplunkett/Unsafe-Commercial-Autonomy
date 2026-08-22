@@ -1688,9 +1688,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=1,
         metavar="N",
         help=(
-            "Run N episodes at once (default 1, fully serial). Each worker gets its "
-            "own provider connection; raise it to cut wall-clock, but watch the "
-            "provider's rate limit."
+            "Run N episodes at once per model (default 1, fully serial). Each worker "
+            "gets its own provider connection; raise it to cut wall-clock, but watch "
+            "the provider's rate limit — a shared gate pauses all workers on a 429, "
+            "but the safe ceiling is your account's limit, not the tool's. See "
+            "README.md's Concurrency section for suggested starting points by "
+            "account tier."
         ),
     )
     phase2_eval_parser.add_argument("--scenario-ids", default=None, help="Comma-separated scenario ids.")
