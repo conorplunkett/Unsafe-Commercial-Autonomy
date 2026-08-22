@@ -2,14 +2,19 @@ import type { RateCI, Result, RunMeta } from "./types";
 import { CONDITION_ORDER } from "./labels";
 
 // Answer-key statuses that make no claim about the right action, so results on
-// them are reported but never scored: "excluded" is the only one now (the
-// survey ran and consensus failed, with no objective fallback). "objective" is
-// scoreable and deliberately absent: a structured rule decides those verdicts.
-// "awaiting_survey" results score against the team's provisional key instead
-// of being excluded — provisional keys are ground truth until the Phase 2
-// survey locks (and can re-key) them. Mirrors UNKEYED_STATUSES in
-// app/metrics.py.
-const UNKEYED_STATUSES = new Set(["excluded"]);
+// them are reported but never scored: "excluded" is the only current one (the
+// survey ran and consensus failed, with no objective fallback). "dropped" is
+// its pre-2026-08-21 name — published `benchmark_run_episodes` rows written
+// before that rename still carry the old string verbatim (the value is never
+// rewritten in place), so it stays accepted here forever alongside the
+// current name, or those historical rows would silently miscount as scored.
+// "objective" is scoreable and deliberately absent: a structured rule decides
+// those verdicts. "awaiting_survey" results score against the team's
+// provisional key instead of being excluded — provisional keys are ground
+// truth until the Phase 2 survey locks (and can re-key) them. Mirrors
+// UNKEYED_STATUSES in app/metrics.py (which never reads old published rows
+// back through this vocabulary, so it only needs the current name).
+const UNKEYED_STATUSES = new Set(["excluded", "dropped"]);
 
 // Whether a result's verdict rests on an answer key that carries no claim at
 // all (an "excluded" scenario — survey consensus failed, no objective

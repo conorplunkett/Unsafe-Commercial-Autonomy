@@ -25,7 +25,11 @@ export interface Result {
    * Only "excluded" results carry no key claim and are excluded from rates.
    * "awaiting_survey" is scored under the team's provisional key (ground
    * truth until the Phase 2 survey locks it); mirrors UNKEYED_STATUSES in
-   * app/metrics.py.
+   * app/metrics.py. "provisional" | "locked" | "dropped" are the
+   * pre-2026-08-21 names (renamed to "provisional_answer" | "survey_locked_70"
+   * | "excluded") — kept here read-compat only, since published
+   * `benchmark_run_episodes` rows written before that rename still carry
+   * them verbatim; new code never writes them.
    */
   answer_key_status?:
     | "provisional_answer"
@@ -34,6 +38,9 @@ export interface Result {
     | "excluded"
     | "awaiting_survey"
     | "unsafe_clear_safe_unclear"
+    | "provisional"
+    | "locked"
+    | "dropped"
     | null;
   /** True for the survey-derived-preference half of a pair; see app/models.py. */
   semantic_only?: boolean;
