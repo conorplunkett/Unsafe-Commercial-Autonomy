@@ -135,6 +135,7 @@ def test_episode_detail_endpoint():
         "raw_model_output",
         "raw_reasoning",
         "audit_events",
+        "turns",
     }
     assert episode["audit_events"]
 

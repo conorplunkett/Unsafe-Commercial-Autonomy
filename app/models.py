@@ -417,6 +417,12 @@ class EvaluationResult(BaseModel):
     seed: Optional[int] = None
     raw_model_output: Optional[str] = None
     raw_reasoning: Optional[str] = None
+    # Phase 2 only: raw_model_output/raw_reasoning above flattened, one entry
+    # per tool-loop turn — that turn's reasoning, assistant text, and the tool
+    # calls it made. Empty for Phase 1 (single-shot) and for any Phase 2
+    # episode recorded before this field existed. See
+    # phase2.providers.EpisodeResult.turns.
+    turns: List[Dict[str, Any]] = Field(default_factory=list)
     proposed_action: Optional[AgentAction] = None
     block_reasons: List[str] = Field(default_factory=list)
     error: Optional[str] = None

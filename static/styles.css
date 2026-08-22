@@ -480,7 +480,7 @@ input[type="password"] {
 
 .content-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(360px, 0.65fr);
+  grid-template-columns: minmax(360px, 1fr) minmax(360px, 1fr);
   gap: 16px;
 }
 
@@ -627,7 +627,11 @@ tbody tr.selected {
   display: grid;
   gap: 14px;
   padding: 16px;
-  max-height: 720px;
+  /* Scales with the viewport instead of a flat px cap, so the panel fills
+     the available window height on a tall screen and still leaves room for
+     the page around it on a short one — a fixed cap either way reads as the
+     content being cut off rather than a box you can keep scrolling. */
+  max-height: max(480px, calc(100vh - 220px));
   overflow: auto;
 }
 
@@ -655,14 +659,14 @@ tbody tr.selected {
 .detail-block pre {
   max-width: 100%;
   overflow: auto;
-  padding: 10px;
+  padding: 12px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--paper);
   color: #26302b;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-  font-size: 12px;
-  line-height: 1.45;
+  font-size: 13px;
+  line-height: 1.55;
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -786,7 +790,10 @@ tbody tr.selected {
 }
 
 .model-results-wrap {
-  max-height: 640px;
+  /* Matches .detail-content's viewport-scaled cap so the Results and Detail
+     panels stay level with each other instead of the table stopping short of
+     the taller detail panel (or vice versa) on any given window size. */
+  max-height: max(400px, calc(100vh - 220px));
 }
 
 @media (max-width: 1120px) {

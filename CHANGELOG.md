@@ -1,5 +1,36 @@
 # Changelog
 
+## [2026-08-22] Human Lab: 50/50 results/detail layout, viewport-scaled detail height, per-turn reasoning
+
+- `.content-grid` (`static/styles.css`) was `1.35fr`/`0.65fr` — Results got roughly
+  twice the Detail panel's width. Changed to an even `1fr`/`1fr` split (both columns
+  keep their 360px floor).
+- `.detail-content` capped at a flat `max-height: 720px` regardless of window size,
+  so on a shorter browser window the Model output text ran past the visible page
+  with no obvious affordance that the box scrolls internally. Both `.detail-content`
+  and `.model-results-wrap` now cap at `max(<floor>, calc(100vh - 220px))`, so the
+  Results table and Detail panel scale with the viewport and stay level with each
+  other. `.detail-block pre` (Reasoning/Model output/transcript text) bumped from
+  12px/1.45 to 13px/1.55 for readability.
+- Added per-turn reasoning for Phase 2 episodes. Previously `raw_reasoning` and
+  `raw_model_output` were the whole episode's tool-loop turns flattened into one
+  joined string (`app/phase2/runner.py`'s `"\n\n".join(episode.reasoning_outputs)`),
+  so a multi-turn episode's reasoning read as a single undifferentiated block with
+  no way to tell which turn (or which tool call) a given thought belonged to.
+  `EpisodeResult` (`app/phase2/providers.py`) now also keeps `turns`: one entry per
+  tool-loop turn with that turn's reasoning, assistant text, and tool calls (name +
+  args), built directly in `ToolLoopProvider.run_episode` where the turn boundary is
+  known. Threaded through `EvaluationResult.turns` (`app/models.py`, a new heavy
+  field alongside `raw_model_output`/`raw_reasoning`/`audit_events` in
+  `storage.HEAVY_RESULT_FIELDS`, stripped from the light run payload and served by
+  `/api/runs/{run_id}/results/{episode_index}`). The Lab's detail panel
+  (`static/lab.js`) renders a "Reasoning by turn" block — one numbered card per turn
+  — when `turns` is present, falling back to the old flattened Reasoning/Model
+  output blocks for Phase 1 and any Phase 2 run recorded before this field existed
+  (`turns` empty). Covered by an extended
+  `tests/test_phase2_runner.py::test_tool_loop_drains_reasoning_buffer_per_turn`;
+  `tests/test_api.py::test_episode_detail_endpoint` updated for the new field.
+
 ## [2026-08-22] Human Lab: runs stored under the pre-rename answer_key_status values load again
 
 - The 2026-08-21 `answer_key_status` rename (`"locked"` -> `"survey_locked_70"`,

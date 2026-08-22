@@ -2598,6 +2598,7 @@ function ensureEpisodeDetail(result) {
       result.raw_model_output = detail.raw_model_output;
       result.raw_reasoning = detail.raw_reasoning;
       result.audit_events = detail.audit_events || [];
+      result.turns = detail.turns || [];
       entry.status = "loaded";
       repaintDetailIfSelected(result);
     })
@@ -2692,12 +2693,47 @@ function transcriptBlocks(detail, result) {
   return `${outboundMessagesBlock(result)}${transcriptBlock(result)}${scoringBlock(result)}`;
 }
 
+// One line per tool call a turn made, matching what the Transcript block
+// below shows in full (name, args, result) — just enough here to say what the
+// reasoning right above it led to, not a second copy of the transcript.
+function turnToolCallSummary(call) {
+  return `<p class="audit-note turn-tool-call">&rarr; ${escapeHtml(call.name)}(${escapeHtml(
+    compactJson(call.args)
+  )})</p>`;
+}
+
+// Phase 2 episodes carry reasoning and assistant text per tool-loop turn
+// (EvaluationResult.turns); this renders each turn as its own numbered card —
+// its reasoning, what it said, and which tool call(s) followed — instead of
+// the whole episode's reasoning collapsed into one block with no way to tell
+// which turn produced which thought. Empty for Phase 1 and pre-turns runs,
+// where deferredModelBlocks falls back to the flattened Reasoning/Model
+// output blocks.
+function turnsBlock(result) {
+  const turns = result.turns;
+  if (!turns || !turns.length) return "";
+  const items = turns
+    .map((turn, index) => {
+      const reasoningHtml = turn.reasoning
+        ? `<pre>${escapeHtml(turn.reasoning)}</pre>`
+        : '<p class="empty-state">No reasoning returned for this turn.</p>';
+      const textHtml = turn.text ? `<pre>${escapeHtml(turn.text)}</pre>` : "";
+      const calls = (turn.tool_calls || []).map(turnToolCallSummary).join("");
+      return `<li class="turn-item"><p class="turn-item-label">Turn ${index + 1}</p>${reasoningHtml}${textHtml}${calls}</li>`;
+    })
+    .join("");
+  return `<div class="detail-block"><h3>Reasoning by turn</h3><ol class="turns-list">${items}</ol></div>`;
+}
+
 // The rest of the transcript-fed blocks, rendered after the scenario blocks so
 // the panel keeps its reading order. transcriptBlocks above already shows the
 // placeholder/error state, so these simply wait.
 function deferredModelBlocks(detail, result, scenario) {
   if (detail.status !== "loaded") return "";
-  return `${reasoningBlock(result.raw_reasoning)}${modelTextBlock("Model output", result.raw_model_output)}
+  const turns = turnsBlock(result);
+  const modelBlocks =
+    turns || `${reasoningBlock(result.raw_reasoning)}${modelTextBlock("Model output", result.raw_model_output)}`;
+  return `${modelBlocks}
     ${rawJsonBlock(result, scenario)}`;
 }
 

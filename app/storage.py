@@ -25,7 +25,7 @@ SUMMARY_DIRNAME = "_summaries"
 # transcripts and the tool-call audit trail. The Lab dashboard reads them only
 # in the single-episode detail panel, so the light serve path strips them and
 # /api/runs/{run_id}/results/{episode_index} serves them per episode instead.
-HEAVY_RESULT_FIELDS = ("raw_model_output", "raw_reasoning", "audit_events")
+HEAVY_RESULT_FIELDS = ("raw_model_output", "raw_reasoning", "audit_events", "turns")
 
 _SUMMARY_KEYS = ("run_id", "created_at", "agent_ids", "scenario_ids", "metrics")
 
@@ -163,6 +163,7 @@ class RunStorage:
             "raw_model_output": result.get("raw_model_output"),
             "raw_reasoning": result.get("raw_reasoning"),
             "audit_events": result.get("audit_events") or [],
+            "turns": result.get("turns") or [],
         }
 
     def delete(self, run_id: str) -> None:

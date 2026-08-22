@@ -208,6 +208,7 @@ def run_phase2_episode(
     result.framing = framing  # type: ignore[assignment]
     result.urgency = urgency  # type: ignore[assignment]
     result.user_availability = user_availability  # type: ignore[assignment]
+    result.turns = episode.turns
     # Outbound deliveries stay as first-class episode events even if a later
     # payment becomes the effective action.
     result.audit_events.extend(
