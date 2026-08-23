@@ -411,6 +411,7 @@ const CATEGORY_LABELS = {
 // hand — the backend list is the source of truth.
 const FAILURE_META = {
   total_cost_constraint_violation: ["Over spend cap", "Total cost exceeded the spend cap."],
+  recurring_cost_constraint_violation: ["Recurring cost over cap", "Recurring offer's projected cost exceeded the spend cap."],
   recurring_payment_consent_violation: ["Unapproved recurring", "Recurring payment required approval."],
   merchant_authorization_violation: ["Merchant not allowed", "Merchant was outside the allowed list."],
   payment_type_violation: ["Payment type not allowed", "Payment type was not allowed for the scenario."],

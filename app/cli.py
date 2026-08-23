@@ -568,6 +568,7 @@ def eval_command(args: argparse.Namespace) -> int:
             seeds=seeds,
             temperature=args.temperature,
             reasoning_effort=args.reasoning_effort,
+            gemini_thinking_level=args.gemini_thinking_level,
             live=not args.dry_run,
             progress_cb=progress.update,
         )
@@ -693,6 +694,7 @@ def test_command(args: argparse.Namespace) -> int:
             seeds=[1, 2],
             temperature=args.temperature,
             reasoning_effort=args.reasoning_effort,
+            gemini_thinking_level=args.gemini_thinking_level,
             live=not args.dry_run,
             progress_cb=progress.update,
         )
@@ -856,6 +858,7 @@ def _resume_command_line(args: argparse.Namespace, run_id: str) -> str:
         ("--split", args.split if getattr(args, "split", "all") != "all" else None),
         ("--seeds", args.seeds),
         ("--reasoning-effort", args.reasoning_effort),
+        ("--gemini-thinking-level", args.gemini_thinking_level),
     ):
         if value:
             parts.append(f"{flag} {value}")
@@ -936,6 +939,7 @@ def phase2_eval_command(args: argparse.Namespace) -> int:
             seeds=_csv_int(args.seeds),
             temperature=args.temperature,
             reasoning_effort=args.reasoning_effort,
+            gemini_thinking_level=args.gemini_thinking_level,
             live=not args.dry_run,
             progress_cb=progress.update,
             run_id=run_id,
@@ -1536,6 +1540,17 @@ def build_parser() -> argparse.ArgumentParser:
         help="Reasoning effort for reasoning models such as gpt-5.x (ignored by temperature-based models).",
     )
     eval_parser.add_argument(
+        "--gemini-thinking-level",
+        choices=["minimal", "low", "medium", "high"],
+        default=None,
+        help=(
+            "Gemini's thinking_level (ignored by non-Gemini models). Unset by default, which "
+            "reproduces the model's own default (minimal for gemini-3.1-flash-lite) -- raising "
+            "this changes how much the model reasons, i.e. the eval condition, so treat it as a "
+            "deliberate run parameter, not a free knob to flip."
+        ),
+    )
+    eval_parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Use offline dry-run providers instead of live model APIs.",
@@ -1581,6 +1596,12 @@ def build_parser() -> argparse.ArgumentParser:
         choices=["none", "low", "medium", "high", "xhigh"],
         default=None,
         help="Reasoning effort for reasoning models such as gpt-5.x (ignored by temperature-based models).",
+    )
+    test_parser.add_argument(
+        "--gemini-thinking-level",
+        choices=["minimal", "low", "medium", "high"],
+        default=None,
+        help="Gemini's thinking_level (ignored by non-Gemini models). Unset by default.",
     )
     test_parser.add_argument(
         "--dry-run",
@@ -1726,6 +1747,17 @@ def build_parser() -> argparse.ArgumentParser:
         choices=["none", "low", "medium", "high", "xhigh"],
         default=None,
         help="Reasoning effort for reasoning models (ignored by temperature-based models).",
+    )
+    phase2_eval_parser.add_argument(
+        "--gemini-thinking-level",
+        choices=["minimal", "low", "medium", "high"],
+        default=None,
+        help=(
+            "Gemini's thinking_level (ignored by non-Gemini models). Unset by default, which "
+            "reproduces the model's own default (minimal for gemini-3.1-flash-lite) -- raising "
+            "this changes how much the model reasons, i.e. the eval condition, so treat it as a "
+            "deliberate run parameter, not a free knob to flip."
+        ),
     )
     phase2_eval_parser.add_argument(
         "--dry-run",

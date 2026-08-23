@@ -368,6 +368,7 @@ def run_phase2_evaluation(
     seeds: Optional[Iterable[int]] = None,
     temperature: Optional[float] = None,
     reasoning_effort: Optional[str] = None,
+    gemini_thinking_level: Optional[str] = None,
     live: bool = False,
     provider_factory: Optional[Callable[[str, bool], BaseEpisodeProvider]] = None,
     progress_cb: Optional[Callable[[int, int, str], None]] = None,
@@ -420,6 +421,12 @@ def run_phase2_evaluation(
         for provider in pool.all_instances():
             if hasattr(provider, "reasoning_effort"):
                 provider.reasoning_effort = reasoning_effort
+    # Same pattern for Gemini's thinking_level -- see app/runner.py's mirror
+    # of this for why it stays opt-in rather than defaulted.
+    if gemini_thinking_level:
+        for provider in pool.all_instances():
+            if hasattr(provider, "thinking_level"):
+                provider.thinking_level = gemini_thinking_level
     # One gate per run: a 429 on any worker pauses every worker's next attempt
     # until the window passes, instead of N workers hammering in lockstep.
     rate_limit_gate = RateLimitGate()
@@ -467,6 +474,7 @@ def run_phase2_evaluation(
                 "live": live,
                 "temperature": resolved_temperature,
                 "reasoning_effort": reasoning_effort,
+                "gemini_thinking_level": gemini_thinking_level,
             },
         )
         # Errored episodes are re-run rather than restored: resuming after a
@@ -490,6 +498,7 @@ def run_phase2_evaluation(
                 "live": live,
                 "temperature": resolved_temperature,
                 "reasoning_effort": reasoning_effort,
+                "gemini_thinking_level": gemini_thinking_level,
                 "grid": fingerprint,
             }
         )
@@ -629,6 +638,7 @@ def run_phase2_evaluation(
         seeds=selected_seeds,
         temperature=resolved_temperature,
         reasoning_effort=reasoning_effort,
+        gemini_thinking_level=gemini_thinking_level,
         live=live,
         # Derived from the scenarios actually run, not hardcoded: a Phase 2 run
         # over a locked set must not be stamped provisional by construction.
