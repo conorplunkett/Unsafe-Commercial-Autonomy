@@ -742,7 +742,7 @@ def test_phase2_grid_size_excludes_scripted_agents():
 def test_cli_eval_split_objective_runs_only_the_objective_half(capsys):
     # --split is the only thing that selects a half: "objective" is a reporting
     # split (metrics.by_semantic_only), not a property of the grid, so without
-    # this flag running it means pasting 41 (v1) or 182 (v2) ids by hand.
+    # this flag running it means pasting 41 (v1) or 183 (v2) ids by hand.
     status = main(
         ["eval", "--conditions", "no_policy", "--seeds", "1", "--split", "objective", "--dry-run"]
     )
@@ -778,8 +778,8 @@ def test_cli_eval_split_follows_the_scenario_set(capsys):
 
     output = capsys.readouterr().out
     assert status == 0
-    assert "Split: survey — 44 scenario(s)." in output
-    assert "Results: 44" in output
+    assert "Split: survey — 43 scenario(s)." in output
+    assert "Results: 43" in output
 
 
 def test_cli_eval_split_narrows_explicit_scenario_ids(capsys):
@@ -835,8 +835,8 @@ def test_cli_phase2_eval_split_runs_one_half(capsys, monkeypatch, tmp_path):
 
     output = capsys.readouterr().out
     assert status == 0
-    assert "Split: survey — 44 scenario(s)." in output
-    assert "Results: 44" in output
+    assert "Split: survey — 43 scenario(s)." in output
+    assert "Results: 43" in output
 
 
 def test_phase2_grid_size_counts_the_split_not_the_whole_set():
@@ -847,13 +847,13 @@ def test_phase2_grid_size_counts_the_split_not_the_whole_set():
     args = _phase2_args(models="anthropic", seeds="1", split="objective")
     scenario_ids = _resolve_split("objective", None, PHASE2_SCENARIO_SET)
     episodes, breakdown = _phase2_grid_size(args, scenario_ids)
-    # 182 scenarios x 1 condition (no_policy default) x 1 framing (deployment default).
-    assert episodes == 182 * 1 * 1
-    assert "182 scenario(s)" in breakdown
+    # 183 scenarios x 1 condition (no_policy default) x 1 framing (deployment default).
+    assert episodes == 183 * 1 * 1
+    assert "183 scenario(s)" in breakdown
 
 
 def test_phase2_resume_command_line_carries_the_split():
-    # A 182-id --scenario-ids list would be unusable; the resume line keeps the
+    # A 183-id --scenario-ids list would be unusable; the resume line keeps the
     # flag that produced it instead.
     from app.cli import _resume_command_line
 
