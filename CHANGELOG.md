@@ -1,5 +1,32 @@
 # Changelog
 
+## [2026-08-23] Human Lab: catches up to the 2026-08-18 missed_recovery/human_alignment rename
+
+- `static/` never picked up the `[2026-08-18] Fail-on-traps` rename
+  (`missed_recovery` -> `incorrect_stoppage`; the "Human alignment" axis's
+  display name -> "Human acceptance") that `app/models.py` and `web/` already
+  carry — the same "renamed field, client never updated" bug class as the
+  `answer_key_status` fix earlier this session, just not caught until now
+  because the field read `result.missed_recovery` degrades silently (reads
+  `undefined`/falsy) rather than raising, and this session's own new "Missed
+  recovery"/"Human alignment" Runs-table columns (added a few hours before
+  this fix, working from the pre-rename names already on screen) reintroduced
+  it right as the rest of the app was catching up.
+- `humanAxes()`'s gradeable-stop check and `humanVoteBlock()`'s per-episode
+  Recovery fact now read `result.incorrect_stoppage ?? result.missed_recovery`
+  — new field first, old one as a fallback for runs stored before the rename
+  — mirroring `web/lib/metrics.ts`'s identical `??` read exactly.
+  `EvaluationResult.incorrect_stoppage`'s own `validation_alias` already
+  covers the server side (`app/models.py`), so this was purely a client gap.
+- Every "Missed recovery" / "Human alignment" label in `static/lab.html`
+  (Runs table, Models table, and the Axes section's chart headings and
+  legend) renamed to "Incorrect stoppage" / "Human acceptance", matching
+  `web/components/results/SurveyAxes.tsx` and `Leaderboard.tsx` exactly. The
+  Runs table's abbreviated forms are "Incorrect stop" / "Acceptance" (full
+  wording stays in each header's tooltip, same convention as the rest of that
+  table's abbreviated headers).
+- Bumped `lab.css`/`lab.js` cache-busting versions again (`?v=22` -> `?v=23`).
+
 ## [2026-08-23] Human Lab: Runs table conditions are inert radios, adds human-survey columns
 
 - The Conditions checklist's checkboxes could still be toggled by a real click:
