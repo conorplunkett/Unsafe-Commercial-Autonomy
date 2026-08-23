@@ -567,13 +567,53 @@ details.runner-card[open] > summary.runner-card-heading h2::before {
   margin-bottom: 8px;
 }
 
-/* Cap the Runs list at 7 visible rows (measured: 38.5px header + 49px/row
-   under .wide-table's auto layout) and scroll the rest, instead of a list of
-   stored runs pushing the whole page taller as more accumulate. .wide-table
-   already sizes the Runs table to content and .table-wrap already scrolls it
-   horizontally; this only adds the vertical cap. */
+/* The Runs table previously used .wide-table (table-layout: auto + nowrap
+   cells) to stop long headers ("Unsafe payment", "Refused when safe") from
+   ellipsizing — but forcing every data cell to stay on one line also forced
+   the Conditions pills and Phase checklist onto one very long line each,
+   blowing the table out past the panel width and forcing horizontal scroll
+   the whole section didn't need. Back to the default table-layout: fixed
+   (styles.css), which guarantees the table never exceeds its container;
+   headers wrap onto a second line instead of truncating (overriding the
+   generic single-line th), and Conditions/Phase get extra width so their
+   pills/checklist wrap sensibly instead of stacking too narrow. */
+#section-runs th {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  /* Break only at the space between words ("Unsafe" / "payment"), never
+     mid-word ("PAYMEN" / "T") — the narrower rate columns still comfortably
+     fit each header's longest single word. */
+  overflow-wrap: normal;
+  /* Frozen header: stays put as .runs-table-wrap scrolls vertically, so the
+     column labels are still readable at row 40 as they are at row 1. Needs
+     its own opaque background (the panel's own var(--surface) white) or
+     scrolled rows would show through underneath it. */
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface);
+}
+
+.lab-runs table th:nth-child(2),
+.lab-runs table td:nth-child(2) {
+  width: 10%;
+}
+
+.lab-runs table th:nth-child(3),
+.lab-runs table td:nth-child(3) {
+  width: 13%;
+}
+
+.lab-runs table th:nth-child(4),
+.lab-runs table td:nth-child(4) {
+  width: 26%;
+}
+
+/* Cap the Runs list at ~7 visible rows and scroll the rest, instead of a
+   list of stored runs pushing the whole page taller as more accumulate. */
 .runs-table-wrap {
-  max-height: 382px;
+  max-height: 460px;
   overflow-y: auto;
 }
 @media (max-width: 640px) {
@@ -1252,25 +1292,49 @@ details.taxonomy-panel > summary .run-stamp {
   display: none;
 }
 
-/* Conditions column: one pill per axis level the run actually set, stacked
-   so a run crossing several Phase 2 axes doesn't collapse into an
-   unreadable dot-joined line. Neutral tone — these name which cell a run's
-   results sit in, not a health signal like the flags above. */
-.condition-pills {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
+/* Conditions column: a read-only checklist (policy axis × 3, urgency, user
+   availability) instead of free-text pills — one line per condition the run
+   actually crossed, checked or not, scannable at a glance without reading
+   prose. See readonlyCheckbox()/runConditionsPills() in lab.js. */
+/* Two columns rather than one long stack — five checkboxes (3 policy +
+   urgency + user-availability) at one-per-line would triple a row's height
+   and undo the point of capping the Runs list to ~7 visible rows. */
+.condition-checklist {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  column-gap: 14px;
+  row-gap: 2px;
 }
 
+.cond-check {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--ink);
+  /* Real checkboxes, but this cell reports a stored run's state rather than
+     controlling anything — cursor: default (not pointer) says so, and
+     lab.js's onclick/onkeydown guards do the actual blocking. */
+  cursor: default;
+}
+
+.cond-check input[type="checkbox"] {
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.cond-check-note {
+  color: var(--muted);
+  font-size: 11px;
+  font-style: italic;
+}
+
+/* The lone framing pill (only rendered for a non-default "Evaluation" run —
+   see runConditionsPills), sitting under the checklist above. */
 .condition-pill {
-  /* No white-space: nowrap, and a max-width capping it to the flex parent's
-     available width — the same fix .phase-badge needed above. Without it, a
-     pill for a run crossing both framings ("Env: Eval / Deploy") had no cap,
-     so align-items: flex-start let it grow past the column and bleed over
-     whatever sits to its right instead of wrapping inside its own pill. */
   display: inline-block;
   max-width: 100%;
+  margin-top: 4px;
   padding: 1px 8px;
   border: 1px solid var(--border);
   border-radius: 999px;
