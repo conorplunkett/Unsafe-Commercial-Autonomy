@@ -1,5 +1,25 @@
 # Changelog
 
+## [2026-08-23] Add an explicit, run-tracked Gemini thinking-level knob
+
+- `GEMINI_INCLUDE_THOUGHTS` (`app/providers.py::_gemini_thinking_extra_body`) was
+  already on by default, but it only asks the compat layer to return thought
+  summaries -- it surfaces nothing for `gemini-3.1-flash-lite` (the default
+  Gemini model) because that model reasons at Google's "minimal" thinking
+  level by default, leaving essentially nothing to summarize.
+- Added a real `--gemini-thinking-level {minimal,low,medium,high}` CLI flag
+  (`eval`, `test`, `phase2-eval`) / `GEMINI_THINKING_LEVEL` env var, mirroring
+  how `--reasoning-effort` works for OpenAI: it is never defaulted or picked
+  up implicitly, only applied when a caller explicitly asks (constructor arg,
+  env var, or the post-construction override in `run_phase1_evaluation` /
+  `run_phase2_evaluation`), because raising it changes how much the model
+  actually reasons before acting -- i.e. the eval condition, not just what
+  gets returned. `GeminiProvider` and `GeminiToolProvider` now carry a
+  `thinking_level` attribute; `BenchmarkRun.gemini_thinking_level` records it
+  on every run (and blocks `merge` from pooling sources that disagree on it,
+  same as `reasoning_effort`), and Phase 2's checkpoint header/`--resume`
+  verification treat it the same way.
+
 ## [2026-08-22] Human Lab: stale asset cache fixed, Run panel collapsible, Runs list capped, nav narrowed
 
 - `static/lab.html` linked `styles.css`/`lab.css`/`lab.js` with cache-busting query

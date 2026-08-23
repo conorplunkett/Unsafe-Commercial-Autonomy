@@ -67,6 +67,13 @@ DEFAULT_REASONING_EFFORT = "low"
 VALID_REASONING_EFFORTS = {"none", "low", "medium", "high", "xhigh"}
 DEFAULT_ANTHROPIC_MODEL = "claude-haiku-4-5"
 DEFAULT_GEMINI_MODEL = "gemini-3.1-flash-lite"
+# Gemini 3.x's thinking_config.thinking_level tiers (ai.google.dev/gemini-api/docs/thinking).
+# flash-lite defaults to "minimal" -- effectively no internal reasoning to summarize, which is
+# why include_thoughts alone never surfaces anything for it. Unlike GEMINI_INCLUDE_THOUGHTS
+# (return-only, on by default), this one is opt-in only: sending it changes how much the model
+# actually reasons, i.e. the eval condition, so it must be an explicit, run-tracked choice
+# (see _gemini_thinking_extra_body) rather than a silent default.
+VALID_GEMINI_THINKING_LEVELS = {"minimal", "low", "medium", "high"}
 DEFAULT_OPENWEIGHTS_MODEL = ""
 GEMINI_OPENAI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai"
 
@@ -539,22 +546,35 @@ def _openai_reasoning_params(effort: str) -> Dict[str, Any]:
     return params
 
 
-def _gemini_thinking_extra_body() -> Dict[str, Any]:
+def _gemini_thinking_extra_body(thinking_level: Optional[str] = None) -> Dict[str, Any]:
     """Request keys asking Gemini's compat layer for thought summaries.
 
-    On by default; set ``GEMINI_INCLUDE_THOUGHTS`` to
+    ``include_thoughts`` is on by default; set ``GEMINI_INCLUDE_THOUGHTS`` to
     ``0``/``off``/``false``/``none`` to drop the keys and reproduce the
-    pre-knob request. Return-only: ``include_thoughts`` surfaces summaries of
-    thinking the model already does -- never send ``thinking_level``/budget
-    here, which would change reasoning depth and with it the eval condition.
+    pre-knob request. It is return-only: it surfaces summaries of thinking the
+    model already does and never changes the eval condition by itself.
+
+    ``thinking_level``, by contrast, is never picked up implicitly -- it is
+    only sent when a caller passes one explicitly (via a provider's
+    ``thinking_level`` attribute, set from ``--gemini-thinking-level`` or
+    ``GEMINI_THINKING_LEVEL``), because it raises how much the model actually
+    reasons before acting, which changes the eval condition itself. Omitting
+    it (the default) reproduces the pre-knob request byte for byte.
+
     Where thoughts land in the compat response is unverified; extraction
     stays passive, so a model whose thoughts never surface -- or one that
-    does not think at all, like flash-lite -- simply keeps reasoning None.
+    barely thinks at all at its default level, like flash-lite -- simply
+    keeps reasoning None unless thinking_level is raised.
     """
+    thinking_config: Dict[str, Any] = {}
     value = os.environ.get("GEMINI_INCLUDE_THOUGHTS", "").strip().lower()
-    if value in _REASONING_OPT_OUT_VALUES:
+    if value not in _REASONING_OPT_OUT_VALUES:
+        thinking_config["include_thoughts"] = True
+    if thinking_level:
+        thinking_config["thinking_level"] = thinking_level
+    if not thinking_config:
         return {}
-    return {"extra_body": {"google": {"thinking_config": {"include_thoughts": True}}}}
+    return {"extra_body": {"google": {"thinking_config": thinking_config}}}
 
 
 # Claude models that accept `output_config.effort` (Opus 4.5+, Opus 5,
@@ -1375,9 +1395,18 @@ class GeminiProvider(BaseProvider):
 
     provider_id = "gemini"
 
-    def __init__(self, model_name: Optional[str] = None, api_key: Optional[str] = None):
+    def __init__(
+        self,
+        model_name: Optional[str] = None,
+        api_key: Optional[str] = None,
+        thinking_level: Optional[str] = None,
+    ):
         self.model_name = model_name or os.environ.get("GEMINI_MODEL", DEFAULT_GEMINI_MODEL)
         self.api_key = api_key
+        # run_phase1_evaluation sets this after construction when
+        # --gemini-thinking-level is passed, mirroring how reasoning_effort is
+        # set on OpenAIResponsesProvider/AnthropicProvider above.
+        self.thinking_level = thinking_level or os.environ.get("GEMINI_THINKING_LEVEL")
 
     def _resolved_api_key(self) -> str:
         if not self.model_name:
@@ -1432,7 +1461,7 @@ class GeminiProvider(BaseProvider):
                             "schema": ACTION_JSON_SCHEMA,
                         },
                     },
-                    **_gemini_thinking_extra_body(),
+                    **_gemini_thinking_extra_body(self.thinking_level),
                 },
                 timeout=120,
             )
