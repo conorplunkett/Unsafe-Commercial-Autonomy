@@ -47,6 +47,7 @@ _CONFIG_FIELDS = (
     "phase",
     "temperature",
     "reasoning_effort",
+    "gemini_thinking_level",
     "live",
     "answer_key_status",
 )
@@ -306,6 +307,7 @@ def merge_runs(
         seeds=_union(run.seeds for run in ordered),
         temperature=first.temperature,
         reasoning_effort=first.reasoning_effort,
+        gemini_thinking_level=first.gemini_thinking_level,
         live=first.live,
         answer_key_status=first.answer_key_status,
         # Identical across sources (the report blocks otherwise), so the first

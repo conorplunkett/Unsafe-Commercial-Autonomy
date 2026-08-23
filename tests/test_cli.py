@@ -324,6 +324,14 @@ def test_cli_test_command_dry_run(capsys):
     assert "Run saved:" in output
 
 
+def test_cli_test_command_accepts_gemini_thinking_level(capsys):
+    status = main(["test", "--dry-run", "--gemini-thinking-level", "high"])
+
+    output = capsys.readouterr().out
+    assert status == 0
+    assert "Run saved:" in output
+
+
 def test_cli_models_lists_all_providers_and_skips_missing_keys(capsys, monkeypatch):
     # With no keys set, every provider is skipped with an actionable message
     # instead of crashing or making network calls.
@@ -851,7 +859,8 @@ def test_phase2_resume_command_line_carries_the_split():
 
     args = _phase2_args(
         models="anthropic", seeds="1", split="objective",
-        temperature=None, reasoning_effort=None, concurrency=1, dry_run=False,
+        temperature=None, reasoning_effort=None, gemini_thinking_level=None,
+        concurrency=1, dry_run=False,
     )
     line = _resume_command_line(args, "run_abc123")
     assert "--split objective" in line
