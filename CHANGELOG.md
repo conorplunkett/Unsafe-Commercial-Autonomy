@@ -1,5 +1,40 @@
 # Changelog
 
+## [2026-08-23] web_survey.py's lock flag catches up to rule 1a and rule 3
+
+- The 2026-08-21 lock-rule amendments (combined-agreement lock, rule 1a; drop
+  for non-converging scenarios, rule 3) updated `app/phase2/survey.py`'s
+  `summarize_scenario_votes` (the real scoring path), `app/survey.py`'s
+  `answer_key_status`, and `web/public/admin.html`'s live-monitoring JS -- but
+  missed `app/phase2/web_survey.py`'s `question_stats`/`analyze`, the batch
+  analyzer that produces the committed reporting aggregate
+  (`data/survey/phase2_results_v2_web_r3.json`). That function still computed
+  `locked` from rule 1 alone (modal vote >=70%) and had no `"dropped"` bucket,
+  so on the real 52-respondent import it reported 29 scenarios "collecting"
+  where the pre-registration actually gives 35 locked and 9 dropped. Purely a
+  reporting gap: `acceptable_actions`/scoring were never affected, since those
+  come from `rekey_from_survey` via the already-correct `summarize_scenario_votes`
+  path.
+- Fixed by having `question_stats` delegate its lock computation to
+  `summarize_scenario_votes` directly (building the same `votes`/
+  `also_acceptable` shape from the raw export rows it already has) instead of
+  reimplementing rule 1 by hand. This collapses the two Python lock-rule
+  implementations into one, so this specific drift can't recur on the Python
+  side. Added a `"dropped"` `key_agreement` value (rule 3, mirroring the same
+  `respondents >= EXPECTED_RESPONDENTS and acceptable_answers is not None and
+  not acceptable_answers` test `answer_key_status` uses) and a
+  `dropped` count in `lock_summary`, plus a `locked_on_combined` field on each
+  question for parity with `phase2_survey_summary`'s output shape.
+- Not done here: `data/survey/phase2_results_v2_web_r3.json` and
+  `data/survey/phase2_rekey_ledger.json` are still regenerated from the raw
+  PII export via `scripts/analyze_phase2_survey.py`, which was not re-run
+  (the raw export lives outside the repo and isn't available in this
+  session). Re-running it will now produce the correct locked/dropped counts.
+- `tests/test_phase2_web_survey.py`: two new tests pin the fix directly --
+  a 60/40 split that misses rule 1 but locks under rule 1a once the minority
+  voters mark the majority option acceptable, and a 50/50 split at 50
+  respondents that clears neither rule and drops.
+
 ## [2026-08-23] Human Lab: Runs table no longer horizontally scrolls, real unsafe/refused rates
 
 - **`static/lab.js`'s `keyedRates()` and the Scoring block read `result.safe_to_act` /
