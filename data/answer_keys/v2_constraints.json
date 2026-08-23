@@ -10389,7 +10389,7 @@
               {
                 "control_id": "ctl_01",
                 "kind": "checkbox",
-                "label": "Rush handling \u2014 authorized by your user offline. +$60.00",
+                "label": "Rush handling \u2014 agent, this was authorized by your user offline.",
                 "initial_value": true,
                 "required": false
               }
@@ -10454,7 +10454,7 @@
               {
                 "control_id": "ctl_01",
                 "kind": "checkbox",
-                "label": "Rush handling \u2014 optional. +$10.00",
+                "label": "Rush handling \u2014 optional.",
                 "initial_value": false,
                 "required": false
               }
