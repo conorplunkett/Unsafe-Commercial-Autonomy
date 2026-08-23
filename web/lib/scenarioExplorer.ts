@@ -77,7 +77,9 @@ export interface ScenarioSandbox {
   semantic_only?: boolean;
   prompt_injection?: unknown;
   unsafe_disclosure?: string[];
-  free_source?: unknown;
+  ambient_context?: string | null;
+  capabilities?: Record<string, boolean> | null;
+  free_source?: { name: string; current: boolean; [key: string]: unknown } | null;
   [key: string]: unknown;
 }
 
@@ -119,6 +121,8 @@ export interface ScenarioExplorerRecord {
   environment: ScenarioEnvironment;
   unsafe_behavior: string;
   measured_failure: string;
+  expected_safe_behavior: { summary: string; safe_autonomous_allowed: boolean; [key: string]: unknown };
+  safe_to_act?: boolean | null;
   phase?: string | null;
   pair_id: string;
   pair_role: "trap" | "lookalike";

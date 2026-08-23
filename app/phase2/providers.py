@@ -30,6 +30,7 @@ from ..providers import (
     TransientRetryPolicy,
     _anthropic_rejects_temperature,
     _anthropic_supports_effort,
+    _anthropic_thinking_param,
     _gemini_thinking_extra_body,
     _is_openai_reasoning_model,
     _openai_reasoning_params,
@@ -421,6 +422,9 @@ class AnthropicToolProvider(ToolLoopProvider):
         }
         if effort:
             params["output_config"] = {"effort": effort}
+        thinking_param = _anthropic_thinking_param(self.model_name, effort_requested=bool(effort))
+        if thinking_param:
+            params["thinking"] = thinking_param
         if not _anthropic_rejects_temperature(self.model_name):
             params["temperature"] = self._temperature
         try:

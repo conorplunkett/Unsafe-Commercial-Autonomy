@@ -83,6 +83,7 @@ export function ScenarioSide({
   const requiredFields = sandbox?.checkout_required_fields ?? [];
   const optionalFields = sandbox?.checkout_optional_fields ?? [];
   const redirects = Object.entries(sandbox?.page_url_redirects ?? {});
+  const capabilities = Object.entries(sandbox?.capabilities ?? {});
 
   return (
     <Card as="article" tone="raised" className="flex flex-col gap-4">
@@ -100,6 +101,15 @@ export function ScenarioSide({
         )}
       </div>
 
+      <p className="text-h4 leading-snug text-ink">{scenario.title}</p>
+
+      <div>
+        <p className="label">Instruction</p>
+        <p className="mt-1 text-ui leading-snug text-ink/90">
+          {scenario.user_instruction}
+        </p>
+      </div>
+
       <div>
         <p className="label">Situation</p>
         <p className="mt-1 text-ui leading-snug text-ink/90">
@@ -108,9 +118,67 @@ export function ScenarioSide({
       </div>
 
       <div>
+        <p
+          className="label"
+          title="What the agent should do -- withheld from the agent, used to grade its response"
+        >
+          Hidden preference
+        </p>
+        <p className="mt-1 text-ui leading-snug text-ink/90">
+          {scenario.hidden_preference}
+        </p>
+      </div>
+
+      {sandbox?.ambient_context != null && (
+        <div>
+          <p className="label">Ambient context</p>
+          <p className="mt-1 text-ui leading-snug text-ink/90">
+            {sandbox.ambient_context}
+          </p>
+        </div>
+      )}
+
+      <div>
         <p className="label">Policy</p>
         <PolicyFields policy={scenario.payment_policy} />
       </div>
+
+      <div>
+        <p
+          className="label"
+          title="Whether the agent may act on its own here, or must ask/refuse"
+        >
+          Safe behavior
+        </p>
+        <p className="mt-1 text-small">
+          {scenario.expected_safe_behavior.summary}
+          <span className="text-muted">
+            {" "}
+            · Autonomous action:{" "}
+            {scenario.expected_safe_behavior.safe_autonomous_allowed ? "Allowed" : "Not allowed"}
+          </span>
+        </p>
+      </div>
+
+      {capabilities.length > 0 && (
+        <div>
+          <p className="label">Capabilities</p>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {capabilities.map(([name, enabled]) => (
+              <span
+                key={name}
+                className={`rounded-lg border px-2 py-0.5 font-mono text-caption ${
+                  enabled
+                    ? "border-border bg-paper-2 text-ink/80"
+                    : "border-border text-muted line-through"
+                }`}
+              >
+                {name.replace(/_/g, " ")}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {offers.length > 0 && (
         <div>
@@ -120,6 +188,24 @@ export function ScenarioSide({
               <OfferCard key={offer.offer_id} offer={offer} index={i} total={offers.length} />
             ))}
           </div>
+        </div>
+      )}
+
+      {sandbox?.free_source && (
+        <div>
+          <p
+            className="label"
+            title="A free, current source claimed to substitute for a paid item"
+          >
+            Free source
+          </p>
+          <p className="mt-1 text-small">
+            {sandbox.free_source.name}
+            <span className="text-muted">
+              {" "}
+              · {sandbox.free_source.current ? "Current" : "Not current"}
+            </span>
+          </p>
         </div>
       )}
 
@@ -188,6 +274,10 @@ export function ScenarioSide({
           </p>
         </div>
       )}
+
+      <p className="font-mono text-caption text-muted">
+        Tests: {scenario.unsafe_behavior}
+      </p>
 
       {scenario.semantic_only && (
         <span

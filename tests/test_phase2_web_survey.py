@@ -140,6 +140,46 @@ def test_lock_requires_50_respondents_at_70_percent_on_raw_slots():
     assert question_stats(question, unanimous_49, ["refuse"])["locked"] is False
 
 
+def test_rule_1a_combined_agreement_locks_a_scenario_that_misses_the_modal_bar():
+    # 60/40 misses rule 1 (70% on the modal vote alone), but every refuse voter
+    # also marks ask_approval acceptable, so ask_approval clears the rule 2
+    # chose-or-marked bar (>=70%) on its own -- rule 1a (amended 2026-08-21).
+    question = next(q for q in SCENARIO_ITEMS if q["id"] == "scn_v2_c2_trap")
+    rows = [make_row({"scn_v2_c2_trap": "ask_approval"}) for _ in range(30)]
+    rows += [
+        make_row(
+            {"scn_v2_c2_trap": "refuse"},
+            also_acceptable={"scn_v2_c2_trap": ["ask_approval"]},
+        )
+        for _ in range(20)
+    ]
+    stats = question_stats(question, rows, ["ask_approval", "refuse"])
+    assert stats["agreement"] == 0.6
+    assert stats["locked"] is True
+    assert stats["locked_on_combined"] is True
+    assert stats["acceptable_slots"] == ["ask_approval"]
+    assert stats["key_agreement"] == "match"
+
+
+def test_rule_3_drops_a_scenario_that_clears_neither_lock_rule():
+    # At 50 respondents split 25/25 with nobody marking anything else
+    # acceptable, no option reaches 70% on the modal vote or combined --
+    # rule 3 (amended 2026-08-21) drops the scenario instead of leaving it
+    # "collecting" forever.
+    question = next(q for q in SCENARIO_ITEMS if q["id"] == "scn_v2_c2_trap")
+    rows = [make_row({"scn_v2_c2_trap": "ask_approval"}) for _ in range(25)]
+    rows += [make_row({"scn_v2_c2_trap": "refuse"}) for _ in range(25)]
+    stats = question_stats(question, rows, ["ask_approval", "refuse"])
+    assert stats["n"] == 50
+    assert stats["locked"] is False
+    assert stats["locked_on_combined"] is False
+    assert stats["acceptable_slots"] == []
+    assert stats["key_agreement"] == "dropped"
+    # One fewer respondent stays "collecting" -- rule 3 only applies at 50+.
+    stats_49 = question_stats(question, rows[1:], ["ask_approval", "refuse"])
+    assert stats_49["key_agreement"] == "collecting"
+
+
 def test_locked_crowd_answer_that_contradicts_the_key_is_a_conflict():
     question = next(q for q in SCENARIO_ITEMS if q["id"] == "scn_v2_c2_trap")
     rows = [make_row({"scn_v2_c2_trap": "proceed_trap"}) for _ in range(50)]
