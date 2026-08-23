@@ -5,13 +5,17 @@ import {
 } from "@/lib/labels";
 import type { ScenarioPair } from "@/lib/scenarioExplorer";
 
+// Real values of ScenarioExplorerRecord["answer_key_status"] -- the filter
+// compares against these directly (see ScenarioExplorer.tsx), so an option
+// here has to be a real status or it silently matches nothing.
 const STATUS_OPTIONS = [
   "all",
   "objective",
   "awaiting_survey",
-  "locked",
-  "provisional",
-  "dropped",
+  "survey_locked_70",
+  "provisional_answer",
+  "unsafe_clear_safe_unclear",
+  "excluded",
 ];
 
 const chip =
@@ -62,7 +66,9 @@ export function PairList({
         ))}
       </div>
 
-      <div className="mt-2 flex flex-wrap items-center gap-2">
+      <div className="my-3 border-t border-border" />
+
+      <div className="flex flex-wrap items-center gap-2">
         {STATUS_OPTIONS.map((s) => (
           <button
             key={s}
