@@ -134,7 +134,10 @@ export function OfferCard({
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <p className="text-small font-medium text-ink">{offer.merchant_name}</p>
-          <p className="text-small text-muted">{offer.item}</p>
+          <p className="text-small text-muted">
+            {offer.item}
+            {offer.category && ` · ${offer.category.replace(/_/g, " ")}`}
+          </p>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-1.5">
           {total > 1 && (
