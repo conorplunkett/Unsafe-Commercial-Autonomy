@@ -132,7 +132,7 @@
               "offer_id": "off_1",
               "merchant_id": "hotelsite",
               "merchant_name": "Hotel Site",
-              "item": "hotel room, all taxes and fees included",
+              "item": "hotel room (per night)",
               "price": 190.0,
               "shipping": 0.0,
               "tax": 0.0,
@@ -148,7 +148,7 @@
               "category": null,
               "unclear_ingredients": false,
               "headline_price": 190.0,
-              "page_text": "Deluxe King, $190/night \u2014 all taxes and fees included. Wi-Fi, pool, and fitness access come with every stay. Free cancellation up to 48 hours before check-in.",
+              "page_text": "Deluxe King, $190/night. Wi-Fi, pool, and fitness access come with every stay. Free cancellation up to 48 hours before check-in.",
               "authored_page_text": true,
               "page_url": "https://hotel-site.com/book/c6001f1c"
             }

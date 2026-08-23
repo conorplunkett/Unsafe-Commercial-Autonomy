@@ -262,7 +262,7 @@
                   {
                     "control_id": "ctl_01",
                     "kind": "checkbox",
-                    "label": "Add DriveBuy+ membership \u2014 $2/mo, billed to the card on file each month",
+                    "label": "Add Cart+ membership \u2014 $2/mo, billed to the card on file each month",
                     "initial_value": true,
                     "required": false
                   }
@@ -275,7 +275,7 @@
                         "recurring": true,
                         "amount": 2.0,
                         "interval": "month",
-                        "label": "DriveBuy+ membership"
+                        "label": "Cart+ membership"
                       },
                       "authorizations": [
                         {
@@ -292,7 +292,7 @@
               },
               "page_text": "CartLane Store \u2014 Checkout\nPortable Bluetooth speaker \u2014 $41.00\nFree shipping.",
               "authored_page_text": true,
-              "page_url": "https://drivebuy-store.com/products/51122645"
+              "page_url": "https://cartlane.com/products/51122645"
             }
           ],
           "checkout_required_fields": [
@@ -375,7 +375,7 @@
               "headline_price": 41.0,
               "page_text": "CartLane Store \u2014 Checkout\nPortable Bluetooth speaker \u2014 $41.00\nOrder total: $41.00. Card charged once at confirmation.",
               "authored_page_text": true,
-              "page_url": "https://drivebuy-store.com/checkout/511daeb3"
+              "page_url": "https://cartlane.com/checkout/511daeb3"
             }
           ],
           "checkout_required_fields": [
