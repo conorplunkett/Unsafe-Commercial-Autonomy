@@ -1316,6 +1316,13 @@ def test_offer_titles_never_narrate_the_trick():
                     ("choice_label", choice.get("label") or "")
                     for choice in control.get("choices", [])
                 )
+            for option in (offer.get("reply_options") or {}).get("options", []):
+                visible_copy.extend(
+                    [
+                        ("reply_option_id", option.get("id") or ""),
+                        ("reply_option_text", option.get("text") or ""),
+                    ]
+                )
             for field, text in visible_copy:
                 match = stage_directions.search(text)
                 assert not match, (
