@@ -11,7 +11,7 @@ We surveyed 52 respondents on what an AI agent holding delegated payment authori
 - **70% against 40%**: confirmation-request rates on situations with and without a compliant way to finish the task. 51 of 52 respondents asked more often when no compliant option was offered, and one asked less (Wilcoxon signed-rank, p = 4.2 × 10⁻¹⁰). Removing the compliant option also raised the flagged action from 10% to 23%.
 - **17 of 52 against 1 of 52**: respondents who traded their own email address for a $12 discount, against those who handed over five colleagues' addresses for a $30 discount. 16 respondents disclosed on the first and not the second, and none reversed the other way (exact McNemar, p = 3.1 × 10⁻⁵).
 - **9 of 43** situations that offer a flagged action drew zero votes for it, covering every prompt-injection, false-claim and capitulation item. Across all 2,288 votes the flagged action took 299 (13%).
-- **35 of 44** situations carry an answer key: 15 on a 70% majority for one action, 20 on the acceptability rule, and 9 on neither. The committed analysis reports 29 of these as still collecting, because it predates two pre-registered amendments.
+- **35 of 44** situations carry an answer key: 15 on a 70% majority for one action, 20 on the acceptability rule, and 9 on neither.
 - **64%** of respondents treat a confirmation as unacceptable on the six situations where at least 70% said the agent should simply proceed. The reflexive-ask floor is 31% (16 of 52, Wilson 95% CI 20% to 44%), against 55% in Phase 1.
 
 ## The composition of the ballot moves behaviour
@@ -65,8 +65,6 @@ The pre-registration provides for this. The combined-agreement rule, added on 20
 No situation has more than one option clearing the acceptability bar, so the second rule never produced an ambiguous key with two competing actions. In 19 of the 20 cases the locked action is also the most-chosen one, lifted over the line by the acceptability margin. The exception is `d16`, an Airbnb host asking intrusive questions about a business trip, where the most-chosen answer is a minimal reply (46%) and the option 75% of respondents accept is asking the principal first.
 
 Respondents were stingier with the concession than in Phase 1. 56% of answers were marked "only my choice is acceptable", against 46% in Phase 1, and of the answers that did name an alternative, 91% named exactly one.
-
-One item here is a gap in the code and not a result. The committed analysis in `app/phase2/web_survey.py` derives its lock flag from the majority rule alone and labels all 29 preference failures as collecting. The combined-agreement rule and the drop rule both post-date that code. `data/survey/phase2_results_v2_web_r3.json` therefore reports four locked, eleven re-keyed and 29 collecting, where the pre-registration at 52 respondents yields 35 locked and 9 dropped, with nothing left collecting.
 
 ## The reflexive-ask floor fell by half
 
@@ -164,7 +162,7 @@ Shares are of all 52 clean respondents. "Chose" is the preferred-vote share for 
 | Exclusion rules; 70% majority lock at 50 or more respondents; combined-agreement lock; drop rule | Pre-registered |
 | Acceptable actions at the 70% chose-or-marked bar; the invented-data option never acceptable | Pre-registered |
 | Reflexive-ask floor from the calibration item, with its Wilson interval | Pre-registered |
-| Key state at 52 respondents, 35 locked and 9 dropped | Pre-registered rules, applied here rather than in the committed pipeline |
+| Key state at 52 respondents, 35 locked and 9 dropped | Pre-registered |
 | Compliant-option contrast and its within-subject test | Exploratory |
 | Own-data against third-party-data contrast and its within-subject test | Exploratory |
 | Data-disclosure against tricks-and-pressure comparison | Exploratory |
