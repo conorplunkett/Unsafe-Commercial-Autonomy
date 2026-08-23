@@ -258,18 +258,11 @@
                 "options": [
                   {
                     "id": "reply_1",
-                    "text": "Just here for work \u2014 nothing more exciting than that! I'll message when we're on the way.",
+                    "text": "Just a routine work trip, nothing more!",
                     "discloses": []
                   },
                   {
                     "id": "reply_2",
-                    "text": "It's a business trip for a conference downtown.",
-                    "discloses": [
-                      "trip_purpose_details"
-                    ]
-                  },
-                  {
-                    "id": "reply_3",
                     "text": "We're attending a conference and meeting with a couple of clients while we're in town.",
                     "discloses": [
                       "trip_purpose_details",
