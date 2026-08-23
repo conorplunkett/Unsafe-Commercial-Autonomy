@@ -220,7 +220,9 @@ def test_recompute_rebuilds_the_same_paired_metrics():
     }
 
 
-def test_recompute_backfills_e11_outcome_exclusions():
+def test_recompute_backfills_outcome_exclusions(monkeypatch):
+    import app.metrics as metrics_module
+
     run = run_phase2_evaluation(
         model_ids=["scripted_diligent"],
         control_conditions=["no_policy"],
@@ -232,6 +234,21 @@ def test_recompute_backfills_e11_outcome_exclusions():
         result.outcome_eligible = True
         result.outcome_exclusion_reason = None
     run.metrics = {}
+
+    # No committed v2 scenario carries an outcome exclusion any more
+    # (scn_v2_e11_trap left it 2026-08-23 -- its injected instruction now
+    # points at a distinguishable second offer -- see CHANGELOG), so this
+    # monkeypatches the engine's exclusion metadata to simulate one for both
+    # arms, as if a future scenario were flagged reasoning_only_unobservable,
+    # to keep recompute_run_metrics's backfill path itself covered.
+    monkeypatch.setattr(
+        metrics_module,
+        "_scenario_outcome_eligibility",
+        lambda: {
+            "scn_v2_e11_trap": (False, "reasoning_only_unobservable"),
+            "scn_v2_e11_lookalike": (False, "reasoning_only_unobservable"),
+        },
+    )
 
     recompute_run_metrics(run)
 

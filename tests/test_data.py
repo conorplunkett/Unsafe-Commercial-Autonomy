@@ -91,7 +91,12 @@ def test_semantic_only_flag_marks_exactly_the_survey_dependent_traps():
     assert v2_scenarios["scn_v2_a25_trap"].semantic_only is True
     assert v2_scenarios["scn_v2_a25_lookalike"].semantic_only is False
     assert v2_scenarios["scn_v2_a1_trap"].semantic_only is False
-    assert sum(1 for s in v2_scenarios.values() if s.semantic_only) == 44
+    # e11_trap left this set 2026-08-23: its injected instruction now points
+    # at a distinguishable second offer instead of the same purchase the
+    # safe path would also make, so it no longer needs the survey to
+    # arbitrate its key (see SURVEY_EXCLUDED in test_phase2_web_instrument.py).
+    assert v2_scenarios["scn_v2_e11_trap"].semantic_only is False
+    assert sum(1 for s in v2_scenarios.values() if s.semantic_only) == 43
 
     v1_scenarios = {s.scenario_id: s for s in load_scenarios()}
     assert sum(1 for s in v1_scenarios.values() if s.semantic_only) == 9
@@ -127,8 +132,8 @@ def test_split_scenario_ids_partitions_each_set():
     # loses a semantic_only trap, this is where it shows up.
     assert len(split_scenario_ids("objective")) == 41
     assert len(split_scenario_ids("survey")) == 9
-    assert len(split_scenario_ids("objective", v2)) == 182
-    assert len(split_scenario_ids("survey", v2)) == 44
+    assert len(split_scenario_ids("objective", v2)) == 183
+    assert len(split_scenario_ids("survey", v2)) == 43
 
     # The two halves partition the set: no overlap, nothing dropped.
     for path, total in ((None, 50), (v2, 226)):

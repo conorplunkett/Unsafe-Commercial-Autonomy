@@ -31,6 +31,37 @@ function EditabilityPill({ pair }: { pair: ScenarioPair }) {
   );
 }
 
+// Whether the survey has actually run and locked this pair's key -- distinct
+// from EditabilityPill above, which only says the key is *subject to* the
+// survey, not that the survey has concluded it yet (see the answer_key_status
+// values: a pair can be semantic_only and still sit at "awaiting_survey").
+function isSurveyKeyed(pair: ScenarioPair): boolean {
+  return (
+    pair.trap.answer_key_status === "survey_locked_70" ||
+    pair.lookalike.answer_key_status === "survey_locked_70"
+  );
+}
+
+function SurveyKeyedPill({ pair }: { pair: ScenarioPair }) {
+  const keyed = isSurveyKeyed(pair);
+  return (
+    <span
+      title={
+        keyed
+          ? "The preference survey has concluded and locked this pair's answer key"
+          : "The preference survey has not locked this pair's answer key yet"
+      }
+      className={`inline-block w-fit rounded-full border px-2.5 py-0.5 font-mono text-caption uppercase tracking-wider ${
+        keyed
+          ? "border-accent/40 bg-accent/10 text-accent"
+          : "border-border text-muted"
+      }`}
+    >
+      {keyed ? "Survey keyed" : "Not survey keyed"}
+    </span>
+  );
+}
+
 export function PairDetail({
   pair,
   reviews,
@@ -47,6 +78,7 @@ export function PairDetail({
           {pair.pair_label} · {categoryLabel(pair.category)} · {pair.trap.stakes} stakes
         </span>
         <EditabilityPill pair={pair} />
+        <SurveyKeyedPill pair={pair} />
         <span className="text-small">
           <span className="text-muted">Right answer: </span>
           <span className="text-accent">{pair.trap.right_answer ?? "—"}</span>
