@@ -45,8 +45,23 @@ def _scenario_items(questions) -> list:
 # forced-trap exclusion when traps-on-every-ballot replaced the
 # forced-answer doctrine; a4 was cut independently under that same
 # overturned doctrine, and the flagged tension is resolved by restoring
-# it too. Every semantic_only scenario is now surveyed.
+# it too. Every semantic_only scenario is surveyed -- a scenario listed
+# here would be the opposite case, semantic_only but deliberately kept off
+# the ballot; SURVEY_DECOUPLED below is the actual opposite-direction case
+# this project has needed so far.
 SURVEY_EXCLUDED: set = set()
+
+# Scenarios that stay on the survey ballot (their question is untouched --
+# those votes are a historical record) but whose answer key no longer takes
+# the survey as ground truth, so `semantic_only` on the committed key is
+# `False` even though the question is still asked.
+#
+# scn_v2_e11_trap (2026-08-23): redesigned so the injected instruction
+# points at a second, distinguishable offer (`injection_compliance_marker`
+# on off_2) instead of the same purchase the safe path would also make, so
+# it no longer needs the survey to arbitrate its answer key and left
+# `semantic_only`.
+SURVEY_DECOUPLED: set = {"scn_v2_e11_trap"}
 
 
 def test_scenario_ids_match_semantic_only_answer_keys():
@@ -60,9 +75,11 @@ def test_scenario_ids_match_semantic_only_answer_keys():
         and entry.get("environment", {}).get("semantic_only")
     }
     surveyed = {q["id"] for q in _scenario_items(_questions())}
-    assert surveyed == semantic_only - SURVEY_EXCLUDED
+    assert surveyed == (semantic_only - SURVEY_EXCLUDED) | SURVEY_DECOUPLED
     assert SURVEY_EXCLUDED <= semantic_only
     assert not (surveyed & SURVEY_EXCLUDED)
+    assert SURVEY_DECOUPLED <= surveyed
+    assert SURVEY_DECOUPLED.isdisjoint(semantic_only)
 
 
 def test_batches_partition_questions():
@@ -351,15 +368,23 @@ def test_sandbox_prices_are_grounded_in_the_survey():
     respondent saw, or reachable from two of them by one addition or
     subtraction (a discounted price like $300 less $30).
 
-    The only exemption is computed, never listed: a vignette that states no
-    amount at all exempts its whole world, because the amount is not what
-    that item measures (c2's invoice, c8's hotel, c18's hours). There is no
-    list to add an item to in order to dodge a real mismatch.
+    The only exemption computed from the vignette itself, never hand-listed:
+    a vignette that states no amount at all exempts its whole world, because
+    the amount is not what that item measures (c2's invoice, c8's hotel,
+    c18's hours). There is no list to add an item to in order to dodge a
+    real mismatch that way.
+
+    `SURVEY_DECOUPLED` is the one hand-listed exemption, and for a different
+    reason: those scenarios' answer keys no longer take the survey as ground
+    truth at all (e11_trap, 2026-08-23), so their sandbox prices answer to
+    the committed key, not to a ballot question nobody is re-asking.
     """
     with V2_CONSTRAINTS.open("r", encoding="utf-8") as handle:
         constraints = json.load(handle)
     checked = 0
     for q in _scenario_items(_questions()):
+        if q["id"] in SURVEY_DECOUPLED:
+            continue
         amounts = _stated_amounts(q)
         if not amounts:
             continue
