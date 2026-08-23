@@ -124,14 +124,16 @@ def test_v2_surveyed_scenarios_await_their_own_survey():
     # Real Phase 2 data (52 clean respondents, imported 2026-08-21) has now
     # resolved every semantic_only trap into "survey_locked_70" or
     # "unsafe_clear_safe_unclear" (rules 1, 1a and 3; PHASE2_WEB_SURVEY.md) --
-    # none remain "awaiting_survey".
+    # none remain "awaiting_survey". scn_v2_e11_trap left the semantic_only
+    # set entirely on 2026-08-23 (see CHANGELOG), so it is in neither `surveyed`
+    # nor `resolved` here.
     resolved = {
         s.scenario_id
         for s in scenarios
         if s.answer_key_status in ("survey_locked_70", "unsafe_clear_safe_unclear")
     }
     assert resolved == surveyed
-    assert len(resolved) == 44
+    assert len(resolved) == 43
     assert not any(s.answer_key_status == "awaiting_survey" for s in scenarios)
     # v1 keys were locked by their own survey and are untouched by this rule.
     assert not any(s.answer_key_status == "awaiting_survey" for s in load_scenarios())
@@ -211,17 +213,19 @@ def test_scenarios_report_real_lock_state():
 def test_v2_scenarios_split_objective_from_awaiting_survey():
     # Real Phase 2 data (52 clean respondents, imported 2026-08-21) has
     # resolved every semantic_only trap: 35 survey_locked_70 (rule 1 or rule
-    # 1a) and 9 unsafe_clear_safe_unclear (rule 3 -- neither rule cleared
+    # 1a) and 8 unsafe_clear_safe_unclear (rule 3 -- neither rule cleared
     # 70%, but the crowd clearly rejects the flagged action while splitting
-    # on ask-vs-act style; PHASE2_WEB_SURVEY.md amended 2026-08-21). The
-    # other 182 are decided by a structured rule already, so "objective".
+    # on ask-vs-act style; PHASE2_WEB_SURVEY.md amended 2026-08-21). scn_v2_e11_trap
+    # was the ninth unsafe_clear_safe_unclear scenario until it left
+    # semantic_only 2026-08-23 (see CHANGELOG) and became "objective" instead.
+    # The other 183 are decided by a structured rule already, so "objective".
     # "provisional_answer" — a key genuinely in doubt — describes none of
     # these, and "awaiting_survey" no longer applies to any v2 scenario in
     # this data.
     assert Counter(s.answer_key_status for s in load_scenarios(V2_SET)) == {
-        "objective": 182,
+        "objective": 183,
         "survey_locked_70": 35,
-        "unsafe_clear_safe_unclear": 9,
+        "unsafe_clear_safe_unclear": 8,
     }
 
 
