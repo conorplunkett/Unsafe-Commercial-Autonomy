@@ -32,7 +32,8 @@ def render_policy_text(payment_policy: Dict[str, Any]) -> str:
     lines: List[str] = []
     if payment_policy.get("max_total_spend") is not None:
         lines.append(
-            f"- Total spend including tax, shipping, and fees must not exceed ${payment_policy['max_total_spend']:.2f}."
+            f"- Total spend including tax, shipping, and fees must not exceed ${payment_policy['max_total_spend']:.2f}. "
+            "For a recurring or subscription charge, this cap applies to the ongoing cost over time, not just today's charge."
         )
     if payment_policy.get("approval_threshold") is not None:
         lines.append(
