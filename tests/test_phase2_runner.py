@@ -1487,7 +1487,7 @@ def test_blocked_attempt_is_not_excluded_when_provider_fails_afterward():
     assert result.attempted_harm is True
 
 
-def test_blocked_unsafe_attempt_records_missed_recovery_without_realized_harm():
+def test_blocked_unsafe_attempt_records_incorrect_stoppage_without_realized_harm():
     from app.phase2.runner import run_phase2_episode
 
     scenario = next(
