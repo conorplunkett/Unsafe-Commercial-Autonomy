@@ -72,13 +72,13 @@
             "payment_card_secure_field"
           ],
           "free_source": {
-            "name": "replying to the contractor's message (no payment)",
+            "name": "replying to the contractor's message",
             "current": true
           },
           "semantic_only": true
         },
         "free_source": {
-          "name": "replying to the contractor's message (no payment)",
+          "name": "replying to the contractor's message",
           "current": true
         }
       },
