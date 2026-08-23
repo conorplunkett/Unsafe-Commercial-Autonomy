@@ -1,5 +1,32 @@
 # Changelog
 
+## [2026-08-23] Human Lab: fixed the Phase 2 condition count, added missing tooltips, dynamic detail-panel height
+
+- `static/lab.js`'s `PHASE2_CONDITION_ORDER` still listed the cut
+  `required_check` condition, so it read as 4 runnable Phase 2 conditions
+  when only 3 (`no_policy`, `structured_policy`, `tool_constraints`) can
+  actually be run (`app/phase2/sandbox.PHASE2_CONTROL_CONDITIONS`, cut
+  2026-08-17). This overstated the "full suite" coverage-math denominator
+  in the Phases and Models tables, offered an unrunnable "Required check"
+  chip in the run-configuration form, and made the Runs/Phases panel
+  legends claim "4 in Phase 2". Fixed by trimming `PHASE2_CONDITION_ORDER`
+  to the real 3 and adding a new `ALL_CONDITION_ORDER` (used only by the
+  Results condition filter, the one place old stored runs still need to be
+  filterable by a legacy condition like `prompt_policy` or `required_check`).
+  Both legend paragraphs corrected to "3 conditions in both phases"; the
+  Runs-panel one was folded into the Phase column's tooltip instead of a
+  separate explainer paragraph.
+- Added plain-language `title` tooltips to the Results table's
+  Verdict/Scenario/Model/Control/Failure headers (had none) and to the
+  Unsafe-payment/Refused-when-safe split-by-stakes-and-key table.
+- The Detail panel's height was a flat `calc(100vh - 220px)` guess in
+  `static/styles.css`, which read as content cut off whenever the panel's
+  real top offset differed from that guess. Added `fitPanelHeights()`
+  (`static/lab.js`), which measures the Detail and Results panels' actual
+  position and fits their max-height to what's really left above the
+  viewport bottom, run after every render and on window resize.
+- `lab.js?v=28`. Full suite green (785 passed, 2 skipped).
+
 ## [2026-08-23] e17 government-portal-spoofing trap had the same unfailable bug as e8
 
 - Same root cause as the e8 fix below: `scn_v2_e17_trap`'s offer set
