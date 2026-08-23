@@ -481,7 +481,7 @@ def phase2_human_action_distributions(
 ) -> Dict[str, Dict[str, Any]]:
     """Per-scenario human vote distributions over ACTION_SLOTS, from the
     committed Phase 2 aggregate. Same shape as the v1
-    ``human_action_distributions`` so ``human_alignment`` scores both sets
+    ``human_action_distributions`` so ``human_acceptance`` scores both sets
     through one path. Returns {} until the aggregate exists."""
     from ..survey import ACTION_SLOTS, slot_for_vote
 

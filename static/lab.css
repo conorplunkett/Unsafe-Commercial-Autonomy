@@ -598,54 +598,89 @@ details.runner-card[open] > summary.runner-card-heading h2::before {
   background: var(--surface);
 }
 
-/* 15 columns is a lot to fit in one panel width — the generic 12px/14px
-   th/td padding (styles.css) alone was eating a third of some columns'
-   already-tight share, which is what let "Unsafe payment" overflow its
-   column and get cut off by the next one's background. Tighter padding
-   throughout this table claws that width back for the content itself. */
+/* 16 columns, explicit px widths rather than %. A percentage-width column
+   only ever gets as wide as its share of the container allows, which is what
+   drove the earlier fight to cram every header into ~65px — any narrower and
+   the next column's opaque background painted over the overflow (see the
+   overflow: visible comment above). Fixed px widths instead guarantee each
+   column its own comfortable minimum regardless of column count, at the cost
+   of the table now legitimately running wider than the panel on typical
+   window sizes — .table-wrap already scrolls it horizontally, and that
+   trade is fine: a header you can read beats one squeezed to fit. */
+#section-runs table {
+  table-layout: fixed;
+  width: 1460px;
+}
+
 #section-runs th,
 #section-runs td {
-  padding-top: 8px;
-  padding-bottom: 8px;
+  padding: 8px 10px;
 }
 
-#section-runs th:not(:nth-child(3)):not(:nth-child(4)):not(:nth-child(5)),
-#section-runs td:not(:nth-child(3)):not(:nth-child(4)):not(:nth-child(5)) {
-  padding-left: 8px;
-  padding-right: 8px;
+#section-runs th:nth-child(1),
+#section-runs td:nth-child(1) {
+  width: 90px;
 }
 
-.lab-runs table th:nth-child(2),
-.lab-runs table td:nth-child(2) {
-  width: 8%;
+#section-runs th:nth-child(2),
+#section-runs td:nth-child(2) {
+  width: 110px;
 }
 
-.lab-runs table th:nth-child(3),
-.lab-runs table td:nth-child(3) {
-  width: 10%;
-  padding-right: 6px;
+#section-runs th:nth-child(3),
+#section-runs td:nth-child(3) {
+  width: 130px;
 }
 
-.lab-runs table th:nth-child(4),
-.lab-runs table td:nth-child(4) {
-  width: 19%;
-  padding-left: 6px;
-  padding-right: 6px;
+#section-runs th:nth-child(4),
+#section-runs td:nth-child(4) {
+  width: 260px;
 }
 
-/* n just holds a small integer — a full share of a 15-column table's width
-   is wasted on it, and shrinking it (plus the reduced Phase/Conditions
-   padding above) is what actually pulls those three columns closer
-   together, since table-layout: fixed has no other gap to close. */
-.lab-runs table th:nth-child(5),
-.lab-runs table td:nth-child(5) {
-  width: 3%;
-  padding-left: 6px;
+/* n just holds a small integer. */
+#section-runs th:nth-child(5),
+#section-runs td:nth-child(5) {
+  width: 44px;
+}
+
+#section-runs th:nth-child(6),
+#section-runs td:nth-child(6),
+#section-runs th:nth-child(7),
+#section-runs td:nth-child(7),
+#section-runs th:nth-child(8),
+#section-runs td:nth-child(8),
+#section-runs th:nth-child(9),
+#section-runs td:nth-child(9),
+#section-runs th:nth-child(11),
+#section-runs td:nth-child(11),
+#section-runs th:nth-child(12),
+#section-runs td:nth-child(12),
+#section-runs th:nth-child(14),
+#section-runs td:nth-child(14) {
+  width: 72px;
+}
+
+#section-runs th:nth-child(10),
+#section-runs td:nth-child(10),
+#section-runs th:nth-child(13),
+#section-runs td:nth-child(13) {
+  width: 84px;
+}
+
+#section-runs th:nth-child(15),
+#section-runs td:nth-child(15) {
+  width: 68px;
+}
+
+#section-runs th:nth-child(16),
+#section-runs td:nth-child(16) {
+  width: 80px;
 }
 
 /* The human-survey columns (Incorrect stoppage onward) are a distinct
-   comparison — against surveyed people, not the answer key — so a rule sets
-   them off from the model-behavior rates to their left. */
+   comparison — against surveyed people, not the answer key — and Errors is a
+   run-health signal rather than either kind of rate, so a rule sets both
+   apart from what's to their left. */
 .col-divider {
   border-left: 2px solid var(--rule);
 }
