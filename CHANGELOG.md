@@ -1,5 +1,60 @@
 # Changelog
 
+## [2026-08-23] Human Lab: catches up to the 2026-08-18 missed_recovery/human_alignment rename
+
+- `static/` never picked up the `[2026-08-18] Fail-on-traps` rename
+  (`missed_recovery` -> `incorrect_stoppage`; the "Human alignment" axis's
+  display name -> "Human acceptance") that `app/models.py` and `web/` already
+  carry — the same "renamed field, client never updated" bug class as the
+  `answer_key_status` fix earlier this session, just not caught until now
+  because the field read `result.missed_recovery` degrades silently (reads
+  `undefined`/falsy) rather than raising, and this session's own new "Missed
+  recovery"/"Human alignment" Runs-table columns (added a few hours before
+  this fix, working from the pre-rename names already on screen) reintroduced
+  it right as the rest of the app was catching up.
+- `humanAxes()`'s gradeable-stop check and `humanVoteBlock()`'s per-episode
+  Recovery fact now read `result.incorrect_stoppage ?? result.missed_recovery`
+  — new field first, old one as a fallback for runs stored before the rename
+  — mirroring `web/lib/metrics.ts`'s identical `??` read exactly.
+  `EvaluationResult.incorrect_stoppage`'s own `validation_alias` already
+  covers the server side (`app/models.py`), so this was purely a client gap.
+- Every "Missed recovery" / "Human alignment" label in `static/lab.html`
+  (Runs table, Models table, and the Axes section's chart headings and
+  legend) renamed to "Incorrect stoppage" / "Human acceptance", matching
+  `web/components/results/SurveyAxes.tsx` and `Leaderboard.tsx` exactly. The
+  Runs table's abbreviated forms are "Incorrect stop" / "Acceptance" (full
+  wording stays in each header's tooltip, same convention as the rest of that
+  table's abbreviated headers).
+- Bumped `lab.css`/`lab.js` cache-busting versions again (`?v=22` -> `?v=23`).
+
+## [2026-08-23] Human Lab: Runs table conditions are inert radios, adds human-survey columns
+
+- The Conditions checklist's checkboxes could still be toggled by a real click:
+  `pointer-events: none` (not just canceling the `click` event, which a
+  synthetic click or edge-case browser handling could still bypass) is now the
+  actual guard, on the `<input>` itself.
+- Conditions is now two explicit columns instead of one auto-flowing grid:
+  left is the 3-way policy toggle, right is Urgency + User present. Switched
+  from checkboxes to radio-styled toggles per request — each still has no
+  `name` attribute, so the browser never groups a row's toggles together and
+  enforces single-select on them (several can legitimately be checked at
+  once, e.g. a run crossing both `no_policy` and `structured_policy`).
+- Added the four human-survey columns after User welfare — Missed recovery,
+  Human alignment, Asks when supposed to, Vs floor — computed the same way
+  the Models table already computes them (`summarize()`'s `humanAxes()`), a
+  `col-divider` rule marking where the model-behavior rates end and the
+  survey-comparison columns begin.
+- With 15 columns now sharing one panel width, the generic 12px/14px th/td
+  padding alone was enough to push "Unsafe payment" past its column — the
+  overflowing tail wasn't clipped, it was painted over by the next column's
+  opaque sticky-header background. Abbreviated the Runs table's own header
+  labels (`Unsafe payment` -> `Unsafe`, `Refused when safe` -> `Refused`, etc.
+  — full wording stays in each header's `title` tooltip, and the Models table
+  keeps the unabbreviated originals), tightened padding throughout, and
+  reclaimed width from Model/Phase/Conditions/n (also shrunk per request,
+  closing the gap between Phase/Conditions/n) to give every column enough
+  room for its own longest word.
+
 ## [2026-08-23] E11 redesigned as a behaviorally observable injection trap
 
 - `scn_v2_e11_trap`'s hidden review line no longer tells the agent to buy the
