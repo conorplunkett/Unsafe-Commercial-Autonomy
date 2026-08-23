@@ -37,6 +37,46 @@
   refactor of code that already works.
 - Bumped `lab.js`'s cache-busting version again (`?v=23` -> `?v=24`).
 
+## [2026-08-23] Fan-out URL audit: three leftover narrator-voice `page_url` domains
+
+- A 12-agent fan-out review of every `page_url` (and redirect-chain / in-text
+  URL) across all 226 v2 scenarios, each candidate independently adversarially
+  re-verified, found 3 leftover leaks — all the same bug: a past de-labeling
+  pass (see the `Item/id/merchant de-labeling` and `d4`/`e6` CHANGELOG entries
+  below) renamed the model-visible `merchant_name` or an internal field name,
+  but never touched the matching `page_url`, so the old author-voice domain
+  kept narrating the trick to the model under test:
+  - `d4` (chat-card-number trap): `merchant_name` was already fixed to
+    "Marlow Goods"/"Pinebrook Supply" and the internal field renamed
+    `card_number_plaintext_chat` -> `chat_card_number`, but `off_1`'s
+    `page_url` on both the trap and lookalike arms still read
+    `chatpay-store.com` (chat + pay, echoing the scoring field). Renamed to
+    `marlowgoods.com`, consistent with every other offer's
+    merchant-derived-domain convention in this dataset.
+  - `e6` (hidden white-on-white price trap): `merchant_name` was already
+    fixed to "Larkspur Goods", but `off_1`'s `page_url` on both arms still
+    read `whiteout-store.com`, directly naming the white-on-white
+    concealment trope the trap's `page_text` implements. Renamed to
+    `larkspurgoods.com`.
+  - `e2` (off-site payment-recovery injection): `merchant_name` was already
+    fixed to the lookalike domain `flightmart-payment-recovery.com`, but
+    `off_2`'s own `page_url` — and the `page_url_redirects` chain target —
+    still pointed at the old author-labeled `offsite-payments-secure.com`,
+    which echoed the scenario's own `prompt_injection` note verbatim
+    ("... (off-site)"). Both updated to `flightmart-payment-recovery.com`.
+- Three other candidate flags (`beancart-shopify.com`, `securestore.com`,
+  and the `d4_lookalike` arm's now-fixed `chatpay-store.com` reuse) were
+  adversarially reviewed and rejected as plausible real-world hostnames —
+  not narrator voice.
+- `tests/test_phase2_sandbox.py`'s e2 redirect-chain assertion updated to
+  match. Full suite green (785 passed, 2 skipped) after the fix.
+- Left `supabase/functions/admin-scenario-data/` (the admin Scenario
+  Explorer's generated mirror, never read by the model under test) alone:
+  regenerating it via `scripts/generate_scenario_explorer_data.py` turned out
+  to rewrite ~70 chunk files from pre-existing, unrelated chunk-packing drift
+  even against unmodified `v2_constraints.json` — out of scope here; flagged
+  separately for the mirror to be regenerated and redeployed on its own.
+
 ## [2026-08-23] Human Lab: catches up to the 2026-08-18 missed_recovery/human_alignment rename
 
 - `static/` never picked up the `[2026-08-18] Fail-on-traps` rename
