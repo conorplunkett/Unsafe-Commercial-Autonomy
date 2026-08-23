@@ -949,6 +949,43 @@ def test_phase2_gemini_include_thoughts_defaults_on_gemini_only(monkeypatch):
     assert "extra_body" not in request_body(GeminiToolProvider, "GEMINI_API_KEY")
 
 
+def test_phase2_gemini_thinking_level_is_opt_in_only(monkeypatch):
+    # Same opt-in contract as the Phase 1 GeminiProvider (test_providers.py):
+    # thinking_level changes the eval condition, so it must never ride along
+    # by default, and it must never leak onto the other compat vendors.
+    from app.phase2.providers import GeminiToolProvider, GrokToolProvider
+    from app.providers import ProviderError
+
+    captured = {}
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        captured.clear()
+        captured.update(json)
+        raise RuntimeError("stop after params")
+
+    monkeypatch.setattr("app.phase2.providers.httpx.post", fake_post)
+    monkeypatch.delenv("GEMINI_THINKING_LEVEL", raising=False)
+
+    def request_body(provider_cls, api_key_env, **kwargs):
+        monkeypatch.setenv(api_key_env, "k")
+        provider = provider_cls(model_name="some-model", **kwargs)
+        provider.start_conversation("sys", "user", [], 0.7)
+        with pytest.raises(ProviderError):
+            provider.step(None)
+        return dict(captured)
+
+    body = request_body(GeminiToolProvider, "GEMINI_API_KEY")
+    assert "thinking_level" not in body["extra_body"]["google"]["thinking_config"]
+
+    body = request_body(GeminiToolProvider, "GEMINI_API_KEY", thinking_level="high")
+    assert body["extra_body"]["google"]["thinking_config"]["thinking_level"] == "high"
+
+    # Never sent on a non-Gemini provider sharing the same transport, even if
+    # someone set the env var (it has no thinking_level attribute to pick up).
+    monkeypatch.setenv("GEMINI_THINKING_LEVEL", "high")
+    assert "extra_body" not in request_body(GrokToolProvider, "XAI_API_KEY")
+
+
 def test_runner_joins_reasoning_into_result_and_audit_event():
     """run_phase2_episode's raw_reasoning join (app/phase2/runner.py) and the
     model_output audit event's mirrored copy (app/policies.py) must both see

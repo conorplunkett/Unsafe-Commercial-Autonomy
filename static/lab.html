@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Experiment Lab · Unsafe Commercial Autonomy</title>
     <link rel="icon" href="/favicon.ico">
-    <link rel="stylesheet" href="/static/styles.css?v=13">
-    <link rel="stylesheet" href="/static/lab.css?v=18">
+    <link rel="stylesheet" href="/static/styles.css?v=14">
+    <link rel="stylesheet" href="/static/lab.css?v=19">
   </head>
   <body>
     <div class="lab-page-layout">
@@ -24,10 +24,10 @@
 
       <nav class="lab-toc" id="labToc" aria-label="Contents"></nav>
 
-      <section class="runner-card" id="section-run" aria-label="Experiment controls">
-        <div class="runner-card-heading">
+      <details class="runner-card" id="section-run" aria-label="Experiment controls">
+        <summary class="runner-card-heading">
           <h2>Run</h2>
-        </div>
+        </summary>
         <div class="runner-grid">
           <div>
             <span class="runner-label" title="Which API the run calls. Only providers with a key configured (via .env or pasted below) can run live.">Provider</span>
@@ -133,7 +133,7 @@
             <div id="progressFill" class="runner-fill"></div>
           </div>
         </div>
-      </section>
+      </details>
 
       <details class="keys-band" id="keysBand">
         <summary>
@@ -166,7 +166,7 @@
           its phase defines (3 in Phase 1, 4 in Phase 2), shown as
           covered/total scenario×condition cells.
         </p>
-        <div class="table-wrap">
+        <div class="table-wrap runs-table-wrap">
           <table class="wide-table">
             <thead>
               <tr>
@@ -729,6 +729,6 @@
         }, { passive: true });
       })();
     </script>
-    <script src="/static/lab.js?v=18"></script>
+    <script src="/static/lab.js?v=19"></script>
   </body>
 </html>

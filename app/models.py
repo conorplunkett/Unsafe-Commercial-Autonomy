@@ -502,6 +502,10 @@ class RunRequest(BaseModel):
     seeds: Optional[List[int]] = None
     temperature: Optional[float] = None
     reasoning_effort: Optional[Literal["none", "low", "medium", "high", "xhigh"]] = None
+    # Raises how much Gemini actually reasons before acting -- unlike
+    # reasoning_effort, this is Gemini-only and never defaulted; see
+    # providers._gemini_thinking_extra_body for why it must be explicit.
+    gemini_thinking_level: Optional[Literal["minimal", "low", "medium", "high"]] = None
     live: bool = False
     # Bring-your-own-key: a user-supplied API key and model name for a single
     # provider, used for one live run and never persisted server-side.
@@ -555,6 +559,9 @@ class BenchmarkRun(BaseModel):
     seeds: List[int] = Field(default_factory=list)
     temperature: Optional[float] = None
     reasoning_effort: Optional[str] = None
+    # None on every run before this field existed, and on any run that didn't
+    # pass --gemini-thinking-level -- both read the same as "not raised".
+    gemini_thinking_level: Optional[str] = None
     live: bool = False
     answer_key_status: Literal["provisional_answer", "survey_locked_70"] = "provisional_answer"
 

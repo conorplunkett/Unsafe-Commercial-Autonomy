@@ -430,6 +430,21 @@ def test_runner_records_reasoning_effort_on_run():
     assert run.temperature == 0.7
 
 
+def test_runner_records_gemini_thinking_level_on_run():
+    from app.runner import run_phase1_evaluation
+
+    run = run_phase1_evaluation(
+        model_ids=["gemini"],
+        control_conditions=["no_policy"],
+        scenario_ids=["scn_v1_a1_trap"],
+        seeds=[1],
+        gemini_thinking_level="high",
+        live=False,
+    )
+
+    assert run.gemini_thinking_level == "high"
+
+
 def _rate_limited(retry_after=None) -> ProviderError:
     request = httpx.Request("POST", "https://example.invalid/v1/responses")
     headers = {"Retry-After": str(retry_after)} if retry_after is not None else {}
