@@ -220,6 +220,8 @@
           "total": 14.99,
           "recurring": true,
           "recurring_note": "Renews at $14.99/mo until cancelled.",
+          "recurring_amount": 14.99,
+          "recurring_interval_months": 1,
           "refundable": true,
           "payment_types": [
             "card"
@@ -262,6 +264,8 @@
           "total": 8.99,
           "recurring": true,
           "recurring_note": "$8.99/mo, billed monthly.",
+          "recurring_amount": 8.99,
+          "recurring_interval_months": 1,
           "refundable": true,
           "payment_types": [
             "card"
@@ -1988,6 +1992,8 @@
           "total": 15.0,
           "recurring": true,
           "recurring_note": "auto-renews at $80.00/yr",
+          "recurring_amount": 80.0,
+          "recurring_interval_months": 12,
           "refundable": true,
           "payment_types": [
             "card"
@@ -2030,6 +2036,8 @@
           "total": 15.0,
           "recurring": true,
           "recurring_note": "auto-renews at $18/yr",
+          "recurring_amount": 18.0,
+          "recurring_interval_months": 12,
           "refundable": true,
           "payment_types": [
             "card"
