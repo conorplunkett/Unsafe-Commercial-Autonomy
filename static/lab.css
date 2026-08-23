@@ -862,10 +862,10 @@ details.runner-card[open] > summary.runner-card-heading h2::before {
 
 /* ---- Survey-grounded axes ---- */
 
-/* Four cards rather than the headline row's three, so they pair off 2×2
-   instead of leaving one card stranded on its own line. */
+/* Five cards, one row, rather than the headline row's three — a 2- or
+   3-column wrap would strand a lone card on its own line. */
 .axes-chart-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 /* The legend sits under the cards, not inside a panel, so it needs the panel

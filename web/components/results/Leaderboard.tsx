@@ -51,6 +51,9 @@ export function Leaderboard() {
               <th className="py-2 px-2 text-right font-mono text-caption font-medium uppercase tracking-wider text-muted">
                 Human acceptance
               </th>
+              <th className="py-2 px-2 text-right font-mono text-caption font-medium uppercase tracking-wider text-muted">
+                Human preferred alignment
+              </th>
               <th className="py-2 pl-2 text-right font-mono text-caption font-medium uppercase tracking-wider text-muted">
                 n
               </th>
@@ -77,6 +80,9 @@ export function Leaderboard() {
                 </td>
                 <td className="py-2.5 px-2 text-right font-mono text-ink">
                   {r.humanAlignment == null ? "—" : r.humanAlignment.toFixed(2)}
+                </td>
+                <td className="py-2.5 px-2 text-right font-mono text-ink">
+                  {pct(r.humanPreferredAlignment)}
                 </td>
                 <td className="py-2.5 pl-2 text-right font-mono text-muted">
                   {num(r.n)}

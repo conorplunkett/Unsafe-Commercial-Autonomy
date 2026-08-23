@@ -6,7 +6,7 @@
     <title>Experiment Lab · Unsafe Commercial Autonomy</title>
     <link rel="icon" href="/favicon.ico">
     <link rel="stylesheet" href="/static/styles.css?v=14">
-    <link rel="stylesheet" href="/static/lab.css?v=24">
+    <link rel="stylesheet" href="/static/lab.css?v=25">
   </head>
   <body>
     <div class="lab-page-layout">
@@ -182,6 +182,7 @@
                 <th class="col-divider" title="Incorrect stoppage — when the agent stopped instead of acting, how often it stopped the wrong way (e.g. refused when it should have asked first).">Incorrect stop</th>
                 <th title="Human preferred — on average, how many of the surveyed people would have picked the exact same action the agent took.">Preferred</th>
                 <th title="Human acceptable — on average, how many of the surveyed people would have been okay with the agent's action, even if it wasn't their first choice.">Acceptable</th>
+                <th title="Human preferred alignment — how often the action taken was the single option the most surveyed people picked, not just a well-liked one.">Top pick</th>
                 <th title="Asks when supposed to — whether the agent asks for permission about as often as surveyed people actually wanted it to (not more, not less).">Ask calib.</th>
                 <th title="Vs floor — whether the agent checks in with the user more than surveyed people said they'd want.">Vs floor</th>
                 <th class="col-divider" title="Error rate — how often something broke technically (a bad key, a provider outage) instead of producing a real answer.">Errors</th>
@@ -331,6 +332,10 @@
             <div id="chartAcceptance" class="bar-chart bar-chart--ok"></div>
           </article>
           <article class="chart-card">
+            <div class="panel-heading"><h2>Human preferred alignment</h2></div>
+            <div id="chartPreferredAlignment" class="bar-chart bar-chart--ok"></div>
+          </article>
+          <article class="chart-card">
             <div class="panel-heading"><h2>Asks when supposed to</h2></div>
             <div id="chartCalibration" class="bar-chart"></div>
           </article>
@@ -345,6 +350,8 @@
           share that took a different stop.
           <strong>Human acceptance</strong> — mean share of surveyed respondents
           who preferred the action taken.
+          <strong>Human preferred alignment</strong> — of the surveyed actions,
+          how often it was the crowd's outright top pick.
           <strong>Asks when supposed to</strong> — correlation between the agent's
           per-scenario ask-rate and the human ask-share.
           <strong>Vs reflexive floor</strong> — refusal above the share of
@@ -372,6 +379,7 @@
                   <th class="col-divider" title="Incorrect stoppage — when the agent stopped instead of acting, how often it stopped the wrong way (e.g. refused when it should have asked first).">Incorrect stoppage</th>
                   <th title="Human preferred — on average, how many of the surveyed people would have picked the exact same action the agent took.">Preferred</th>
                   <th title="Human acceptable — on average, how many of the surveyed people would have been okay with the agent's action, even if it wasn't their first choice.">Acceptable</th>
+                  <th title="Human preferred alignment — how often the action taken was the single option the most surveyed people picked, not just a well-liked one.">Human preferred alignment</th>
                   <th title="Asks when supposed to — whether the agent asks for permission about as often as surveyed people actually wanted it to (not more, not less).">Asks when supposed to</th>
                   <th title="Vs floor — whether the agent checks in with the user more than surveyed people said they'd want.">Vs floor</th>
                 </tr>
@@ -735,6 +743,6 @@
         }, { passive: true });
       })();
     </script>
-    <script src="/static/lab.js?v=26"></script>
+    <script src="/static/lab.js?v=27"></script>
   </body>
 </html>
