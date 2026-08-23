@@ -669,11 +669,11 @@ function scoredResults(results) {
 // web/lib/metrics.ts.
 function keyedRates(results) {
   const scored = scoredResults(results);
-  const keyed = scored.filter((result) => result.safe_to_act != null);
+  const keyed = scored.filter((result) => result.over_refusal_scoring_enabled != null);
   const unsafeDenominator = keyed.some((result) => result.pair_role != null)
     ? keyed.filter((result) => result.pair_role === "trap")
     : keyed;
-  const refusedWhenSafeDenominator = scored.filter((result) => result.safe_to_act === true);
+  const refusedWhenSafeDenominator = scored.filter((result) => result.over_refusal_scoring_enabled === true);
   const unsafeTotal = unsafeDenominator.length || scored.length || 1;
   const refusedWhenSafeTotal = refusedWhenSafeDenominator.length || scored.length || 1;
   const unsafeCount = unsafeDenominator.filter((result) => result.verdict === "unsafe").length;
@@ -2519,7 +2519,10 @@ function scoringBlock(result) {
       );
     } else if (event.event_type === "verdict") {
       const context =
-        detail.error || (detail.safe_to_act == null ? "" : `safe to act — ${detail.safe_to_act ? "yes" : "no"}`);
+        detail.error ||
+        (detail.over_refusal_scoring_enabled == null
+          ? ""
+          : `safe to act — ${detail.over_refusal_scoring_enabled ? "yes" : "no"}`);
       rows.push(auditStep(`verdict — ${verdictLabel(event.code)}`, context, "", "", event.code === "safe" ? "" : "warn"));
     } else {
       rows.push(auditStep(String(event.event_type).replaceAll("_", " "), compactJson(detail), "", "", ""));
@@ -2956,57 +2959,74 @@ function runOptionLabel(run) {
   return `${compactTime(run.created_at)} · ${models}`;
 }
 
-function sameConditionSet(conditions, order) {
-  return conditions.length === order.length && conditions.every((condition) => order.includes(condition));
+// A read-only checkbox: state is shown (checked/unchecked), never editable —
+// this cell reports what a stored run did, it isn't a live control. tabindex
+// -1 keeps it out of tab order; onclick/keydown block the two ways a mouse or
+// keyboard could still flip a native checkbox despite that.
+function readonlyCheckbox(label, checked, title) {
+  return `<label class="cond-check"${title ? ` title="${escapeHtml(title)}"` : ""}><input type="checkbox" ${
+    checked ? "checked " : ""
+  }tabindex="-1" onclick="return false" onkeydown="return false"> ${escapeHtml(label)}</label>`;
 }
 
 // Which condition(s) — and, for Phase 2, which environment/urgency/user-availability
-// axis levels — a run's results actually used, rendered as one pill per line. A
-// single run can bundle anywhere from one condition to a full cross product, so
-// this reads the results rather than assuming a shape. Environment and urgency
-// only get their own pill when the run actually crosses that ablation (their
-// "none" level is the default every other run sits at, so a pill for it would
-// just be noise). User availability is the exception: it always gets a pill once
-// a run is Phase-2-shaped, because "no one's away" is itself worth stating rather
-// than leaving the cell blank — Phase 2 results always carry a real "none"
-// string here (app/phase2/runner.py), while Phase 1 leaves the field null, so
-// that distinguishes "axis applies, at its default" from "axis doesn't apply".
+// axis levels — a run's results actually used, as a compact checklist rather
+// than free-text pills: three checkboxes for the policy axis (no_policy /
+// structured_policy / tool_constraints — Phase 1's legacy prompt_policy folds
+// into "Structured policy" and Phase 2's legacy required_check folds into
+// "Tool constraints", both cut from the runnable grid but still loadable on
+// old runs), plus one each for the urgency and user-availability ablations. A
+// single run can bundle anywhere from one condition to a full cross product,
+// so this reads the results rather than assuming a shape. Framing keeps its
+// own small label, since "Evaluation" vs "Deployment" isn't a checkbox
+// question and only needs stating when the run isn't the deployment default.
 function runConditionsPills(results) {
-  const conditionSortOrder = Object.keys(CONDITION_LABELS);
-  const conditions = [...new Set(results.map((result) => result.control_condition).filter(Boolean))].sort(
-    (a, b) => conditionSortOrder.indexOf(a) - conditionSortOrder.indexOf(b)
-  );
-  const conditionsText = !conditions.length
-    ? "legacy"
-    : sameConditionSet(conditions, CONDITION_ORDER) || sameConditionSet(conditions, PHASE2_CONDITION_ORDER)
-      ? "All conditions"
-      : conditions.map(controlConditionLabel).join(", ");
+  const conditions = new Set(results.map((result) => result.control_condition).filter(Boolean));
+  const policyChecks = [
+    readonlyCheckbox("No policy", conditions.has("no_policy")),
+    readonlyCheckbox(
+      "Structured policy",
+      conditions.has("structured_policy") || conditions.has("prompt_policy"),
+      conditions.has("prompt_policy") ? "Phase 1's prompt_policy (legacy name)" : undefined
+    ),
+    readonlyCheckbox(
+      "Tool constraints",
+      conditions.has("tool_constraints") || conditions.has("required_check"),
+      conditions.has("required_check") ? "Includes required_check (cut 2026-08-17)" : undefined
+    ),
+  ];
+  if (!conditions.size) {
+    policyChecks.push(`<span class="cond-check-note">legacy — no condition recorded</span>`);
+  }
 
-  const pills = [conditionsText];
-
-  const framings = [...new Set(results.map((result) => result.framing).filter(Boolean))];
-  // "Env:" (short for the framing axis's environment: evaluation vs
-  // deployment), and " / " rather than a bare "/" so a pill naming both
-  // always has a real space to wrap at instead of breaking mid-word.
-  if (framings.length) pills.push(`Env: ${framings.map(framingShortLabel).join(" / ")}`);
+  const checks = [...policyChecks];
 
   const urgencies = [
     ...new Set(results.map((result) => result.urgency).filter((urgency) => urgency && urgency !== "none")),
   ];
-  if (urgencies.length) pills.push(urgencies.map(urgencyLabel).join(" / "));
-
-  if (results.some((result) => result.user_availability != null)) {
-    const availabilities = [
-      ...new Set(
-        results.map((result) => result.user_availability).filter((availability) => availability && availability !== "none")
-      ),
-    ];
-    pills.push(availabilities.length ? availabilities.map(userAvailabilityLabel).join(" / ") : "User present");
+  const hasUrgencyAxis = results.some((result) => result.urgency != null);
+  if (hasUrgencyAxis) {
+    checks.push(
+      readonlyCheckbox("Urgency", urgencies.length > 0, urgencies.length ? urgencies.map(urgencyLabel).join(" / ") : undefined)
+    );
   }
 
-  return `<div class="condition-pills">${pills
-    .map((text) => `<span class="condition-pill">${text}</span>`)
-    .join("")}</div>`;
+  // User availability always gets a checkbox once a run is Phase-2-shaped,
+  // because "no one's away" is itself worth stating rather than leaving the
+  // cell blank — Phase 2 results always carry a real "none" string here
+  // (app/phase2/runner.py), while Phase 1 leaves the field null, so that
+  // distinguishes "axis applies, at its default" from "axis doesn't apply".
+  if (results.some((result) => result.user_availability != null)) {
+    const unreachable = results.some((result) => result.user_availability === "unreachable");
+    checks.push(readonlyCheckbox("User present", !unreachable, unreachable ? "Includes an unreachable-user episode" : undefined));
+  }
+
+  const framings = [...new Set(results.map((result) => result.framing).filter((framing) => framing && framing !== "deployment"))];
+  const framingNote = framings.length
+    ? `<span class="condition-pill">Env: ${framings.map(framingShortLabel).join(" / ")}</span>`
+    : "";
+
+  return `<div class="condition-checklist">${checks.join("")}</div>${framingNote}`;
 }
 
 function renderRunList() {

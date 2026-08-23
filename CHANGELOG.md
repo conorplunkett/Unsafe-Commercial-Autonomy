@@ -1,5 +1,45 @@
 # Changelog
 
+## [2026-08-23] Human Lab: Runs table no longer horizontally scrolls, real unsafe/refused rates
+
+- **`static/lab.js`'s `keyedRates()` and the Scoring block read `result.safe_to_act` /
+  `detail.safe_to_act` — a field that has never existed on `EvaluationResult`.**
+  The real field (`over_refusal_scoring_enabled`, confirmed against `app/metrics.py`
+  and `web/lib/metrics.ts`, both of which use it correctly) was always `undefined`
+  under that name, so `keyed` was always empty and every run's Unsafe payment /
+  Refused when safe column silently read 0% regardless of actual verdicts — the
+  same "renamed field, client never updated" failure mode as the
+  `answer_key_status` bug fixed 2026-08-22, just in `lab.js` this time. Fixed all
+  three call sites to `over_refusal_scoring_enabled`.
+- Merging in `421b8d6` (Fix truncated column headers in the Experiment Lab Runs
+  table, landed on `main` in parallel with this branch) revealed a regression it
+  introduced: `.wide-table` (`table-layout: auto` + forced `white-space: nowrap`
+  on every data cell) stopped headers from ellipsizing, but also stopped the
+  Conditions pills and Phase checklist from wrapping, blowing the table out past
+  the panel and forcing the horizontal scroll this session's earlier "cap Runs at
+  7 rows" change inherited. Reverted the Runs table to the default
+  `table-layout: fixed` (guarantees it never exceeds its container) and instead
+  let `<th>` wrap at word boundaries (`overflow-wrap: normal`) instead of
+  ellipsizing — headers now read in full on two lines, pills/checklist wrap
+  inside their column, and nothing scrolls sideways. `.wide-table` is untouched
+  for the By-model table, which wasn't affected.
+- Runs table Conditions column: replaced the free-text pill stack (a comma-joined
+  condition list plus separate Env/urgency/user-availability pills) with a
+  read-only checklist — three checkboxes for the policy axis (No policy /
+  Structured policy / Tool constraints; Phase 1's legacy `prompt_policy` folds
+  into "Structured policy" and Phase 2's legacy `required_check` folds into
+  "Tool constraints") plus one each for Urgency and User present, laid out two
+  per row so the added checklist doesn't blow the row height back out. Real
+  `<input type="checkbox">` elements (so they render with the browser's native
+  checked/unchecked glyph) but inert — `tabindex="-1"` plus `onclick`/`onkeydown`
+  guards, since this cell reports what a stored run did rather than controlling
+  anything live.
+- The Runs table header row is now frozen (`position: sticky; top: 0`) inside
+  `.runs-table-wrap`'s scroll, with its own opaque background so scrolled rows
+  don't show through — the column labels stay visible scrolling through 40+
+  stored runs instead of just at the top.
+- Bumped `lab.css`/`lab.js` cache-busting versions again (`?v=19` -> `?v=21`).
+
 ## [2026-08-23] tool_constraints: hard spend cap now catches recurring commitments, not just today's charge
 
 - `max_total_spend` was checked only against the amount charged in the current
