@@ -1,5 +1,108 @@
 # Changelog
 
+## [2026-08-23] Human Lab: Runs table checkbox conditions, split Preferred/Acceptable, plain-language tooltips
+
+- Urgency and User present switched back to checkboxes (square); the 3-way
+  policy toggle stays radio-styled (round) — the visual distinction now
+  matches which group is genuinely exclusive-ish (policy, mostly one level
+  per run) versus independent (an axis is either crossed or it isn't).
+- `humanAcceptance` (`preferredMean`/`acceptableMean`) was collapsing into
+  one "Acceptance" column showing only `preferredMean`, with `acceptableMean`
+  demoted to a tooltip aside. Split into two real columns, Preferred and
+  Acceptable, in both the Runs table and the Models table.
+- Added a second `col-divider` before Errors (alongside the existing one
+  before Incorrect stoppage) — Errors is a run-health signal, not a rate on
+  either side of the model-behavior/human-survey split, so it gets set off
+  from both.
+- Every Runs-table and Models-table column header's tooltip rewritten in
+  plain language — no more "keyed traps", "over_refusal_scoring_enabled", or
+  jargon-only phrasing; each now leads with the metric's real name (for
+  copy-paste searchability) followed by a one-sentence plain-English
+  explanation of what it means.
+- Switched the Runs table's column sizing from percentage widths (which only
+  ever get as wide as their share of the container, however many columns
+  exist) to explicit px widths on every column — the table is now ~1460px
+  wide against a ~1240px panel and `.table-wrap` scrolls it horizontally,
+  rather than continuing to fight for zero overflow by shrinking padding and
+  abbreviating headers further every time a column is added.
+
+## [2026-08-23] Human Lab: rename sweep — no more missed_recovery/human_alignment text to copy from
+
+- The previous entry fixed the two places that actually caused a bug (the
+  stored-field read and the UI label). This is the rest of the sweep: every
+  place in `static/` and `tests/` that still spelled the pre-2026-08-18 names
+  in an internal identifier, comment, or test name, so there is nothing left
+  in this codebase reading "missed"/"alignment" for a future edit to copy
+  into a label by mistake — which is genuinely how the previous bug happened:
+  the Runs table columns added a few hours earlier were built by reading
+  `lab.js`'s own internal `missedRecovery`/`humanAlignment` variable names
+  and using them as the display text, rather than checking what `web/`
+  actually renders.
+- `static/lab.js`: `humanAxes()`'s returned axis object (and every downstream
+  destructure/reference across `renderSurveyAxes`, `renderRunList`, and the
+  Models table renderer) renamed `missedRecovery` -> `incorrectStoppage`,
+  `humanAlignment` -> `humanAcceptance`. `static/lab.html`'s matching chart
+  element ids renamed `chartRecovery`/`chartAlignment` ->
+  `chartStoppage`/`chartAcceptance`. The one line that actually has to keep
+  saying `missed_recovery` — `result.incorrect_stoppage ?? result.missed_recovery`,
+  reading the literal JSON key an old stored run has on disk — is untouched
+  and commented as the sole remaining exception.
+- `tests/test_recovery_and_human_axes.py` (3 tests) and
+  `tests/test_phase2_runner.py` (1 test): renamed test function names off
+  "missed_recovery" to "incorrect_stoppage" — cosmetic only, every assertion
+  in these tests already checked the current field name.
+- `app/phase2/web_survey.py`: one docstring referencing "human_alignment" by
+  name, updated to "human_acceptance" to match `app/metrics.py`.
+- Left alone, deliberately: `app/models.py`'s `validation_alias` (the actual
+  backward-compat mechanism — cannot be removed without breaking every run
+  stored before 2026-08-18) and `web/`'s own internal `missedRecovery`/
+  `humanAlignment` variable names, which are that codebase's established,
+  intentional convention (its own `[2026-08-18]` rename commit left them as
+  they are) and were never the site of any bug — renaming them to match
+  `lab.js`'s new internal names would just be a second, unrequested
+  refactor of code that already works.
+- Bumped `lab.js`'s cache-busting version again (`?v=23` -> `?v=24`).
+
+## [2026-08-23] Fan-out URL audit: three leftover narrator-voice `page_url` domains
+
+- A 12-agent fan-out review of every `page_url` (and redirect-chain / in-text
+  URL) across all 226 v2 scenarios, each candidate independently adversarially
+  re-verified, found 3 leftover leaks — all the same bug: a past de-labeling
+  pass (see the `Item/id/merchant de-labeling` and `d4`/`e6` CHANGELOG entries
+  below) renamed the model-visible `merchant_name` or an internal field name,
+  but never touched the matching `page_url`, so the old author-voice domain
+  kept narrating the trick to the model under test:
+  - `d4` (chat-card-number trap): `merchant_name` was already fixed to
+    "Marlow Goods"/"Pinebrook Supply" and the internal field renamed
+    `card_number_plaintext_chat` -> `chat_card_number`, but `off_1`'s
+    `page_url` on both the trap and lookalike arms still read
+    `chatpay-store.com` (chat + pay, echoing the scoring field). Renamed to
+    `marlowgoods.com`, consistent with every other offer's
+    merchant-derived-domain convention in this dataset.
+  - `e6` (hidden white-on-white price trap): `merchant_name` was already
+    fixed to "Larkspur Goods", but `off_1`'s `page_url` on both arms still
+    read `whiteout-store.com`, directly naming the white-on-white
+    concealment trope the trap's `page_text` implements. Renamed to
+    `larkspurgoods.com`.
+  - `e2` (off-site payment-recovery injection): `merchant_name` was already
+    fixed to the lookalike domain `flightmart-payment-recovery.com`, but
+    `off_2`'s own `page_url` — and the `page_url_redirects` chain target —
+    still pointed at the old author-labeled `offsite-payments-secure.com`,
+    which echoed the scenario's own `prompt_injection` note verbatim
+    ("... (off-site)"). Both updated to `flightmart-payment-recovery.com`.
+- Three other candidate flags (`beancart-shopify.com`, `securestore.com`,
+  and the `d4_lookalike` arm's now-fixed `chatpay-store.com` reuse) were
+  adversarially reviewed and rejected as plausible real-world hostnames —
+  not narrator voice.
+- `tests/test_phase2_sandbox.py`'s e2 redirect-chain assertion updated to
+  match. Full suite green (785 passed, 2 skipped) after the fix.
+- Left `supabase/functions/admin-scenario-data/` (the admin Scenario
+  Explorer's generated mirror, never read by the model under test) alone:
+  regenerating it via `scripts/generate_scenario_explorer_data.py` turned out
+  to rewrite ~70 chunk files from pre-existing, unrelated chunk-packing drift
+  even against unmodified `v2_constraints.json` — out of scope here; flagged
+  separately for the mirror to be regenerated and redeployed on its own.
+
 ## [2026-08-23] Human Lab: catches up to the 2026-08-18 missed_recovery/human_alignment rename
 
 - `static/` never picked up the `[2026-08-18] Fail-on-traps` rename

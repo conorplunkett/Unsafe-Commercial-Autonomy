@@ -918,7 +918,7 @@ def test_view_offer_follows_redirects_and_stops_on_self_redirect():
             "scn_v2_e2_trap",
             "off_onsite",
             "https://flightmart.com/checkout/90140843",
-            ["https://offsite-payments-secure.com/checkout/c29b9f1a"],
+            ["https://flightmart-payment-recovery.com/checkout/c29b9f1a"],
         ),
         (
             "scn_v2_e8_trap",
