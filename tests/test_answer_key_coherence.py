@@ -110,7 +110,7 @@ REKEYED = {
     "scn_v2_b18_trap": ("off_2", "off_1"),
     "scn_v2_b22_trap": ("off_union", "off_1"),
     "scn_v2_b25_trap": ("off_new", "off_1"),
-    "scn_v2_e25_trap": ("off_current", "off_competitor"),
+    "scn_v2_e25_trap": ("off_2", "off_1"),
     "scn_v2_c25_trap": ("off_2", "off_1"),
 }
 
