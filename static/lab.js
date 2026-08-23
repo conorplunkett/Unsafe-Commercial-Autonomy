@@ -2968,16 +2968,18 @@ function runOptionLabel(run) {
 }
 
 // A read-only toggle: state is shown (checked/unchecked), never editable —
-// this cell reports what a stored run did, it isn't a live control. Rendered
-// as a radio dot (not a checkbox square) purely for the rounder look; no
-// `name` attribute, so the browser never groups it with its neighbors and
-// enforces single-select on them — each of the five toggles in this cell is
-// an independent boolean and several can legitimately be checked at once (a
-// run crossing no_policy and structured_policy, say). pointer-events: none
-// (lab.css) plus tabindex -1 is what actually makes it inert: unlike
-// canceling the click event, nothing can still flip it via mouse or keyboard.
-function readonlyToggle(label, checked, title) {
-  return `<label class="cond-check"${title ? ` title="${escapeHtml(title)}"` : ""}><input type="radio" ${
+// this cell reports what a stored run did, it isn't a live control. `type`
+// picks the visual: "radio" (round, for the 3-way policy column) or
+// "checkbox" (square, for the urgency/user-availability column) — purely a
+// look, not a grouping. Radio toggles here carry no `name` attribute, so the
+// browser never groups one with its neighbors and enforces single-select on
+// them — each toggle in this cell is an independent boolean and several can
+// legitimately be checked at once (a run crossing no_policy and
+// structured_policy, say). pointer-events: none (lab.css) plus tabindex -1
+// is what actually makes it inert: unlike canceling the click event, nothing
+// can still flip it via mouse or keyboard.
+function readonlyToggle(label, checked, title, type = "radio") {
+  return `<label class="cond-check"${title ? ` title="${escapeHtml(title)}"` : ""}><input type="${type}" ${
     checked ? "checked " : ""
   }tabindex="-1"> ${escapeHtml(label)}</label>`;
 }
@@ -3021,7 +3023,12 @@ function runConditionsPills(results) {
   const hasUrgencyAxis = results.some((result) => result.urgency != null);
   if (hasUrgencyAxis) {
     axisColumn.push(
-      readonlyToggle("Urgency", urgencies.length > 0, urgencies.length ? urgencies.map(urgencyLabel).join(" / ") : undefined)
+      readonlyToggle(
+        "Urgency",
+        urgencies.length > 0,
+        urgencies.length ? urgencies.map(urgencyLabel).join(" / ") : undefined,
+        "checkbox"
+      )
     );
   }
 
@@ -3032,7 +3039,14 @@ function runConditionsPills(results) {
   // distinguishes "axis applies, at its default" from "axis doesn't apply".
   if (results.some((result) => result.user_availability != null)) {
     const unreachable = results.some((result) => result.user_availability === "unreachable");
-    axisColumn.push(readonlyToggle("User present", !unreachable, unreachable ? "Includes an unreachable-user episode" : undefined));
+    axisColumn.push(
+      readonlyToggle(
+        "User present",
+        !unreachable,
+        unreachable ? "Includes an unreachable-user episode" : undefined,
+        "checkbox"
+      )
+    );
   }
 
   const framings = [...new Set(results.map((result) => result.framing).filter((framing) => framing && framing !== "deployment"))];
@@ -3065,12 +3079,12 @@ function renderRunList() {
   // take a moment, and a spinner beats a table that looks like it already
   // finished and simply has nothing in it.
   if (state.loading) {
-    els.runListTable.innerHTML = loadingRow(15, "Loading runs…");
+    els.runListTable.innerHTML = loadingRow(16, "Loading runs…");
     return;
   }
   if (!state.runList.length) {
     els.runListTable.innerHTML =
-      '<tr><td colspan="15" class="empty-state">No runs yet. Pick a model above and hit Run benchmark.</td></tr>';
+      '<tr><td colspan="16" class="empty-state">No runs yet. Pick a model above and hit Run benchmark.</td></tr>';
     return;
   }
   els.runListTable.innerHTML = state.runList
@@ -3112,13 +3126,16 @@ function renderRunList() {
           <td title="${humanAcceptance ? `${humanAcceptance.scenarios} surveyed scenarios` : "no surveyed scenario in this run"}">${
             humanAcceptance ? humanAcceptance.preferredMean.toFixed(2) : "—"
           }</td>
+          <td title="${humanAcceptance && humanAcceptance.acceptableMean != null ? `${humanAcceptance.scenarios} surveyed scenarios` : "no surveyed scenario in this run"}">${
+            humanAcceptance && humanAcceptance.acceptableMean != null ? humanAcceptance.acceptableMean.toFixed(2) : "—"
+          }</td>
           <td title="${askCalibration ? `agent ${percent(askCalibration.agentAskRate)} vs human ${percent(askCalibration.humanAskRate)} ask-rate` : "not enough surveyed scenarios to correlate"}">${
             correlation(askCalibration && askCalibration.r)
           }</td>
           <td title="${state.surveyFloor ? `${percent(metrics.refusedWhenSafeRate)} against a ${percent(state.surveyFloor.rate)} human floor${floorCaveat()}` : "no survey floor in the loaded runs"}">${
             signedPercent(floorExcess(metrics))
           }</td>
-          <td>${errorCell}</td>
+          <td class="col-divider">${errorCell}</td>
           <td class="run-delete-cell">
             <button type="button" class="run-delete" data-run-id="${run.run_id}"
               data-run-label="${models}" title="Delete this run">Delete</button>
@@ -3289,11 +3306,14 @@ function renderAll() {
               <td>${percent(row.metrics.refusedWhenSafeRate)}</td>
               <td>${percent(row.metrics.toolBlocksRate)}</td>
               <td>${percent(row.metrics.userWelfareScore)}</td>
-              <td title="${incorrectStoppage ? `${incorrectStoppage.count} of ${incorrectStoppage.total} graded stops` : "no gradeable stop in this run"}">${
+              <td class="col-divider" title="${incorrectStoppage ? `${incorrectStoppage.count} of ${incorrectStoppage.total} graded stops` : "no gradeable stop in this run"}">${
                 incorrectStoppage ? percent(incorrectStoppage.rate) : "—"
               }</td>
               <td title="${humanAcceptance ? `${humanAcceptance.scenarios} surveyed scenarios` : "no surveyed scenario in this run"}">${
                 humanAcceptance ? humanAcceptance.preferredMean.toFixed(2) : "—"
+              }</td>
+              <td title="${humanAcceptance && humanAcceptance.acceptableMean != null ? `${humanAcceptance.scenarios} surveyed scenarios` : "no surveyed scenario in this run"}">${
+                humanAcceptance && humanAcceptance.acceptableMean != null ? humanAcceptance.acceptableMean.toFixed(2) : "—"
               }</td>
               <td title="${askCalibration ? `agent ${percent(askCalibration.agentAskRate)} vs human ${percent(askCalibration.humanAskRate)} ask-rate` : "not enough surveyed scenarios to correlate"}">${
                 correlation(askCalibration && askCalibration.r)
@@ -3305,7 +3325,7 @@ function renderAll() {
           `;
         })
         .join("")
-    : `<tr><td colspan="12" class="empty-state">No model has a complete Phase 1/2 run yet — see Phases above for progress.</td></tr>`;
+    : `<tr><td colspan="13" class="empty-state">No model has a complete Phase 1/2 run yet — see Phases above for progress.</td></tr>`;
   els.modelSummaryStamp.textContent = state.modelFilter ? "Filtered — click again to clear" : "";
 
   renderFailureChart(filtered);

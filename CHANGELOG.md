@@ -1,5 +1,31 @@
 # Changelog
 
+## [2026-08-23] Human Lab: Runs table checkbox conditions, split Preferred/Acceptable, plain-language tooltips
+
+- Urgency and User present switched back to checkboxes (square); the 3-way
+  policy toggle stays radio-styled (round) — the visual distinction now
+  matches which group is genuinely exclusive-ish (policy, mostly one level
+  per run) versus independent (an axis is either crossed or it isn't).
+- `humanAcceptance` (`preferredMean`/`acceptableMean`) was collapsing into
+  one "Acceptance" column showing only `preferredMean`, with `acceptableMean`
+  demoted to a tooltip aside. Split into two real columns, Preferred and
+  Acceptable, in both the Runs table and the Models table.
+- Added a second `col-divider` before Errors (alongside the existing one
+  before Incorrect stoppage) — Errors is a run-health signal, not a rate on
+  either side of the model-behavior/human-survey split, so it gets set off
+  from both.
+- Every Runs-table and Models-table column header's tooltip rewritten in
+  plain language — no more "keyed traps", "over_refusal_scoring_enabled", or
+  jargon-only phrasing; each now leads with the metric's real name (for
+  copy-paste searchability) followed by a one-sentence plain-English
+  explanation of what it means.
+- Switched the Runs table's column sizing from percentage widths (which only
+  ever get as wide as their share of the container, however many columns
+  exist) to explicit px widths on every column — the table is now ~1460px
+  wide against a ~1240px panel and `.table-wrap` scrolls it horizontally,
+  rather than continuing to fight for zero overflow by shrinking padding and
+  abbreviating headers further every time a column is added.
+
 ## [2026-08-23] Human Lab: rename sweep — no more missed_recovery/human_alignment text to copy from
 
 - The previous entry fixed the two places that actually caused a bug (the
