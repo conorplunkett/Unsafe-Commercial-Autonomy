@@ -25,7 +25,7 @@ const state = {
   providerProfiles: {},
   provider: null,
   dryRun: false,
-  conditions: new Set(["no_policy", "structured_policy", "required_check", "tool_constraints"]),
+  conditions: new Set(["no_policy", "structured_policy", "tool_constraints"]),
   // Runner-card phase toggle. "1" builds a `python -m app.cli eval` command
   // and can also be launched live via the Run benchmark button (/api/jobs).
   // "2" builds a `python -m app.cli phase2-eval` command with the framing/
@@ -172,6 +172,7 @@ for (const id of [
   "resultsPageLabel",
   "modelDetailVerdict",
   "modelDetailContent",
+  "modelResultsWrap",
   "runListTable",
   "runListStamp",
   "runSupersededAction",
@@ -315,14 +316,22 @@ const PROVIDER_API_KEY_ENV = {
 // Mirrored from web/lib/labels.ts so the Lab speaks the site's language.
 //
 // CONDITION_ORDER is what the runner card above offers, which is Phase 1's
-// three. Phase 2 crosses its four (app/phase2/sandbox.PHASE2_CONTROL_CONDITIONS)
-// and is run from the CLI. Anywhere results are *grouped or filtered* rather
-// than offered as a control, the union of both phases is the right order — the Control
-// filter used to be built from the three, so a Phase 2 run under
-// structured_policy simply had no option to select it.
+// three. PHASE2_CONDITION_ORDER is Phase 2's runnable three
+// (app/phase2/sandbox.PHASE2_CONTROL_CONDITIONS) and is run from the CLI.
+// "required_check" was cut from that grid on 2026-08-17 (see
+// app/phase2/sandbox.py) — nothing can run it anymore, but stored runs from
+// before the cut still carry it, so PHASE2_CONDITION_LEGACY_ORDER keeps it
+// around for the one place old results still need to be filterable by it.
 const CONDITION_ORDER = ["no_policy", "prompt_policy", "tool_constraints"];
-const PHASE2_CONDITION_ORDER = [
+const PHASE2_CONDITION_ORDER = ["no_policy", "structured_policy", "tool_constraints"];
+// Every condition value a stored result can carry, across both phases and
+// both legacy names ("prompt_policy" is Phase 1's, "required_check" was cut
+// from Phase 2 on 2026-08-17) — the Control filter needs this so a Phase 1
+// run under prompt_policy and a Phase 2 run under required_check are both
+// selectable.
+const ALL_CONDITION_ORDER = [
   "no_policy",
+  "prompt_policy",
   "structured_policy",
   "required_check",
   "tool_constraints",
@@ -342,10 +351,10 @@ const CONDITION_DESCRIPTIONS = {
   tool_constraints: "Payment tools hard-enforce caps, merchant allowlists, and rail restrictions.",
 };
 
-// The control-condition grid a phase's full suite has to cover. Phase 2's is
-// distinct from Phase 1's, so measuring both against three would let a Phase 2 run read
-// "full suite" before all four conditions had covered every
-// scenario.
+// The control-condition grid a phase's full suite has to cover — both are
+// three, but not the same three, so measuring Phase 2 against Phase 1's list
+// would let a Phase 2 run read "full suite" before structured_policy or
+// tool_constraints had covered every scenario.
 function conditionsForPhase(phase) {
   return phase === "2" ? PHASE2_CONDITION_ORDER : CONDITION_ORDER;
 }
@@ -1044,7 +1053,7 @@ function renderPhase2AxesChips() {
 }
 
 // Switches the runner card between Phase 1 (live-runnable, 3 conditions) and
-// Phase 2 (CLI-only, 4 conditions plus the framing/urgency/pressure axes).
+// Phase 2 (CLI-only, 3 conditions plus the framing/urgency/pressure axes).
 // Resets the condition selection to "every condition this phase defines" so
 // switching phases never leaves a Phase 1 condition checked that Phase 2's
 // chip row doesn't even render (and vice versa).
@@ -1245,7 +1254,7 @@ function buildPhase1CliCommand() {
 }
 
 // The `python -m app.cli phase2-eval` invocation for the current Phase 2 run
-// form, covering the four-condition ablation plus the framing/urgency/pressure
+// form, covering the three-condition ablation plus the framing/urgency/pressure
 // axes (app/models.py Framing / Urgency / UserAvailability). Phase 2 has no
 // live endpoint, so unlike Phase 1 this command is the only way to launch the
 // selection — every axis flag is emitted explicitly (never left to the CLI's
@@ -1255,9 +1264,9 @@ function buildPhase2CliCommand() {
 
   // Unlike Phase 1's `eval` (whose CLI default is all three conditions),
   // phase2-eval defaults an omitted --conditions to no_policy only (the other
-  // five are opt-in ablations — app/phase2/runner.py). So the flag can only be
+  // two are opt-in ablations — app/phase2/runner.py). So the flag can only be
   // dropped when the selection is exactly that single-condition default;
-  // every other selection, including "all six", must be spelled out.
+  // every other selection, including "all three", must be spelled out.
   const PHASE2_CONDITIONS_DEFAULT = ["no_policy"];
   const conditions = PHASE2_CONDITION_ORDER.filter((condition) => state.conditions.has(condition));
   const isDefaultConditions =
@@ -2003,7 +2012,7 @@ function renderResultsFilterOptions() {
     "condition",
     els.resultConditionFilterTrigger,
     els.resultConditionFilter,
-    [...PHASE2_CONDITION_ORDER, "legacy"].filter((condition) => conditionsPresent.has(condition)),
+    [...ALL_CONDITION_ORDER, "legacy"].filter((condition) => conditionsPresent.has(condition)),
     state.conditionFilters,
     (condition) => controlConditionLabel(condition === "legacy" ? null : condition),
     "All conditions"
@@ -2657,6 +2666,23 @@ function ensureEpisodeDetail(result) {
 function repaintDetailIfSelected(result) {
   if (resultKey(result) !== state.selectedKey) return;
   renderDetail(applyResultFilters(state.allResults));
+}
+
+// static/styles.css caps .detail-content/.model-results-wrap at
+// calc(100vh - 220px) as a fallback, but "220px" is a guess at how much
+// chrome sits above the panel — wrong on any window where the real number
+// differs, which reads as the panel's last line being cut off rather than
+// scrollable. This measures the panel's actual top edge and fits it to
+// what's really left above the viewport bottom, so it's never a guess.
+function fitPanelHeights() {
+  const bottomMargin = 24;
+  const minHeight = 320;
+  for (const el of [els.modelDetailContent, els.modelResultsWrap]) {
+    if (!el) continue;
+    const top = el.getBoundingClientRect().top;
+    const available = window.innerHeight - top - bottomMargin;
+    el.style.maxHeight = `${Math.max(minHeight, available)}px`;
+  }
 }
 
 function renderDetail(results) {
@@ -3360,6 +3386,7 @@ function renderAll() {
   els.modelSummaryStamp.textContent = state.modelFilter ? "Filtered — click again to clear" : "";
 
   renderFailureChart(filtered);
+  requestAnimationFrame(fitPanelHeights);
 }
 
 /* ------------------------------------------------------------------ */
@@ -3367,6 +3394,7 @@ function renderAll() {
 /* ------------------------------------------------------------------ */
 
 function bindEvents() {
+  window.addEventListener("resize", fitPanelHeights);
   els.runBenchmark.addEventListener("click", runExperiment);
   els.providerChips.addEventListener("click", (event) => {
     const chip = event.target.closest("[data-provider]");
