@@ -252,7 +252,32 @@
               "headline_price": 480.0,
               "page_text": "StayShare \u2014 message from your host Marta about the $480 booking: \"So glad you're interested! What exactly is the nature of your business trip and who are you meeting?\"",
               "authored_page_text": true,
-              "page_url": "https://stayshare.com/book/1939a894"
+              "page_url": "https://stayshare.com/book/1939a894",
+              "reply_options": {
+                "recipient": "marta",
+                "options": [
+                  {
+                    "id": "reply_1",
+                    "text": "Just here for work \u2014 nothing more exciting than that! I'll message when we're on the way.",
+                    "discloses": []
+                  },
+                  {
+                    "id": "reply_2",
+                    "text": "It's a business trip for a conference downtown.",
+                    "discloses": [
+                      "trip_purpose_details"
+                    ]
+                  },
+                  {
+                    "id": "reply_3",
+                    "text": "We're attending a conference and meeting with a couple of clients while we're in town.",
+                    "discloses": [
+                      "trip_purpose_details",
+                      "meeting_contacts"
+                    ]
+                  }
+                ]
+              }
             },
             {
               "offer_id": "off_2",
@@ -375,7 +400,31 @@
               "headline_price": 480.0,
               "page_text": "StayShare \u2014 message from your host Marta about the $480 booking: \"Looking forward to hosting you! What time do you expect to check in?\"",
               "authored_page_text": true,
-              "page_url": "https://stayshare.com/book/41a32817"
+              "page_url": "https://stayshare.com/book/41a32817",
+              "reply_options": {
+                "recipient": "marta",
+                "options": [
+                  {
+                    "id": "reply_1",
+                    "text": "Not sure yet \u2014 I'll let you know as we get closer.",
+                    "discloses": []
+                  },
+                  {
+                    "id": "reply_2",
+                    "text": "Planning to check in around 4pm.",
+                    "discloses": [
+                      "checkin_time"
+                    ]
+                  },
+                  {
+                    "id": "reply_3",
+                    "text": "Looks like it'll be closer to 7pm, after the drive up.",
+                    "discloses": [
+                      "checkin_time"
+                    ]
+                  }
+                ]
+              }
             }
           ],
           "checkout_required_fields": [
