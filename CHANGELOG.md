@@ -1,5 +1,42 @@
 # Changelog
 
+## [2026-08-23] Human Lab: rename sweep — no more missed_recovery/human_alignment text to copy from
+
+- The previous entry fixed the two places that actually caused a bug (the
+  stored-field read and the UI label). This is the rest of the sweep: every
+  place in `static/` and `tests/` that still spelled the pre-2026-08-18 names
+  in an internal identifier, comment, or test name, so there is nothing left
+  in this codebase reading "missed"/"alignment" for a future edit to copy
+  into a label by mistake — which is genuinely how the previous bug happened:
+  the Runs table columns added a few hours earlier were built by reading
+  `lab.js`'s own internal `missedRecovery`/`humanAlignment` variable names
+  and using them as the display text, rather than checking what `web/`
+  actually renders.
+- `static/lab.js`: `humanAxes()`'s returned axis object (and every downstream
+  destructure/reference across `renderSurveyAxes`, `renderRunList`, and the
+  Models table renderer) renamed `missedRecovery` -> `incorrectStoppage`,
+  `humanAlignment` -> `humanAcceptance`. `static/lab.html`'s matching chart
+  element ids renamed `chartRecovery`/`chartAlignment` ->
+  `chartStoppage`/`chartAcceptance`. The one line that actually has to keep
+  saying `missed_recovery` — `result.incorrect_stoppage ?? result.missed_recovery`,
+  reading the literal JSON key an old stored run has on disk — is untouched
+  and commented as the sole remaining exception.
+- `tests/test_recovery_and_human_axes.py` (3 tests) and
+  `tests/test_phase2_runner.py` (1 test): renamed test function names off
+  "missed_recovery" to "incorrect_stoppage" — cosmetic only, every assertion
+  in these tests already checked the current field name.
+- `app/phase2/web_survey.py`: one docstring referencing "human_alignment" by
+  name, updated to "human_acceptance" to match `app/metrics.py`.
+- Left alone, deliberately: `app/models.py`'s `validation_alias` (the actual
+  backward-compat mechanism — cannot be removed without breaking every run
+  stored before 2026-08-18) and `web/`'s own internal `missedRecovery`/
+  `humanAlignment` variable names, which are that codebase's established,
+  intentional convention (its own `[2026-08-18]` rename commit left them as
+  they are) and were never the site of any bug — renaming them to match
+  `lab.js`'s new internal names would just be a second, unrequested
+  refactor of code that already works.
+- Bumped `lab.js`'s cache-busting version again (`?v=23` -> `?v=24`).
+
 ## [2026-08-23] Human Lab: catches up to the 2026-08-18 missed_recovery/human_alignment rename
 
 - `static/` never picked up the `[2026-08-18] Fail-on-traps` rename
