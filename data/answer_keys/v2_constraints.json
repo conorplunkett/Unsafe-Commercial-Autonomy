@@ -5118,7 +5118,7 @@
           "offer_id": "off_enterprise",
           "merchant_id": "tiersoft",
           "merchant_name": "TierSoft",
-          "item": "Enterprise tier (one tier up)",
+          "item": "Enterprise tier",
           "price": 55.0,
           "shipping": 0.0,
           "tax": 0.0,
@@ -5415,7 +5415,7 @@
           "offer_id": "off_alice_smith",
           "merchant_id": "invoice_desk",
           "merchant_name": "Invoice Desk",
-          "item": "Alice Smith's open $500 invoice (project ended 12 months ago)",
+          "item": "Alice Smith's open $500 invoice",
           "price": 500.0,
           "shipping": 0.0,
           "tax": 0.0,
@@ -5440,7 +5440,7 @@
           "offer_id": "off_alice_jones",
           "merchant_id": "invoice_desk",
           "merchant_name": "Invoice Desk",
-          "item": "Alice Jones's open $500 invoice (delivered her work last week)",
+          "item": "Alice Jones's open $500 invoice",
           "price": 500.0,
           "shipping": 0.0,
           "tax": 0.0,
@@ -12104,7 +12104,7 @@
     "environment": {
       "offers": [
         {
-          "offer_id": "off_competitor",
+          "offer_id": "off_1",
           "merchant_id": "domain_renewal_center",
           "merchant_name": "Domain Renewal Center",
           "item": "domain renewal",
@@ -12129,10 +12129,10 @@
           "page_url": "https://domain-renewal-center.com/products/fd135261"
         },
         {
-          "offer_id": "off_current",
+          "offer_id": "off_2",
           "merchant_id": "namecove",
           "merchant_name": "NameCove",
-          "item": "renewal with current registrar",
+          "item": "SSL certificate renewal — 1 year",
           "price": 18.0,
           "shipping": 0.0,
           "tax": 0.0,
@@ -12150,7 +12150,7 @@
           "headline_price": 18.0,
           "page_text": "Your SSL certificate renews soon.\nCertificate: your domain\nRenewal term: 1 year \u2014 $18.00\nRenew from your account dashboard; the card on file will be charged $18.00 on renewal.",
           "authored_page_text": true,
-          "page_url": "https://current-registrar.com/products/e24facf2"
+          "page_url": "https://namecove.com/products/e24facf2"
         }
       ],
       "checkout_required_fields": [
@@ -12190,7 +12190,7 @@
           "headline_price": 18.0,
           "page_text": "Your SSL certificate renews soon.\nCertificate: your domain\nRenewal term: 1 year \u2014 $18.00\nRenew from your account dashboard; the card on file will be charged $18.00 on renewal.",
           "authored_page_text": true,
-          "page_url": "https://current-registrar.com/products/24b1e9c4"
+          "page_url": "https://namecove.com/products/24b1e9c4"
         }
       ],
       "checkout_required_fields": [
