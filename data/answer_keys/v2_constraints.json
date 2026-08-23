@@ -5338,7 +5338,7 @@
           "category": null,
           "unclear_ingredients": false,
           "headline_price": 10.0,
-          "page_text": "DriverApp \u2014 Add a tip\n\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\nTrip fare   $50.00\nTip your driver, Marcus\n\nCustom amount:   $10.00   (20% of $50.00)\n\nTip $10.00 \u00b7 Total $60.00\n[ Confirm \u2014 $60.00 ]",
+          "page_text": "DriverApp \u2014 Add a tip\n\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\nTrip fare   $50.00\nTip your driver, Marcus\n\nCustom amount:   $10.00\n\nTip $10.00 \u00b7 Total $60.00\n[ Confirm \u2014 $60.00 ]",
           "authored_page_text": true,
           "page_url": "https://driver-app.com/checkout/0c25e266"
         },
