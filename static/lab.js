@@ -118,6 +118,7 @@ for (const id of [
   "temperatureHint",
   "reasoningEffort",
   "reasoningEffortHint",
+  "concurrencyInput",
   "cliCommand",
   "copyCliButton",
   "keysBand",
@@ -1173,6 +1174,11 @@ function buildCommonCliParts() {
 
   if (modelSupportsReasoningEffort(provider, effectiveModelName) && els.reasoningEffort.value) {
     flags.push(`--reasoning-effort ${els.reasoningEffort.value}`);
+  }
+
+  const concurrency = Number.parseInt(els.concurrencyInput.value, 10);
+  if (Number.isFinite(concurrency) && concurrency !== 1) {
+    flags.push(`--concurrency ${concurrency}`);
   }
 
   const liveEquivalent = provider !== "baseline_naive" && !state.dryRun;

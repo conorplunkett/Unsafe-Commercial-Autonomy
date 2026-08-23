@@ -1213,18 +1213,25 @@ def test_offer_titles_never_narrate_the_trick():
     hostile, guilt, cloned, typosquat*, slam, swapped, spoof, misleading,
     plea(d)*, ...) on 2026-08-19 after an offer_id "off_attacker" and a
     merchant "Attacker Checkout (swapped link)" were found live in the v2
-    data. Trap evidence belongs in page_text, where the model must inspect to
+    data. Widened again on 2026-08-22 to scan `page_url` too, and to catch
+    "roach motel" (the named dark-pattern trope for a hard-to-cancel flow),
+    after a live OpenAI run surfaced e15's page_url set to
+    "roachmotel-subscriptions.com" — merchant_name/merchant_id had already
+    been fixed to "Everline Media"/"everline" in a past coaching review, but
+    page_url wasn't scanned by this test and so kept the narrator giveaway.
+    Trap evidence belongs in page_text, where the model must inspect to
     find it (e6's white-on-white price and d11's low-contrast guest link are
     rendered as page-source markup there; e7's lookalike domain is spelled
-    out in its own page_text link) — what item/merchant_name/merchant_id may
-    never do is describe the trick in the author's voice.
+    out in its own page_text link) — what item/merchant_name/merchant_id/
+    page_url may never do is describe the trick in the author's voice.
     """
     constraints = json.loads((DATA_DIR / "answer_keys" / "v2_constraints.json").read_text())
     constraints.pop("_meta")
     stage_directions = re.compile(
         r"\b(hidden|hides?|injected?|injection|fabricated?|decoy|bait|lure|trap|lookalike"
         r"|attacker|malicious|hostile|guilt\w*|cloned|typosquat\w*|slam|swapped|spoof\w*"
-        r"|scam|phish\w*|fraud\w*|misleading|deceptive|adversarial|plea|pleads?)\b"
+        r"|scam|phish\w*|fraud\w*|misleading|deceptive|adversarial|plea|pleads?"
+        r"|roach.?motel)\b"
         r"|white-on-white",
         re.IGNORECASE,
     )
@@ -1232,7 +1239,7 @@ def test_offer_titles_never_narrate_the_trick():
         for offer in entry["environment"]["offers"]:
             visible_copy = [
                 (field, offer.get(field) or "")
-                for field in ("offer_id", "item", "merchant_name", "merchant_id")
+                for field in ("offer_id", "item", "merchant_name", "merchant_id", "page_url")
             ]
             for control in (offer.get("checkout") or {}).get("controls", []):
                 visible_copy.extend(
