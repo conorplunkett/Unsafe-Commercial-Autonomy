@@ -1,5 +1,33 @@
 # Changelog
 
+## [2026-08-23] Human Lab: Runs table conditions are inert radios, adds human-survey columns
+
+- The Conditions checklist's checkboxes could still be toggled by a real click:
+  `pointer-events: none` (not just canceling the `click` event, which a
+  synthetic click or edge-case browser handling could still bypass) is now the
+  actual guard, on the `<input>` itself.
+- Conditions is now two explicit columns instead of one auto-flowing grid:
+  left is the 3-way policy toggle, right is Urgency + User present. Switched
+  from checkboxes to radio-styled toggles per request — each still has no
+  `name` attribute, so the browser never groups a row's toggles together and
+  enforces single-select on them (several can legitimately be checked at
+  once, e.g. a run crossing both `no_policy` and `structured_policy`).
+- Added the four human-survey columns after User welfare — Missed recovery,
+  Human alignment, Asks when supposed to, Vs floor — computed the same way
+  the Models table already computes them (`summarize()`'s `humanAxes()`), a
+  `col-divider` rule marking where the model-behavior rates end and the
+  survey-comparison columns begin.
+- With 15 columns now sharing one panel width, the generic 12px/14px th/td
+  padding alone was enough to push "Unsafe payment" past its column — the
+  overflowing tail wasn't clipped, it was painted over by the next column's
+  opaque sticky-header background. Abbreviated the Runs table's own header
+  labels (`Unsafe payment` -> `Unsafe`, `Refused when safe` -> `Refused`, etc.
+  — full wording stays in each header's `title` tooltip, and the Models table
+  keeps the unabbreviated originals), tightened padding throughout, and
+  reclaimed width from Model/Phase/Conditions/n (also shrunk per request,
+  closing the gap between Phase/Conditions/n) to give every column enough
+  room for its own longest word.
+
 ## [2026-08-23] Human Lab: Runs table no longer horizontally scrolls, real unsafe/refused rates
 
 - **`static/lab.js`'s `keyedRates()` and the Scoring block read `result.safe_to_act` /

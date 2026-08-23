@@ -582,32 +582,72 @@ details.runner-card[open] > summary.runner-card-heading h2::before {
   text-overflow: clip;
   white-space: normal;
   /* Break only at the space between words ("Unsafe" / "payment"), never
-     mid-word ("PAYMEN" / "T") — the narrower rate columns still comfortably
-     fit each header's longest single word. */
+     mid-word ("PAYMEN" / "T"). */
   overflow-wrap: normal;
   /* Frozen header: stays put as .runs-table-wrap scrolls vertically, so the
      column labels are still readable at row 40 as they are at row 1. Needs
      its own opaque background (the panel's own var(--surface) white) or
-     scrolled rows would show through underneath it. */
+     scrolled rows would show through underneath it — which, combined with
+     overflow: visible above, is also why a column has to be at least as
+     wide as its own longest word: text that overflows a narrower column
+     doesn't just spill visibly, the next column's opaque background paints
+     over the overflowing tail. */
   position: sticky;
   top: 0;
   z-index: 1;
   background: var(--surface);
 }
 
+/* 15 columns is a lot to fit in one panel width — the generic 12px/14px
+   th/td padding (styles.css) alone was eating a third of some columns'
+   already-tight share, which is what let "Unsafe payment" overflow its
+   column and get cut off by the next one's background. Tighter padding
+   throughout this table claws that width back for the content itself. */
+#section-runs th,
+#section-runs td {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+#section-runs th:not(:nth-child(3)):not(:nth-child(4)):not(:nth-child(5)),
+#section-runs td:not(:nth-child(3)):not(:nth-child(4)):not(:nth-child(5)) {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
 .lab-runs table th:nth-child(2),
 .lab-runs table td:nth-child(2) {
-  width: 10%;
+  width: 8%;
 }
 
 .lab-runs table th:nth-child(3),
 .lab-runs table td:nth-child(3) {
-  width: 13%;
+  width: 10%;
+  padding-right: 6px;
 }
 
 .lab-runs table th:nth-child(4),
 .lab-runs table td:nth-child(4) {
-  width: 26%;
+  width: 19%;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
+/* n just holds a small integer — a full share of a 15-column table's width
+   is wasted on it, and shrinking it (plus the reduced Phase/Conditions
+   padding above) is what actually pulls those three columns closer
+   together, since table-layout: fixed has no other gap to close. */
+.lab-runs table th:nth-child(5),
+.lab-runs table td:nth-child(5) {
+  width: 3%;
+  padding-left: 6px;
+}
+
+/* The human-survey columns (Missed recovery onward) are a distinct
+   comparison — against surveyed people, not the answer key — so a rule sets
+   them off from the model-behavior rates to their left. */
+.col-divider {
+  border-left: 2px solid var(--rule);
 }
 
 /* Cap the Runs list at ~7 visible rows and scroll the rest, instead of a
@@ -1293,17 +1333,21 @@ details.taxonomy-panel > summary .run-stamp {
 }
 
 /* Conditions column: a read-only checklist (policy axis × 3, urgency, user
-   availability) instead of free-text pills — one line per condition the run
-   actually crossed, checked or not, scannable at a glance without reading
-   prose. See readonlyCheckbox()/runConditionsPills() in lab.js. */
-/* Two columns rather than one long stack — five checkboxes (3 policy +
-   urgency + user-availability) at one-per-line would triple a row's height
-   and undo the point of capping the Runs list to ~7 visible rows. */
+   availability) instead of free-text pills — checked or not, scannable at a
+   glance without reading prose. See readonlyToggle()/runConditionsPills() in
+   lab.js. Two explicit columns — left the 3-way policy toggle, right urgency
+   + user-availability — rather than one long stack, so five toggles don't
+   triple a row's height and undo the point of capping the Runs list. */
 .condition-checklist {
-  display: grid;
-  grid-template-columns: repeat(2, auto);
-  column-gap: 14px;
-  row-gap: 2px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.cond-check-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .cond-check {
@@ -1312,15 +1356,18 @@ details.taxonomy-panel > summary .run-stamp {
   gap: 5px;
   font-size: 12px;
   color: var(--ink);
-  /* Real checkboxes, but this cell reports a stored run's state rather than
-     controlling anything — cursor: default (not pointer) says so, and
-     lab.js's onclick/onkeydown guards do the actual blocking. */
+  /* This cell reports a stored run's state, not a live control — cursor:
+     default (not pointer) says so; pointer-events: none below on the input
+     itself is what actually blocks interaction. */
   cursor: default;
 }
 
-.cond-check input[type="checkbox"] {
+.cond-check input {
   margin: 0;
   accent-color: var(--accent);
+  /* The real block: no click (mouse) or Space/Enter (keyboard, via tabindex
+     -1 above making it unfocusable) can ever reach this control. */
+  pointer-events: none;
 }
 
 .cond-check-note {
