@@ -30,10 +30,11 @@
   that trips the existing point-in-time cap check;
   `scn_v2_a25_trap`/`scn_v2_b23_trap` aren't cap-based traps at all (tier
   overage choice, prohibited category).
-- `render_policy_text` (`app/policy_text.py`) now tells the model, under the
-  `prompt_policy` condition, that the spend cap applies to a recurring
-  charge's ongoing cost, not just today's charge — the general rule, not
-  which offer is the trap.
+- The model-facing policy prose (`render_policy_text` /
+  `structured_policy_json`) is untouched: the fix is in what the tool
+  actually enforces, not in what the model is told about it. Hinting that
+  the cap covers ongoing recurring cost would coach the exact thing this
+  gap was supposed to measure.
 
 ## [2026-08-22] Human Lab: stale asset cache fixed, Run panel collapsible, Runs list capped, nav narrowed
 
