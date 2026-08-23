@@ -11,6 +11,7 @@ import type {
 import { PassphraseGate } from "./PassphraseGate";
 import { PairList } from "./PairList";
 import { PairDetail } from "./PairDetail";
+import { ReviewStatusPanel } from "./ReviewStatusPanel";
 
 interface FetchState {
   loading: boolean;
@@ -284,6 +285,8 @@ function ScenarioExplorerInner({
       ) : (
         <p className="mt-10 text-muted">No pairs match these filters.</p>
       )}
+
+      <ReviewStatusPanel pairs={pairs} reviews={reviews} />
     </div>
   );
 }
