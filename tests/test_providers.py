@@ -642,6 +642,103 @@ def test_anthropic_provider_captures_thinking_and_redacted(monkeypatch):
     assert result.action.action_type == "purchase"
 
 
+def test_anthropic_thinking_param_gating(monkeypatch):
+    # Regression: the provider used to never send `thinking` at all, so
+    # `display` defaulted to "omitted" on the newest models and reasoning
+    # came back empty even though the model thought and was billed for it.
+    from app.providers import _anthropic_thinking_param
+
+    monkeypatch.delenv("ANTHROPIC_THINKING_DISPLAY", raising=False)
+
+    # Thinking-on-by-default models: request summarized display regardless of
+    # whether the caller opted into reasoning_effort -- this is pure
+    # visibility, not a change to what the model does.
+    assert _anthropic_thinking_param("claude-opus-5", effort_requested=False) == {
+        "type": "adaptive",
+        "display": "summarized",
+    }
+    assert _anthropic_thinking_param("claude-sonnet-5", effort_requested=True) == {
+        "type": "adaptive",
+        "display": "summarized",
+    }
+
+    # Adaptive-capable but off-by-default models: only send `thinking` (which
+    # actually turns thinking on, an eval-condition change) once the caller
+    # has already opted in via reasoning_effort.
+    assert _anthropic_thinking_param("claude-sonnet-4-6", effort_requested=False) is None
+    assert _anthropic_thinking_param("claude-opus-4-6", effort_requested=True) == {
+        "type": "adaptive",
+        "display": "summarized",
+    }
+
+    # Extended-thinking-only models (manual mode, incompatible with this
+    # provider's forced tool_choice) never get a `thinking` param.
+    assert _anthropic_thinking_param("claude-haiku-4-5", effort_requested=True) is None
+    assert _anthropic_thinking_param("claude-opus-4-5", effort_requested=True) is None
+    assert _anthropic_thinking_param("claude-sonnet-4-5", effort_requested=True) is None
+
+    # ANTHROPIC_THINKING_DISPLAY opts out of the display sub-field only.
+    monkeypatch.setenv("ANTHROPIC_THINKING_DISPLAY", "off")
+    assert _anthropic_thinking_param("claude-opus-5", effort_requested=False) == {"type": "adaptive"}
+
+
+def test_anthropic_provider_requests_thinking_on_default_thinking_models(monkeypatch):
+    import anthropic
+
+    from app.providers import AnthropicProvider
+
+    captured = {}
+
+    class _ToolUse:
+        type = "tool_use"
+        input = {
+            "action_type": "purchase",
+            "amount": 45.98,
+            "merchant_id": "costco_business",
+            "sku": "charger",
+            "payment_type": "card",
+            "approval_requested": False,
+            "disclosed_fields": ["shipping_address"],
+            "rationale": "Within policy.",
+            "payment_attempts": [],
+            "recurring": False,
+            "refundable": None,
+            "category": None,
+            "unclear_ingredients": False,
+            "followed_external_instruction": False,
+            "completed": False,
+        }
+
+    class _Response:
+        content = [_ToolUse()]
+        stop_reason = "tool_use"
+
+    class _Messages:
+        def create(self, **kwargs):
+            captured.update(kwargs)
+            return _Response()
+
+    class _FakeClient:
+        def __init__(self, *args, **kwargs):
+            self.messages = _Messages()
+
+    monkeypatch.setattr(anthropic, "Anthropic", _FakeClient)
+    monkeypatch.delenv("ANTHROPIC_THINKING_DISPLAY", raising=False)
+    scenario = get_scenario("scn_v1_a1_trap")
+
+    # Opus 5 thinks by default -- gets `thinking` with summarized display even
+    # with no reasoning_effort configured.
+    provider = AnthropicProvider(model_name="claude-opus-5", api_key="sk-test")
+    provider.generate_action(scenario, "prompt_policy", seed=1, temperature=0.0)
+    assert captured["thinking"] == {"type": "adaptive", "display": "summarized"}
+
+    # Haiku 4.5 (extended-thinking-only, forced tool_choice) never gets one.
+    captured.clear()
+    provider = AnthropicProvider(model_name="claude-haiku-4-5", api_key="sk-test")
+    provider.generate_action(scenario, "prompt_policy", seed=1, temperature=0.0)
+    assert "thinking" not in captured
+
+
 def test_defaults_are_cheapest_current_models():
     # Defaults minimize spend when no *_MODEL env var is set; prices verified
     # 2026-07-22 (see the comment block in app/providers.py).
@@ -1239,6 +1336,9 @@ def test_phase2_anthropic_provider_mirrors_the_phase1_model_gating():
     assert "temperature" not in sent
     assert sent["output_config"] == {"effort": "high"}
     assert sent["max_tokens"] == 8000
+    # Opus 5 thinks by default; `display` defaults to "omitted" without this,
+    # so reasoning would come back empty despite the model actually thinking.
+    assert sent["thinking"] == {"type": "adaptive", "display": "summarized"}
 
     # A model that takes sampling params still gets them, and no effort.
     older = AnthropicToolProvider(model_name="claude-haiku-4-5", api_key="sk-test")
@@ -1252,6 +1352,9 @@ def test_phase2_anthropic_provider_mirrors_the_phase1_model_gating():
     assert sent["temperature"] == 0.3
     assert "output_config" not in sent
     assert sent["max_tokens"] == 2000
+    # Haiku 4.5 is extended-thinking-only, which is incompatible with the
+    # forced tool_choice this provider always sends -- never gets `thinking`.
+    assert "thinking" not in sent
 
 
 def _rate_limited(retry_after=None) -> ProviderError:

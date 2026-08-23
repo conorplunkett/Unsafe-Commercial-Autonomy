@@ -1,5 +1,38 @@
 # Changelog
 
+## [2026-08-23] Anthropic reasoning ingestion: request `thinking` so it isn't silently empty
+
+- **`app/providers.py`'s `AnthropicProvider` and `app/phase2/providers.py`'s
+  `AnthropicToolProvider` never sent a `thinking` request param — only
+  `output_config.effort`.** Verified against current Anthropic docs
+  (platform.claude.com/docs/en/build-with-claude/thinking,
+  thinking-troubleshooting): on Opus 5 / Sonnet 5 / Fable 5 / Mythos 5,
+  thinking runs by default but `display` also defaults to `"omitted"` on
+  exactly those models, so the returned `thinking` blocks had an empty
+  `thinking` field (billed, but not returned) — this repo's block parsing
+  then filtered the empty string out and `result.reasoning` was always
+  `None`. On Opus 4.6/4.7/4.8 and Sonnet 4.6, thinking defaults *off* and
+  Anthropic's own troubleshooting page confirms `effort` alone does not turn
+  it on. On the default model, Haiku 4.5, thinking is extended-mode only,
+  which is incompatible with the forced `tool_choice` this provider always
+  sends for structured output — so it never gets a `thinking` param at all
+  (same for Opus 4.5 / Sonnet 4.5).
+- Added `_anthropic_thinking_param()` (`app/providers.py`), reused by both
+  providers: sends `thinking: {"type": "adaptive", "display": "summarized"}`
+  unconditionally on thinking-on-by-default models (a visibility-only knob,
+  like the existing OpenAI summary / Gemini include_thoughts defaults —
+  opt-out via the new `ANTHROPIC_THINKING_DISPLAY` env var), and only when
+  `reasoning_effort` is already set on adaptive-capable-but-off-by-default
+  models (an eval-condition change, so it stays opt-in like
+  `GEMINI_THINKING_LEVEL`). Extended-thinking-only models are left untouched.
+- Also fixed a stale comment on the OpenAI Responses path (`providers.py`)
+  claiming reasoning summaries always come back empty — `_openai_reasoning_params`
+  has requested `summary: "auto"` for a while; the comment predated that.
+- `tests/test_providers.py`: `test_anthropic_thinking_param_gating`,
+  `test_anthropic_provider_requests_thinking_on_default_thinking_models`, and
+  an extension of `test_phase2_anthropic_provider_mirrors_the_phase1_model_gating`
+  cover the three model tiers for both phases.
+
 ## [2026-08-23] web_survey.py's lock flag catches up to rule 1a and rule 3
 
 - The 2026-08-21 lock-rule amendments (combined-agreement lock, rule 1a; drop

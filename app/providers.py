@@ -613,6 +613,26 @@ ANTHROPIC_DEFAULT_THINKING_PREFIXES = (
     "claude-mythos",
 )
 
+# Models that accept `thinking: {type: "adaptive"}` at all. Same as the effort
+# list minus claude-opus-4-5: Opus 4.5 supports `output_config.effort` but its
+# only thinking mode is legacy extended thinking (`type: "enabled",
+# budget_tokens`), which the API rejects with `adaptive`. Extended thinking is
+# also incompatible with the forced `tool_choice` this provider always sends
+# (Anthropic docs: forced tool use works with adaptive thinking, not manual
+# extended thinking), so Opus 4.5/Sonnet 4.5/Haiku 4.5 never get a `thinking`
+# param here — there is no way to request their reasoning without giving up
+# forced tool use, and forced tool use is what makes structured output reliable.
+ANTHROPIC_ADAPTIVE_THINKING_PREFIXES = (
+    "claude-opus-5",
+    "claude-opus-4-6",
+    "claude-opus-4-7",
+    "claude-opus-4-8",
+    "claude-sonnet-4-6",
+    "claude-sonnet-5",
+    "claude-fable",
+    "claude-mythos",
+)
+
 
 def _anthropic_supports_effort(model_name: str) -> bool:
     return (model_name or "").lower().startswith(ANTHROPIC_EFFORT_PREFIXES)
@@ -620,6 +640,42 @@ def _anthropic_supports_effort(model_name: str) -> bool:
 
 def _anthropic_rejects_temperature(model_name: str) -> bool:
     return (model_name or "").lower().startswith(ANTHROPIC_NO_SAMPLING_PREFIXES)
+
+
+def _anthropic_thinking_param(model_name: str, effort_requested: bool) -> Optional[Dict[str, Any]]:
+    """Build the `thinking` param that makes reasoning readable, when possible.
+
+    Two different knobs, kept distinct like the OpenAI/Gemini summary knobs:
+
+    - On models where thinking is already on by default (Opus 5, Sonnet 5,
+      Fable, Mythos: ``ANTHROPIC_DEFAULT_THINKING_PREFIXES``), the model
+      reasons regardless of this param -- `display` only controls whether that
+      reasoning comes back as readable text. `display` defaults to
+      ``"omitted"`` (an empty `thinking` field) on exactly these models, so
+      without this, captured reasoning is silently empty even though the
+      model thought and was billed for it. This is a pure visibility knob,
+      on by default, opt-out via ANTHROPIC_THINKING_DISPLAY.
+    - On adaptive-capable models where thinking defaults *off* (Opus
+      4.6/4.7/4.8, Sonnet 4.6), sending `thinking` at all changes the eval
+      condition -- Anthropic's own docs note effort alone does not enable
+      thinking on these. So this only fires when the caller already opted in
+      via `reasoning_effort` (mirrors Gemini's thinking_level: never picked
+      up implicitly).
+
+    Returns None for extended-thinking-only models (see
+    ANTHROPIC_ADAPTIVE_THINKING_PREFIXES) and for anything outside both lists.
+    """
+    name = (model_name or "").lower()
+    if not name.startswith(ANTHROPIC_ADAPTIVE_THINKING_PREFIXES):
+        return None
+    default_on = name.startswith(ANTHROPIC_DEFAULT_THINKING_PREFIXES)
+    if not default_on and not effort_requested:
+        return None
+    thinking: Dict[str, Any] = {"type": "adaptive"}
+    display = os.environ.get("ANTHROPIC_THINKING_DISPLAY", "summarized").strip()
+    if display and display.lower() not in _REASONING_OPT_OUT_VALUES:
+        thinking["display"] = display
+    return thinking
 
 
 def resolve_model_ids(model_ids: Optional[Iterable[str]]) -> list[str]:
@@ -1146,9 +1202,10 @@ class OpenAIResponsesProvider(BaseProvider):
         raw_output = getattr(response, "output_text", None) or _response_output_text(response)
         # Reasoning-model summaries live in separate "reasoning" output items
         # (each with its own list of summary blocks), not inline with the
-        # message text. Until the opt-in summary request flag exists, live
-        # calls return an empty summary list here, so reasoning stays None --
-        # only a caller (e.g. a test) that supplies summaries populates it.
+        # message text. `_openai_reasoning_params` requests them (`summary:
+        # "auto"` by default), but the account/model still has to actually
+        # return one -- if it doesn't, or a non-reasoning model is in use,
+        # this stays an empty list and reasoning below is None.
         reasoning_chunks: list[str] = []
         for item in response.output or []:
             if getattr(item, "type", None) != "reasoning":
@@ -1275,6 +1332,9 @@ class AnthropicProvider(BaseProvider):
         }
         if effort:
             params["output_config"] = {"effort": effort}
+        thinking_param = _anthropic_thinking_param(self.model_name, effort_requested=bool(effort))
+        if thinking_param:
+            params["thinking"] = thinking_param
         # Opus 4.7+/Sonnet 5/Fable reject sampling params with a 400.
         if not _anthropic_rejects_temperature(self.model_name):
             params["temperature"] = temperature
