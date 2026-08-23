@@ -196,6 +196,7 @@ def test_different_models_are_refused():
     [
         ("temperature", 0.7),
         ("reasoning_effort", "high"),
+        ("gemini_thinking_level", "high"),
         ("live", False),
         ("phase", "phase2"),
         ("answer_key_status", "survey_locked_70"),

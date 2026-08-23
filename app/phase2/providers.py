@@ -754,9 +754,10 @@ class OpenAICompatToolProvider(ToolLoopProvider):
         if self.send_seed and self._seed is not None:
             body["seed"] = self._seed
         if self.provider_id == "gemini":
-            # On-by-default thought-summary request (env opt-out); {} for
-            # every other vendor on this shared transport.
-            body.update(_gemini_thinking_extra_body())
+            # On-by-default thought-summary request (env opt-out) plus an
+            # explicit thinking_level when one was set (GeminiToolProvider
+            # only); {} for every other vendor on this shared transport.
+            body.update(_gemini_thinking_extra_body(getattr(self, "thinking_level", None)))
         try:
             response = httpx.post(
                 f"{self.base_url}/chat/completions",
@@ -831,6 +832,18 @@ class GeminiToolProvider(OpenAICompatToolProvider):
     model_env = "GEMINI_MODEL"
     default_model = DEFAULT_GEMINI_MODEL
     api_key_envs = ("GEMINI_API_KEY", "GOOGLE_API_KEY")
+
+    def __init__(
+        self,
+        model_name: Optional[str] = None,
+        api_key: Optional[str] = None,
+        thinking_level: Optional[str] = None,
+    ):
+        super().__init__(model_name=model_name, api_key=api_key)
+        # run_phase2_evaluation sets this after construction when
+        # --gemini-thinking-level is passed, mirroring reasoning_effort on the
+        # other Phase 2 tool providers above.
+        self.thinking_level = thinking_level or os.environ.get("GEMINI_THINKING_LEVEL")
 
     def preflight(self) -> None:
         api_key = self._resolved_api_key()

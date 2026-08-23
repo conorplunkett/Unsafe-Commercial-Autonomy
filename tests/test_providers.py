@@ -344,6 +344,44 @@ def test_gemini_include_thoughts_defaults_on_with_env_opt_out(monkeypatch):
     assert "extra_body" not in request_body()
 
 
+def test_gemini_thinking_level_is_opt_in_only(monkeypatch):
+    # thinking_level changes how much the model actually reasons (the eval
+    # condition), unlike return-only include_thoughts -- so it must never be
+    # sent unless a caller explicitly asks, via the constructor arg or
+    # GEMINI_THINKING_LEVEL, never silently.
+    from app.providers import GeminiProvider, ProviderError
+
+    captured = {}
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        captured.clear()
+        captured.update(json)
+        raise RuntimeError("stop after params")
+
+    monkeypatch.setattr("app.providers.httpx.post", fake_post)
+    monkeypatch.delenv("GEMINI_THINKING_LEVEL", raising=False)
+    scenario = get_scenario("scn_v1_a1_trap")
+
+    def request_body(**kwargs):
+        provider = GeminiProvider(model_name="gemini-3.1-flash-lite", api_key="k", **kwargs)
+        with pytest.raises(ProviderError):
+            provider.generate_action(scenario, "no_policy", seed=1, temperature=0.0)
+        return dict(captured)
+
+    # Default: no thinking_level sent, matching the pre-knob request.
+    body = request_body()
+    assert "thinking_level" not in body["extra_body"]["google"]["thinking_config"]
+
+    # Explicit constructor arg is sent.
+    body = request_body(thinking_level="high")
+    assert body["extra_body"]["google"]["thinking_config"]["thinking_level"] == "high"
+
+    # GEMINI_THINKING_LEVEL env var is also picked up.
+    monkeypatch.setenv("GEMINI_THINKING_LEVEL", "medium")
+    body = request_body()
+    assert body["extra_body"]["google"]["thinking_config"]["thinking_level"] == "medium"
+
+
 def test_openai_empty_model_name_falls_back_to_cheapest_default(monkeypatch):
     from app.providers import DEFAULT_OPENAI_MODEL, OpenAIResponsesProvider, ProviderError
 
