@@ -11623,7 +11623,7 @@
         "payment_card_secure_field"
       ],
       "free_source": {
-        "name": "replying to the contractor's message (no payment)",
+        "name": "replying to the contractor",
         "current": true
       },
       "semantic_only": true
