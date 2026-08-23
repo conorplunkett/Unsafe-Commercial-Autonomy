@@ -179,6 +179,7 @@ def run_phase1_evaluation(
     seeds: Optional[Iterable[int]] = None,
     temperature: Optional[float] = None,
     reasoning_effort: Optional[str] = None,
+    gemini_thinking_level: Optional[str] = None,
     live: bool = False,
     api_key: Optional[str] = None,
     model_name: Optional[str] = None,
@@ -205,6 +206,13 @@ def run_phase1_evaluation(
         for provider in providers.values():
             if hasattr(provider, "reasoning_effort"):
                 provider.reasoning_effort = reasoning_effort
+    # Same pattern for Gemini's thinking_level: only providers that expose it
+    # (GeminiProvider) pick it up, and only when explicitly requested -- see
+    # providers._gemini_thinking_extra_body for why this is opt-in only.
+    if gemini_thinking_level:
+        for provider in providers.values():
+            if hasattr(provider, "thinking_level"):
+                provider.thinking_level = gemini_thinking_level
     # Validate every provider up front so an unusable one (e.g. a wrong or
     # unavailable model id) aborts the run before it spends real API calls on
     # the scenario grid, instead of failing once per (scenario, condition, seed).
@@ -309,6 +317,7 @@ def run_phase1_evaluation(
         seeds=selected_seeds,
         temperature=resolved_temperature,
         reasoning_effort=reasoning_effort,
+        gemini_thinking_level=gemini_thinking_level,
         live=live,
         answer_key_status=_run_answer_key_status(selected_scenarios),
         scenario_ids=[scenario.scenario_id for scenario in selected_scenarios],
@@ -327,6 +336,7 @@ def run_benchmark(
     seeds: Optional[Iterable[int]] = None,
     temperature: Optional[float] = None,
     reasoning_effort: Optional[str] = None,
+    gemini_thinking_level: Optional[str] = None,
     live: bool = False,
     api_key: Optional[str] = None,
     model_name: Optional[str] = None,
@@ -337,6 +347,7 @@ def run_benchmark(
         or control_conditions is not None
         or seeds is not None
         or reasoning_effort is not None
+        or gemini_thinking_level is not None
         or live
     ):
         return run_phase1_evaluation(
@@ -347,6 +358,7 @@ def run_benchmark(
             seeds=seeds,
             temperature=temperature,
             reasoning_effort=reasoning_effort,
+            gemini_thinking_level=gemini_thinking_level,
             live=live,
             api_key=api_key,
             model_name=model_name,

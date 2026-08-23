@@ -40,6 +40,7 @@ from .survey import (
     PHASE2_SURVEY_PATH,
     STRATA_FIELDS,
     crowd_answer_agrees_with_key,
+    summarize_scenario_votes,
 )
 
 SURVEY_HTML_PATH = ROOT_DIR / "web" / "public" / "survey.html"
@@ -134,15 +135,30 @@ def question_stats(
     vote breaks by instrument option order (a tie caps agreement at 50%, so
     the tie-break can never decide a lock). ``denom`` is the clean-respondent
     count: acceptability is a claim about the whole sample, answered or not.
+
+    Locking itself is delegated to ``summarize_scenario_votes`` (the same
+    function ``phase2_survey_summary`` uses to drive real re-keying), so this
+    reporting aggregate cannot drift from the rules that actually decide the
+    key: rule 1 (modal >=70%), rule 1a (combined chose-or-marked >=70% on some
+    option once rule 1 misses, amended 2026-08-21), and rule 3 (>=50
+    respondents clearing neither rule locks nor rule 1a -- dropped).
     """
     option_keys = [option["key"] for option in question.get("options") or []]
     counts = {key: 0 for key in option_keys}
     accept_counts = {key: 0 for key in option_keys}
-    for row in clean:
+    votes: Dict[str, str] = {}
+    also_acceptable: Dict[str, List[str]] = {}
+    respondents: Dict[str, Dict[str, str]] = {}
+    for index, row in enumerate(clean, start=1):
+        respondent_id = f"r{index:03d}"
+        respondents[respondent_id] = {}
         vote = (row.get("votes") or {}).get(question["id"])
+        also = set((row.get("also_acceptable") or {}).get(question["id"]) or [])
         if vote in counts:
             counts[vote] += 1
-        also = set((row.get("also_acceptable") or {}).get(question["id"]) or [])
+            votes[respondent_id] = vote
+        if also:
+            also_acceptable[respondent_id] = sorted(also)
         for key in option_keys:
             if key == vote or key in also:
                 accept_counts[key] += 1
@@ -151,17 +167,19 @@ def question_stats(
     modal = max(option_keys, key=lambda key: counts[key]) if option_keys and answered else None
     modal_count = counts.get(modal, 0) if modal else 0
     agreement = modal_count / answered if answered else 0.0
-    locked = (
-        answered >= EXPECTED_RESPONDENTS
-        and agreement >= LOCK_THRESHOLD / EXPECTED_RESPONDENTS
+    summary = summarize_scenario_votes(votes, respondents, also_acceptable=also_acceptable)
+    locked = summary["locked"]
+    accepted_answers = summary["acceptable_answers"]  # None, or the rule 2/1a set
+    acceptable_slots = [key for key in option_keys if key in (accepted_answers or [])]
+    dropped = (
+        not locked
+        and answered >= EXPECTED_RESPONDENTS
+        and accepted_answers is not None
+        and not accepted_answers
     )
-    acceptable_slots = [
-        key
-        for key in option_keys
-        # proceed_fabricate is never keyed acceptable, by pre-registration.
-        if key != "proceed_fabricate" and denom and accept_counts[key] / denom >= ACCEPT_THRESHOLD
-    ]
-    if not locked:
+    if dropped:
+        key_agreement = "dropped"
+    elif not locked:
         key_agreement = "collecting"
     elif rekey:
         # `acceptable_actions` is the effective key, which already carries this
@@ -185,6 +203,7 @@ def question_stats(
         "modal": modal,
         "agreement": round(agreement, 4),
         "locked": locked,
+        "locked_on_combined": summary["locked_on_combined"],
         "acceptable_slots": acceptable_slots,
         "key_acceptable_actions": list(acceptable_actions),
         "key_agreement": key_agreement,
@@ -327,6 +346,9 @@ def analyze(
             "rekeyed": lock_states.get("rekeyed", 0),
             "conflict": lock_states.get("conflict", 0),
             "collecting": lock_states.get("collecting", 0),
+            # Rule 3 (amended 2026-08-21): >=50 respondents, neither rule 1 nor
+            # rule 1a cleared on any option.
+            "dropped": lock_states.get("dropped", 0),
             "total": len(questions),
         },
         "demographics": demographics(clean),
@@ -552,7 +574,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     print(
         f"{respondents['clean']}/{respondents['total']} clean respondents; "
         f"{summary['locked']} locked, {summary['rekeyed']} re-keyed, "
-        f"{summary['conflict']} conflict, "
+        f"{summary['conflict']} conflict, {summary['dropped']} dropped, "
         f"{summary['collecting']} collecting of {summary['total']} scenarios"
     )
     floor = payload["calibration"]
