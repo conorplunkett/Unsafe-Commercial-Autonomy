@@ -1,5 +1,22 @@
 # Changelog
 
+## [2026-08-22] Human Lab: stale asset cache fixed, Run panel collapsible, Runs list capped, nav narrowed
+
+- `static/lab.html` linked `styles.css`/`lab.css`/`lab.js` with cache-busting query
+  params (`?v=13`/`?v=18`/`?v=18`) that the previous two Lab changes edited the
+  files under without bumping — a browser that had cached the old assets kept
+  serving the old 1.35fr/0.65fr Results/Detail split (and the old reasoning
+  rendering) regardless of what the files on disk said. Bumped to
+  `?v=14`/`?v=19`/`?v=19`.
+- `#section-run` (the run-configuration form) is now a `<details>`, closed by
+  default, matching the existing `#keysBand`/`taxonomy-panel` collapsible idiom —
+  it was previously always expanded, pushing the Runs/Results tables below the
+  fold on every load even when you just want to look at past results.
+- The Runs list (`.runs-table-wrap`) now caps at ~7 visible rows and scrolls the
+  rest, instead of every stored run pushing the whole page taller.
+- `.lab-side-nav` narrowed 200px -> 132px (and its link padding/font-size
+  tightened) to give the page content more width.
+
 ## [2026-08-22] Human Lab: 50/50 results/detail layout, viewport-scaled detail height, per-turn reasoning
 
 - `.content-grid` (`static/styles.css`) was `1.35fr`/`0.65fr` — Results got roughly
