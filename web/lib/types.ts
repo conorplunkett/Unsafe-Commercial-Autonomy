@@ -220,4 +220,8 @@ export interface RunMeta {
   // Set means every episode here also lives in that run, so this row is
   // excluded from the pooled leaderboard — it is still listed and readable.
   superseded_by?: string | null;
+  // Phase 2's tool_constraints scenario scope this run used (app/phase2/
+  // scope.py): "rail_reachable" or "all". Null for Phase 1 runs and any run
+  // published before this axis existed.
+  enforcement_scope?: string | null;
 }

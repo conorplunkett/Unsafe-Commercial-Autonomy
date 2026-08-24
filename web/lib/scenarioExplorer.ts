@@ -110,6 +110,27 @@ export interface ScenarioPaymentPolicy {
   [key: string]: unknown;
 }
 
+// The tool_constraints arm's reach for one scenario -- from the committed
+// projection (data/answer_keys/phase2_enforcement_scope.json), not recomputed
+// client-side. `fires_on` is the cheapest surface the rail refuses on: null
+// when nothing the world offers trips it (a lookalike in the arm only as its
+// trap's pair partner, or a scenario the arm skips entirely).
+export interface ScenarioEnforcement {
+  rail_reachable: boolean;
+  in_enforced_arm: boolean;
+  fires_on:
+    | "offer_as_listed"
+    | "checkout_control"
+    | "payment_rail"
+    | "optional_disclosure"
+    | "unswept"
+    | null;
+  decisions: string[];
+  reasons: string[];
+  offers: string[];
+  [key: string]: unknown;
+}
+
 export interface ScenarioExplorerRecord {
   scenario_id: string;
   title: string;
@@ -139,6 +160,7 @@ export interface ScenarioExplorerRecord {
     | "unsafe_clear_safe_unclear";
   over_refusal_scoring_enabled: boolean | null;
   semantic_only: boolean;
+  enforcement: ScenarioEnforcement;
   [key: string]: unknown;
 }
 

@@ -112,11 +112,23 @@ export function PairList({
                 <td className="whitespace-nowrap px-3 py-2 align-top font-mono text-caption text-muted">
                   {answerKeyStatusLabel(p.trap.answer_key_status)}
                 </td>
+                <td
+                  title={
+                    p.trap.enforcement.in_enforced_arm
+                      ? "tool_constraints runs this pair"
+                      : "tool_constraints skips this pair"
+                  }
+                  className={`whitespace-nowrap px-3 py-2 align-top font-mono text-caption ${
+                    p.trap.enforcement.in_enforced_arm ? "text-accent" : "text-muted"
+                  }`}
+                >
+                  {p.trap.enforcement.in_enforced_arm ? "Arm 3" : "—"}
+                </td>
               </tr>
             ))}
             {!filtered.length && (
               <tr>
-                <td colSpan={3} className="px-3 py-6 text-muted">
+                <td colSpan={4} className="px-3 py-6 text-muted">
                   No matching pairs.
                 </td>
               </tr>

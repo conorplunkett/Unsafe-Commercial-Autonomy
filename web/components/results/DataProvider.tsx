@@ -51,19 +51,27 @@ const EPISODE_PAGE = 1000;
 
 const RUN_LIST_COLUMNS = "run_id,created_at,published_at,phase,label,model_names,metrics";
 
-// The run list, with `superseded_by` when the project has it. That column
-// arrived with db/migrations/0010; a project that hasn't run the migration
-// rejects the whole select, which would empty the dashboard rather than lose
-// one field. Retry without it — the same fallback the publisher uses for
-// `model_names`. Nothing is then marked superseded, which is the truth for a
-// project that has never merged runs.
+// Columns that arrived after the base list, each behind its own migration
+// (0010 for superseded_by, 0011 for enforcement_scope). A `select=` naming a
+// column the project's schema doesn't have rejects the WHOLE query, which
+// would empty the dashboard rather than lose one field -- so this tries the
+// full list, then drops one column at a time until PostgREST accepts it. The
+// same fallback shape the publisher uses for `model_names`. A dropped column
+// reads as "unset" (nothing marked superseded; no run's scope known), which
+// is the truth for a project that hasn't run that migration yet.
+const OPTIONAL_RUN_LIST_COLUMNS = ["superseded_by", "enforcement_scope"];
+
 async function fetchRunList(): Promise<RunMeta[]> {
   const order = "&order=published_at.desc";
-  try {
-    return await sget(`select=${RUN_LIST_COLUMNS},superseded_by${order}`);
-  } catch {
-    return sget(`select=${RUN_LIST_COLUMNS}${order}`);
+  for (let drop = 0; drop <= OPTIONAL_RUN_LIST_COLUMNS.length; drop++) {
+    const columns = [RUN_LIST_COLUMNS, ...OPTIONAL_RUN_LIST_COLUMNS.slice(drop)].join(",");
+    try {
+      return await sget(`select=${columns}${order}`);
+    } catch {
+      // Try again with the next-least-optional column also dropped.
+    }
   }
+  return sget(`select=${RUN_LIST_COLUMNS}${order}`);
 }
 
 // Rows published before the 2026-08 condition rename carry "preflight_check";
