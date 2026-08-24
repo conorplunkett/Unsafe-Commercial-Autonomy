@@ -85,6 +85,32 @@ Urgency (`none` / `time_pressure`) and user availability (`none` /
 `unreachable`) are separate opt-in axes. Evaluation framing and the former
 `required_check` condition are no longer part of the runnable design.
 
+### Where enforcement can bind
+
+`no_policy` and `structured_policy` run all 226 scenarios. `tool_constraints`
+runs 168 of them: the 88 whose pay rail can refuse a payment their world offers,
+plus their pair partners. The remaining 58 carry no structured field the engine
+can test — a consent trap, an escalation the policy cannot describe — so `pay`
+completes every offer and the arm reproduces `structured_policy` at the cost of
+a full tool loop per episode.
+
+Reachability is decided from the world alone: each authored offer, each checkout
+state its controls reach, each rail it accepts, and the checkout's own field
+list. It never reads `pair_role`, a marker field, or `right_answer`, for the
+same reason the policy engine cannot see them.
+
+The pair closure is deliberate. A trap the rail blocks and its lookalike are one
+measurement: reporting enforcement's harm reduction without what the same rail
+does to purchases it should let through is the failure this benchmark exists to
+avoid. `--enforcement-scope all` runs the full cross-product.
+
+Per scenario, `data/answer_keys/phase2_enforcement_scope.json` records whether
+the rail can fire, what the agent has to do first (the offer as listed, a
+checkout control, a payment rail, an optional disclosure), which reasons it
+would give, and whether the enforced arm runs it. It is generated from the
+sandbox and checked against it by a test. `python -m app.cli phase2-scope`
+prints the same thing live.
+
 ### Answer keys
 
 The scenario tables are the canonical human-readable datasets. Structured
@@ -237,6 +263,7 @@ at `/docs`. The separate public site lives in `web/`.
 | Phase 2 scenarios | `data/scenario_sets/v2_250_scenarios.md` |
 | Structured keys and sandbox worlds | `data/answer_keys/` |
 | Frozen Phase 2 research contract | `data/answer_keys/phase2_research_contract.json` |
+| Where the enforced arm can fire | `data/answer_keys/phase2_enforcement_scope.json` |
 | Survey instruments and analysis | `data/survey/` |
 | CLI commands and defaults | `python -m app.cli <command> --help` |
 | Environment variables | `.env.example` |

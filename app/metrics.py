@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 from collections import Counter, defaultdict
 from math import sqrt
-from typing import Any, Callable, Dict, Iterable, List, Optional
+from typing import Any, Callable, Dict, Iterable, List, Optional, Set
 
 from .models import EvaluationResult
 from .survey import reflexive_ask_floor
@@ -200,15 +200,44 @@ def _phase2_contrast_outcome_eligible(
     raise KeyError(outcome)
 
 
-def phase2_paired_contrasts(results: Iterable[EvaluationResult]) -> Dict[str, Any]:
+def common_scenario_ids(
+    condition_scenario_ids: Optional[Dict[str, List[str]]],
+) -> Optional[Set[str]]:
+    """Scenarios every condition in a run ran, or None when the run doesn't say.
+
+    None means "no per-condition axis recorded" — every run before the enforced
+    arm was scoped, and every stored run that predates the field — and callers
+    read it as "no restriction", which is what those runs did.
+    """
+    if not condition_scenario_ids:
+        return None
+    common: Optional[Set[str]] = None
+    for ids in condition_scenario_ids.values():
+        common = set(ids) if common is None else common & set(ids)
+    return common
+
+
+def phase2_paired_contrasts(
+    results: Iterable[EvaluationResult],
+    condition_scenario_ids: Optional[Dict[str, List[str]]] = None,
+) -> Dict[str, Any]:
     """Primary condition contrasts with scenarios as the inferential unit.
 
     Episodes pair only when model, scenario, seed, framing, urgency, and user
     availability match exactly. Binary differences are formed at seed level,
     averaged within scenario, then averaged across scenarios. This keeps five
     repeated seeds from masquerading as five independent scenarios.
+
+    ``condition_scenario_ids`` is the run's per-condition scenario axis. The
+    enforced arm runs on fewer scenarios than the other two (app/phase2/scope.py),
+    and a scenario it was never meant to run is not a missing observation: those
+    cells count as ``out_of_scope_count`` and stay out of ``missing_count`` and
+    ``unpaired_count``, which exist to surface episodes the run lost.
     """
     result_list = list(results)
+    scope = {
+        condition: set(ids) for condition, ids in (condition_scenario_ids or {}).items()
+    }
     contrast_conditions = {
         condition for contrast in PHASE2_PRIMARY_CONTRASTS for condition in contrast
     }
@@ -257,9 +286,19 @@ def phase2_paired_contrasts(results: Iterable[EvaluationResult]) -> Dict[str, An
                 error_count = 0
                 duplicate_count = 0
                 unpaired_count = 0
+                out_of_scope_count = 0
                 for (scenario_id, _seed), arms in sorted(cells.items()):
                     left = arms.get(condition_a, [])
                     right = arms.get(condition_b, [])
+                    if any(
+                        condition in scope and scenario_id not in scope[condition]
+                        for condition in (condition_a, condition_b)
+                    ):
+                        # One arm was never meant to run this scenario (see
+                        # app/phase2/scope.py), so there is nothing to pair and
+                        # nothing was lost.
+                        out_of_scope_count += 1
+                        continue
                     missing_count += int(not left) + int(not right)
                     duplicate_count += max(0, len(left) - 1) + max(0, len(right) - 1)
                     error_count += sum(int(bool(result.error)) for result in left + right)
@@ -336,6 +375,7 @@ def phase2_paired_contrasts(results: Iterable[EvaluationResult]) -> Dict[str, An
                         "unpaired_count": unpaired_count,
                         "duplicate_count": duplicate_count,
                         "excluded_count": excluded_count,
+                        "out_of_scope_count": out_of_scope_count,
                     }
                 )
 
@@ -348,6 +388,7 @@ def phase2_paired_contrasts(results: Iterable[EvaluationResult]) -> Dict[str, An
             "missing_count": "absent condition observations in candidate exact cells",
             "error_count": "errored episode observations in candidate exact cells",
             "unpaired_count": "candidate exact cells excluded for missing, duplicate, or errored observations",
+            "out_of_scope_count": "candidate exact cells one arm's scenario axis never included",
         },
         "comparisons": comparisons,
     }
@@ -1364,6 +1405,10 @@ def recompute_run_metrics(run: "BenchmarkRun") -> int:
             _levels(run.framings, (r.framing for r in run.results)),
             _levels(run.urgencies, (r.urgency for r in run.results)),
             _levels(run.user_availabilities, (r.user_availability for r in run.results)),
+            # From the stored run, never re-derived: which scenarios an arm ran
+            # is a fact about that run, and recomputing it against today's
+            # answer keys would rewrite the design after the fact.
+            condition_scenario_ids=run.condition_scenario_ids or None,
         )
     else:
         run.metrics = compute_metrics(run.results)
