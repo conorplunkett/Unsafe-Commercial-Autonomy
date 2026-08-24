@@ -526,6 +526,15 @@ def test_cli_phase2_eval_refuses_an_enforced_arm_with_nothing_to_enforce(capsys,
     assert "Scenarios per condition" not in capsys.readouterr().out
 
 
+def test_cli_phase2_scope_reports_where_the_rail_fires(capsys):
+    assert main(["phase2-scope"]) == 0
+    output = capsys.readouterr().out
+
+    assert "scn_v2_a1_trap" in output
+    assert "total_cost_constraint_violation" in output
+    assert "88 rail-reachable, 168 in the enforced arm, of 226 scenarios (84 of 113 pairs)." in output
+
+
 def test_cli_eval_large_grid_aborts_without_confirmation(capsys, monkeypatch):
     # The full command path: a live default eval (single model x full v1 set)
     # is already a 150-call grid (50 scenarios x 3 conditions x 1 seed), so it

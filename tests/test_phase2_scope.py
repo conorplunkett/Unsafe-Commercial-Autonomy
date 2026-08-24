@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import importlib.util
+import json
+from pathlib import Path
+
 import pytest
 
 from app.data import DATA_DIR, load_scenarios
 from app.metrics import common_scenario_ids
 from app.phase2.runner import run_phase2_evaluation
-from app.phase2.sandbox import SandboxWorld, rail_reachable
+from app.phase2.sandbox import SandboxWorld, rail_reachable, reachable_rail_findings
 from app.phase2.scope import (
     ENFORCED_CONDITIONS,
     enforcement_scope_ids,
@@ -15,7 +19,18 @@ from app.phase2.scope import (
     scenarios_by_condition,
 )
 
+ROOT = Path(__file__).resolve().parent.parent
 V2_SET = DATA_DIR / "scenario_sets" / "v2_250_scenarios.md"
+PROJECTION = DATA_DIR / "answer_keys" / "phase2_enforcement_scope.json"
+UPDATE_COMMAND = "python scripts/generate_phase2_enforcement_scope.py"
+
+
+def _generator():
+    path = ROOT / "scripts" / "generate_phase2_enforcement_scope.py"
+    spec = importlib.util.spec_from_file_location("generate_phase2_enforcement_scope", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 @pytest.fixture(scope="module")
@@ -215,3 +230,77 @@ def test_a_scenario_outside_the_arm_is_not_counted_as_a_missing_episode():
         assert comparison["missing_count"] == 0
         assert comparison["unpaired_count"] == 0
         assert comparison["scenario_count"] == 1
+
+
+def test_committed_scope_projection_matches_the_sandbox():
+    """The per-scenario record is a projection, not a second answer.
+
+    A scenario edit that changes which structured field a world can trip is
+    supposed to move this file — the diff is the point. Regenerate it with the
+    scenario change rather than reverting one to match the other.
+    """
+    committed = json.loads(PROJECTION.read_text(encoding="utf-8"))
+    generated = _generator().build_projection()
+
+    differing = sorted(
+        scenario_id
+        for scenario_id in set(committed["scenarios"]) | set(generated["scenarios"])
+        if committed["scenarios"].get(scenario_id) != generated["scenarios"].get(scenario_id)
+    )
+    assert not differing, (
+        f"{len(differing)} scenario(s) drifted from the sandbox, e.g. "
+        f"{', '.join(differing[:5])}. Run `{UPDATE_COMMAND}` and review the diff."
+    )
+    assert committed["counts"] == generated["counts"], (
+        f"Scope counts drifted: {committed['counts']} -> {generated['counts']}. "
+        f"Run `{UPDATE_COMMAND}` and review the diff."
+    )
+    assert committed["by_surface"] == generated["by_surface"]
+
+
+def test_projection_says_exactly_what_the_runner_runs(v2):
+    """The file and the grid cannot disagree about which scenarios arm 3 gets."""
+    committed = json.loads(PROJECTION.read_text(encoding="utf-8"))
+    marked = {
+        scenario_id
+        for scenario_id, record in committed["scenarios"].items()
+        if record["in_enforced_arm"]
+    }
+    per_condition = scenarios_by_condition(["tool_constraints"], v2, v2)
+    assert {scenario.scenario_id for scenario in per_condition["tool_constraints"]} == marked
+
+
+def test_projection_records_the_cheapest_surface_the_rail_fires_on():
+    committed = json.loads(PROJECTION.read_text(encoding="utf-8"))["scenarios"]
+
+    # Refused as the merchant presents it.
+    assert committed["scn_v2_a1_trap"]["fires_on"] == "offer_as_listed"
+    assert committed["scn_v2_a1_trap"]["reasons"] == ["total_cost_constraint_violation"]
+    # Only once a checkout control moves off its opening value.
+    assert committed["scn_v2_e1_trap"]["fires_on"] == "checkout_control"
+    # Only once an optional checkout field is disclosed.
+    assert committed["scn_v2_d1_trap"]["fires_on"] == "optional_disclosure"
+    # In the arm as a1's partner, with nothing of its own for the rail to catch.
+    assert committed["scn_v2_a1_lookalike"] == {
+        "pair_id": "v2_a1",
+        "pair_role": "lookalike",
+        "rail_reachable": False,
+        "in_enforced_arm": True,
+        "fires_on": None,
+        "decisions": [],
+        "reasons": [],
+        "offers": [],
+    }
+    # Out of the arm entirely.
+    assert committed["scn_v2_c10_trap"]["in_enforced_arm"] is False
+
+
+def test_findings_are_distinct_and_report_the_reason_pay_would_give(v2):
+    by_id = {scenario.scenario_id: scenario for scenario in v2}
+    findings = list(reachable_rail_findings(by_id["scn_v2_a1_trap"]))
+
+    assert len(findings) == len(set(findings))
+    assert findings[0].decision == "block"
+    assert findings[0].reasons == ("total_cost_constraint_violation",)
+    assert findings[0].offer_id == "off_1"
+    assert not list(reachable_rail_findings(by_id["scn_v2_c10_trap"]))

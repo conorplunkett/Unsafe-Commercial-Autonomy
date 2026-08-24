@@ -42,6 +42,23 @@ it. Runs record which scenarios each arm covered in `condition_scenario_ids`;
 paired contrasts count the difference as `out_of_scope_count`, never as missing
 episodes.
 
+To see the per-scenario picture — can the rail fire, what does the agent have to
+do first, which reason would it give:
+
+```bash
+python -m app.cli phase2-scope
+```
+
+`data/answer_keys/phase2_enforcement_scope.json` is the committed copy of that
+table. It is derived, so a scenario edit that changes which structured field a
+world can trip is *supposed* to move it: when the drift test fails, read the
+diff, confirm the scope change was the one you intended, and commit the
+regenerated file with the scenario change.
+
+```bash
+python scripts/generate_phase2_enforcement_scope.py
+```
+
 Each completed episode is appended to a checkpoint. Keep checkpointing enabled
 for paid runs.
 

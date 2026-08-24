@@ -1211,6 +1211,99 @@ def _checkout_states(world: SandboxWorld, entry: Dict[str, Any]) -> Iterator[Dic
         yield dict(zip(control_ids, combination))
 
 
+@dataclass(frozen=True)
+class RailFinding:
+    """One payment the rail would refuse, and what it took to reach it.
+
+    ``surface`` names what the agent had to do beyond opening the offer: change
+    a checkout control, choose a non-default rail, or disclose an optional
+    checkout field. ``offer_as_listed`` means the offer is refused exactly as
+    the merchant presents it.
+    """
+
+    offer_id: str
+    decision: str  # "block" | "approval_required"
+    reasons: tuple
+    surface: str
+
+
+# Ordered cheapest-first: how little the agent has to do before the rail fires.
+RAIL_SURFACES = (
+    "offer_as_listed",
+    "checkout_control",
+    "payment_rail",
+    "optional_disclosure",
+    "unswept",
+)
+
+
+def reachable_rail_findings(scenario: Scenario) -> Iterator[RailFinding]:
+    """Every payment in this scenario's world the ``tool_constraints`` rail
+    would refuse, cheapest surface first within each offer.
+
+    Lazy on purpose: ``rail_reachable`` consumes one item and stops, which is
+    what keeps run setup cheap, while the scope projection
+    (scripts/generate_phase2_enforcement_scope.py) drains it for the full
+    picture. One sweep, two readers, no second implementation to drift.
+
+    Distinct findings only — thousands of checkout states can refuse for the
+    same reason on the same offer, and the repeats say nothing new.
+
+    See ``rail_reachable`` for what "the world can produce" covers and for why
+    this never reads a trap label.
+    """
+    world = SandboxWorld(scenario, "tool_constraints")
+    seen: set = set()
+    for entry in world.offers:
+        offer_id = entry["offer_id"]
+        default_rail = entry.get("default_payment_type") or "card"
+        rails = list(dict.fromkeys([default_rail, *(entry.get("payment_types") or [])]))
+        disclosure_sets: List[Optional[List[str]]] = [None]
+        if world.checkout_optional_fields:
+            disclosure_sets.append(
+                list(world.checkout_required_fields) + list(world.checkout_optional_fields)
+            )
+        opening = dict(world.checkout_control_values[offer_id])
+        for swept, values in enumerate(_checkout_states(world, entry)):
+            if swept >= MAX_REACHABILITY_STATES:
+                # Budget spent; see MAX_REACHABILITY_STATES. An undecided sweep
+                # is reported rather than assumed away, so it shows up in the
+                # projection instead of passing as a decided "no". Once
+                # something has been found the answer is already settled and
+                # only the reason list is cut short.
+                if not seen:
+                    yield RailFinding(offer_id, "unswept", (), "unswept")
+                return
+            world.checkout_control_values[offer_id] = values
+            if world._missing_required_controls(entry):
+                continue  # pay rejects this state before the rail sees it
+            for rail in rails:
+                for disclosed in disclosure_sets:
+                    snapshot = world._checkout_summary(
+                        entry,
+                        payment_type=rail,
+                        disclosed_fields=list(disclosed or world.checkout_required_fields),
+                    )
+                    decision = world.rail_decision(entry, snapshot)
+                    if decision.decision == "allow":
+                        continue
+                    if values != opening:
+                        surface = "checkout_control"
+                    elif rail != default_rail:
+                        surface = "payment_rail"
+                    elif disclosed is not None:
+                        surface = "optional_disclosure"
+                    else:
+                        surface = "offer_as_listed"
+                    finding = RailFinding(
+                        offer_id, decision.decision, tuple(decision.reasons), surface
+                    )
+                    if finding in seen:
+                        continue
+                    seen.add(finding)
+                    yield finding
+
+
 def rail_reachable(scenario: Scenario) -> bool:
     """True when the ``tool_constraints`` rail can refuse a payment this
     scenario's world can produce.
@@ -1236,35 +1329,7 @@ def rail_reachable(scenario: Scenario) -> bool:
     cannot see them — scope selection must not become a back door into the
     answer key.
     """
-    world = SandboxWorld(scenario, "tool_constraints")
-    for entry in world.offers:
-        offer_id = entry["offer_id"]
-        rails = list(
-            dict.fromkeys(
-                [entry.get("default_payment_type") or "card", *(entry.get("payment_types") or [])]
-            )
-        )
-        disclosure_sets: List[Optional[List[str]]] = [None]
-        if world.checkout_optional_fields:
-            disclosure_sets.append(
-                list(world.checkout_required_fields) + list(world.checkout_optional_fields)
-            )
-        for swept, values in enumerate(_checkout_states(world, entry)):
-            if swept >= MAX_REACHABILITY_STATES:
-                return True  # budget spent; see MAX_REACHABILITY_STATES
-            world.checkout_control_values[offer_id] = values
-            if world._missing_required_controls(entry):
-                continue  # pay rejects this state before the rail sees it
-            for rail in rails:
-                for disclosed in disclosure_sets:
-                    snapshot = world._checkout_summary(
-                        entry,
-                        payment_type=rail,
-                        disclosed_fields=list(disclosed or world.checkout_required_fields),
-                    )
-                    if world.rail_decision(entry, snapshot).decision != "allow":
-                        return True
-    return False
+    return any(True for _ in reachable_rail_findings(scenario))
 
 
 # ---------------------------------------------------------------------------

@@ -1134,6 +1134,51 @@ def phase2_checkpoints_command(args: argparse.Namespace) -> int:
     return 0
 
 
+def phase2_scope_command(args: argparse.Namespace) -> int:
+    """Where the tool_constraints rail can fire, scenario by scenario."""
+    from .data import load_scenarios
+    from .phase2 import PHASE2_SCENARIO_SET
+    from .phase2.sandbox import reachable_rail_findings
+    from .phase2.scope import enforcement_scope_ids
+
+    scenario_set = Path(args.scenario_set) if args.scenario_set else PHASE2_SCENARIO_SET
+    try:
+        scenarios = load_scenarios(scenario_set)
+    except (OSError, ValueError) as exc:
+        print(f"Cannot read {scenario_set}: {exc}")
+        return 2
+    in_arm = enforcement_scope_ids(scenarios)
+
+    print(f"{'Scenario':28} {'Arm 3':6} {'Fires on':20} Reasons")
+    print("-" * 100)
+    reachable = 0
+    for scenario in scenarios:
+        findings = list(reachable_rail_findings(scenario))
+        reachable += bool(findings)
+        fires_on = findings[0].surface if findings else ""
+        reasons = sorted({reason for finding in findings for reason in finding.reasons})
+        if not findings:
+            # In the arm without a rail of its own: it is a partner of one.
+            fires_on = "partner" if scenario.scenario_id in in_arm else "—"
+        print(
+            f"{scenario.scenario_id:28} "
+            f"{'yes' if scenario.scenario_id in in_arm else 'no':6} "
+            f"{fires_on:20} {', '.join(reasons)}"
+        )
+    pairs = {scenario.pair_id for scenario in scenarios if scenario.pair_id}
+    pairs_in_arm = {
+        scenario.pair_id
+        for scenario in scenarios
+        if scenario.pair_id and scenario.scenario_id in in_arm
+    }
+    print(
+        f"\n{reachable} rail-reachable, {len(in_arm)} in the enforced arm, "
+        f"of {len(scenarios)} scenarios ({len(pairs_in_arm)} of {len(pairs)} pairs)."
+    )
+    print("Committed copy: data/answer_keys/phase2_enforcement_scope.json")
+    return 0
+
+
 def phase2_survey_command(args: argparse.Namespace) -> int:
     """Phase 2 survey agreement and lock-status table for the v2 answer key."""
     from .data import load_scenarios
@@ -1855,6 +1900,21 @@ def build_parser() -> argparse.ArgumentParser:
         help="List resumable Phase 2 runs (what --resume can be pointed at).",
     )
     phase2_checkpoints_parser.set_defaults(func=phase2_checkpoints_command)
+
+    phase2_scope_parser = subparsers.add_parser(
+        "phase2-scope",
+        help=(
+            "Per scenario: whether the tool_constraints rail can refuse a payment "
+            "its world offers, what the agent has to do first, and whether the "
+            "enforced arm runs it."
+        ),
+    )
+    phase2_scope_parser.add_argument(
+        "--scenario-set",
+        default=None,
+        help="Markdown scenario-set path. Default: data/scenario_sets/v2_250_scenarios.md.",
+    )
+    phase2_scope_parser.set_defaults(func=phase2_scope_command)
 
     phase2_survey_parser = subparsers.add_parser(
         "phase2-survey",
