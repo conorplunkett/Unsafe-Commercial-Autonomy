@@ -22,15 +22,20 @@
   project missing more than one recent migration still publishes, dropping
   each unknown column in turn rather than failing on the first one found. The
   site's run-list fetch does the same on the read side.
-- Not done here, and worth flagging: the published leaderboard's client-side
-  pooling (`web/lib/metrics.ts` `poolModelMetrics`) sums `by_model_name`
-  counts across every published run for a model with no check that they share
-  a scenario scope — the same guard `app/merge.py` enforces locally has no
-  web-side equivalent. Publishing a `--enforcement-scope all` run and a
-  `rail_reachable` run for the same model would blend two designs on the
-  public dashboard. `enforcement_scope` is now visible enough to check by eye
-  before publishing; a real fix is a separate, larger change to the pooling
-  function's guard logic.
+- **Leaderboard.** The published leaderboard's client-side pooling
+  (`web/lib/metrics.ts` `poolModelMetrics`) sums `by_model_name` counts across
+  every published run for a model, with no prior check that they share a
+  scenario scope — the same guard `app/merge.py` enforces locally had no
+  web-side equivalent, so publishing a `--enforcement-scope all` run and a
+  `rail_reachable` run for the same model would have silently blended two
+  designs into one number on the public dashboard. `poolModelMetrics` now
+  drops a model from the board entirely when its contributing Phase 2 runs
+  disagree on effective scope — the same refusal `merge.py` gives, not a
+  guess at which run is "right" — rather than let the blend stand. Read-compat
+  matches `merge.py`'s: a run published before this axis existed reads as
+  scope "all" for Phase 2, so it never spuriously conflicts with a new
+  `--enforcement-scope all` run. Only Phase 2 runs are compared; the check
+  never touches Phase 1.
 
 ## [2026-08-24] Where the enforced arm fires, recorded per scenario
 
