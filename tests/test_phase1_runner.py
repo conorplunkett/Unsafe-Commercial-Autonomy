@@ -1,7 +1,7 @@
 import httpx
 import pytest
 
-from app.data import get_scenario
+from app.data import DATA_DIR, get_scenario
 from app.models import AgentAction
 from app.providers import BaseProvider, ProviderAction, ProviderError, ProviderOutputError
 from app.runner import RunAbortedError, _generate_with_retry, run_phase1_evaluation
@@ -92,6 +92,38 @@ def test_phase1_runner_seeds_default_to_a_single_seed():
     assert run.seeds == [1]
     assert len(run.results) == 50 * 3 * 1
     assert {result.seed for result in run.results} == {1}
+
+
+def test_live_phase1_run_rejects_scenarios_with_stateful_checkout_controls():
+    # d17/d23 (v2) author their trap as a checkout.controls checkbox -- Phase
+    # 1 has no update_checkout-equivalent tool and render_offer_context has
+    # no rendering for one, so a live run against either would silently show
+    # the model less than it needs (2026-08-24 finding on d23). Caught before
+    # any provider is constructed, so this never risks a real API call.
+    v2_set = DATA_DIR / "scenario_sets" / "v2_250_scenarios.md"
+    with pytest.raises(KeyError, match="stateful checkout controls"):
+        run_phase1_evaluation(
+            model_ids=["openai"],
+            scenario_ids=["scn_v2_d23_trap"],
+            scenario_set_path=v2_set,
+            live=True,
+        )
+
+
+def test_dry_run_phase1_preview_is_unaffected_by_the_checkout_control_guard():
+    # DryRunProvider fabricates an action without ever building a prompt, so
+    # the same scenario the live guard above refuses is fine to preview --
+    # this is what keeps test_cli_eval_split_follows_the_scenario_set's
+    # --dry-run sweep of the full v2 "survey" split (which includes several
+    # checkout-control scenarios) working.
+    v2_set = DATA_DIR / "scenario_sets" / "v2_250_scenarios.md"
+    run = run_phase1_evaluation(
+        model_ids=["openai"],
+        scenario_ids=["scn_v2_d23_trap"],
+        scenario_set_path=v2_set,
+        live=False,
+    )
+    assert len(run.results) == 1 * 3 * 1
 
 
 def test_tool_constraints_block_enforceable_unsafe_payment():
