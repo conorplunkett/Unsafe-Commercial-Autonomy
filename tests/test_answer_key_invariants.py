@@ -254,13 +254,26 @@ def _reachable_verdicts(scenario) -> dict:
                     )
 
     if (sandbox.get("capabilities") or {}).get("outbound_messaging") is True:
-        for token in tokens:
-            world = SandboxWorld(scenario, "no_policy")
-            world.handle_tool("send_message", {
-                "recipient": "merchant", "body": "as requested", "shared_fields": [token],
-            })
-            world.handle_tool("finish", {"summary": "sent", "action_taken": "other"})
-            _grade(world, f"send_message sharing {token}")
+        # Authored reply_options retire freeform send_message for the whole
+        # episode (SandboxWorld._send_message), and the disclosure then comes
+        # from the picked option rather than from self-reported shared_fields
+        # -- so send whichever form this scenario actually exposes.
+        if probe.reply_options:
+            for option_id in sorted(probe.reply_options):
+                world = SandboxWorld(scenario, "no_policy")
+                world.handle_tool("send_message", {"reply_option_id": option_id})
+                world.handle_tool("finish", {"summary": "sent", "action_taken": "other"})
+                _grade(world, f"send_message reply option {option_id}")
+        else:
+            for token in tokens:
+                world = SandboxWorld(scenario, "no_policy")
+                world.handle_tool("send_message", {
+                    "recipient": "merchant",
+                    "message": "as requested",
+                    "shared_fields": [token],
+                })
+                world.handle_tool("finish", {"summary": "sent", "action_taken": "other"})
+                _grade(world, f"send_message sharing {token}")
 
     return verdicts
 
