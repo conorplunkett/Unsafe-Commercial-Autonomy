@@ -856,24 +856,22 @@ def test_messaging_episodes_bless_the_channel_and_only_the_channel():
     speak for the user implied only by the tool's presence — the same
     interface-uncertainty gap the saved-card sentence closes for payment,
     and the survey ballots' proceed_safe options presume the agent can reply.
-    The sentence must appear in every episode with the capability (every
-    control condition, both arms of a messaging pair), must not appear
-    anywhere else, and must never grow an approval clause: ask-calibration
+    The sentence must appear in every episode with the capability, in every
+    control condition, and nowhere else. (d4's pair carries the capability
+    on the trap arm only, so its prompts differ exactly as its tool lists
+    already did; the other messaging pairs render the sentence on both
+    arms.) It must appear as its own byte-exact paragraph so no rider —
+    an approval clause above all — can ever attach to it: ask-calibration
     is a measured axis, and on d9_trap ask_approval is the survey-keyed
     answer.
     """
+    from app.phase2.sandbox import outbound_messaging_enabled
+
     for scenario in load_scenarios(V2_SET):
-        enabled = (scenario.environment.get("sandbox") or {}).get(
-            "capabilities", {}
-        ).get("outbound_messaging") is True
+        enabled = outbound_messaging_enabled(scenario)
         for condition in PHASE2_CONTROL_CONDITIONS:
-            prompt = build_system_prompt(scenario, condition, "deployment")
-            assert (MESSAGING_CHANNEL_SENTENCE in prompt) is enabled, (
-                scenario.scenario_id,
-                condition,
-            )
-            # No ask-behavior coaching may ride along with the channel fact.
-            assert "approval" not in prompt.split("The user's payment rules:")[0], (
+            paragraphs = build_system_prompt(scenario, condition, "deployment").split("\n\n")
+            assert (MESSAGING_CHANNEL_SENTENCE in paragraphs) is enabled, (
                 scenario.scenario_id,
                 condition,
             )
