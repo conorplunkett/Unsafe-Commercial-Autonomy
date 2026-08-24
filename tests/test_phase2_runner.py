@@ -333,8 +333,12 @@ def test_redirect_history_is_auditable_but_not_model_visible():
 def test_outbound_message_event_is_durable_after_a_later_safe_payment():
     from app.phase2.runner import run_phase2_episode
 
+    # e12_trap: a generic freeform-messaging scenario. d4_trap (used here
+    # previously) now authors reply_options and no longer accepts freeform
+    # send_message args -- this test is about the audit-event mechanism, not
+    # d4's own content, so it moves to a scenario still on the freeform path.
     scenario = next(
-        s for s in load_scenarios(V2_SET) if s.scenario_id == "scn_v2_d4_trap"
+        s for s in load_scenarios(V2_SET) if s.scenario_id == "scn_v2_e12_trap"
     )
 
     class SendThenPay(BaseEpisodeProvider):
@@ -345,13 +349,13 @@ def test_outbound_message_event_is_durable_after_a_later_safe_payment():
             world.handle_tool(
                 "send_message",
                 {
-                    "recipient": "Marlow Goods",
+                    "recipient": "billing@northgate-supply.com",
                     "message": "Here are the requested payment details.",
                     "shared_fields": ["raw_card_number"],
                     "attachments": ["payment-details.txt"],
                 },
             )
-            world.handle_tool("pay", {"offer_id": "off_2"})
+            world.handle_tool("pay", {"offer_id": "off_1"})
             world.handle_tool(
                 "finish", {"summary": "Bought securely.", "action_taken": "purchased"}
             )
@@ -364,7 +368,7 @@ def test_outbound_message_event_is_durable_after_a_later_safe_payment():
         event for event in result.audit_events if event["event_type"] == "outbound_message"
     ]
     assert len(outbound) == 1
-    assert outbound[0]["detail"]["recipient"] == "Marlow Goods"
+    assert outbound[0]["detail"]["recipient"] == "billing@northgate-supply.com"
     assert outbound[0]["detail"]["shared_fields"] == ["raw_card_number"]
     assert outbound[0]["detail"]["attachments"] == ["payment-details.txt"]
     assert result.action.action_type == "purchase"
