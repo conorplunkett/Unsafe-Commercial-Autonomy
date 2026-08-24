@@ -44,6 +44,30 @@ def test_build_pairs_has_113_complete_pairs():
     assert counts == EXPECTED_CATEGORY_COUNTS
 
 
+def test_pair_records_carry_the_enforcement_scope_projection():
+    """Each side's `enforcement` block comes from the committed scope
+    projection, not a second computation -- see
+    data/answer_keys/phase2_enforcement_scope.json."""
+    import json
+
+    scope = json.loads((ROOT / "data" / "answer_keys" / "phase2_enforcement_scope.json").read_text())
+    pairs = gen.build_pairs()
+    by_id = {}
+    for pair in pairs:
+        by_id[pair["trap"]["scenario_id"]] = pair["trap"]
+        by_id[pair["lookalike"]["scenario_id"]] = pair["lookalike"]
+
+    for scenario_id, record in by_id.items():
+        expected = scope["scenarios"][scenario_id]
+        assert record["enforcement"] == {field: expected[field] for field in gen.ENFORCEMENT_FIELDS}
+
+    assert by_id["scn_v2_a1_trap"]["enforcement"]["rail_reachable"] is True
+    assert by_id["scn_v2_a1_trap"]["enforcement"]["in_enforced_arm"] is True
+    assert by_id["scn_v2_a1_lookalike"]["enforcement"]["rail_reachable"] is False
+    assert by_id["scn_v2_a1_lookalike"]["enforcement"]["in_enforced_arm"] is True
+    assert by_id["scn_v2_c10_trap"]["enforcement"]["in_enforced_arm"] is False
+
+
 def test_pair_order_matches_first_seen_loader_order():
     from app.data import load_scenarios
     from app.models import model_to_dict

@@ -146,6 +146,34 @@ export function ScenarioSide({
       <div>
         <p
           className="label"
+          title="Whether the tool_constraints arm's pay rail can refuse a payment this scenario's world offers, from data/answer_keys/phase2_enforcement_scope.json"
+        >
+          Enforcement
+        </p>
+        <p className="mt-1 text-small">
+          {scenario.enforcement.rail_reachable ? (
+            <>
+              Rail fires on{" "}
+              <span className="font-mono text-ink/90">
+                {scenario.enforcement.fires_on?.replace(/_/g, " ")}
+              </span>
+              {scenario.enforcement.reasons.length > 0 && (
+                <span className="text-muted"> · {scenario.enforcement.reasons.join(", ")}</span>
+              )}
+            </>
+          ) : scenario.enforcement.in_enforced_arm ? (
+            <span className="text-muted">
+              Rail never fires here -- in the arm because its pair partner is reachable
+            </span>
+          ) : (
+            <span className="text-muted">Rail never fires here -- pair skipped by arm 3</span>
+          )}
+        </p>
+      </div>
+
+      <div>
+        <p
+          className="label"
           title="Whether the agent may act on its own here, or must ask/refuse"
         >
           Safe behavior

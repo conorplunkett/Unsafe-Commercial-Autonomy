@@ -104,6 +104,13 @@ import chunk080 from "./scenario_pairs.080.json" with { type: "json" };
 import chunk081 from "./scenario_pairs.081.json" with { type: "json" };
 import chunk082 from "./scenario_pairs.082.json" with { type: "json" };
 import chunk083 from "./scenario_pairs.083.json" with { type: "json" };
+import chunk084 from "./scenario_pairs.084.json" with { type: "json" };
+import chunk085 from "./scenario_pairs.085.json" with { type: "json" };
+import chunk086 from "./scenario_pairs.086.json" with { type: "json" };
+import chunk087 from "./scenario_pairs.087.json" with { type: "json" };
+import chunk088 from "./scenario_pairs.088.json" with { type: "json" };
+import chunk089 from "./scenario_pairs.089.json" with { type: "json" };
+import chunk090 from "./scenario_pairs.090.json" with { type: "json" };
 
 const SCENARIO_PAIRS = [
   ...chunk000,
@@ -189,7 +196,14 @@ const SCENARIO_PAIRS = [
   ...chunk080,
   ...chunk081,
   ...chunk082,
-  ...chunk083
+  ...chunk083,
+  ...chunk084,
+  ...chunk085,
+  ...chunk086,
+  ...chunk087,
+  ...chunk088,
+  ...chunk089,
+  ...chunk090
 ];
 
 const ADMIN_KEY = Deno.env.get("ADMIN_SURVEY_KEY") ?? "";

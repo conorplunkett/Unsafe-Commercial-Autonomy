@@ -109,7 +109,11 @@ further collection or regeneration.
 Apply the SQL files under `db/migrations/` in numeric order to the target
 Supabase project. Current run publishing depends on the episode table created by
 `0009_add_benchmark_run_episodes.sql`; merged-run supersession uses
-`0010_add_superseded_by.sql`.
+`0010_add_superseded_by.sql`; filtering by Phase 2's tool_constraints scenario
+scope uses `0011_add_enforcement_scope.sql`. Publishing and the site's run
+list both tolerate any of these being unapplied — they retry without the
+missing column rather than failing outright — but the column stays queryable
+only once the migration runs.
 
 Set `SUPABASE_SERVICE_KEY` in `.env`, then publish a stored run:
 
@@ -165,8 +169,12 @@ superseded so the leaderboard does not count their episodes twice; avoid
 ## Scenario Explorer data
 
 The admin Scenario Explorer reads a generated snapshot of the 113 Phase 2 pairs
-committed under `supabase/functions/admin-scenario-data/`. After any change to
-`data/scenario_sets/v2_250_scenarios.md` or `data/answer_keys/v2_constraints.json`:
+committed under `supabase/functions/admin-scenario-data/`. Each scenario record
+carries an `enforcement` block (`rail_reachable`, `in_enforced_arm`, `fires_on`,
+`reasons`) copied from `data/answer_keys/phase2_enforcement_scope.json`, not
+recomputed. After any change to `data/scenario_sets/v2_250_scenarios.md` or
+`data/answer_keys/v2_constraints.json` — regenerate that file first if the
+change could move the scope (see the Phase 2 grid section above), then:
 
 ```bash
 python scripts/generate_scenario_explorer_data.py

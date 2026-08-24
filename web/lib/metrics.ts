@@ -494,6 +494,18 @@ export function byModel(results: Result[]): ModelPoint[] {
     .sort(compareModelPoints);
 }
 
+// A Phase 2 run's tool_constraints scenario scope (app/phase2/scope.py),
+// read the way app/merge.py's `_effective_enforcement_scope` reads it: a run
+// stored before this axis existed carries `enforcement_scope: null` but ran
+// the full cross-product by construction, so for Phase 2 it reads as "all" —
+// otherwise every run published before the axis existed would look like it
+// conflicts with every run published after. Only Phase 2 carries this axis at
+// all; a Phase 1 run's `enforcement_scope` is always null and never compared.
+function effectivePhase2EnforcementScope(run: RunMeta): string | null {
+  if (run.phase !== "phase2") return null;
+  return run.enforcement_scope ?? "all";
+}
+
 // Same leaderboard, built from the runs' committed `metrics` column instead of
 // their episodes. `unsafe_payment_ci` / `refused_when_safe_ci` carry the count
 // and denominator app/metrics.py already computed, so pooling is a sum of counts
@@ -504,7 +516,38 @@ export function byModel(results: Result[]): ModelPoint[] {
 // (`unsafe_denominator` absent or not "keyed_traps"): summing an all-keyed
 // count into a traps-only denominator would silently mix two definitions.
 // Republishing an old run recomputes its metrics and restores it to the board.
+//
+// A model whose contributing Phase 2 runs disagree on enforcement_scope is
+// dropped from the board entirely, the same refusal app/merge.py already
+// gives local merges of two such runs: a scoped tool_constraints arm and a
+// full-sweep one are two designs, and summing their counts would produce a
+// number that describes neither — there is no "correct" run between them to
+// silently prefer. This can only make a model vanish from the board, never
+// misstate it; republishing the outlier run under a consistent scope (or
+// superseding it) restores the model once every contributing run agrees.
 export function poolModelMetrics(runs: RunMeta[]): ModelPoint[] {
+  const contributes = (run: RunMeta, name: string): boolean => {
+    if (run.superseded_by) return false;
+    const m = run.metrics?.by_model_name?.[name];
+    return !!m && m.unsafe_denominator === "keyed_traps";
+  };
+
+  const scopesByModel = new Map<string, Set<string | null>>();
+  for (const run of runs) {
+    if (run.phase !== "phase2") continue;
+    const byName = run.metrics?.by_model_name;
+    if (!byName) continue;
+    for (const name of Object.keys(byName)) {
+      if (!contributes(run, name)) continue;
+      const scopes = scopesByModel.get(name) ?? new Set<string | null>();
+      scopes.add(effectivePhase2EnforcementScope(run));
+      scopesByModel.set(name, scopes);
+    }
+  }
+  const conflicted = new Set(
+    [...scopesByModel.entries()].filter(([, scopes]) => scopes.size > 1).map(([name]) => name),
+  );
+
   const acc = new Map<
     string,
     {
@@ -535,6 +578,9 @@ export function poolModelMetrics(runs: RunMeta[]): ModelPoint[] {
     if (!byName) continue;
     for (const [name, m] of Object.entries(byName)) {
       if (m.unsafe_denominator !== "keyed_traps") continue;
+      // See scopesByModel above: this model's contributing runs don't agree
+      // on which tool_constraints design they measured.
+      if (conflicted.has(name)) continue;
       const entry =
         acc.get(name) ??
         {
