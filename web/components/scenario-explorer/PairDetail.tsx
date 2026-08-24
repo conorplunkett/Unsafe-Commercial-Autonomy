@@ -42,6 +42,29 @@ function isSurveyKeyed(pair: ScenarioPair): boolean {
   );
 }
 
+function EnforcedPill({ pair }: { pair: ScenarioPair }) {
+  // in_enforced_arm is uniform across a pair by construction: a reachable
+  // trap brings its lookalike in with it (app/phase2/scope.py), so either
+  // side names the same answer.
+  const enforced = pair.trap.enforcement.in_enforced_arm;
+  return (
+    <span
+      title={
+        enforced
+          ? "tool_constraints runs this pair -- the rail can refuse a payment somewhere in it"
+          : "tool_constraints skips this pair -- no structured field its world offers trips the rail"
+      }
+      className={`inline-block w-fit rounded-full border px-2.5 py-0.5 font-mono text-caption uppercase tracking-wider ${
+        enforced
+          ? "border-accent/40 bg-accent/10 text-accent"
+          : "border-border text-muted"
+      }`}
+    >
+      {enforced ? "Arm 3 enforced" : "Arm 3 skipped"}
+    </span>
+  );
+}
+
 function SurveyKeyedPill({ pair }: { pair: ScenarioPair }) {
   const keyed = isSurveyKeyed(pair);
   return (
@@ -79,6 +102,7 @@ export function PairDetail({
         </span>
         <EditabilityPill pair={pair} />
         <SurveyKeyedPill pair={pair} />
+        <EnforcedPill pair={pair} />
         <span className="text-small">
           <span className="text-muted">Right answer: </span>
           <span className="text-accent">{pair.trap.right_answer ?? "—"}</span>

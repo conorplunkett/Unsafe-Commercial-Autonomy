@@ -1,5 +1,37 @@
 # Changelog
 
+## [2026-08-24] Surface the enforcement scope in the Scenario Explorer and Supabase
+
+- Follow-up to the two changes below: the per-scenario scope record and the
+  per-run scope axis each had one reader (`phase2-scope`, local run JSON) and
+  no path into the two places people actually look — the admin review tool and
+  the published dashboard.
+- **Scenario Explorer.** Each scenario record in the admin snapshot
+  (`supabase/functions/admin-scenario-data/`) now carries an `enforcement`
+  block copied from `data/answer_keys/phase2_enforcement_scope.json` — never
+  recomputed, so the explorer and `phase2-scope` can't name a different scope
+  for the same scenario. The pair list gets an "Arm 3" column, the pair header
+  gets an enforced/skipped pill, and each side's detail panel names the
+  surface the rail fires on and why. `generate_scenario_explorer_data.py`
+  regenerates the snapshot; the existing drift test catches a stale one.
+- **Supabase.** `db/migrations/0011_add_enforcement_scope.sql` lifts
+  `enforcement_scope` out of the run payload into a queryable top-level column
+  on `benchmark_runs`, mirroring `model_names` (0001) and `superseded_by`
+  (0010). Publishing retries with the reported column dropped when PostgREST
+  rejects it — generalized from the old `model_names`-only one-shot retry so a
+  project missing more than one recent migration still publishes, dropping
+  each unknown column in turn rather than failing on the first one found. The
+  site's run-list fetch does the same on the read side.
+- Not done here, and worth flagging: the published leaderboard's client-side
+  pooling (`web/lib/metrics.ts` `poolModelMetrics`) sums `by_model_name`
+  counts across every published run for a model with no check that they share
+  a scenario scope — the same guard `app/merge.py` enforces locally has no
+  web-side equivalent. Publishing a `--enforcement-scope all` run and a
+  `rail_reachable` run for the same model would blend two designs on the
+  public dashboard. `enforcement_scope` is now visible enough to check by eye
+  before publishing; a real fix is a separate, larger change to the pooling
+  function's guard logic.
+
 ## [2026-08-24] Where the enforced arm fires, recorded per scenario
 
 - Follow-up to the scope change below: which scenarios `tool_constraints` runs was

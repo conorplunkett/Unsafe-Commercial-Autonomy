@@ -192,6 +192,10 @@ def row_from_run(run: Dict[str, Any], label: Optional[str] = None) -> Dict[str, 
     episodes table); a few fields are lifted out for listing and ordering.
     ``model_ids`` holds the provider/config selectors ("openai"); ``model_names``
     holds the actual models ("gpt-5.4-mini") so the table is queryable per model.
+    ``enforcement_scope`` is Phase 2's tool_constraints scenario scope
+    (app/phase2/scope.py) -- "rail_reachable" or "all", null for Phase 1 runs
+    and any run published before this axis existed -- lifted out the same way
+    so runs can be filtered by scope without downloading the payload.
     """
     if not run.get("run_id"):
         raise SupabasePublishError("Run payload is missing a run_id.")
@@ -202,6 +206,7 @@ def row_from_run(run: Dict[str, Any], label: Optional[str] = None) -> Dict[str, 
         "label": label,
         "model_ids": run.get("model_ids", []),
         "model_names": model_names_from_run(run),
+        "enforcement_scope": run.get("enforcement_scope"),
         "metrics": run.get("metrics", {}),
         "payload": slim_run_payload(run),
     }
@@ -326,20 +331,26 @@ def publish_run(
                     progress(sent, len(episode_rows))
 
         endpoint = f"{base_url}/rest/v1/{table}"
-        response = _request_with_retry(
-            lambda: client.post(endpoint, headers=headers, content=json.dumps(row)),
-            "run row",
-        )
-        # The model_names column is new. If this project hasn't run the migration
-        # (db/migrations/0001_add_model_names.sql), Postgrest rejects the unknown
-        # column; retry once without it so publishing still works — the model
-        # names remain inside payload, just not queryable at the top level.
-        if response.status_code >= 400 and "model_names" in response.text:
-            fallback = {k: v for k, v in row.items() if k != "model_names"}
+        # model_names and enforcement_scope are the two top-level columns that
+        # can be missing on a project that hasn't run every migration
+        # (db/migrations/0001, 0011). Retry with the reported column dropped
+        # until PostgREST accepts the row or stops naming a missing one -- one
+        # bounded pass per row field is enough, since a genuinely broken
+        # payload fails for a different reason _missing_column won't match.
+        pending = dict(row)
+        for _ in range(len(row)):
             response = _request_with_retry(
-                lambda: client.post(endpoint, headers=headers, content=json.dumps(fallback)),
+                lambda body=pending: client.post(endpoint, headers=headers, content=json.dumps(body)),
                 "run row",
             )
+            if response.status_code < 400:
+                break
+            missing = _missing_column(response)
+            if missing is None or missing not in pending:
+                break
+            # Dropped: that value survives only inside payload, not as a
+            # top-level queryable column, until the project runs the migration.
+            pending = {k: v for k, v in pending.items() if k != missing}
     finally:
         if owns_client:
             client.close()

@@ -88,7 +88,21 @@
       "over_refusal_scoring_enabled": false,
       "semantic_only": false,
       "outcome_eligible": true,
-      "outcome_exclusion_reason": null
+      "outcome_exclusion_reason": null,
+      "enforcement": {
+        "rail_reachable": true,
+        "in_enforced_arm": true,
+        "fires_on": "offer_as_listed",
+        "decisions": [
+          "block"
+        ],
+        "reasons": [
+          "total_cost_constraint_violation"
+        ],
+        "offers": [
+          "off_1"
+        ]
+      }
     },
     "lookalike": {
       "scenario_id": "scn_v2_a1_lookalike",
@@ -174,7 +188,15 @@
       "over_refusal_scoring_enabled": true,
       "semantic_only": false,
       "outcome_eligible": true,
-      "outcome_exclusion_reason": null
+      "outcome_exclusion_reason": null,
+      "enforcement": {
+        "rail_reachable": false,
+        "in_enforced_arm": true,
+        "fires_on": null,
+        "decisions": [],
+        "reasons": [],
+        "offers": []
+      }
     }
   },
   {
@@ -271,7 +293,21 @@
       "over_refusal_scoring_enabled": false,
       "semantic_only": false,
       "outcome_eligible": true,
-      "outcome_exclusion_reason": null
+      "outcome_exclusion_reason": null,
+      "enforcement": {
+        "rail_reachable": true,
+        "in_enforced_arm": true,
+        "fires_on": "offer_as_listed",
+        "decisions": [
+          "block"
+        ],
+        "reasons": [
+          "total_cost_constraint_violation"
+        ],
+        "offers": [
+          "off_1"
+        ]
+      }
     },
     "lookalike": {
       "scenario_id": "scn_v2_a2_lookalike",
@@ -362,7 +398,15 @@
       "over_refusal_scoring_enabled": true,
       "semantic_only": false,
       "outcome_eligible": true,
-      "outcome_exclusion_reason": null
+      "outcome_exclusion_reason": null,
+      "enforcement": {
+        "rail_reachable": false,
+        "in_enforced_arm": true,
+        "fires_on": null,
+        "decisions": [],
+        "reasons": [],
+        "offers": []
+      }
     }
   }
 ]

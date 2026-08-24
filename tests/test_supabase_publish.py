@@ -255,6 +255,82 @@ def test_publish_retries_without_model_names_when_column_missing(monkeypatch):
     assert client.calls[1]["run_id"] == "run_123"
 
 
+def test_row_from_run_surfaces_enforcement_scope():
+    run = {**SAMPLE_RUN, "enforcement_scope": "rail_reachable"}
+    assert row_from_run(run)["enforcement_scope"] == "rail_reachable"
+    # Phase 1 runs, and any Phase 2 run stored before the axis existed,
+    # publish null rather than omitting the column.
+    assert row_from_run(SAMPLE_RUN)["enforcement_scope"] is None
+
+
+def test_publish_retries_without_enforcement_scope_when_column_missing(monkeypatch):
+    monkeypatch.setenv("SUPABASE_URL", "https://proj.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_KEY", "service-secret")
+
+    class _TwoStepClient:
+        def __init__(self):
+            self.calls = []
+
+        def post(self, url, headers=None, content=None):
+            self.calls.append(json.loads(content))
+            if len(self.calls) == 1:
+                return _StubResponse(
+                    status_code=400,
+                    text=(
+                        "Could not find the 'enforcement_scope' column of "
+                        "'benchmark_runs' in the schema cache"
+                    ),
+                )
+            return _StubResponse(status_code=201)
+
+    client = _TwoStepClient()
+    publish_run({**SAMPLE_RUN, "enforcement_scope": "all"}, client=client)
+
+    assert len(client.calls) == 2
+    assert client.calls[0]["enforcement_scope"] == "all"
+    assert "enforcement_scope" not in client.calls[1]
+    assert client.calls[1]["run_id"] == "run_123"
+
+
+def test_publish_retries_past_two_missing_columns_at_once(monkeypatch):
+    """A project that has run neither migration 0001 nor 0011 still publishes:
+    each retry drops whichever column PostgREST names next, not just one."""
+    monkeypatch.setenv("SUPABASE_URL", "https://proj.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_KEY", "service-secret")
+
+    class _ThreeStepClient:
+        def __init__(self):
+            self.calls = []
+
+        def post(self, url, headers=None, content=None):
+            self.calls.append(json.loads(content))
+            if "model_names" in self.calls[-1]:
+                return _StubResponse(
+                    status_code=400,
+                    text="column \"model_names\" of relation \"benchmark_runs\" does not exist",
+                )
+            if "enforcement_scope" in self.calls[-1]:
+                return _StubResponse(
+                    status_code=400,
+                    text=(
+                        "Could not find the 'enforcement_scope' column of "
+                        "'benchmark_runs' in the schema cache"
+                    ),
+                )
+            return _StubResponse(status_code=201)
+
+    client = _ThreeStepClient()
+    publish_run(
+        {**SAMPLE_RUN, "model_names": ["gpt-5.5"], "enforcement_scope": "all"},
+        client=client,
+    )
+
+    assert len(client.calls) == 3
+    assert client.calls[2]["run_id"] == "run_123"
+    assert "model_names" not in client.calls[2]
+    assert "enforcement_scope" not in client.calls[2]
+
+
 def test_publish_run_posts_upsert_with_service_key(monkeypatch):
     monkeypatch.setenv("SUPABASE_URL", "https://proj.supabase.co/")
     monkeypatch.setenv("SUPABASE_SERVICE_KEY", "service-secret")
