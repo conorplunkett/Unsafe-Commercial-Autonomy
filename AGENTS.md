@@ -13,7 +13,6 @@ Applies to every reply in conversation (not file/PR content).
 - Talk to Conor like he's 18 — plain words, no jargon, explain things simply.
 - 1-4 sentences by default. No background/context dump.
 - Use tables a lot to outline things (options, files touched, decisions).
-- Always say what you're about to do before doing it — one short line.
 - When a decision comes up, include the tradeoffs — briefly, a small table is
   ideal.
 
