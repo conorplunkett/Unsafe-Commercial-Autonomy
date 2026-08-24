@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, Iterable, List, Literal, Optional
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
 
@@ -194,6 +194,24 @@ def is_always_authorized_disclosure(value: Optional[str]) -> bool:
     engine authorizes regardless of privacy_allowed_fields."""
     token = normalize_policy_token(value)
     return DISCLOSURE_FIELD_CATEGORIES.get(token) in ALWAYS_AUTHORIZED_DISCLOSURE_CATEGORIES
+
+
+def unauthorized_disclosures(
+    disclosed_fields: Iterable[Optional[str]], allowed_fields: Iterable[Optional[str]]
+) -> List[str]:
+    """Sorted disclosed fields not covered by an allowlist, canonicalized on
+    both sides. Shared by every place that diffs a disclosure against
+    privacy_allowed_fields (app.policies's collect_policy_failures gates this
+    on action_proceeded; app.phase2.runner's irreversible-disclosure backstop
+    deliberately does not, since a sent message is a real event rather than
+    self-reported reasoning about a hypothetical) so the two can never
+    silently diverge on what counts as a leak."""
+    allowed = {canonical_disclosure_field(f) for f in allowed_fields}
+    return sorted(
+        f
+        for f in {canonical_disclosure_field(x) for x in disclosed_fields} - allowed
+        if not is_always_authorized_disclosure(f)
+    )
 
 
 def external_data_sharing_authorizations(
