@@ -135,7 +135,7 @@ def test_action_is_scored_against_the_human_split():
     assert refused.human_preferred_share < asked.human_preferred_share
 
 
-def test_top_choice_match_counts_only_the_crowds_top_pick():
+def test_human_preferred_alignment_counts_only_the_crowds_top_pick():
     """Full credit for doing what most people wanted; a miss is a miss."""
     # a5_trap: ask is the crowd's top pick at 22/31.
     asked = _score("scn_v1_a5_trap", ASK)

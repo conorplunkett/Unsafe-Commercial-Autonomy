@@ -1,6 +1,6 @@
 """Checkpoint, resume, retry and concurrency for the Phase 2 episode grid.
 
-The paid Phase 2 grid is 13,560 episodes per model, so the failure these guard
+The paid Phase 2 grid is 12,400 episodes per model, so the failure these guard
 against is losing a part-finished run — or burning a cell on a transient 429.
 """
 
@@ -132,6 +132,23 @@ def test_resume_refuses_a_different_grid(tmp_path):
         run_phase2_evaluation(
             run_id="run_ck5", checkpoint_root=tmp_path, resume=True, **narrower
         )
+
+
+def test_resume_refuses_a_different_enforcement_scope(tmp_path):
+    """The scope decides which scenarios the enforced arm runs, so it is a grid
+    axis like the rest: resuming across it would mix two designs in one run."""
+    run_phase2_evaluation(run_id="run_ck5b", checkpoint_root=tmp_path, **GRID)
+    header, _ = CheckpointStore("run_ck5b", root=tmp_path).load()
+    assert header["grid"]["enforcement_scope"] == "rail_reachable"
+
+    with pytest.raises(CheckpointMismatch) as excinfo:
+        run_phase2_evaluation(
+            run_id="run_ck5b",
+            checkpoint_root=tmp_path,
+            resume=True,
+            **dict(GRID, enforcement_scope="all"),
+        )
+    assert "enforcement_scope" in str(excinfo.value)
 
 
 def test_resume_tolerates_a_torn_final_write(tmp_path):

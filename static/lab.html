@@ -6,7 +6,7 @@
     <title>Experiment Lab · Unsafe Commercial Autonomy</title>
     <link rel="icon" href="/favicon.ico">
     <link rel="stylesheet" href="/static/styles.css?v=14">
-    <link rel="stylesheet" href="/static/lab.css?v=24">
+    <link rel="stylesheet" href="/static/lab.css?v=25">
   </head>
   <body>
     <div class="lab-page-layout">
@@ -160,19 +160,13 @@
           <span id="runListStamp" class="run-stamp"></span>
           <button type="button" id="runSupersededAction" class="run-delete run-superseded-action" hidden></button>
         </div>
-        <p class="panel-legend">
-          <strong>smoke</strong> — at least one scenario ran.
-          <strong>full</strong> — every scenario under every control condition
-          its phase defines (3 in Phase 1, 4 in Phase 2), shown as
-          covered/total scenario×condition cells.
-        </p>
         <div class="table-wrap runs-table-wrap">
           <table>
             <thead>
               <tr>
                 <th title="When this run was started.">When</th>
                 <th title="Which AI model this run tested.">Model</th>
-                <th title="How much of the test set this run covered — see the smoke/full legend above.">Phase</th>
+                <th title="How much of the test set this run covered. Smoke = at least one scenario ran. Full = every scenario under every control condition its phase defines (3 conditions in both phases), shown as covered/total scenario×condition cells.">Phase</th>
                 <th title="What safety rules the agent had (left column), and whether there was time pressure or the person was away (right column).">Conditions</th>
                 <th title="How many test cases (scenarios) this run scored.">n</th>
                 <th title="Unsafe payment — how often the agent went ahead and paid for something it shouldn't have.">Unsafe</th>
@@ -182,6 +176,7 @@
                 <th class="col-divider" title="Incorrect stoppage — when the agent stopped instead of acting, how often it stopped the wrong way (e.g. refused when it should have asked first).">Incorrect stop</th>
                 <th title="Human preferred — on average, how many of the surveyed people would have picked the exact same action the agent took.">Preferred</th>
                 <th title="Human acceptable — on average, how many of the surveyed people would have been okay with the agent's action, even if it wasn't their first choice.">Acceptable</th>
+                <th title="Human preferred alignment — how often the action taken was the single option the most surveyed people picked, not just a well-liked one.">Top pick</th>
                 <th title="Asks when supposed to — whether the agent asks for permission about as often as surveyed people actually wanted it to (not more, not less).">Ask calib.</th>
                 <th title="Vs floor — whether the agent checks in with the user more than surveyed people said they'd want.">Vs floor</th>
                 <th class="col-divider" title="Error rate — how often something broke technically (a bad key, a provider outage) instead of producing a real answer.">Errors</th>
@@ -244,15 +239,15 @@
             </div>
             <button id="resultsFilterReset" type="button" class="chip" hidden>Reset filters</button>
           </div>
-          <div class="table-wrap model-results-wrap">
+          <div class="table-wrap model-results-wrap" id="modelResultsWrap">
             <table>
               <thead>
                 <tr>
-                  <th>Verdict</th>
-                  <th>Scenario</th>
-                  <th>Model</th>
-                  <th>Control</th>
-                  <th>Failure</th>
+                  <th title="Whether this one test case was handled safely.">Verdict</th>
+                  <th title="Which test case this was.">Scenario</th>
+                  <th title="Which AI model was tested.">Model</th>
+                  <th title="What safety rules the agent had for this test case.">Control</th>
+                  <th title="What went wrong, if anything.">Failure</th>
                 </tr>
               </thead>
               <tbody id="modelResultsTable"></tbody>
@@ -284,13 +279,12 @@
         <p class="panel-legend">
           <strong>smoke</strong> — at least one scenario has run.
           <strong>full</strong> — every scenario run under every control
-          condition its phase defines (3 in Phase 1, 4 in Phase 2); shown as
+          condition its phase defines (3 conditions in both phases); shown as
           covered/total scenario×condition cells.
-          <strong>Conditions</strong> — the three levels of safety guidance the
-          runner above offers: no policy (none), prompt policy (told in the
-          prompt), and tool constraints (the payment tool itself blocks unsafe
-          attempts). Phase 2 adds structured policy and a required policy
-          check from the CLI.
+          <strong>Conditions</strong> — the three levels of safety guidance:
+          no policy (none), a stated policy (told in the prompt for Phase 1,
+          given as structured fields for Phase 2), and tool constraints (the
+          payment tool itself blocks unsafe attempts).
         </p>
         <div id="phasesContent" class="phases-content"></div>
       </section>
@@ -331,6 +325,10 @@
             <div id="chartAcceptance" class="bar-chart bar-chart--ok"></div>
           </article>
           <article class="chart-card">
+            <div class="panel-heading"><h2>Human preferred alignment</h2></div>
+            <div id="chartPreferredAlignment" class="bar-chart bar-chart--ok"></div>
+          </article>
+          <article class="chart-card">
             <div class="panel-heading"><h2>Asks when supposed to</h2></div>
             <div id="chartCalibration" class="bar-chart"></div>
           </article>
@@ -345,6 +343,8 @@
           share that took a different stop.
           <strong>Human acceptance</strong> — mean share of surveyed respondents
           who preferred the action taken.
+          <strong>Human preferred alignment</strong> — of the surveyed actions,
+          how often it was the crowd's outright top pick.
           <strong>Asks when supposed to</strong> — correlation between the agent's
           per-scenario ask-rate and the human ask-share.
           <strong>Vs reflexive floor</strong> — refusal above the share of
@@ -372,6 +372,7 @@
                   <th class="col-divider" title="Incorrect stoppage — when the agent stopped instead of acting, how often it stopped the wrong way (e.g. refused when it should have asked first).">Incorrect stoppage</th>
                   <th title="Human preferred — on average, how many of the surveyed people would have picked the exact same action the agent took.">Preferred</th>
                   <th title="Human acceptable — on average, how many of the surveyed people would have been okay with the agent's action, even if it wasn't their first choice.">Acceptable</th>
+                  <th title="Human preferred alignment — how often the action taken was the single option the most surveyed people picked, not just a well-liked one.">Human preferred alignment</th>
                   <th title="Asks when supposed to — whether the agent asks for permission about as often as surveyed people actually wanted it to (not more, not less).">Asks when supposed to</th>
                   <th title="Vs floor — whether the agent checks in with the user more than surveyed people said they'd want.">Vs floor</th>
                 </tr>
@@ -396,18 +397,18 @@
             <table class="splits-table">
               <thead>
                 <tr>
-                  <th rowspan="2">Model</th>
-                  <th colspan="2">Unsafe payment · stakes</th>
-                  <th colspan="2">Unsafe payment · key</th>
-                  <th colspan="2">Refused when safe · key</th>
+                  <th rowspan="2" title="Which AI model this row aggregates.">Model</th>
+                  <th colspan="2" title="Unsafe payment rate, split by how much money was at stake.">Unsafe payment · stakes</th>
+                  <th colspan="2" title="Unsafe payment rate, split by how the correct answer was decided.">Unsafe payment · key</th>
+                  <th colspan="2" title="Refused when safe rate, split by how the correct answer was decided.">Refused when safe · key</th>
                 </tr>
                 <tr>
-                  <th>High</th>
-                  <th>Low</th>
-                  <th>Ambiguous</th>
-                  <th>Objective</th>
-                  <th>Ambiguous</th>
-                  <th>Objective</th>
+                  <th title="A high-stakes scenario.">High</th>
+                  <th title="A low-stakes scenario.">Low</th>
+                  <th title="Humans surveyed did not agree on the right call, so a person had to validate it by hand.">Ambiguous</th>
+                  <th title="A structured policy rule decides the right call outright.">Objective</th>
+                  <th title="Humans surveyed did not agree on the right call, so a person had to validate it by hand.">Ambiguous</th>
+                  <th title="A structured policy rule decides the right call outright.">Objective</th>
                 </tr>
               </thead>
               <tbody id="splitsTable"></tbody>
@@ -735,6 +736,6 @@
         }, { passive: true });
       })();
     </script>
-    <script src="/static/lab.js?v=26"></script>
+    <script src="/static/lab.js?v=28"></script>
   </body>
 </html>

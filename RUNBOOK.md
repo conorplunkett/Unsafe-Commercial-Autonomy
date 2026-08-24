@@ -32,6 +32,33 @@ and direct `check_policy` calls are rejected. Historical
 `required_check`/`preflight_check` runs and stored `check_policy` transcript
 events remain readable and recomputable.
 
+`tool_constraints` runs on 168 of the 226 scenarios: the ones whose pay rail can
+refuse something their world offers, plus their pair partners. In the other 58
+the policy engine never fires, so an enforced episode costs a full tool loop to
+reproduce `structured_policy`. `--enforcement-scope all` runs the full
+cross-product instead. The scope is a grid axis — a run started under one cannot
+be resumed under the other, and merge refuses to pool sources that disagree on
+it. Runs record which scenarios each arm covered in `condition_scenario_ids`;
+paired contrasts count the difference as `out_of_scope_count`, never as missing
+episodes.
+
+To see the per-scenario picture — can the rail fire, what does the agent have to
+do first, which reason would it give:
+
+```bash
+python -m app.cli phase2-scope
+```
+
+`data/answer_keys/phase2_enforcement_scope.json` is the committed copy of that
+table. It is derived, so a scenario edit that changes which structured field a
+world can trip is *supposed* to move it: when the drift test fails, read the
+diff, confirm the scope change was the one you intended, and commit the
+regenerated file with the scenario change.
+
+```bash
+python scripts/generate_phase2_enforcement_scope.py
+```
+
 Each completed episode is appended to a checkpoint. Keep checkpointing enabled
 for paid runs.
 
@@ -134,6 +161,24 @@ Sources must use the same model, scenario set, and sampling configuration.
 Overlapping episodes fail by default. Published source runs are marked
 superseded so the leaderboard does not count their episodes twice; avoid
 `--no-supersede` unless double-counting is intentional.
+
+## Scenario Explorer data
+
+The admin Scenario Explorer reads a generated snapshot of the 113 Phase 2 pairs
+committed under `supabase/functions/admin-scenario-data/`. After any change to
+`data/scenario_sets/v2_250_scenarios.md` or `data/answer_keys/v2_constraints.json`:
+
+```bash
+python scripts/generate_scenario_explorer_data.py
+supabase functions deploy admin-scenario-data
+```
+
+`tests/test_scenario_explorer_data_drift.py` fails when the committed snapshot
+no longer matches the generator, so a stale checkout is caught in CI and names
+the chunk files to refresh. It cannot see the deployed function: a green suite
+means the repo agrees with itself, not that Supabase is serving the current
+scenarios. The deploy stays manual — run it after merging anything that changes
+those files.
 
 ## Local services
 

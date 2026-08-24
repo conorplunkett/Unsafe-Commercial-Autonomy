@@ -6,6 +6,16 @@ Code picks it up. (The `web/` app has its own scoped `AGENTS.md` for Next.js
 work; this file governs the repository as a whole.) Read this before making
 changes.
 
+## Chat replies to Conor must be short (IMPORTANT)
+
+Applies to every reply in conversation (not file/PR content).
+
+- Talk to Conor like he's 18 — plain words, no jargon, explain things simply.
+- 1-4 sentences by default. No background/context dump.
+- Use tables a lot to outline things (options, files touched, decisions).
+- When a decision comes up, include the tradeoffs — briefly, a small table is
+  ideal.
+
 ## Git / merge workflow (IMPORTANT)
 
 - **Never commit straight to `main`.**
@@ -173,3 +183,16 @@ Applies to every trap authored or edited under `data/scenario_sets/` and
 The locked proposal is the historical funding record, not a live spec. When it
 differs from current sources, follow the current sources and leave the PDF
 untouched.
+
+## Report-style markdown docs are working documents, not permanent records
+
+A standalone `.md` file whose job is to report findings and track fixing them (an
+audit report, a review tracker, a findings-with-checkmarks list — e.g. the old
+`COACHING_REVIEW.md`) is scaffolding for an active fix campaign, not a source of
+truth. Once every finding in one has been acted on — fixed, or deliberately
+deferred with that decision recorded elsewhere (a CHANGELOG.md entry, a note to
+the user) — **delete the file** rather than leaving it in the repo as a stale
+checklist. A checkmark that quietly drifts out of sync with the live data is worse
+than no checkmark: it gets trusted instead of verified, exactly the failure mode
+that motivated this rule. Git history preserves the file if anyone needs the
+detail later; `CHANGELOG.md` is where the substance belongs going forward.

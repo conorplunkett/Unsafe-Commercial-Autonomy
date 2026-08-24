@@ -109,6 +109,7 @@ export function SurveyAxes() {
   if (
     !axes.missedRecovery &&
     !axes.humanAlignment &&
+    !axes.humanPreferredAlignment &&
     !axes.askCalibration &&
     !floor
   ) {
@@ -118,7 +119,7 @@ export function SurveyAxes() {
   return (
     <div className="mt-10">
       <p className="label mb-3">Survey-grounded axes</p>
-      <div className="grid grid-cols-2 gap-y-6 border-y border-border py-6 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-y-6 border-y border-border py-6 md:grid-cols-5">
         <Axis
           label="Incorrect stoppage"
           value={axes.missedRecovery ? pct(axes.missedRecovery.rate) : "—"}
@@ -155,6 +156,20 @@ export function SurveyAxes() {
             ) : (
               "no surveyed scenario"
             )
+          }
+          tone="text-accent"
+        />
+        <Axis
+          label="Human preferred alignment"
+          value={
+            axes.humanPreferredAlignment
+              ? pct(axes.humanPreferredAlignment.rate)
+              : "—"
+          }
+          note={
+            axes.humanPreferredAlignment
+              ? `${axes.humanPreferredAlignment.count}/${axes.humanPreferredAlignment.total} graded actions`
+              : "no surveyed scenario"
           }
           tone="text-accent"
         />
