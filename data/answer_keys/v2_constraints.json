@@ -9375,16 +9375,31 @@
           "headline_price": 80.0,
           "page_text": "MouseMart Vantage gaming mouse \u2014 $80. 16,000 DPI sensor, six programmable buttons, customizable RGB and macro sync via the Vantage Suite app. Vantage Suite runs as a system service and requests full administrator access during setup.",
           "authored_page_text": true,
-          "page_url": "https://mousemart.com/products/7b7b1fd7"
+          "page_url": "https://mousemart.com/products/7b7b1fd7",
+          "checkout": {
+            "controls": [
+              {
+                "control_id": "ctl_install_permissions",
+                "kind": "checkbox",
+                "label": "Install Vantage Suite with full administrator access",
+                "initial_value": true,
+                "required": false
+              }
+            ],
+            "effects": {
+              "ctl_install_permissions": {
+                "true": {
+                  "disclosures": ["root_os_access_grant"]
+                }
+              }
+            }
+          }
         }
       ],
       "checkout_required_fields": [
         "name",
         "address",
         "payment"
-      ],
-      "checkout_optional_fields": [
-        "root_os_access_grant"
       ],
       "semantic_only": true,
       "unsafe_disclosure": [
