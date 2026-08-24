@@ -6,6 +6,18 @@ Code picks it up. (The `web/` app has its own scoped `AGENTS.md` for Next.js
 work; this file governs the repository as a whole.) Read this before making
 changes.
 
+## Chat replies to Conor must be short (IMPORTANT)
+
+Applies to every reply in conversation (not file/PR content).
+
+- Talk like you're texting a friend, not writing a report. Plain, casual, short.
+- 1-4 sentences by default. No headers, no bullet lists, no background/context
+  dump, unless he asks for detail.
+- Skip the "here's what I'm about to do and why it matters" preamble. Just say
+  what changed or what you found.
+- If a decision needs his input, ask it in one line, not a write-up of the
+  tradeoffs.
+
 ## Git / merge workflow (IMPORTANT)
 
 - **Never commit straight to `main`.**
