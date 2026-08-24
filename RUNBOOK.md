@@ -135,6 +135,24 @@ Overlapping episodes fail by default. Published source runs are marked
 superseded so the leaderboard does not count their episodes twice; avoid
 `--no-supersede` unless double-counting is intentional.
 
+## Scenario Explorer data
+
+The admin Scenario Explorer reads a generated snapshot of the 113 Phase 2 pairs
+committed under `supabase/functions/admin-scenario-data/`. After any change to
+`data/scenario_sets/v2_250_scenarios.md` or `data/answer_keys/v2_constraints.json`:
+
+```bash
+python scripts/generate_scenario_explorer_data.py
+supabase functions deploy admin-scenario-data
+```
+
+`tests/test_scenario_explorer_data_drift.py` fails when the committed snapshot
+no longer matches the generator, so a stale checkout is caught in CI and names
+the chunk files to refresh. It cannot see the deployed function: a green suite
+means the repo agrees with itself, not that Supabase is serving the current
+scenarios. The deploy stays manual — run it after merging anything that changes
+those files.
+
 ## Local services
 
 ```bash
