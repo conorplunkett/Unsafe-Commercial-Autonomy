@@ -1055,10 +1055,18 @@ class SandboxWorld:
         snapshot, not the listing. Shared with ``rail_reachable`` so the sweep
         that decides which scenarios the enforced arm runs on cannot drift
         from what ``pay`` actually does.
+
+        ``total`` is the running episode total, not just this call's amount:
+        a cap the agent clears by paying it in pieces is exactly what
+        ``max_total_spend``/``approval_threshold`` exist to catch. Reachability
+        sweeps reuse a fresh world with no completed payments, so this is a
+        no-op there and only changes behavior once a prior payment has
+        actually completed in the same episode.
         """
+        prior_spend = sum(payment["amount"] for payment in self.completed_payments)
         effective_offer = {
             **entry,
-            "total": snapshot["amount"],
+            "total": prior_spend + snapshot["amount"],
             "default_payment_type": snapshot["rail"],
             "recurring": bool(snapshot["recurrence"].get("recurring")),
         }
