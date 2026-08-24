@@ -18,7 +18,8 @@ import hashlib
 import json
 import re
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from itertools import product
+from typing import Any, Dict, Iterator, List, Optional
 
 from ..models import (
     DISCLOSURE_FIELD_TOKENS,
@@ -1045,6 +1046,30 @@ class SandboxWorld:
             current = destination
         return redirects
 
+    def rail_decision(self, entry: Dict[str, Any], snapshot: Dict[str, Any]) -> PolicyDecision:
+        """The pay rail's verdict on one offer in one frozen checkout state.
+
+        The offer as authored is not what gets paid: checkout controls can
+        replace the amount, the rail, and the recurrence, and can add
+        disclosures and authorizations. The rail therefore judges the derived
+        snapshot, not the listing. Shared with ``rail_reachable`` so the sweep
+        that decides which scenarios the enforced arm runs on cannot drift
+        from what ``pay`` actually does.
+        """
+        effective_offer = {
+            **entry,
+            "total": snapshot["amount"],
+            "default_payment_type": snapshot["rail"],
+            "recurring": bool(snapshot["recurrence"].get("recurring")),
+        }
+        return evaluate_payment_policy(
+            self.scenario.payment_policy,
+            effective_offer,
+            payment_type=snapshot["rail"],
+            disclosed_fields=snapshot["disclosures"],
+            authorizations=snapshot["authorizations"],
+        )
+
     def _pay(self, args: Dict[str, Any]) -> Dict[str, Any]:
         entry = self._offer(args.get("offer_id"))
         if entry is None:
@@ -1074,19 +1099,7 @@ class SandboxWorld:
         }
 
         if self.control_condition == "tool_constraints":
-            effective_offer = {
-                **entry,
-                "total": snapshot["amount"],
-                "default_payment_type": snapshot["rail"],
-                "recurring": bool(snapshot["recurrence"].get("recurring")),
-            }
-            decision = evaluate_payment_policy(
-                self.scenario.payment_policy,
-                effective_offer,
-                payment_type=snapshot["rail"],
-                disclosed_fields=snapshot["disclosures"],
-                authorizations=snapshot["authorizations"],
-            )
+            decision = self.rail_decision(entry, snapshot)
             if decision.decision != "allow":
                 self.blocked_attempts.append({**attempt, "reasons": decision.reasons})
                 if decision.decision == "approval_required":
@@ -1183,6 +1196,180 @@ class SandboxWorld:
         }
         self.done = True
         return {"status": "finished"}
+
+
+# ---------------------------------------------------------------------------
+# Enforcement reach
+# ---------------------------------------------------------------------------
+
+# Ceiling on how many checkout states one offer is expanded into while deciding
+# whether the rail can bind. The expansion is a cartesian product over control
+# values, so an offer carrying many checkboxes is exponential in their count.
+# Past this many states the sweep stops and calls the scenario reachable, which
+# errs toward running an enforcement episode that turns out inert rather than
+# dropping one that would have blocked.
+MAX_REACHABILITY_STATES = 4096
+
+
+def _checkout_states(world: SandboxWorld, entry: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
+    """Control-value assignments the agent can drive one offer's checkout into.
+
+    The authored opening state comes first, so the common case decides on the
+    first state instead of walking the whole product.
+    """
+    controls = world._controls_for(entry)
+    yield dict(world.checkout_control_values[entry["offer_id"]])
+    if not controls:
+        return
+    control_ids = [control["control_id"] for control in controls]
+    domains: List[List[Any]] = []
+    for control in controls:
+        if control["kind"] == "checkbox":
+            domains.append([True, False])
+        else:
+            values = [choice["value"] for choice in control["choices"]]
+            domains.append(values if control.get("required", False) else values + [None])
+    for combination in product(*domains):
+        yield dict(zip(control_ids, combination))
+
+
+@dataclass(frozen=True)
+class RailFinding:
+    """One payment the rail would refuse, and what it took to reach it.
+
+    ``surface`` names what the agent had to do beyond opening the offer: change
+    a checkout control, choose a non-default rail, or disclose an optional
+    checkout field. ``offer_as_listed`` means the offer is refused exactly as
+    the merchant presents it.
+    """
+
+    offer_id: str
+    decision: str  # "block" | "approval_required"
+    reasons: tuple
+    surface: str
+
+
+# Ordered cheapest-first: how little the agent has to do before the rail fires.
+RAIL_SURFACES = (
+    "offer_as_listed",
+    "checkout_control",
+    "payment_rail",
+    "optional_disclosure",
+    "unswept",
+)
+
+
+def cheapest_surface(findings: List["RailFinding"]) -> Optional[str]:
+    """The least the agent has to do before the rail fires, or None.
+
+    The one definition of "the" surface for a scenario: findings come out
+    of the sweep in enumeration order, not effort order, so every reader
+    that reports a single surface must rank them here. The committed
+    projection and `phase2-scope` naming different surfaces for the same
+    scenario would be exactly the two-sources-of-truth failure the
+    projection exists to avoid.
+    """
+    return min(
+        (finding.surface for finding in findings),
+        key=RAIL_SURFACES.index,
+        default=None,
+    )
+
+
+def reachable_rail_findings(scenario: Scenario) -> Iterator[RailFinding]:
+    """Every payment in this scenario's world the ``tool_constraints`` rail
+    would refuse, in sweep order — not effort order; ``cheapest_surface``
+    ranks them for anything that reports a single surface.
+
+    Lazy on purpose: ``rail_reachable`` consumes one item and stops, which is
+    what keeps run setup cheap, while the scope projection
+    (scripts/generate_phase2_enforcement_scope.py) drains it for the full
+    picture. One sweep, two readers, no second implementation to drift.
+
+    Distinct findings only — thousands of checkout states can refuse for the
+    same reason on the same offer, and the repeats say nothing new.
+
+    See ``rail_reachable`` for what "the world can produce" covers and for why
+    this never reads a trap label.
+    """
+    world = SandboxWorld(scenario, "tool_constraints")
+    seen: set = set()
+    for entry in world.offers:
+        offer_id = entry["offer_id"]
+        default_rail = entry.get("default_payment_type") or "card"
+        rails = list(dict.fromkeys([default_rail, *(entry.get("payment_types") or [])]))
+        disclosure_sets: List[Optional[List[str]]] = [None]
+        if world.checkout_optional_fields:
+            disclosure_sets.append(
+                list(world.checkout_required_fields) + list(world.checkout_optional_fields)
+            )
+        opening = dict(world.checkout_control_values[offer_id])
+        for swept, values in enumerate(_checkout_states(world, entry)):
+            if swept >= MAX_REACHABILITY_STATES:
+                # Budget spent; see MAX_REACHABILITY_STATES. An undecided sweep
+                # is reported rather than assumed away, so it shows up in the
+                # projection instead of passing as a decided "no". Once
+                # something has been found the answer is already settled and
+                # only the reason list is cut short.
+                if not seen:
+                    yield RailFinding(offer_id, "unswept", (), "unswept")
+                return
+            world.checkout_control_values[offer_id] = values
+            if world._missing_required_controls(entry):
+                continue  # pay rejects this state before the rail sees it
+            for rail in rails:
+                for disclosed in disclosure_sets:
+                    snapshot = world._checkout_summary(
+                        entry,
+                        payment_type=rail,
+                        disclosed_fields=list(disclosed or world.checkout_required_fields),
+                    )
+                    decision = world.rail_decision(entry, snapshot)
+                    if decision.decision == "allow":
+                        continue
+                    if values != opening:
+                        surface = "checkout_control"
+                    elif rail != default_rail:
+                        surface = "payment_rail"
+                    elif disclosed is not None:
+                        surface = "optional_disclosure"
+                    else:
+                        surface = "offer_as_listed"
+                    finding = RailFinding(
+                        offer_id, decision.decision, tuple(decision.reasons), surface
+                    )
+                    if finding in seen:
+                        continue
+                    seen.add(finding)
+                    yield finding
+
+
+def rail_reachable(scenario: Scenario) -> bool:
+    """True when the ``tool_constraints`` rail can refuse a payment this
+    scenario's world can produce.
+
+    The enforced arm differs from ``structured_policy`` only where enforcement
+    can actually fire: same tools, same prompt but for one sentence, same
+    policy JSON. Where every payment the world offers evaluates to ``allow``,
+    an enforced episode spends a full tool loop to produce an outcome the
+    unenforced arm already measured. This is the test that separates the two,
+    and app/phase2/scope.py is what runs the enforced arm on the scenarios that
+    pass it.
+
+    "Can produce" means the world's own surface: each authored offer, each
+    reachable checkout-control state, each payment rail the offer accepts, and
+    the checkout's own field list — required alone (what ``pay`` discloses by
+    default) and required plus optional (what filling the whole checkout in
+    discloses). Free-text disclosure tokens a model could invent past that are
+    deliberately not swept: every scenario with a privacy allowlist would pass
+    on a hypothetical, which is not the same as a trap the world sets.
+
+    Never reads a trap label. ``pair_role``, the marker fields and
+    ``right_answer`` stay invisible here for the same reason the policy engine
+    cannot see them — scope selection must not become a back door into the
+    answer key.
+    """
+    return any(True for _ in reachable_rail_findings(scenario))
 
 
 # ---------------------------------------------------------------------------

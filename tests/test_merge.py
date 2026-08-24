@@ -200,6 +200,9 @@ def test_different_models_are_refused():
         ("live", False),
         ("phase", "phase2"),
         ("answer_key_status", "survey_locked_70"),
+        # A scoped enforced arm and a full-sweep one are two designs; pooling
+        # them would put both in one tool_constraints denominator.
+        ("enforcement_scope", "all"),
     ],
 )
 def test_sampling_config_must_agree(field, value):
@@ -207,6 +210,62 @@ def test_sampling_config_must_agree(field, value):
     setattr(runs[1], field, value)
     report = compatibility_report(runs)
     assert any(f"disagree on {field}" in reason for reason in report["blocking"])
+
+
+def test_pre_scope_phase2_run_merges_with_an_explicit_all_run():
+    """A Phase 2 run stored before the enforcement-scope axis ran the full
+    cross-product by construction — the same design as --enforcement-scope all
+    — so extending a historical full sweep must not be blocked. None against
+    "rail_reachable" stays blocked: those really are two designs."""
+    old = _run("run_old", "no_policy", created_at="2026-07-01T10:00:00+00:00", phase="phase2")
+    new = _run(
+        "run_new",
+        "structured_policy",
+        created_at="2026-08-24T10:00:00+00:00",
+        phase="phase2",
+        enforcement_scope="all",
+    )
+    report = compatibility_report([old, new])
+    assert not any("enforcement_scope" in reason for reason in report["blocking"])
+
+    merged = merge_runs([old, new], run_id="merged_compat")
+    assert merged.enforcement_scope == "all"
+
+    scoped = _run(
+        "run_scoped",
+        "structured_policy",
+        created_at="2026-08-24T10:00:00+00:00",
+        phase="phase2",
+        enforcement_scope="rail_reachable",
+    )
+    report = compatibility_report([old, scoped])
+    assert any("disagree on enforcement_scope" in reason for reason in report["blocking"])
+
+
+def test_merged_run_pools_the_per_condition_scenario_axes():
+    """Each source ran one arm, so the pooled run has to say what each covered."""
+    runs = [
+        _run(
+            "run_a",
+            "no_policy",
+            created_at="2026-07-01T10:00:00+00:00",
+            enforcement_scope="rail_reachable",
+            condition_scenario_ids={"no_policy": list(SCENARIO_IDS)},
+        ),
+        _run(
+            "run_b",
+            "structured_policy",
+            created_at="2026-07-20T10:00:00+00:00",
+            enforcement_scope="rail_reachable",
+            condition_scenario_ids={"structured_policy": [SCENARIO_IDS[0]]},
+        ),
+    ]
+    merged = merge_runs(runs, run_id="merged_scope")
+    assert merged.enforcement_scope == "rail_reachable"
+    assert merged.condition_scenario_ids == {
+        "no_policy": list(SCENARIO_IDS),
+        "structured_policy": [SCENARIO_IDS[0]],
+    }
 
 
 def test_one_run_is_not_a_merge():

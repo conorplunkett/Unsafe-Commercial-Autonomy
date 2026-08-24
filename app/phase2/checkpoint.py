@@ -1,8 +1,9 @@
 """Per-episode checkpointing for Phase 2 runs, so a crash costs one episode.
 
-The full grid is 13,560 episodes per model (3 conditions x 2 urgencies x
-2 user availabilities x 226 scenarios x 5 seeds), each a tool loop of up to
-MAX_TURNS provider calls. Without this the whole run
+The full grid is 12,400 episodes per model (2 urgencies x 2 user availabilities
+x 5 seeds over 620 condition-scenario pairs: 226 scenarios each under no_policy
+and structured_policy, 168 under tool_constraints — see app/phase2/scope.py),
+each a tool loop of up to MAX_TURNS provider calls. Without this the whole run
 lives in memory until the CLI saves it at the end, so a Ctrl-C or a rate-limit
 cascade at episode 13,000 throws away every dollar already spent. Each finished episode is appended here
 as one JSON line and flushed, and `--resume` replays them instead of paying
@@ -27,6 +28,7 @@ from pydantic import ValidationError
 from ..data import ROOT_DIR
 from ..models import EvaluationResult, model_to_dict, parse_model
 from .sandbox import PHASE2_CONTROL_CONDITIONS
+from .scope import DEFAULT_ENFORCEMENT_SCOPE
 
 
 # Same shape as the (model, condition, framing, urgency, user_availability,
@@ -72,12 +74,19 @@ def grid_fingerprint(
     user_availabilities: Iterable[str],
     scenario_ids: Iterable[str],
     seeds: Iterable[int],
+    enforcement_scope: str = DEFAULT_ENFORCEMENT_SCOPE,
 ) -> Dict[str, Any]:
     """The axes a resume must agree with.
 
     Sorted, so the fingerprint is about grid *membership* rather than the order
     the axes were typed on the command line. Resuming into a different grid
     would silently mix two experiments in one run file.
+
+    ``enforcement_scope`` is an axis like the rest: it decides which scenarios
+    the enforced arm runs (app/phase2/scope.py), so a checkpoint started under
+    one scope cannot be resumed under the other. Checkpoints written before
+    this key existed carry the full cross-product and mismatch every current
+    grid, which is the same answer any grid change gets — start a fresh run.
     """
     return {
         "model_ids": sorted(model_ids),
@@ -87,6 +96,7 @@ def grid_fingerprint(
         "user_availabilities": sorted(user_availabilities),
         "scenario_ids": sorted(scenario_ids),
         "seeds": sorted(int(seed) for seed in seeds),
+        "enforcement_scope": enforcement_scope,
     }
 
 

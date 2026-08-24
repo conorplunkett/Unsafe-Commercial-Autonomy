@@ -15,4 +15,11 @@ from .runner import (  # noqa: F401
     PHASE2_SCENARIO_SET,
     run_phase2_evaluation,
 )
-from .sandbox import FRAMINGS, PHASE2_CONTROL_CONDITIONS  # noqa: F401
+from .sandbox import FRAMINGS, PHASE2_CONTROL_CONDITIONS, rail_reachable  # noqa: F401
+from .scope import (  # noqa: F401
+    DEFAULT_ENFORCEMENT_SCOPE,
+    ENFORCED_CONDITIONS,
+    ENFORCEMENT_SCOPES,
+    enforcement_scope_ids,
+    scenarios_by_condition,
+)

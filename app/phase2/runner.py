@@ -1,4 +1,9 @@
-"""Phase 2 runner: model x condition x framing x urgency x user_availability x scenario x seed."""
+"""Phase 2 runner: model x condition x framing x urgency x user_availability x scenario x seed.
+
+The scenario axis is per condition rather than shared — the enforced arm runs
+the scenarios its rail can reach (app/phase2/scope.py) — so the grid is a union
+of per-condition blocks, not one flat cross-product.
+"""
 
 from __future__ import annotations
 
@@ -14,6 +19,7 @@ from uuid import uuid4
 from ..data import DATA_DIR, load_scenarios
 from ..metrics import (
     _summarize_group,
+    common_scenario_ids,
     compute_metrics,
     distinct_model_names,
     phase2_paired_contrasts,
@@ -24,6 +30,7 @@ from ..providers import DEFAULT_CONSECUTIVE_ERROR_LIMIT, RateLimitGate, RunAbort
 from ..runner import _run_answer_key_status
 from .checkpoint import CheckpointStore, EpisodeKey, episode_key, grid_fingerprint
 from .providers import BaseEpisodeProvider, create_phase2_provider, resolve_phase2_model_ids
+from .scope import DEFAULT_ENFORCEMENT_SCOPE, scenarios_by_condition
 from .sandbox import (
     FRAMINGS,
     PHASE2_CONTROL_CONDITIONS,
@@ -56,16 +63,19 @@ def _select(values: Optional[Iterable[str]], allowed: List[str], label: str) -> 
     return selected
 
 
-def _select_scenarios(scenario_ids, scenario_set_path) -> List[Scenario]:
+def _select_scenarios(scenario_ids, scenario_set_path) -> tuple[List[Scenario], List[Scenario]]:
+    """(selected, whole set). The set comes back too because the enforcement
+    scope is a property of the scenario set, not of what a run selected — see
+    app/phase2/scope.py."""
     scenarios = load_scenarios(scenario_set_path or PHASE2_SCENARIO_SET)
     if not scenario_ids:
-        return scenarios
+        return scenarios, scenarios
     wanted = set(scenario_ids)
     selected = [scenario for scenario in scenarios if scenario.scenario_id in wanted]
     missing = wanted - {scenario.scenario_id for scenario in selected}
     if missing:
         raise KeyError(f"Unknown scenarios: {', '.join(sorted(missing))}")
-    return selected
+    return selected, scenarios
 
 
 @dataclass(frozen=True)
@@ -108,7 +118,7 @@ def _grid_cells(
     framings: List[str],
     urgencies: List[str],
     user_availabilities: List[str],
-    scenarios: List[Scenario],
+    scenarios_for: Dict[str, List[Scenario]],
     seeds: List[int],
 ) -> Iterator[GridCell]:
     """The grid, flattened in its canonical order.
@@ -117,13 +127,17 @@ def _grid_cells(
     order: resume skips against it, the thread pool submits against it, and
     results are sorted back into it before metrics — so a serial run, a
     resumed run and an N-worker run all produce the same BenchmarkRun.
+
+    The scenario axis is per condition rather than shared: the enforced arm
+    runs on the scenarios its rail can reach (app/phase2/scope.py), so the grid
+    is a union of per-condition blocks, not one cross-product.
     """
     for model_id in models:
         for condition in conditions:
             for framing in framings:
                 for urgency in urgencies:
                     for user_availability in user_availabilities:
-                        for scenario in scenarios:
+                        for scenario in scenarios_for[condition]:
                             for seed in seeds:
                                 yield GridCell(
                                     model_id, condition, framing, urgency,
@@ -244,6 +258,7 @@ def phase2_metrics_block(
     framings: List[str],
     urgencies: List[str],
     user_availabilities: List[str],
+    condition_scenario_ids: Optional[Dict[str, List[str]]] = None,
 ) -> Dict[str, Any]:
     """The ``metrics["phase2"]`` breakdowns, from results and the run's axes.
 
@@ -251,13 +266,41 @@ def phase2_metrics_block(
     rebuild a stored Phase 2 run's metrics under the current definitions
     without re-running episodes — the axis lists come from the stored run's
     own ``framings``/``urgencies``/``user_availabilities`` fields.
+
+    ``condition_scenario_ids`` is the run's per-condition scenario axis. It is
+    what tells a contrast that a scenario the enforced arm never ran is out of
+    the design rather than a lost episode, and what the common-scenario
+    summaries below are cut to. None (a run from before the enforced arm was
+    scoped, or a stored run that never recorded it) reads as "every condition
+    ran every scenario".
     """
+    common = common_scenario_ids(condition_scenario_ids)
     return {
         "episode_descriptives": {
             "unit": "episode",
             "confidence_interval": "Wilson score, 95%",
         },
-        "paired_contrasts": phase2_paired_contrasts(results),
+        "condition_scenario_counts": {
+            condition: len(set(ids)) for condition, ids in (condition_scenario_ids or {}).items()
+        },
+        # Every condition cut to the scenarios all of them ran, so the
+        # by-condition rates stay comparable when the arms cover different
+        # scenario sets. Identical to the unrestricted breakdown when they
+        # cover the same one.
+        "by_condition_on_common_scenarios": {
+            condition: _summarize_group(
+                [
+                    result
+                    for result in results
+                    if result.control_condition == condition
+                    and (common is None or result.scenario_id in common)
+                ]
+            )
+            for condition in conditions
+        },
+        "paired_contrasts": phase2_paired_contrasts(
+            results, condition_scenario_ids=condition_scenario_ids
+        ),
         "by_framing": {
             framing: _summarize_group([result for result in results if result.framing == framing])
             for framing in framings
@@ -365,6 +408,7 @@ def run_phase2_evaluation(
     user_availabilities: Optional[Iterable[str]] = None,
     scenario_ids: Optional[Iterable[str]] = None,
     scenario_set_path: Optional[Path] = None,
+    enforcement_scope: str = DEFAULT_ENFORCEMENT_SCOPE,
     seeds: Optional[Iterable[int]] = None,
     temperature: Optional[float] = None,
     reasoning_effort: Optional[str] = None,
@@ -410,7 +454,14 @@ def run_phase2_evaluation(
         if user_availabilities
         else ["none"]
     )
-    selected_scenarios = _select_scenarios(scenario_ids, scenario_set_path)
+    selected_scenarios, scenario_catalogue = _select_scenarios(scenario_ids, scenario_set_path)
+    # The enforced arm runs on the scenarios whose pay rail can actually refuse
+    # something, plus their pair partners; the other two arms run on everything
+    # selected. See app/phase2/scope.py for why, and pass
+    # enforcement_scope="all" for the pre-2026-08-24 full cross-product.
+    scenarios_for_condition = scenarios_by_condition(
+        selected_conditions, selected_scenarios, scenario_catalogue, enforcement_scope
+    )
     selected_seeds = list(seeds or DEFAULT_PHASE2_SEEDS)
     resolved_temperature = DEFAULT_PHASE2_TEMPERATURE if temperature is None else temperature
     workers = max(1, int(concurrency))
@@ -448,11 +499,15 @@ def run_phase2_evaluation(
             selected_framings,
             selected_urgencies,
             selected_user_availabilities,
-            selected_scenarios,
+            scenarios_for_condition,
             selected_seeds,
         )
     )
     total_units = len(cells)
+    condition_scenario_ids = {
+        condition: [scenario.scenario_id for scenario in scenarios]
+        for condition, scenarios in scenarios_for_condition.items()
+    }
     fingerprint = grid_fingerprint(
         selected_models,
         selected_conditions,
@@ -461,6 +516,7 @@ def run_phase2_evaluation(
         selected_user_availabilities,
         [scenario.scenario_id for scenario in selected_scenarios],
         selected_seeds,
+        enforcement_scope=enforcement_scope,
     )
 
     results_by_key: Dict[EpisodeKey, EvaluationResult] = {}
@@ -570,7 +626,7 @@ def run_phase2_evaluation(
             with ThreadPoolExecutor(max_workers=workers) as executor:
                 # Submit in bounded waves rather than queueing the whole grid,
                 # so an abort stops spending within a wave instead of after
-                # 13,560 futures have already been handed to the pool.
+                # 12,400 futures have already been handed to the pool.
                 for start in range(0, len(pending), workers * 4):
                     if state["aborted"] is not None or stop.is_set():
                         break
@@ -620,6 +676,7 @@ def run_phase2_evaluation(
         selected_framings,
         selected_urgencies,
         selected_user_availabilities,
+        condition_scenario_ids=condition_scenario_ids,
     )
 
     return BenchmarkRun(
@@ -645,6 +702,10 @@ def run_phase2_evaluation(
         # Reuses the Phase 1 rule (app/runner.py).
         answer_key_status=_run_answer_key_status(selected_scenarios),  # type: ignore[arg-type]
         scenario_ids=[scenario.scenario_id for scenario in selected_scenarios],
+        # What each arm actually ran, so a stored run says on its face that the
+        # enforced arm covered fewer scenarios by design rather than by loss.
+        enforcement_scope=enforcement_scope,
+        condition_scenario_ids=condition_scenario_ids,
         results=results,
         events=events,
         metrics=metrics,
