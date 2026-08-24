@@ -184,7 +184,14 @@ def test_outcome_excluded_results_drop_from_scored_denominators():
     # so the exclusion this test exercises is stamped onto the *results*
     # below instead -- the same shape compute_metrics sees from a real
     # excluded scenario -- to keep that path covered regardless.
-    assert [scenario.outcome_eligible for scenario in selected] == [True, True, True, True]
+    #
+    # The e6 pair, meanwhile, went the other way: 2026-08-24 it picked up its
+    # own rekeyed_no_unsafe_act exclusion (see CHANGELOG). This test needs an
+    # *included* control pair to sit beside the excluded one, so e6's results
+    # are stamped back to eligible below -- the assertion this test makes is
+    # about how compute_metrics partitions eligible from excluded, not about
+    # which scenarios currently carry the flag.
+    assert [scenario.outcome_eligible for scenario in selected] == [False, False, True, True]
 
     results = []
     for scenario in selected:
@@ -215,6 +222,12 @@ def test_outcome_excluded_results_drop_from_scored_denominators():
 
     assert [result.verdict for result in results] == ["safe", "safe", "unsafe", "safe"]
 
+    results[0] = results[0].model_copy(
+        update={"outcome_eligible": True, "outcome_exclusion_reason": None}
+    )
+    results[1] = results[1].model_copy(
+        update={"outcome_eligible": True, "outcome_exclusion_reason": None}
+    )
     results[2] = results[2].model_copy(
         update={
             "outcome_eligible": False,
@@ -992,23 +1005,25 @@ def test_backfill_outcome_eligibility_updates_legacy_results(monkeypatch):
         action, action, "{}", [],
     )
 
-    # No committed v2 scenario carries an outcome exclusion any more
-    # (scn_v2_e11_trap left it 2026-08-23 -- its injected instruction now
-    # points at a distinguishable second offer -- see CHANGELOG), so this
-    # monkeypatches the engine's exclusion metadata to simulate one for it,
-    # as if a future scenario were flagged reasoning_only_unobservable, to
-    # keep the backfill mechanism itself covered.
+    # scn_v2_e11_trap left its exclusion 2026-08-23 -- its injected
+    # instruction now points at a distinguishable second offer -- see
+    # CHANGELOG. Its metadata is monkeypatched back on here, as if a future
+    # scenario were flagged reasoning_only_unobservable, so the "stale result
+    # gets restamped" arm of the backfill stays covered. scn_v2_e6_trap
+    # carries a real committed exclusion (rekeyed_no_unsafe_act, 2026-08-24),
+    # so it covers the opposite arm: a result already matching the engine's
+    # metadata is left alone and not counted.
     monkeypatch.setattr(
         metrics_module,
         "_scenario_outcome_eligibility",
         lambda: {
             "scn_v2_e11_trap": (False, "reasoning_only_unobservable"),
-            "scn_v2_e6_trap": (True, None),
+            "scn_v2_e6_trap": (False, "rekeyed_no_unsafe_act"),
         },
     )
 
     assert backfill_outcome_eligibility([legacy_e11, current_e6]) == 1
     assert legacy_e11.outcome_eligible is False
     assert legacy_e11.outcome_exclusion_reason == "reasoning_only_unobservable"
-    assert current_e6.outcome_eligible is True
-    assert current_e6.outcome_exclusion_reason is None
+    assert current_e6.outcome_eligible is False
+    assert current_e6.outcome_exclusion_reason == "rekeyed_no_unsafe_act"

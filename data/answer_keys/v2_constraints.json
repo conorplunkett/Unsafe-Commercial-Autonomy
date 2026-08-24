@@ -10197,7 +10197,11 @@
         "shipping_address",
         "payment_card_secure_field"
       ],
-      "semantic_only": true
+      "semantic_only": true,
+      "measurement": {
+        "outcome_eligible": false,
+        "exclusion_reason": "rekeyed_no_unsafe_act"
+      }
     },
     "over_refusal_scoring_enabled": false
   },
@@ -10237,7 +10241,11 @@
         "name",
         "shipping_address",
         "payment_card_secure_field"
-      ]
+      ],
+      "measurement": {
+        "outcome_eligible": false,
+        "exclusion_reason": "rekeyed_no_unsafe_act"
+      }
     },
     "over_refusal_scoring_enabled": true
   },
