@@ -21,11 +21,12 @@ like e20 fails here automatically, without needing another investigation.
 
 from __future__ import annotations
 
+from itertools import combinations
 from pathlib import Path
 
 from app.data import load_scenarios
 from app.phase2.runner import PHASE2_SCENARIO_SET
-from app.phase2.sandbox import SandboxWorld, _attempt_to_action
+from app.phase2.sandbox import SandboxWorld, _attempt_to_action, assemble_action
 from app.phase2.survey import NON_PAYMENT_PROCEED_SAFE, rekey_from_survey
 from app.policies import evaluate_phase1_action, NON_UNSAFE_FAILURES
 
@@ -158,4 +159,158 @@ def test_every_lookalike_is_safe_to_act():
             f"over_refusal_scoring_enabled={scenario.over_refusal_scoring_enabled}. If "
             f"this is a deliberate, separately-tracked exception like e20_lookalike, "
             f"add it to KNOWN_AXIS_SAFE_TO_ACT_EXCEPTIONS with a comment explaining why."
+        )
+
+
+def _reachable_verdicts(scenario) -> dict:
+    """{act label: verdict} over every terminal act the sandbox can reach.
+
+    Drives the real SandboxWorld rather than hand-building actions, so what is
+    enumerated is exactly what a model could do: stop (refuse / ask), or pay
+    each offer under each checkout-control state and each subset of the
+    disclosure tokens this scenario names. Optional checkout fields and the
+    key's own `unsafe_disclosure` tokens are both tried, since a scenario may
+    name its sensitive field in either place.
+    """
+    sandbox = scenario.environment.get("sandbox") or {}
+    required = list(sandbox.get("checkout_required_fields") or [])
+    tokens = sorted(
+        set(sandbox.get("checkout_optional_fields") or [])
+        | set(sandbox.get("unsafe_disclosure") or [])
+    )
+    verdicts = {}
+
+    def _grade(world, label):
+        action, proposed, blocks = assemble_action(world)
+        verdicts[label] = evaluate_phase1_action(
+            scenario, "m", "m", "p", "no_policy", 1, action, proposed or action, None,
+            blocks,
+            completed_payment_actions=[
+                _attempt_to_action(world, entry) for entry in world.completed_payments
+            ] or None,
+        ).verdict
+
+    for label, drive in (
+        ("refuse", lambda w: w.handle_tool(
+            "finish", {"summary": "no", "action_taken": "refused"})),
+        ("ask", lambda w: w.handle_tool("request_approval", {"reason": "checking"})),
+    ):
+        world = SandboxWorld(scenario, "no_policy")
+        drive(world)
+        _grade(world, label)
+
+    probe = SandboxWorld(scenario, "no_policy")
+    for entry in probe.offers:
+        offer_id = entry["offer_id"]
+        controls = probe._controls_for(entry)
+        initial = dict(probe.checkout_control_values[offer_id])
+        states = [("initial", initial)]
+        # One control varied at a time, plus an all-cleared state -- the same
+        # sampling test_survey_key_alignment._offer_verdicts uses, so a
+        # 15-checkbox checkout stays linear instead of 2**15.
+        for control in controls:
+            candidates = (
+                [False, True]
+                if control["kind"] == "checkbox"
+                else [choice["value"] for choice in control["choices"]]
+            )
+            for candidate in candidates:
+                states.append((
+                    f"{control['control_id']}={candidate}",
+                    {**initial, control["control_id"]: candidate},
+                ))
+        if controls:
+            states.append((
+                "all_cleared",
+                {
+                    control["control_id"]: (False if control["kind"] == "checkbox" else None)
+                    for control in controls
+                },
+            ))
+        for state_label, values in states:
+            for size in range(len(tokens) + 1):
+                for disclosed in combinations(tokens, size):
+                    world = SandboxWorld(scenario, "no_policy")
+                    changes = [
+                        {"control_id": control_id, "value": value}
+                        for control_id, value in values.items()
+                        if value is not None
+                    ]
+                    if changes:
+                        world.handle_tool(
+                            "update_checkout", {"offer_id": offer_id, "changes": changes}
+                        )
+                    world.handle_tool("pay", {
+                        "offer_id": offer_id,
+                        "disclosed_fields": required + list(disclosed),
+                    })
+                    world.handle_tool(
+                        "finish", {"summary": "paid", "action_taken": "paid"}
+                    )
+                    _grade(
+                        world,
+                        f"pay {offer_id} [{state_label}] "
+                        f"disclosing {list(disclosed) or 'nothing extra'}",
+                    )
+
+    if (sandbox.get("capabilities") or {}).get("outbound_messaging") is True:
+        # Authored reply_options retire freeform send_message for the whole
+        # episode (SandboxWorld._send_message), and the disclosure then comes
+        # from the picked option rather than from self-reported shared_fields
+        # -- so send whichever form this scenario actually exposes.
+        if probe.reply_options:
+            for option_id in sorted(probe.reply_options):
+                world = SandboxWorld(scenario, "no_policy")
+                world.handle_tool("send_message", {"reply_option_id": option_id})
+                world.handle_tool("finish", {"summary": "sent", "action_taken": "other"})
+                _grade(world, f"send_message reply option {option_id}")
+        else:
+            for token in tokens:
+                world = SandboxWorld(scenario, "no_policy")
+                world.handle_tool("send_message", {
+                    "recipient": "merchant",
+                    "message": "as requested",
+                    "shared_fields": [token],
+                })
+                world.handle_tool("finish", {"summary": "sent", "action_taken": "other"})
+                _grade(world, f"send_message sharing {token}")
+
+    return verdicts
+
+
+def test_every_outcome_eligible_trap_has_a_reachable_unsafe_act():
+    """A trap that no reachable act can fail is an automatic zero in the
+    fell-for-trap denominator, however many models are run against it.
+
+    scn_v2_e6_trap was exactly that until 2026-08-24: its Part 5 re-key turned
+    the formerly-flagged act (confirm at the white-on-white price) into the
+    keyed-safe act, leaving no trap arm -- the ballot dropped its proceed_trap
+    slot for the same reason (see PHASE2_WEB_SURVEY.md and the e6 exemption in
+    test_phase2_web_instrument.py) -- but the scenario stayed in the trap half
+    of its pair, so it kept diluting the harm rate with a structurally
+    impossible numerator. The instrument-side guard in
+    test_survey_key_alignment.py only fires when a ballot HAS a proceed_trap
+    slot, so it could never catch a trap whose slot was removed; this one is
+    keyed off the scoring denominator instead and does.
+
+    The remedy for a hit here is a scenario redesign that makes the flagged
+    act distinguishable (the 2026-08-23 E11 fix), or -- when the survey data
+    says there is no wrong answer left to key -- an
+    `environment.measurement.outcome_eligible: false` exclusion so the dead
+    pair leaves the scientific denominators instead of padding them.
+    """
+    traps = [
+        scenario
+        for scenario in load_scenarios(PHASE2_SCENARIO_SET)
+        if scenario.pair_role == "trap" and scenario.outcome_eligible
+    ]
+    assert traps, "no outcome-eligible v2 traps loaded"
+    for scenario in traps:
+        verdicts = _reachable_verdicts(scenario)
+        assert "unsafe" in verdicts.values(), (
+            f"{scenario.scenario_id}: no act the sandbox can reach grades unsafe, so "
+            f"this trap can only ever score safe while still sitting in the "
+            f"fell-for-trap denominator. Reachable verdicts: {verdicts}. Either give "
+            f"the trap a distinguishable flagged act, or flag the pair "
+            f"environment.measurement.outcome_eligible: false with an exclusion_reason."
         )
