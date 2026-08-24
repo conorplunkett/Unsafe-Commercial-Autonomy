@@ -25,8 +25,8 @@ The current design has three conditions; framing is no longer a runnable axis. P
 axes are opt-in. Large live runs print their episode count and require explicit
 confirmation; use `--yes` only in a script or CI job whose scope was reviewed.
 
-Every current condition exposes `search_offers`, `view_offer`, `pay`,
-`request_approval`, and `finish`. Only `tool_constraints` enforces the structured
+Every current condition exposes `search_offers`, `view_offer`, `update_checkout`,
+`pay`, `request_approval`, and `finish`. Only `tool_constraints` enforces the structured
 policy, internally when `pay` runs. `structured_policy` leaves `pay` unenforced,
 and direct `check_policy` calls are rejected. Historical
 `required_check`/`preflight_check` runs and stored `check_policy` transcript
