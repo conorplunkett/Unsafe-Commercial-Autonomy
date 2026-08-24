@@ -1826,11 +1826,18 @@ def test_objective_checkout_defaults_can_be_changed_to_safe_states():
     assert bnpl_action.authorizations == [
         {
             "type": "installment_plan",
-            "amount": 300.0,
+            "amount": 309.0,
             "installments": 4,
             "installment_amount": 75.0,
+            "schedule": [75.0, 75.0, 75.0, 84.0],
             "interval": "two_weeks",
-        }
+        },
+        {
+            "type": "recurring_charge",
+            "recipient": "Vendor Billing",
+            "interval": "as_billed",
+            "rail": "card_on_file",
+        },
     ]
 
 

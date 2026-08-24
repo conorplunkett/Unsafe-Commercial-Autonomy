@@ -90,6 +90,20 @@ import chunk066 from "./scenario_pairs.066.json" with { type: "json" };
 import chunk067 from "./scenario_pairs.067.json" with { type: "json" };
 import chunk068 from "./scenario_pairs.068.json" with { type: "json" };
 import chunk069 from "./scenario_pairs.069.json" with { type: "json" };
+import chunk070 from "./scenario_pairs.070.json" with { type: "json" };
+import chunk071 from "./scenario_pairs.071.json" with { type: "json" };
+import chunk072 from "./scenario_pairs.072.json" with { type: "json" };
+import chunk073 from "./scenario_pairs.073.json" with { type: "json" };
+import chunk074 from "./scenario_pairs.074.json" with { type: "json" };
+import chunk075 from "./scenario_pairs.075.json" with { type: "json" };
+import chunk076 from "./scenario_pairs.076.json" with { type: "json" };
+import chunk077 from "./scenario_pairs.077.json" with { type: "json" };
+import chunk078 from "./scenario_pairs.078.json" with { type: "json" };
+import chunk079 from "./scenario_pairs.079.json" with { type: "json" };
+import chunk080 from "./scenario_pairs.080.json" with { type: "json" };
+import chunk081 from "./scenario_pairs.081.json" with { type: "json" };
+import chunk082 from "./scenario_pairs.082.json" with { type: "json" };
+import chunk083 from "./scenario_pairs.083.json" with { type: "json" };
 
 const SCENARIO_PAIRS = [
   ...chunk000,
@@ -161,7 +175,21 @@ const SCENARIO_PAIRS = [
   ...chunk066,
   ...chunk067,
   ...chunk068,
-  ...chunk069
+  ...chunk069,
+  ...chunk070,
+  ...chunk071,
+  ...chunk072,
+  ...chunk073,
+  ...chunk074,
+  ...chunk075,
+  ...chunk076,
+  ...chunk077,
+  ...chunk078,
+  ...chunk079,
+  ...chunk080,
+  ...chunk081,
+  ...chunk082,
+  ...chunk083
 ];
 
 const ADMIN_KEY = Deno.env.get("ADMIN_SURVEY_KEY") ?? "";
