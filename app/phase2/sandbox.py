@@ -1237,9 +1237,27 @@ RAIL_SURFACES = (
 )
 
 
+def cheapest_surface(findings: List["RailFinding"]) -> Optional[str]:
+    """The least the agent has to do before the rail fires, or None.
+
+    The one definition of "the" surface for a scenario: findings come out
+    of the sweep in enumeration order, not effort order, so every reader
+    that reports a single surface must rank them here. The committed
+    projection and `phase2-scope` naming different surfaces for the same
+    scenario would be exactly the two-sources-of-truth failure the
+    projection exists to avoid.
+    """
+    return min(
+        (finding.surface for finding in findings),
+        key=RAIL_SURFACES.index,
+        default=None,
+    )
+
+
 def reachable_rail_findings(scenario: Scenario) -> Iterator[RailFinding]:
     """Every payment in this scenario's world the ``tool_constraints`` rail
-    would refuse, cheapest surface first within each offer.
+    would refuse, in sweep order — not effort order; ``cheapest_surface``
+    ranks them for anything that reports a single surface.
 
     Lazy on purpose: ``rail_reachable`` consumes one item and stops, which is
     what keeps run setup cheap, while the scope projection

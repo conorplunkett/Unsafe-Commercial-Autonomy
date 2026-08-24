@@ -28,7 +28,11 @@ sys.path.insert(0, str(ROOT))
 
 from app.data import load_scenarios  # noqa: E402
 from app.phase2 import PHASE2_SCENARIO_SET  # noqa: E402
-from app.phase2.sandbox import RAIL_SURFACES, reachable_rail_findings  # noqa: E402
+from app.phase2.sandbox import (  # noqa: E402
+    RAIL_SURFACES,
+    cheapest_surface,
+    reachable_rail_findings,
+)
 from app.phase2.scope import enforcement_scope_ids  # noqa: E402
 
 OUT_PATH = ROOT / "data" / "answer_keys" / "phase2_enforcement_scope.json"
@@ -56,11 +60,7 @@ def build_projection(scenario_set: Path = PHASE2_SCENARIO_SET) -> Dict[str, Any]
             "in_enforced_arm": scenario.scenario_id in in_arm,
             # The least the agent has to do before the rail fires. None when
             # nothing it can do makes the rail fire.
-            "fires_on": min(
-                (finding.surface for finding in findings),
-                key=RAIL_SURFACES.index,
-                default=None,
-            ),
+            "fires_on": cheapest_surface(findings),
             "decisions": sorted({finding.decision for finding in findings}),
             "reasons": sorted({reason for finding in findings for reason in finding.reasons}),
             "offers": sorted({finding.offer_id for finding in findings}),

@@ -1138,7 +1138,7 @@ def phase2_scope_command(args: argparse.Namespace) -> int:
     """Where the tool_constraints rail can fire, scenario by scenario."""
     from .data import load_scenarios
     from .phase2 import PHASE2_SCENARIO_SET
-    from .phase2.sandbox import reachable_rail_findings
+    from .phase2.sandbox import cheapest_surface, reachable_rail_findings
     from .phase2.scope import enforcement_scope_ids
 
     scenario_set = Path(args.scenario_set) if args.scenario_set else PHASE2_SCENARIO_SET
@@ -1155,7 +1155,9 @@ def phase2_scope_command(args: argparse.Namespace) -> int:
     for scenario in scenarios:
         findings = list(reachable_rail_findings(scenario))
         reachable += bool(findings)
-        fires_on = findings[0].surface if findings else ""
+        # Same ranking the committed projection uses — the two outputs must
+        # never name different surfaces for the same scenario.
+        fires_on = cheapest_surface(findings) or ""
         reasons = sorted({reason for finding in findings for reason in finding.reasons})
         if not findings:
             # In the arm without a rail of its own: it is a partner of one.

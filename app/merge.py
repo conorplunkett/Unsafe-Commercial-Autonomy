@@ -50,10 +50,6 @@ _CONFIG_FIELDS = (
     "gemini_thinking_level",
     "live",
     "answer_key_status",
-    # Which scenarios the enforced arm ran (app/phase2/scope.py). Two sources
-    # that disagree here are two designs, and pooling them would put a
-    # full-sweep tool_constraints arm and a scoped one in one denominator.
-    "enforcement_scope",
 )
 
 OVERLAP_POLICIES = ("error", "prefer-newest", "prefer-oldest")
@@ -185,6 +181,15 @@ def compatibility_report(
             listed = ", ".join(f"{run.run_id}={getattr(run, field)!r}" for run in runs)
             blocking.append(f"Sources disagree on {field}: {listed}.")
 
+    # Separate from _CONFIG_FIELDS for the None-reads-as-"all" rule alone; the
+    # comparison is otherwise the same must-agree gauntlet.
+    scopes = {_effective_enforcement_scope(run) for run in runs}
+    if len(scopes) > 1:
+        listed = ", ".join(
+            f"{run.run_id}={_effective_enforcement_scope(run)!r}" for run in runs
+        )
+        blocking.append(f"Sources disagree on enforcement_scope: {listed}.")
+
     overlap = _overlaps(runs)
     if overlap:
         sample = ", ".join(
@@ -249,6 +254,22 @@ def _resolve_overlaps(
             claimed[key] = run.run_id
             kept[run.run_id].append(result)
     return kept, dropped
+
+
+def _effective_enforcement_scope(run: BenchmarkRun) -> Optional[str]:
+    """Which scenarios the enforced arm ran, with the pre-axis reading applied.
+
+    A Phase 2 run stored before the enforcement-scope axis existed carries
+    None but ran the full cross-product by construction (the old grid had one
+    shared scenario list), so for compatibility it reads as "all" — the same
+    read-compat treatment models._alias_legacy_conditions gives renamed
+    conditions. Blocking None against "rail_reachable" stays: those really are
+    two designs, and pooling them would put a full-sweep tool_constraints arm
+    and a scoped one in one denominator.
+    """
+    if run.phase == "phase2":
+        return run.enforcement_scope or "all"
+    return run.enforcement_scope
 
 
 def _union_condition_scenarios(runs: Sequence[BenchmarkRun]) -> Dict[str, List[str]]:
@@ -333,7 +354,10 @@ def merge_runs(
         # source's order is kept rather than sorting — it is the order the
         # scenario set itself defines.
         scenario_ids=list(first.scenario_ids),
-        enforcement_scope=first.enforcement_scope,
+        # The effective value, so pooling pre-axis Phase 2 sources stamps the
+        # scope they actually ran ("all") instead of propagating the None that
+        # would re-block the next merge.
+        enforcement_scope=_effective_enforcement_scope(first),
         condition_scenario_ids=_union_condition_scenarios(ordered),
         results=results,
         events=events,

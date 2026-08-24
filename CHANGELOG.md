@@ -21,6 +21,14 @@
 - Findings are deduplicated (d17's 32,768 checkout states refuse for one reason on
   one offer, not 4,097 times) and the sweep-budget case is reported only when it
   leaves the answer undecided, never as a finding beside a real one.
+- Review fixes before merge: `cheapest_surface` is now the one definition of "the
+  surface the rail fires on" — the projection ranked findings by effort while
+  `phase2-scope` printed sweep order, which happened to agree everywhere in the
+  current data but would split on the first scenario where a non-default rail is
+  the cheapest trigger. And merge reads a pre-axis Phase 2 run's missing
+  `enforcement_scope` as "all" (it ran the full cross-product by construction), so
+  extending a historical full sweep with a new `--enforcement-scope all` sitting
+  pools instead of false-blocking; None against "rail_reachable" still blocks.
 
 ## [2026-08-24] tool_constraints runs where enforcement can bind, not the whole set
 
