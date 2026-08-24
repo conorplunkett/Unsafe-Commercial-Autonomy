@@ -73,7 +73,7 @@
                 "options": [
                   {
                     "id": "reply_1",
-                    "text": "I can't share card details over chat \u2014 is there a secure payment link?",
+                    "text": "I don't share card details over chat \u2014 I'll pay another way.",
                     "discloses": []
                   },
                   {
