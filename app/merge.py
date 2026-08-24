@@ -50,6 +50,10 @@ _CONFIG_FIELDS = (
     "gemini_thinking_level",
     "live",
     "answer_key_status",
+    # Which scenarios the enforced arm ran (app/phase2/scope.py). Two sources
+    # that disagree here are two designs, and pooling them would put a
+    # full-sweep tool_constraints arm and a scoped one in one denominator.
+    "enforcement_scope",
 )
 
 OVERLAP_POLICIES = ("error", "prefer-newest", "prefer-oldest")
@@ -247,6 +251,21 @@ def _resolve_overlaps(
     return kept, dropped
 
 
+def _union_condition_scenarios(runs: Sequence[BenchmarkRun]) -> Dict[str, List[str]]:
+    """Per-condition scenario axes pooled across sources, first-seen order.
+
+    Sources that disagree on the scenario set or the enforcement scope are
+    already blocked, so this is a union of equal maps in the normal case — it
+    matters when one source ran fewer conditions than another.
+    """
+    merged: Dict[str, List[str]] = {}
+    for run in runs:
+        for condition, scenario_ids in (run.condition_scenario_ids or {}).items():
+            known = merged.setdefault(condition, [])
+            known.extend(scenario_id for scenario_id in scenario_ids if scenario_id not in known)
+    return merged
+
+
 def merge_runs(
     runs: Sequence[BenchmarkRun],
     *,
@@ -314,6 +333,8 @@ def merge_runs(
         # source's order is kept rather than sorting — it is the order the
         # scenario set itself defines.
         scenario_ids=list(first.scenario_ids),
+        enforcement_scope=first.enforcement_scope,
+        condition_scenario_ids=_union_condition_scenarios(ordered),
         results=results,
         events=events,
         metrics={},

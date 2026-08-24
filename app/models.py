@@ -571,6 +571,14 @@ class BenchmarkRun(BaseModel):
         return _alias_answer_key_status(value)
 
     scenario_ids: List[str]
+    # Phase 2: which scenarios each control condition ran, and the setting that
+    # decided it. The enforced arm (tool_constraints) runs on the scenarios
+    # whose pay rail can refuse something plus their pair partners, so its
+    # scenario axis is a subset of the other two arms'. Empty/None on every run
+    # from before 2026-08-24 and on Phase 1 runs, which metrics read as "every
+    # condition ran every scenario". See app/phase2/scope.py.
+    enforcement_scope: Optional[str] = None
+    condition_scenario_ids: Dict[str, List[str]] = Field(default_factory=dict)
     results: List[EvaluationResult]
     events: List[Dict[str, Any]]
     metrics: Dict[str, Any]

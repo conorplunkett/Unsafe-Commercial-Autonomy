@@ -32,6 +32,16 @@ and direct `check_policy` calls are rejected. Historical
 `required_check`/`preflight_check` runs and stored `check_policy` transcript
 events remain readable and recomputable.
 
+`tool_constraints` runs on 168 of the 226 scenarios: the ones whose pay rail can
+refuse something their world offers, plus their pair partners. In the other 58
+the policy engine never fires, so an enforced episode costs a full tool loop to
+reproduce `structured_policy`. `--enforcement-scope all` runs the full
+cross-product instead. The scope is a grid axis — a run started under one cannot
+be resumed under the other, and merge refuses to pool sources that disagree on
+it. Runs record which scenarios each arm covered in `condition_scenario_ids`;
+paired contrasts count the difference as `out_of_scope_count`, never as missing
+episodes.
+
 Each completed episode is appended to a checkpoint. Keep checkpointing enabled
 for paid runs.
 

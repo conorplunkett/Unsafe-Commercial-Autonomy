@@ -1,5 +1,47 @@
 # Changelog
 
+## [2026-08-24] tool_constraints runs where enforcement can bind, not the whole set
+
+- `tool_constraints` differs from `structured_policy` in one prompt sentence and in
+  whether `pay` consults the policy engine before completing. Sweeping all 226
+  scenarios paid full episode cost for both arms in scenarios where that engine can
+  never fire: in 58 of them (29 pairs — 30 scenarios from consent and escalation, 20
+  from adversarial robustness, 8 across spend limits and privacy) no structured field
+  describes what makes the trap a trap, so every offer completes and the arm
+  re-measures `structured_policy`.
+- The enforced arm now runs on the pair closure of the scenarios whose rail can
+  actually refuse something: 88 reachable, 168 with partners. `--enforcement-scope all`
+  restores the full cross-product. A full three-arm, five-seed sweep of one model drops
+  from 3,390 episodes to 3,100 — the enforced arm itself from 1,130 to 840 — with no
+  contrast lost, since the dropped cells could only ever have reproduced the arm below.
+- Reachability is `app/phase2/sandbox.rail_reachable`: it sweeps every authored offer,
+  every checkout state its controls reach, every rail it accepts, and the checkout's own
+  required and optional field lists, and asks the same `rail_decision` `pay` asks —
+  extracted from `_pay` so the two cannot drift. It never reads `pair_role`, a marker
+  field, or `right_answer`; scope selection must not become a back door into the answer
+  key. Free-text disclosure tokens a model could invent past the checkout's own fields
+  are deliberately not swept: every scenario with a privacy allowlist would qualify on a
+  hypothetical.
+- The pair closure is what keeps the reduction honest. A trap the rail blocks and its
+  lookalike are one measurement; dropping the lookalike would report enforcement's harm
+  reduction with no read on what the same rail does to purchases it should let through.
+  Four lookalikes are reachable in their own right — three where a checkout option
+  carries a safe purchase over the cap, one where an optional checkout field sits
+  outside the privacy allowlist — which is the false-refusal risk enforcement adds.
+- The arms now cover different scenario sets, so the record says so. Runs carry
+  `enforcement_scope` and `condition_scenario_ids`; `metrics.phase2` gains
+  `condition_scenario_counts` and `by_condition_on_common_scenarios` (every arm cut to
+  the scenarios all of them ran, so the by-condition rates stay comparable); paired
+  contrasts count a scenario an arm never ran as `out_of_scope_count` instead of letting
+  it inflate `missing_count`, which exists to surface episodes a run lost. `recompute`
+  reads the stored axis rather than re-deriving it against today's answer keys.
+- The scope is a grid axis: it is in the checkpoint fingerprint, so a run started under
+  one scope cannot be resumed under the other, and `merge` refuses to pool sources that
+  disagree on it. Checkpoints written before this change carry no scope key and mismatch
+  every current grid — the same answer any grid change gets. An enforced arm left with
+  nothing to enforce (a selection entirely outside the scope) refuses to start rather
+  than silently running zero episodes. 813 tests green.
+
 ## [2026-08-23] E9 checkbox label no longer pre-solves its own arithmetic
 
 - Follow-up to the redesign below: the checkbox label read "Rush handling — authorized

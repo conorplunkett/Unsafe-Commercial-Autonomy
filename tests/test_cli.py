@@ -476,6 +476,56 @@ def test_cli_phase2_eval_offline_scripted_skips_confirmation(capsys, monkeypatch
     assert "Run saved:" in output
 
 
+def test_cli_phase2_eval_says_which_scenarios_each_arm_ran(capsys, monkeypatch):
+    """A scoped enforced arm sits on a different denominator than the other two,
+    so the run has to say so and show the three arms on one shared set."""
+    import app.cli as cli
+
+    monkeypatch.setattr(cli.sys.stdin, "isatty", lambda: False)
+    status = main(
+        [
+            "phase2-eval", "--models", "scripted_naive", "--conditions", "all",
+            "--scenario-ids",
+            "scn_v2_a1_trap,scn_v2_a1_lookalike,scn_v2_c10_trap,scn_v2_c10_lookalike",
+            "--seeds", "1", "--no-checkpoint",
+        ]
+    )
+    output = capsys.readouterr().out
+    assert status == 0
+    assert (
+        "Scenarios per condition: no_policy 4, structured_policy 4, tool_constraints 2"
+        in output
+    )
+    assert "out-of-scope=1" in output
+    assert "Condition on the 2 scenarios every condition ran" in output
+
+
+def test_cli_phase2_eval_refuses_an_enforced_arm_with_nothing_to_enforce(capsys, monkeypatch):
+    import app.cli as cli
+
+    monkeypatch.setattr(cli.sys.stdin, "isatty", lambda: False)
+    status = main(
+        [
+            "phase2-eval", "--models", "scripted_naive", "--conditions", "all",
+            "--scenario-ids", "scn_v2_c10_trap,scn_v2_c10_lookalike",
+            "--seeds", "1", "--no-checkpoint",
+        ]
+    )
+    output = capsys.readouterr().out
+    assert status == 2
+    assert "--enforcement-scope all" in output
+
+    # And runs the full cross-product when asked.
+    assert main(
+        [
+            "phase2-eval", "--models", "scripted_naive", "--conditions", "all",
+            "--scenario-ids", "scn_v2_c10_trap,scn_v2_c10_lookalike",
+            "--enforcement-scope", "all", "--seeds", "1", "--no-checkpoint",
+        ]
+    ) == 0
+    assert "Scenarios per condition" not in capsys.readouterr().out
+
+
 def test_cli_eval_large_grid_aborts_without_confirmation(capsys, monkeypatch):
     # The full command path: a live default eval (single model x full v1 set)
     # is already a 150-call grid (50 scenarios x 3 conditions x 1 seed), so it
@@ -644,7 +694,7 @@ def _phase2_args(**overrides):
     defaults = dict(
         models=None, conditions=None, framings=None, urgencies=None,
         user_availabilities=None, scenario_ids=None, scenario_set=None, seeds=None,
-        split="all",
+        split="all", enforcement_scope="rail_reachable",
     )
     defaults.update(overrides)
     return argparse.Namespace(**defaults)
@@ -694,9 +744,21 @@ def test_phase2_grid_size_expands_all_flags_to_their_real_count():
     from app.cli import _phase2_grid_size
 
     episodes, breakdown = _phase2_grid_size(_phase2_args(models="anthropic", conditions="all", seeds="1,2,3,4,5"))
-    # 226 scenarios x 3 conditions x 1 framing (deployment only) x 5 seeds x 1 model.
-    assert episodes == 3390
+    # (226 + 226 + 168) scenarios x 1 framing (deployment only) x 5 seeds x 1 model:
+    # tool_constraints runs the enforcement scope, not the whole set.
+    assert episodes == (226 + 226 + 168) * 5
+    # No single scenario count to multiply by once the arms differ, so the
+    # quote names each arm instead of a product that doesn't equal the total.
+    assert "scenarios per condition: no_policy 226, structured_policy 226, tool_constraints 168" in breakdown
+
+    # The full cross-product is still one flag away, and priced as one.
+    episodes, breakdown = _phase2_grid_size(
+        _phase2_args(models="anthropic", conditions="all", seeds="1,2,3,4,5", enforcement_scope="all")
+    )
+    assert episodes == 226 * 3 * 5
     assert "3 condition(s)" in breakdown
+    assert "226 scenario(s)" in breakdown
+    assert "enforcement-scope" not in breakdown
 
     episodes, _ = _phase2_grid_size(
         _phase2_args(models="anthropic", seeds="1", scenario_ids="scn_v2_a1_trap", framings="all")

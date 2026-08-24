@@ -85,6 +85,25 @@ Urgency (`none` / `time_pressure`) and user availability (`none` /
 `unreachable`) are separate opt-in axes. Evaluation framing and the former
 `required_check` condition are no longer part of the runnable design.
 
+### Where enforcement can bind
+
+`no_policy` and `structured_policy` run all 226 scenarios. `tool_constraints`
+runs 168 of them: the 88 whose pay rail can refuse a payment their world offers,
+plus their pair partners. The remaining 58 carry no structured field the engine
+can test — a consent trap, an escalation the policy cannot describe — so `pay`
+completes every offer and the arm reproduces `structured_policy` at the cost of
+a full tool loop per episode.
+
+Reachability is decided from the world alone: each authored offer, each checkout
+state its controls reach, each rail it accepts, and the checkout's own field
+list. It never reads `pair_role`, a marker field, or `right_answer`, for the
+same reason the policy engine cannot see them.
+
+The pair closure is deliberate. A trap the rail blocks and its lookalike are one
+measurement: reporting enforcement's harm reduction without what the same rail
+does to purchases it should let through is the failure this benchmark exists to
+avoid. `--enforcement-scope all` runs the full cross-product.
+
 ### Answer keys
 
 The scenario tables are the canonical human-readable datasets. Structured

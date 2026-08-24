@@ -18,7 +18,8 @@ import hashlib
 import json
 import re
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from itertools import product
+from typing import Any, Dict, Iterator, List, Optional
 
 from ..models import (
     DISCLOSURE_FIELD_TOKENS,
@@ -1023,6 +1024,30 @@ class SandboxWorld:
             current = destination
         return redirects
 
+    def rail_decision(self, entry: Dict[str, Any], snapshot: Dict[str, Any]) -> PolicyDecision:
+        """The pay rail's verdict on one offer in one frozen checkout state.
+
+        The offer as authored is not what gets paid: checkout controls can
+        replace the amount, the rail, and the recurrence, and can add
+        disclosures and authorizations. The rail therefore judges the derived
+        snapshot, not the listing. Shared with ``rail_reachable`` so the sweep
+        that decides which scenarios the enforced arm runs on cannot drift
+        from what ``pay`` actually does.
+        """
+        effective_offer = {
+            **entry,
+            "total": snapshot["amount"],
+            "default_payment_type": snapshot["rail"],
+            "recurring": bool(snapshot["recurrence"].get("recurring")),
+        }
+        return evaluate_payment_policy(
+            self.scenario.payment_policy,
+            effective_offer,
+            payment_type=snapshot["rail"],
+            disclosed_fields=snapshot["disclosures"],
+            authorizations=snapshot["authorizations"],
+        )
+
     def _pay(self, args: Dict[str, Any]) -> Dict[str, Any]:
         entry = self._offer(args.get("offer_id"))
         if entry is None:
@@ -1052,19 +1077,7 @@ class SandboxWorld:
         }
 
         if self.control_condition == "tool_constraints":
-            effective_offer = {
-                **entry,
-                "total": snapshot["amount"],
-                "default_payment_type": snapshot["rail"],
-                "recurring": bool(snapshot["recurrence"].get("recurring")),
-            }
-            decision = evaluate_payment_policy(
-                self.scenario.payment_policy,
-                effective_offer,
-                payment_type=snapshot["rail"],
-                disclosed_fields=snapshot["disclosures"],
-                authorizations=snapshot["authorizations"],
-            )
+            decision = self.rail_decision(entry, snapshot)
             if decision.decision != "allow":
                 self.blocked_attempts.append({**attempt, "reasons": decision.reasons})
                 if decision.decision == "approval_required":
@@ -1161,6 +1174,97 @@ class SandboxWorld:
         }
         self.done = True
         return {"status": "finished"}
+
+
+# ---------------------------------------------------------------------------
+# Enforcement reach
+# ---------------------------------------------------------------------------
+
+# Ceiling on how many checkout states one offer is expanded into while deciding
+# whether the rail can bind. The expansion is a cartesian product over control
+# values, so an offer carrying many checkboxes is exponential in their count.
+# Past this many states the sweep stops and calls the scenario reachable, which
+# errs toward running an enforcement episode that turns out inert rather than
+# dropping one that would have blocked.
+MAX_REACHABILITY_STATES = 4096
+
+
+def _checkout_states(world: SandboxWorld, entry: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
+    """Control-value assignments the agent can drive one offer's checkout into.
+
+    The authored opening state comes first, so the common case decides on the
+    first state instead of walking the whole product.
+    """
+    controls = world._controls_for(entry)
+    yield dict(world.checkout_control_values[entry["offer_id"]])
+    if not controls:
+        return
+    control_ids = [control["control_id"] for control in controls]
+    domains: List[List[Any]] = []
+    for control in controls:
+        if control["kind"] == "checkbox":
+            domains.append([True, False])
+        else:
+            values = [choice["value"] for choice in control["choices"]]
+            domains.append(values if control.get("required", False) else values + [None])
+    for combination in product(*domains):
+        yield dict(zip(control_ids, combination))
+
+
+def rail_reachable(scenario: Scenario) -> bool:
+    """True when the ``tool_constraints`` rail can refuse a payment this
+    scenario's world can produce.
+
+    The enforced arm differs from ``structured_policy`` only where enforcement
+    can actually fire: same tools, same prompt but for one sentence, same
+    policy JSON. Where every payment the world offers evaluates to ``allow``,
+    an enforced episode spends a full tool loop to produce an outcome the
+    unenforced arm already measured. This is the test that separates the two,
+    and app/phase2/scope.py is what runs the enforced arm on the scenarios that
+    pass it.
+
+    "Can produce" means the world's own surface: each authored offer, each
+    reachable checkout-control state, each payment rail the offer accepts, and
+    the checkout's own field list — required alone (what ``pay`` discloses by
+    default) and required plus optional (what filling the whole checkout in
+    discloses). Free-text disclosure tokens a model could invent past that are
+    deliberately not swept: every scenario with a privacy allowlist would pass
+    on a hypothetical, which is not the same as a trap the world sets.
+
+    Never reads a trap label. ``pair_role``, the marker fields and
+    ``right_answer`` stay invisible here for the same reason the policy engine
+    cannot see them — scope selection must not become a back door into the
+    answer key.
+    """
+    world = SandboxWorld(scenario, "tool_constraints")
+    for entry in world.offers:
+        offer_id = entry["offer_id"]
+        rails = list(
+            dict.fromkeys(
+                [entry.get("default_payment_type") or "card", *(entry.get("payment_types") or [])]
+            )
+        )
+        disclosure_sets: List[Optional[List[str]]] = [None]
+        if world.checkout_optional_fields:
+            disclosure_sets.append(
+                list(world.checkout_required_fields) + list(world.checkout_optional_fields)
+            )
+        for swept, values in enumerate(_checkout_states(world, entry)):
+            if swept >= MAX_REACHABILITY_STATES:
+                return True  # budget spent; see MAX_REACHABILITY_STATES
+            world.checkout_control_values[offer_id] = values
+            if world._missing_required_controls(entry):
+                continue  # pay rejects this state before the rail sees it
+            for rail in rails:
+                for disclosed in disclosure_sets:
+                    snapshot = world._checkout_summary(
+                        entry,
+                        payment_type=rail,
+                        disclosed_fields=list(disclosed or world.checkout_required_fields),
+                    )
+                    if world.rail_decision(entry, snapshot).decision != "allow":
+                        return True
+    return False
 
 
 # ---------------------------------------------------------------------------
