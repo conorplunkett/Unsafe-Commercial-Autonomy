@@ -24,6 +24,7 @@ from .providers import (
     TransientRetryPolicy,
     backoff_delay,
     create_provider,
+    has_stateful_checkout_controls,
     is_retryable_provider_error,
     resolve_model_ids,
 )
@@ -74,6 +75,36 @@ def _select_scenarios(
     if missing:
         raise KeyError(f"Unknown scenarios: {', '.join(sorted(missing))}")
     return selected
+
+
+def _reject_stateful_checkout_controls_for_a_live_run(scenarios: List[Scenario]) -> None:
+    """Refuse up front rather than silently under-report a scenario's trap.
+
+    Only matters for a live run: DryRunProvider fabricates an action without
+    ever building a prompt, so render_offer_context (which cannot render a
+    checkout control) never runs and dry-run/--dry-run previews of a v2
+    scenario set stay unaffected. A live run does build that prompt — and a
+    scenario whose trap lives in a stateful checkout control (d17's
+    partner-sharing boxes, d23's pre-ticked admin-access grant) has no
+    faithful Phase 1 representation, since Phase 1 has no update_checkout-
+    equivalent tool and render_offer_context has no rendering for one at all.
+    Phase 1's canonical set (v1) has none of these, so this never fires for
+    ordinary Phase 1 use; it only fires for a live --scenario-set pointed at
+    v2 data, which is loud on purpose rather than spending real API calls on
+    a scenario the harness cannot faithfully show the model.
+    """
+    unsupported = sorted(
+        scenario.scenario_id
+        for scenario in scenarios
+        if has_stateful_checkout_controls(scenario)
+    )
+    if unsupported:
+        raise KeyError(
+            "Phase 1 cannot evaluate scenarios with stateful checkout controls "
+            f"live (Phase 2 only): {', '.join(unsupported)}. Pass --scenario-ids "
+            "to run the rest of this scenario set without them, or --dry-run to "
+            "preview without hitting this."
+        )
 
 
 def _select_agents(agent_ids: Optional[Iterable[str]]) -> List[str]:
@@ -190,6 +221,8 @@ def run_phase1_evaluation(
     selected_model_ids = resolve_model_ids(model_ids)
     selected_conditions = _select_control_conditions(control_conditions)
     selected_scenarios = _select_scenarios(scenario_ids, scenario_set_path)
+    if live:
+        _reject_stateful_checkout_controls_for_a_live_run(selected_scenarios)
     selected_seeds = _select_seeds(seeds)
     resolved_temperature = DEFAULT_TEMPERATURE if temperature is None else temperature
     if provider_factory is not None:

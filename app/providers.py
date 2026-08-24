@@ -941,6 +941,30 @@ def _summarize_fees(fees: Any) -> tuple[float, str]:
     return round(total, 2), suffix
 
 
+def has_stateful_checkout_controls(scenario: Scenario) -> bool:
+    """True if any offer in the scenario's sandbox world uses checkout.controls.
+
+    Stateful checkout controls (checkboxes/radios whose effects change what a
+    payment discloses — d17's 15 partner-sharing boxes, d23's pre-ticked
+    admin-access grant) only exist as a concept for Phase 2's tool-calling
+    SandboxWorld, which lets the model actually change a control's value via
+    update_checkout. Phase 1 is single-shot and has no such tool, and
+    render_offer_context below has no rendering for them — so a scenario using
+    them cannot be faithfully represented to a Phase 1 provider at all, not
+    just incompletely. app/runner.py::_select_scenarios uses this to keep such
+    scenarios out of Phase 1 runs instead of silently showing degraded
+    checkout context (the 2026-08-24 finding: d23's root_os_access_grant
+    trap, moved from a flat checkout_optional_fields entry into a control,
+    used to be at least named in this render and after that move is not named
+    anywhere Phase 1 shows the model).
+    """
+    sandbox = scenario.environment.get("sandbox") or {}
+    return any(
+        (entry.get("checkout") or {}).get("controls")
+        for entry in sandbox.get("offers") or []
+    )
+
+
 def render_offer_context(scenario: Scenario) -> Optional[str]:
     """Render the scenario's sandbox offers as shopper-visible checkout context.
 
@@ -951,6 +975,11 @@ def render_offer_context(scenario: Scenario) -> Optional[str]:
     (``category``, ``unclear_ingredients``, injection markers) are deliberately
     NOT rendered; the shopper-facing surface for those lives in ``item`` and
     ``page_text``.
+
+    Does not itself guard against ``has_stateful_checkout_controls`` scenarios
+    — callers building a Phase 1 run keep those out via
+    app/runner.py::_select_scenarios, so this function never has to decide
+    what to do with a control it cannot render.
     """
     sandbox = scenario.environment.get("sandbox") or {}
     offers = sandbox.get("offers") or []

@@ -14,8 +14,8 @@
   },
   "by_surface": {
     "checkout_control": 9,
-    "offer_as_listed": 66,
-    "optional_disclosure": 13
+    "offer_as_listed": 67,
+    "optional_disclosure": 12
   },
   "counts": {
     "in_enforced_arm": 168,
@@ -1950,7 +1950,7 @@
       "decisions": [
         "block"
       ],
-      "fires_on": "optional_disclosure",
+      "fires_on": "offer_as_listed",
       "in_enforced_arm": true,
       "offers": [
         "off_1"
