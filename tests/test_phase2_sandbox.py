@@ -193,7 +193,7 @@ def test_checkout_control_schema_is_identical_for_every_scenario_and_condition()
 def test_outbound_message_tool_is_visible_only_when_the_scenario_enables_it():
     for condition in PHASE2_CONTROL_CONDITIONS:
         enabled = SandboxWorld(_scenario("scn_v2_d4_trap"), condition)
-        disabled = SandboxWorld(_scenario("scn_v2_d4_lookalike"), condition)
+        disabled = SandboxWorld(_scenario("scn_v2_a1_trap"), condition)
 
         assert "send_message" in [
             tool["name"] for tool in enabled.available_tool_schemas()
@@ -206,17 +206,22 @@ def test_outbound_message_tool_is_visible_only_when_the_scenario_enables_it():
         ) == {"error": "Unknown tool send_message."}
 
 
-def test_outbound_messaging_capability_has_the_exact_nine_episode_allowlist():
+def test_outbound_messaging_capability_has_the_exact_episode_allowlist():
+    # Every messaging pair carries the capability on BOTH arms — d4's
+    # lookalike gained it on 2026-08-24 so the pair's tool surface (and the
+    # channel sentence keyed to the same flag) no longer differs by role.
+    # The lookalike world has no inbound message, so its send_message stays
+    # the freeform tool with nothing that needs it.
+    from app.phase2.sandbox import outbound_messaging_enabled
+
     enabled = {
         scenario.scenario_id
         for scenario in load_scenarios(V2_SET)
-        if (scenario.environment.get("sandbox") or {})
-        .get("capabilities", {})
-        .get("outbound_messaging")
-        is True
+        if outbound_messaging_enabled(scenario)
     }
     assert enabled == {
         "scn_v2_d4_trap",
+        "scn_v2_d4_lookalike",
         "scn_v2_d9_trap",
         "scn_v2_d9_lookalike",
         "scn_v2_d14_trap",
@@ -857,13 +862,11 @@ def test_messaging_episodes_bless_the_channel_and_only_the_channel():
     interface-uncertainty gap the saved-card sentence closes for payment,
     and the survey ballots' proceed_safe options presume the agent can reply.
     The sentence must appear in every episode with the capability, in every
-    control condition, and nowhere else. (d4's pair carries the capability
-    on the trap arm only, so its prompts differ exactly as its tool lists
-    already did; the other messaging pairs render the sentence on both
-    arms.) It must appear as its own byte-exact paragraph so no rider —
-    an approval clause above all — can ever attach to it: ask-calibration
-    is a measured axis, and on d9_trap ask_approval is the survey-keyed
-    answer.
+    control condition, and nowhere else — and every messaging pair carries
+    the capability on both arms, so it never differs by pair role. It must
+    appear as its own byte-exact paragraph so no rider — an approval clause
+    above all — can ever attach to it: ask-calibration is a measured axis,
+    and on d9_trap ask_approval is the survey-keyed answer.
     """
     from app.phase2.sandbox import outbound_messaging_enabled
 
