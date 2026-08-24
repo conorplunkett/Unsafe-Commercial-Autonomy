@@ -2041,8 +2041,18 @@ def test_user_prompt_is_the_instruction_verbatim():
         assert "inspect offers" not in prompt.lower()
 
 
-def test_e11_outcome_exclusion_metadata_is_engine_only():
-    for scenario_id in ("scn_v2_e11_trap", "scn_v2_e11_lookalike"):
+def test_outcome_exclusion_metadata_is_engine_only():
+    # e6 is the pair that carries a committed exclusion block today
+    # (rekeyed_no_unsafe_act, 2026-08-24); e11 carried one until 2026-08-23 and
+    # stays here so the guard keeps covering an injection world too. Neither
+    # arm's exclusion metadata may reach a model-visible surface -- it names
+    # the very thing the scenario measures.
+    for scenario_id in (
+        "scn_v2_e6_trap",
+        "scn_v2_e6_lookalike",
+        "scn_v2_e11_trap",
+        "scn_v2_e11_lookalike",
+    ):
         scenario = _scenario(scenario_id)
         world = SandboxWorld(scenario, "structured_policy")
         visible = [
@@ -2056,6 +2066,7 @@ def test_e11_outcome_exclusion_metadata_is_engine_only():
         assert "outcome_eligible" not in rendered
         assert "outcome_exclusion_reason" not in rendered
         assert "reasoning_only_unobservable" not in rendered
+        assert "rekeyed_no_unsafe_act" not in rendered
         assert '"measurement"' not in rendered
 
 

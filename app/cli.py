@@ -782,14 +782,16 @@ def _phase2_grid_size(
 ) -> tuple[int, str]:
     """Estimate the (model x condition x framing x urgency x user_availability x
     scenario x seed) episode count for a Phase 2 eval, and a breakdown string for the confirmation
-    prompt. Returns (0, "") if it can't be estimated (e.g. a bad model id or an
-    unreadable scenario set) — the real run then raises the actual error instead
-    of this estimate masking it.
+    prompt. The scenario axis is per condition (the enforced arm runs a subset),
+    so the conditions are summed rather than multiplied. Returns (0, "") if it
+    can't be estimated (e.g. a bad model id or an unreadable scenario set) — the
+    real run then raises the actual error instead of this estimate masking it.
     """
     from .data import load_scenarios
     from .phase2.providers import LIVE_MODEL_IDS, resolve_phase2_model_ids
     from .phase2.runner import DEFAULT_PHASE2_SEEDS, PHASE2_SCENARIO_SET, _select
     from .phase2.sandbox import FRAMINGS, PHASE2_CONTROL_CONDITIONS, URGENCY_LEVELS, USER_AVAILABILITY_LEVELS
+    from .phase2.scope import scenarios_by_condition
 
     try:
         # Count the set actually being run rather than assuming a size: the v2
@@ -800,18 +802,33 @@ def _phase2_grid_size(
         # narrowed by --split when one was passed — so it, not the raw flag,
         # is what the cost estimate has to count.
         selected = scenario_ids if scenario_ids is not None else _csv(args.scenario_ids)
-        scenario_count = len(set(selected or [])) or len(
-            load_scenarios(Path(args.scenario_set) if args.scenario_set else PHASE2_SCENARIO_SET)
-        )
+        catalogue = load_scenarios(Path(args.scenario_set) if args.scenario_set else PHASE2_SCENARIO_SET)
         # Resolve each axis exactly the way run_phase2_evaluation does (down to
         # its "all" expansion via the same _select helper), instead of counting
         # raw --flag items: a bare "all" is one CSV item but N real conditions/
         # levels, and counting items instead of resolving them quoted a run at
         # 1/4 (or 1/2) of what it actually costs.
         raw_conditions = _csv(args.conditions)
-        conditions = (
-            len(_select(raw_conditions, PHASE2_CONTROL_CONDITIONS, "conditions")) if raw_conditions else 1
+        condition_levels = (
+            _select(raw_conditions, PHASE2_CONTROL_CONDITIONS, "conditions")
+            if raw_conditions
+            else ["no_policy"]
         )
+        conditions = len(condition_levels)
+        # The scenario axis is per condition, so the estimate sums the arms
+        # rather than multiplying one scenario count by the condition count:
+        # the enforced arm runs a subset (see app/phase2/scope.py) and quoting
+        # the cross-product would overstate the spend being approved.
+        wanted = set(selected or [])
+        selected_scenarios = [
+            scenario for scenario in catalogue
+            if not wanted or scenario.scenario_id in wanted
+        ]
+        per_condition = scenarios_by_condition(
+            condition_levels, selected_scenarios, catalogue, args.enforcement_scope
+        )
+        scenario_count = len(selected_scenarios)
+        scenario_units = sum(len(scenarios) for scenarios in per_condition.values())
         raw_framings = _csv(args.framings)
         framings = len(_select(raw_framings, FRAMINGS, "framings")) if raw_framings else 1
         # Omitting --urgencies/--user-availabilities runs a single level
@@ -830,17 +847,32 @@ def _phase2_grid_size(
         models = len([m for m in resolve_phase2_model_ids(_csv(args.models)) if m in LIVE_MODEL_IDS])
     except Exception:
         return 0, ""
-    episodes = (
-        scenario_count * conditions * framings * urgencies * user_availabilities * seeds * models
-    )
+    episodes = scenario_units * framings * urgencies * user_availabilities * seeds * models
     if episodes == 0:
         return 0, ""
-    breakdown = (
-        f"{models} model(s) x {conditions} condition(s) x {framings} framing(s) x "
-        f"{urgencies} urgency level(s) x {user_availabilities} user-availability level(s) x "
-        f"{scenario_count} scenario(s) x {seeds} seed(s) "
-        f"= {episodes} multi-turn episodes"
+    axes = (
+        f"{models} model(s) x {framings} framing(s) x {urgencies} urgency level(s) x "
+        f"{user_availabilities} user-availability level(s) x {seeds} seed(s)"
     )
+    if len({len(scenarios) for scenarios in per_condition.values()}) > 1:
+        # The arms cover different scenario sets, so there is no one scenario
+        # count to multiply by: name each arm instead of quoting a product that
+        # does not equal the total.
+        listed = ", ".join(
+            f"{condition} {len(scenarios)}" for condition, scenarios in per_condition.items()
+        )
+        breakdown = (
+            f"{axes}, scenarios per condition: {listed} "
+            f"(--enforcement-scope {args.enforcement_scope}) "
+            f"= {episodes} multi-turn episodes"
+        )
+    else:
+        breakdown = (
+            f"{models} model(s) x {conditions} condition(s) x {framings} framing(s) x "
+            f"{urgencies} urgency level(s) x {user_availabilities} user-availability level(s) x "
+            f"{scenario_count} scenario(s) x {seeds} seed(s) "
+            f"= {episodes} multi-turn episodes"
+        )
     return episodes, breakdown
 
 
@@ -856,6 +888,10 @@ def _resume_command_line(args: argparse.Namespace, run_id: str) -> str:
         ("--scenario-ids", args.scenario_ids),
         ("--scenario-set", args.scenario_set),
         ("--split", args.split if getattr(args, "split", "all") != "all" else None),
+        (
+            "--enforcement-scope",
+            args.enforcement_scope if args.enforcement_scope != "rail_reachable" else None,
+        ),
         ("--seeds", args.seeds),
         ("--reasoning-effort", args.reasoning_effort),
         ("--gemini-thinking-level", args.gemini_thinking_level),
@@ -874,6 +910,7 @@ def _resume_command_line(args: argparse.Namespace, run_id: str) -> str:
 
 def phase2_eval_command(args: argparse.Namespace) -> int:
     """Phase 2 three-condition sandbox ablation with opt-in pressure axes."""
+    from .metrics import common_scenario_ids
     from .phase2 import CheckpointMismatch, CheckpointMissing, CheckpointStore, run_phase2_evaluation
     from .phase2.runner import PHASE2_SCENARIO_SET
 
@@ -936,6 +973,7 @@ def phase2_eval_command(args: argparse.Namespace) -> int:
             user_availabilities=_csv(args.user_availabilities),
             scenario_ids=scenario_ids,
             scenario_set_path=scenario_set_path,
+            enforcement_scope=args.enforcement_scope,
             seeds=_csv_int(args.seeds),
             temperature=args.temperature,
             reasoning_effort=args.reasoning_effort,
@@ -972,6 +1010,12 @@ def phase2_eval_command(args: argparse.Namespace) -> int:
         # walking the episode grid and saving an all-error run.
         print(f"Cannot start phase2-eval: {exc}")
         return 2
+    except ValueError as exc:
+        # An enforced condition left with no scenarios to run (the selection is
+        # entirely outside the enforcement scope). Same treatment as a bad flag:
+        # the message says what to pass instead.
+        print(f"Cannot start phase2-eval: {exc}")
+        return 2
     except KeyError as exc:
         # Bad --scenario-ids/--conditions/etc slip past the confirmation
         # prompt uncaught (_phase2_grid_size only counts ids, it doesn't
@@ -989,6 +1033,15 @@ def phase2_eval_command(args: argparse.Namespace) -> int:
             progress.finish()
     payload = _save_and_print_summary(run)
     phase2_metrics = payload["metrics"]["phase2"]
+
+    scenario_counts = phase2_metrics.get("condition_scenario_counts") or {}
+    common_scenarios = common_scenario_ids(run.condition_scenario_ids) or set()
+    if len(set(scenario_counts.values())) > 1:
+        print(
+            "\nScenarios per condition: "
+            + ", ".join(f"{condition} {count}" for condition, count in scenario_counts.items())
+            + f" (--enforcement-scope {run.enforcement_scope})"
+        )
 
     paired = phase2_metrics.get("paired_contrasts", {}).get("comparisons", [])
     if paired:
@@ -1017,6 +1070,11 @@ def phase2_eval_command(args: argparse.Namespace) -> int:
                 f"{comparison['paired_seed_count']} seed pairs; "
                 f"missing={comparison['missing_count']} errors={comparison['error_count']} "
                 f"unpaired={comparison['unpaired_count']}"
+                + (
+                    f" out-of-scope={comparison['out_of_scope_count']}"
+                    if comparison.get("out_of_scope_count")
+                    else ""
+                )
             )
 
     def _print_split(title: str, group_key: str) -> None:
@@ -1032,6 +1090,13 @@ def phase2_eval_command(args: argparse.Namespace) -> int:
             )
 
     _print_split("Condition x framing", "by_condition_and_framing")
+    if len(set(scenario_counts.values())) > 1:
+        # The arms above ran different scenario sets, so their rates sit on
+        # different denominators. Same conditions, one shared set.
+        _print_split(
+            f"Condition on the {len(common_scenarios)} scenarios every condition ran",
+            "by_condition_on_common_scenarios",
+        )
     # Each split only earns its rows when that axis actually varied in this run.
     varied_urgency = len(phase2_metrics.get("by_urgency", {})) > 1
     varied_user_availability = len(phase2_metrics.get("by_user_availability", {})) > 1
@@ -1066,6 +1131,53 @@ def phase2_checkpoints_command(args: argparse.Namespace) -> int:
             f"{entry['episodes']:9} {entry['errored']:8}"
         )
     print(f"\nResume one with: python -m app.cli phase2-eval ... --resume {entries[0]['run_id']}")
+    return 0
+
+
+def phase2_scope_command(args: argparse.Namespace) -> int:
+    """Where the tool_constraints rail can fire, scenario by scenario."""
+    from .data import load_scenarios
+    from .phase2 import PHASE2_SCENARIO_SET
+    from .phase2.sandbox import cheapest_surface, reachable_rail_findings
+    from .phase2.scope import enforcement_scope_ids
+
+    scenario_set = Path(args.scenario_set) if args.scenario_set else PHASE2_SCENARIO_SET
+    try:
+        scenarios = load_scenarios(scenario_set)
+    except (OSError, ValueError) as exc:
+        print(f"Cannot read {scenario_set}: {exc}")
+        return 2
+    in_arm = enforcement_scope_ids(scenarios)
+
+    print(f"{'Scenario':28} {'Arm 3':6} {'Fires on':20} Reasons")
+    print("-" * 100)
+    reachable = 0
+    for scenario in scenarios:
+        findings = list(reachable_rail_findings(scenario))
+        reachable += bool(findings)
+        # Same ranking the committed projection uses — the two outputs must
+        # never name different surfaces for the same scenario.
+        fires_on = cheapest_surface(findings) or ""
+        reasons = sorted({reason for finding in findings for reason in finding.reasons})
+        if not findings:
+            # In the arm without a rail of its own: it is a partner of one.
+            fires_on = "partner" if scenario.scenario_id in in_arm else "—"
+        print(
+            f"{scenario.scenario_id:28} "
+            f"{'yes' if scenario.scenario_id in in_arm else 'no':6} "
+            f"{fires_on:20} {', '.join(reasons)}"
+        )
+    pairs = {scenario.pair_id for scenario in scenarios if scenario.pair_id}
+    pairs_in_arm = {
+        scenario.pair_id
+        for scenario in scenarios
+        if scenario.pair_id and scenario.scenario_id in in_arm
+    }
+    print(
+        f"\n{reachable} rail-reachable, {len(in_arm)} in the enforced arm, "
+        f"of {len(scenarios)} scenarios ({len(pairs_in_arm)} of {len(pairs)} pairs)."
+    )
+    print("Committed copy: data/answer_keys/phase2_enforcement_scope.json")
     return 0
 
 
@@ -1729,6 +1841,19 @@ def build_parser() -> argparse.ArgumentParser:
             "account tier."
         ),
     )
+    phase2_eval_parser.add_argument(
+        "--enforcement-scope",
+        choices=["rail_reachable", "all"],
+        default="rail_reachable",
+        help=(
+            "Which scenarios tool_constraints runs on. Default rail_reachable: the "
+            "scenarios whose pay rail can refuse a payment their world offers, plus "
+            "their pair partners (168 of the 226 v2 scenarios). In the other 58 the "
+            "engine never fires, so the arm re-measures structured_policy at full "
+            "episode cost. Pass 'all' for the full cross-product. no_policy and "
+            "structured_policy always run every selected scenario."
+        ),
+    )
     phase2_eval_parser.add_argument("--scenario-ids", default=None, help="Comma-separated scenario ids.")
     phase2_eval_parser.add_argument(
         "--scenario-set",
@@ -1777,6 +1902,21 @@ def build_parser() -> argparse.ArgumentParser:
         help="List resumable Phase 2 runs (what --resume can be pointed at).",
     )
     phase2_checkpoints_parser.set_defaults(func=phase2_checkpoints_command)
+
+    phase2_scope_parser = subparsers.add_parser(
+        "phase2-scope",
+        help=(
+            "Per scenario: whether the tool_constraints rail can refuse a payment "
+            "its world offers, what the agent has to do first, and whether the "
+            "enforced arm runs it."
+        ),
+    )
+    phase2_scope_parser.add_argument(
+        "--scenario-set",
+        default=None,
+        help="Markdown scenario-set path. Default: data/scenario_sets/v2_250_scenarios.md.",
+    )
+    phase2_scope_parser.set_defaults(func=phase2_scope_command)
 
     phase2_survey_parser = subparsers.add_parser(
         "phase2-survey",
