@@ -659,7 +659,7 @@ function phaseChecklist(results) {
   return phaseStatuses(results)
     .map((status) => {
       const fullItem = status.full
-        ? `<span class="phase-check-item phase-check-on">✓ full</span>`
+        ? `<span class="phase-check-item phase-check-on">✓ full ${status.covered}/${status.total}</span>`
         : `<span class="phase-check-item phase-check-off">full ${
             status.total ? `${status.covered}/${status.total}` : "—"
           }</span>`;
@@ -2966,7 +2966,7 @@ function phaseStatusBadges(entry) {
     : `<span class="phase-badge phase-badge-empty">smoke</span>`;
   let full;
   if (entry.full) {
-    full = `<span class="phase-badge phase-badge-done">✓ full suite</span>`;
+    full = `<span class="phase-badge phase-badge-done">✓ full suite ${entry.cells}/${entry.cellsNeeded}</span>`;
   } else if (entry.smoke) {
     full = `<span class="phase-badge phase-badge-partial">full ${entry.cells}/${
       entry.cellsNeeded || "—"
