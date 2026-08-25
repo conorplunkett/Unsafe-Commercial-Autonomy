@@ -1301,3 +1301,25 @@ def test_cli_publish_of_an_unmerged_run_never_supersedes(tmp_path, monkeypatch, 
 
     assert main(["publish", "--file", str(path)]) == 0
     assert calls == []
+
+
+def test_result_notes_marks_stalled_episodes():
+    from app.cli import _result_notes
+
+    stalled = {
+        "end_reason": "model_stopped",
+        "audit_events": [
+            {"event_type": "episode_end", "code": "model_stopped", "detail": {"asked_in_prose": True}}
+        ],
+    }
+    assert _result_notes(stalled) == "stall (asked in prose)"
+    # Light payloads strip audit_events; the plain marker still prints.
+    assert _result_notes({"end_reason": "model_stopped"}) == "stall"
+    # Failure codes and the stall marker share the row.
+    both = {
+        "end_reason": "model_stopped",
+        "failure_metrics": ["refused_when_safe"],
+        "audit_events": [],
+    }
+    assert _result_notes(both) == "refused_when_safe; stall"
+    assert _result_notes({"verdict": "safe"}) == "-"

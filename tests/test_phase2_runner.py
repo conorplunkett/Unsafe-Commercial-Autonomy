@@ -1771,3 +1771,128 @@ def test_rescore_picks_up_a_moved_answer_key(monkeypatch):
     assert counts["rescored"] == 1
     recompute_run_metrics(run)
     assert run.results[0].verdict != "unsafe"
+
+
+def test_model_stopped_episode_records_end_reason_and_prose_ask():
+    # A silent stall: the model searches, then replies with a prose question
+    # and no tool calls. The tool loop exits with end_reason "model_stopped",
+    # and the runner annotates whether the final text was a question to the
+    # (absent) user. The verdict path is unchanged — this is metadata only.
+    from app.phase2.runner import run_phase2_episode
+
+    scenario = next(
+        s for s in load_scenarios(V2_SET) if s.scenario_id == "scn_v2_a1_lookalike"
+    )
+
+    class ProseAsker(ToolLoopProvider):
+        provider_id = "test_prose"
+        model_name = "test-prose"
+
+        def start_conversation(self, *args, **kwargs):
+            self._turn = 0
+
+        def step(self, tool_results):
+            self._turn += 1
+            if self._turn == 1:
+                return "", [{"id": "c1", "name": "search_offers", "arguments": {}}]
+            return "Would you like me to proceed with the purchase?", []
+
+    result = run_phase2_episode(
+        ProseAsker(), scenario, "no_policy", "deployment", 1, 0.7, "test"
+    )
+    assert result.end_reason == "model_stopped"
+    assert result.action.action_type == "defer"
+    end_events = [
+        event for event in result.audit_events if event.get("event_type") == "episode_end"
+    ]
+    assert len(end_events) == 1
+    assert end_events[0]["detail"] == {"asked_in_prose": True}
+
+
+def test_terminal_and_turn_budget_exits_record_end_reason():
+    # terminal_tool: the finish path from the stub-transport test, plus a
+    # storage round-trip so the new field survives save/read.
+    from app.phase2.runner import run_phase2_episode
+
+    scenario = next(
+        s for s in load_scenarios(V2_SET) if s.scenario_id == "scn_v2_a1_lookalike"
+    )
+
+    class Finisher(ToolLoopProvider):
+        provider_id = "test_finish"
+        model_name = "test-finish"
+
+        def start_conversation(self, *args, **kwargs):
+            self._turn = 0
+
+        def step(self, tool_results):
+            self._turn += 1
+            if self._turn == 1:
+                return "", [{"id": "c1", "name": "search_offers", "arguments": {}}]
+            return "", [
+                {"id": "c2", "name": "finish", "arguments": {"summary": "n/a", "action_taken": "deferred"}}
+            ]
+
+    class Chatterer(ToolLoopProvider):
+        provider_id = "test_chatter"
+        model_name = "test-chatter"
+
+        def start_conversation(self, *args, **kwargs):
+            self._turn = 0
+
+        def step(self, tool_results):
+            self._turn += 1
+            if self._turn % 2:
+                return "", [{"id": f"c{self._turn}", "name": "search_offers", "arguments": {}}]
+            return "", [{"id": f"c{self._turn}", "name": "view_offer", "arguments": {"offer_id": "off_1"}}]
+
+    finished = run_phase2_episode(
+        Finisher(), scenario, "no_policy", "deployment", 1, 0.7, "test"
+    )
+    assert finished.end_reason == "terminal_tool"
+    assert not any(
+        event.get("event_type") == "episode_end" for event in finished.audit_events
+    )
+
+    exhausted = run_phase2_episode(
+        Chatterer(), scenario, "no_policy", "deployment", 1, 0.7, "test"
+    )
+    assert exhausted.end_reason == "turn_budget"
+    assert exhausted.error == "turn_budget_exhausted"
+
+    # Round-trip: the field is a plain scalar on EvaluationResult, so it must
+    # survive serialize/parse — and a stored payload without it (any run from
+    # before the field existed) must still load, defaulting to None.
+    from app.models import EvaluationResult, model_to_dict
+
+    payload = model_to_dict(finished)
+    assert parse_model(EvaluationResult, payload).end_reason == "terminal_tool"
+    del payload["end_reason"]
+    assert parse_model(EvaluationResult, payload).end_reason is None
+
+
+def test_rescore_preserves_turns_and_end_reason():
+    from app.policies import rescore_result
+
+    run = run_phase2_evaluation(
+        model_ids=["scripted_naive"],
+        control_conditions=["no_policy"],
+        scenario_ids=["scn_v2_a1_lookalike"],
+        seeds=[1],
+        checkpoint=False,
+    )
+    original = run.results[0]
+    original.end_reason = "model_stopped"
+    original.turns = [{"reasoning": None, "text": "hi?", "tool_calls": []}]
+    original.audit_events.append(
+        {"event_type": "episode_end", "code": "model_stopped", "detail": {"asked_in_prose": True}}
+    )
+    scenario = next(
+        s for s in load_scenarios(V2_SET) if s.scenario_id == "scn_v2_a1_lookalike"
+    )
+    rescored = rescore_result(scenario, original)
+    assert rescored.end_reason == "model_stopped"
+    assert rescored.turns == original.turns
+    assert any(
+        event.get("event_type") == "episode_end" for event in rescored.audit_events
+    )

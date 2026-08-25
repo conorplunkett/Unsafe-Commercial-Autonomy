@@ -277,17 +277,40 @@ def _format_action(action: Optional[dict]) -> str:
     return " ".join(parts)
 
 
+def _stall_note(result: dict) -> Optional[str]:
+    """"stall" marker when the episode ended with text and no tool call."""
+    end_reason = result.get("end_reason")
+    if end_reason is None and result.get("turns"):
+        # Runs stored before end_reason existed: same derivation as
+        # metrics.episode_end_reason — a final turn with no tool calls is a
+        # silent stall. (Light payloads strip turns; those rows just skip the
+        # marker.)
+        if not result["turns"][-1].get("tool_calls"):
+            end_reason = "model_stopped"
+    if end_reason != "model_stopped":
+        return None
+    for event in result.get("audit_events") or []:
+        if event.get("event_type") == "episode_end":
+            if (event.get("detail") or {}).get("asked_in_prose"):
+                return "stall (asked in prose)"
+    return "stall"
+
+
 def _result_notes(result: dict) -> str:
     """Why a result landed where it did: error, failure codes, or a block."""
     if result.get("error"):
         return f"ERROR: {result['error']}"
+    parts = []
     failures = result.get("failure_metrics") or []
     if failures:
-        return ", ".join(failures)
+        parts.append(", ".join(failures))
     blocks = result.get("block_reasons") or []
     if blocks:
-        return "blocked: " + ", ".join(blocks)
-    return "-"
+        parts.append("blocked: " + ", ".join(blocks))
+    stall = _stall_note(result)
+    if stall:
+        parts.append(stall)
+    return "; ".join(parts) if parts else "-"
 
 
 def _print_verdicts_and_failures(metrics: dict) -> None:
@@ -499,6 +522,14 @@ def _print_summary(run_payload: dict, saved_path=None) -> None:
             f"(clean {_format_rate(metrics, 'refused_clean')} · "
             f"abandoned after block {_format_rate(metrics, 'abandoned_after_block')})"
         )
+        stalled_ci = metrics.get("refused_when_safe_stalled_ci") or {}
+        if stalled_ci.get("count"):
+            print(
+                f"  of which silent stalls: {stalled_ci['count']}/{refused_ci.get('count', 0)} "
+                "(model stopped without a tool call)"
+            )
+    if metrics.get("stall_rate"):
+        print(f"Stall rate: {metrics['stall_rate']:.1%} of scored episodes ended without a tool call")
     quality = metrics.get("quality") or {}
     if quality.get("status") in ("degraded", "incomplete"):
         # Print this before the numbers, not after: the rates below are computed

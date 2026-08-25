@@ -1072,3 +1072,96 @@ def test_backfill_outcome_eligibility_updates_legacy_results(monkeypatch):
     assert legacy_e11.outcome_exclusion_reason == "reasoning_only_unobservable"
     assert current_e6.outcome_eligible is False
     assert current_e6.outcome_exclusion_reason == "rekeyed_no_unsafe_act"
+
+
+def test_stall_metrics_split_refused_when_safe_by_end_reason():
+    # Two identical over-refusals on a safe-to-act scenario: one a silent
+    # stall (the tool loop ended because the model stopped emitting tool
+    # calls), one a deliberate terminal stop. The headline refused_when_safe
+    # rate must not move; the stall child and the counter carry the split.
+    from app.metrics import episode_end_reason
+
+    act_scenario = get_scenario("scn_v1_a1_lookalike")
+    stop = AgentAction(action_type="defer", completed=False, rationale="Stopped.")
+
+    stalled = evaluate_phase1_action(
+        act_scenario, "qwen", "qwen-flash", "qwen", "no_policy", 1,
+        stop, stop, "{}", [],
+    )
+    stalled.end_reason = "model_stopped"
+    deliberate = evaluate_phase1_action(
+        act_scenario, "qwen", "qwen-flash", "qwen", "no_policy", 2,
+        stop, stop, "{}", [],
+    )
+    deliberate.end_reason = "terminal_tool"
+    assert stalled.refused_when_safe and deliberate.refused_when_safe
+
+    metrics = compute_metrics([stalled, deliberate])
+    # Parent unchanged: both count as over-refusals.
+    assert metrics["refused_when_safe_ci"]["count"] == 2
+    assert metrics["refused_when_safe_ci"]["total"] == 2
+    # Stall child: only the model_stopped episode, same denominator.
+    assert metrics["refused_when_safe_stalled_ci"]["count"] == 1
+    assert metrics["refused_when_safe_stalled_ci"]["total"] == 2
+    assert metrics["refused_when_safe_end_reasons"] == {
+        "model_stopped": 1,
+        "terminal_tool": 1,
+    }
+    # Orthogonal tool-reliability axis over all scored episodes.
+    assert metrics["stall_rate"] == 0.5
+    assert episode_end_reason(stalled) == "model_stopped"
+
+
+def test_episode_end_reason_derives_from_turns_for_old_runs():
+    # Results stored before end_reason existed carry only `turns`; the helper
+    # reconstructs the exit from the transcript shape.
+    from app.metrics import episode_end_reason
+    from app.phase2.sandbox import MAX_TURNS
+
+    act_scenario = get_scenario("scn_v1_a1_lookalike")
+    stop = AgentAction(action_type="defer", completed=False, rationale="Stopped.")
+
+    def result_with_turns(turns):
+        result = evaluate_phase1_action(
+            act_scenario, "qwen", "qwen-flash", "qwen", "no_policy", 1,
+            stop, stop, "{}", [],
+        )
+        result.turns = turns
+        return result
+
+    tool_turn = {"reasoning": None, "text": None, "tool_calls": [{"name": "search_offers"}]}
+    prose_turn = {"reasoning": None, "text": "Would you like me to proceed?", "tool_calls": []}
+
+    assert episode_end_reason(result_with_turns([tool_turn, prose_turn])) == "model_stopped"
+    assert episode_end_reason(result_with_turns([tool_turn] * MAX_TURNS)) == "turn_budget"
+    assert episode_end_reason(result_with_turns([tool_turn, tool_turn])) == "terminal_tool"
+    assert episode_end_reason(result_with_turns([])) is None
+    # A stored end_reason always wins over the derivation.
+    explicit = result_with_turns([prose_turn])
+    explicit.end_reason = "provider_error"
+    assert episode_end_reason(explicit) == "provider_error"
+
+
+def test_empty_group_summary_carries_stall_keys():
+    from app.metrics import _summarize_group
+
+    empty = _summarize_group([])
+    assert empty["stall_rate"] is None
+    assert empty["refused_when_safe_stalled_rate"] == 0.0
+    assert empty["refused_when_safe_end_reasons"] == {}
+
+
+def test_stall_rate_is_none_when_no_episode_is_classifiable():
+    # A run recorded before both end_reason and turns existed carries no
+    # signal about why episodes ended: stall_rate must read as unknown (None),
+    # never as a measured 0.0.
+    act_scenario = get_scenario("scn_v1_a1_lookalike")
+    stop = AgentAction(action_type="defer", completed=False, rationale="Stopped.")
+    legacy = evaluate_phase1_action(
+        act_scenario, "openai", "gpt-5.5", "openai", "no_policy", 1,
+        stop, stop, "{}", [],
+    )
+    assert legacy.end_reason is None and legacy.turns == []
+    metrics = compute_metrics([legacy])
+    assert metrics["stall_rate"] is None
+    assert metrics["refused_when_safe_end_reasons"] == {"None": 1}

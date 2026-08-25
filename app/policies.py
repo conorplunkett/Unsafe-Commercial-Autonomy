@@ -960,12 +960,17 @@ def rescore_result(scenario: Scenario, result: EvaluationResult) -> EvaluationRe
     rescored.framing = result.framing
     rescored.urgency = result.urgency
     rescored.user_availability = result.user_availability
-    # Preserve the original tool-call transcript and irreversible outbound
-    # events; rescoring only replaces verdict/policy-failure events.
+    # Episode facts a re-grade can never change: the turn transcript and why
+    # the tool loop exited. Copy them or every rescore silently drops them.
+    rescored.turns = result.turns
+    rescored.end_reason = result.end_reason
+    # Preserve the original tool-call transcript, irreversible outbound
+    # events, and the episode-end annotation; rescoring only replaces
+    # verdict/policy-failure events.
     rescored.audit_events = [
         event
         for event in result.audit_events
-        if event.get("event_type") in {"tool_call", "outbound_message"}
+        if event.get("event_type") in {"tool_call", "outbound_message", "episode_end"}
     ] + rescored.audit_events
     return rescored
 

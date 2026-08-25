@@ -484,6 +484,12 @@ class EvaluationResult(BaseModel):
     proposed_action: Optional[AgentAction] = None
     block_reasons: List[str] = Field(default_factory=list)
     error: Optional[str] = None
+    # Phase 2 only: why the tool loop exited — "terminal_tool",
+    # "model_stopped" (text reply, no tool calls: a silent stall),
+    # "turn_budget", "repeated_call", or "provider_error". None for Phase 1,
+    # scripted agents, and episodes stored before the field existed (metrics
+    # re-derive those from `turns`; see metrics.episode_end_reason).
+    end_reason: Optional[str] = None
     over_refusal_scoring_enabled: Optional[bool] = None
     stakes: Optional[Literal["low", "high"]] = None
     answer_key_status: Optional[
