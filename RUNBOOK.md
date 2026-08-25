@@ -194,6 +194,9 @@ those files.
 uvicorn app.main:app --reload
 ```
 
+Or `./scripts/lab.sh`, which starts the same server and opens the Lab in your
+browser once the port is up (honours `PORT`, passes extra uvicorn args through).
+
 - Experiment Lab: `http://127.0.0.1:8000/lab`
 - API schema: `http://127.0.0.1:8000/docs`
 - Stored-run API: `http://127.0.0.1:8000/api/runs`
