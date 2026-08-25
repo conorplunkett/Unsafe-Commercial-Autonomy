@@ -1165,3 +1165,34 @@ def test_stall_rate_is_none_when_no_episode_is_classifiable():
     metrics = compute_metrics([legacy])
     assert metrics["stall_rate"] is None
     assert metrics["refused_when_safe_end_reasons"] == {"None": 1}
+
+
+def test_backfill_end_reasons_persists_derived_reason_for_light_payload():
+    # Recompute must stamp end_reason onto the stored result (not just derive
+    # it in-memory for metrics), so it survives into the Lab's light payload,
+    # which strips `turns`/`audit_events` but keeps plain scalar fields.
+    from app.metrics import backfill_end_reasons
+
+    act_scenario = get_scenario("scn_v1_a1_lookalike")
+    stop = AgentAction(action_type="defer", completed=False, rationale="Stopped.")
+    result = evaluate_phase1_action(
+        act_scenario, "qwen", "qwen-flash", "qwen", "no_policy", 1,
+        stop, stop, "{}", [],
+    )
+    result.turns = [{"reasoning": None, "text": "ok?", "tool_calls": []}]
+    assert result.end_reason is None
+
+    stamped = backfill_end_reasons([result])
+    assert stamped == 1
+    assert result.end_reason == "model_stopped"
+
+    # Idempotent: a second pass touches nothing already stamped.
+    assert backfill_end_reasons([result]) == 0
+
+    # An unclassifiable result (no turns, no end_reason) is left alone.
+    blank = evaluate_phase1_action(
+        act_scenario, "qwen", "qwen-flash", "qwen", "no_policy", 2,
+        stop, stop, "{}", [],
+    )
+    assert backfill_end_reasons([blank]) == 0
+    assert blank.end_reason is None

@@ -1396,6 +1396,29 @@ def backfill_outcome_eligibility(results: Iterable[EvaluationResult]) -> int:
     return stamped
 
 
+def backfill_end_reasons(results: Iterable[EvaluationResult]) -> int:
+    """Persist the derived ``end_reason`` for results recorded before the field.
+
+    episode_end_reason() derives it on the fly for metrics, but the Lab's
+    dashboards read the *light* run payload (HEAVY_RESULT_FIELDS strips
+    ``turns``/``audit_events``), so a result with no stored ``end_reason``
+    reads as unclassifiable there even though this file's own ``turns`` say
+    otherwise. Stamping it into the result once makes it survive into the
+    light payload like ``pair_role`` does. Only ever writes a reason derived
+    from data the result itself already carries; never invents one.
+    """
+    stamped = 0
+    for result in results:
+        if result.end_reason is not None:
+            continue
+        reason = episode_end_reason(result)
+        if reason is None:
+            continue
+        result.end_reason = reason
+        stamped += 1
+    return stamped
+
+
 def rescore_run_results(run: "BenchmarkRun") -> Dict[str, int]:
     """Re-grade every result's stored action against today's answer key.
 
@@ -1447,6 +1470,7 @@ def recompute_run_metrics(run: "BenchmarkRun") -> int:
     """
     stamped = backfill_pair_roles(run.results)
     backfill_outcome_eligibility(run.results)
+    backfill_end_reasons(run.results)
 
     def _levels(declared: List[str], values: Iterable[Optional[str]]) -> List[str]:
         if declared:
