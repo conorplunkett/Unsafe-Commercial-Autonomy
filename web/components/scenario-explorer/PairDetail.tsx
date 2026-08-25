@@ -10,12 +10,22 @@ function pairIsLocked(pair: ScenarioPair): boolean {
   return pair.trap.semantic_only || pair.lookalike.semantic_only;
 }
 
+// Status badges in the Experiment Lab's language (see static/lab.css
+// `.phase-badge`): a soft filled pill for an active state, a hollow neutral
+// pill for its absence -- sentence case in the sans face, not the mono
+// uppercase tags used elsewhere in the explorer.
+const BADGE_BASE =
+  "inline-flex items-center rounded-full px-2.5 py-1 text-caption";
+const BADGE_GOOD = "bg-accent/10 font-semibold text-accent";
+const BADGE_NEUTRAL = "border border-border font-medium text-muted";
+const BADGE_ALERT = "bg-danger/10 font-semibold text-danger";
+
 function EditabilityPill({ pair }: { pair: ScenarioPair }) {
   if (pairIsLocked(pair)) {
     return (
       <span
         title="On the preference survey -- never edit this scenario or its pair-mate"
-        className="inline-block w-fit rounded-full border border-danger/40 bg-danger/10 px-2.5 py-0.5 font-mono text-caption uppercase tracking-wider text-danger"
+        className={`${BADGE_BASE} ${BADGE_ALERT}`}
       >
         Locked
       </span>
@@ -24,7 +34,7 @@ function EditabilityPill({ pair }: { pair: ScenarioPair }) {
   return (
     <span
       title="Not on the preference survey -- safe to edit"
-      className="inline-block w-fit rounded-full border border-border px-2.5 py-0.5 font-mono text-caption uppercase tracking-wider text-muted"
+      className={`${BADGE_BASE} ${BADGE_NEUTRAL}`}
     >
       Editable
     </span>
@@ -54,11 +64,7 @@ function EnforcedPill({ pair }: { pair: ScenarioPair }) {
           ? "tool_constraints runs this pair -- the rail can refuse a payment somewhere in it"
           : "tool_constraints skips this pair -- no structured field its world offers trips the rail"
       }
-      className={`inline-block w-fit rounded-full border px-2.5 py-0.5 font-mono text-caption uppercase tracking-wider ${
-        enforced
-          ? "border-accent/40 bg-accent/10 text-accent"
-          : "border-border text-muted"
-      }`}
+      className={`${BADGE_BASE} ${enforced ? BADGE_GOOD : BADGE_NEUTRAL}`}
     >
       {enforced ? "Arm 3 enforced" : "Arm 3 skipped"}
     </span>
@@ -74,11 +80,7 @@ function SurveyKeyedPill({ pair }: { pair: ScenarioPair }) {
           ? "The preference survey has concluded and locked this pair's answer key"
           : "The preference survey has not locked this pair's answer key yet"
       }
-      className={`inline-block w-fit rounded-full border px-2.5 py-0.5 font-mono text-caption uppercase tracking-wider ${
-        keyed
-          ? "border-accent/40 bg-accent/10 text-accent"
-          : "border-border text-muted"
-      }`}
+      className={`${BADGE_BASE} ${keyed ? BADGE_GOOD : BADGE_NEUTRAL}`}
     >
       {keyed ? "Survey keyed" : "Not survey keyed"}
     </span>
@@ -107,10 +109,7 @@ export function PairDetail({
           </span>
         </div>
 
-        {/* Fixed three-column grid so each pill keeps its slot as you move
-            between pairs, instead of reflowing when its label or width
-            changes with the pair's status. */}
-        <div className="mt-2 grid grid-cols-2 gap-2 sm:max-w-2xl sm:grid-cols-3">
+        <div className="mt-2 flex flex-wrap gap-2">
           <EditabilityPill pair={pair} />
           <SurveyKeyedPill pair={pair} />
           <EnforcedPill pair={pair} />
