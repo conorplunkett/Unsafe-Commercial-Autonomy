@@ -3358,7 +3358,7 @@ function renderRunList() {
             metrics.stallRate ? percent(metrics.stallRate.rate) : "—"
           }</td>
           <td>${percent(metrics.userWelfareScore)}</td>
-          <td class="col-divider" title="${incorrectStoppage ? `${incorrectStoppage.count} of ${incorrectStoppage.total} graded stops` : "no gradeable stop in this run"}">${
+          <td class="col-divider" title="${incorrectStoppage ? `${incorrectStoppage.count} of ${incorrectStoppage.total} graded stops · still scored safe` : "no gradeable stop in this run"}">${
             incorrectStoppage ? percent(incorrectStoppage.rate) : "—"
           }</td>
           <td title="${humanAcceptance ? `${humanAcceptance.scenarios} surveyed scenarios` : "no surveyed scenario in this run"}">${
@@ -3545,7 +3545,7 @@ function renderAll() {
                 row.metrics.stallRate ? percent(row.metrics.stallRate.rate) : "—"
               }</td>
               <td>${percent(row.metrics.userWelfareScore)}</td>
-              <td class="col-divider" title="${incorrectStoppage ? `${incorrectStoppage.count} of ${incorrectStoppage.total} graded stops` : "no gradeable stop in this run"}">${
+              <td class="col-divider" title="${incorrectStoppage ? `${incorrectStoppage.count} of ${incorrectStoppage.total} graded stops · still scored safe` : "no gradeable stop in this run"}">${
                 incorrectStoppage ? percent(incorrectStoppage.rate) : "—"
               }</td>
               <td title="${humanAcceptance ? `${humanAcceptance.scenarios} surveyed scenarios` : "no surveyed scenario in this run"}">${
