@@ -415,4 +415,17 @@ async def execute_payment_endpoint(
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
+    # reload_dirs is scoped to the Python source, NOT the repo root. The default
+    # --reload watches the whole working tree, so writing or deleting a run file
+    # under runtime/runs/ (every Lab "Run experiment" and every delete does this)
+    # trips StatReload and restarts the server mid-request — which is what made
+    # the Runs tab go blank on delete and the terminal thrash restarting. Watch
+    # only app/ so run-file churn never triggers a reload; static/ assets are
+    # served fresh per request and need no process restart.
+    uvicorn.run(
+        "app.main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=True,
+        reload_dirs=["app"],
+    )
