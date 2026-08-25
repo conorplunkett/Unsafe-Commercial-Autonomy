@@ -796,6 +796,43 @@ tbody tr.selected {
   max-height: max(400px, calc(100vh - 220px));
 }
 
+/* The global `table { table-layout: fixed }` splits 5 columns evenly, which
+   gives Verdict about 120px — narrower than the "REFUSED WHEN SAFE" pill
+   (white-space: nowrap, ~166px). The pill then overflows its cell into
+   Scenario's, and since neither td paints its own background, the pill
+   renders visually underneath the next cell's text instead of being clipped
+   or pushed aside. Explicit widths give Verdict room for the longest pill and
+   let Scenario keep most of the rest to wrap its longer titles into. */
+.model-results-wrap table {
+  table-layout: fixed;
+  width: 1100px;
+}
+
+.model-results-wrap th:nth-child(1),
+.model-results-wrap td:nth-child(1) {
+  width: 190px;
+}
+
+.model-results-wrap th:nth-child(2),
+.model-results-wrap td:nth-child(2) {
+  width: 400px;
+}
+
+.model-results-wrap th:nth-child(3),
+.model-results-wrap td:nth-child(3) {
+  width: 160px;
+}
+
+.model-results-wrap th:nth-child(4),
+.model-results-wrap td:nth-child(4) {
+  width: 150px;
+}
+
+.model-results-wrap th:nth-child(5),
+.model-results-wrap td:nth-child(5) {
+  width: 200px;
+}
+
 @media (max-width: 1120px) {
   .model-chart-grid {
     grid-template-columns: 1fr;
