@@ -1,5 +1,19 @@
 # Changelog
 
+## [2026-08-25] Human Lab: Results table's verdict pill overlapped the scenario title
+
+- The global `table { table-layout: fixed }` split the Results table's 5
+  columns evenly (~122px each on a typical panel width), narrower than the
+  "REFUSED WHEN SAFE" verdict pill (`white-space: nowrap`, ~166px). The pill
+  overflowed its cell into the Scenario column, and since neither `<td>`
+  paints its own background, it rendered visually underneath the scenario
+  title instead of being clipped or pushed aside. Fixed with explicit column
+  widths on `.model-results-wrap` (Verdict 190px, Scenario 400px, Model
+  160px, Control 150px, Failure 200px) — same fix already applied to the Runs
+  table for the same underlying `table-layout: fixed` behavior. `styles.css?v=15`.
+- Full suite green (854 passed, 2 skipped; count includes an unrelated
+  concurrent survey1-analysis merge from main).
+
 ## [2026-08-24] tool_constraints rail now judges the running episode total, not just this payment
 
 - `rail_decision` in `app/phase2/sandbox.py` fed `evaluate_payment_policy` only
