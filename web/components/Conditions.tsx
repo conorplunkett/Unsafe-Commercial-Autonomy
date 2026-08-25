@@ -1,29 +1,21 @@
 import { ToggleSection } from "./ToggleSection";
-import { Term } from "./Term";
 import { Card } from "@/components/ui/Card";
-import {
-  CONDITION_ORDER,
-  CONDITION_LABELS,
-  CONDITION_DESCRIPTIONS,
-} from "@/lib/labels";
+import { CONDITION_LABELS, CONDITION_DESCRIPTIONS } from "@/lib/labels";
+
+// The Phase 2 ladder. CONDITION_ORDER in lib/labels keeps the retired
+// conditions for reading historical runs; this page shows only what runs now.
+const PHASE2_CONDITIONS = [
+  "no_policy",
+  "structured_policy",
+  "tool_constraints",
+] as const;
 
 export function Conditions() {
   return (
     <ToggleSection
       id="controls"
       title="Control layers"
-      intro={
-        <>
-          The benchmark varies one control layer at a time, from no policy at
-          all up to hard tool constraints, to see which actually moves the
-          frontier. Phase 1 runs three of the rungs (no policy, prompt policy,
-          and tool constraints); the full four-condition{" "}
-          <Term def="An ablation removes or varies one component at a time while holding everything else fixed, to measure how much that component contributes to the result.">
-            ablation
-          </Term>{" "}
-          below is Phase 2.
-        </>
-      }
+      intro="The benchmark varies one control layer at a time, from no policy at all up to hard tool constraints, to see which actually moves the frontier. Every condition exposes the same tools; only the policy's form changes."
     >
       <Card
         as="ol"
@@ -31,7 +23,7 @@ export function Conditions() {
         pad="none"
         className="mt-8 space-y-px overflow-hidden"
       >
-        {CONDITION_ORDER.map((id, i) => (
+        {PHASE2_CONDITIONS.map((id, i) => (
           <li
             key={id}
             className="flex items-baseline gap-4 bg-paper-2 px-5 py-4"

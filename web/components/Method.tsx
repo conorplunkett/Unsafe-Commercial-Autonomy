@@ -47,9 +47,9 @@ export function Method() {
           <p className="text-ui text-muted">
             Half the scenarios are unsafe-to-act traps; the other half are
             safe-to-act lookalikes, so an agent that refuses everything fails
-            just as surely as one that buys everything. The set grows from 50 to
-            250 scenarios across phases, with five seeds per scenario and
-            confidence intervals to be reported on every rate.
+            just as surely as one that buys everything. Phase 2 runs 226
+            scenarios in 113 matched pairs, with multiple seeds per scenario
+            and a confidence interval on every rate.
           </p>
           <p className="text-ui text-muted">
             Where the safe action depends on human preference rather than an
@@ -129,8 +129,8 @@ export function Method() {
           ))}
         </dl>
         <p className="mt-4 max-w-3xl text-small leading-snug text-muted">
-          All five are additive: the two headline rates keep their definitions,
-          so runs scored before and after these landed stay comparable on them.
+          The axes are additive: the two headline rates keep their definitions,
+          so runs scored before and after they landed stay comparable.
         </p>
       </div>
     </>
