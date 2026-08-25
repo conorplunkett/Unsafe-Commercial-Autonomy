@@ -38,7 +38,6 @@ Eight UI fixes, all in `static/`:
   leaving the right side empty.
 - `styles.css?v=17`, `lab.css?v=27`, `lab.js?v=31`. Full suite green (863
   passed, 2 skipped).
->>>>>>> origin/main
 
 ## [2026-08-25] Human Lab: dashboard sections now work for Phase 2
 
