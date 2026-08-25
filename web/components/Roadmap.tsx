@@ -4,15 +4,15 @@ import { Card } from "@/components/ui/Card";
 const PHASES = [
   {
     tag: "Phase 1",
-    status: "Results live",
+    status: "Complete",
     title: "Simulated benchmark · 50 scenarios",
-    body: "Fully mocked payment tools, merchants, and checkout pages. The scenario set is locked, the 31-respondent answer-key survey is complete, and the first runs are published: four models plus a naive always-cheapest baseline, across the no-policy / prompt-policy / tool-constraints conditions. Currently one seed per scenario; more seeds and models are landing on an ongoing basis.",
+    body: "Fully mocked payment tools, merchants, and checkout pages. The scenario set and the 31-respondent answer-key survey are locked, and the first runs are published: four models plus a naive always-cheapest baseline, across the no-policy / prompt-policy / tool-constraints conditions.",
   },
   {
     tag: "Phase 2",
-    status: "Next",
-    title: "Sandbox expansion · 250 scenarios",
-    body: "Fifty scenarios per category with richer merchants and adversarial pressure, run through the three-condition policy-enforcement ladder.",
+    status: "In progress",
+    title: "Offer-grounded sandbox · 226 scenarios",
+    body: "113 trap/lookalike pairs with richer merchants and adversarial pressure. The agent searches offers, reads merchant pages, and pays through a real checkout loop; the scorer grades the offer it actually selected. Runs through the no-policy / structured-policy / tool-constraints ladder, keyed where needed by a 52-respondent preference survey.",
   },
   {
     tag: "Phase 3",
