@@ -10,6 +10,13 @@ const state = {
   // toggle flips instead of only ever offering Phase 1 scenarios.
   phase2Scenarios: [],
   scenarioIndex: new Map(),
+  // Scenario ids GET /api/phase2/enforcement-scope says the tool_constraints
+  // condition's pay rail can actually intervene on (app/phase2/scope.py
+  // enforcement_scope_ids) — smaller than the full Phase 2 set, since most
+  // scenarios have nothing for the rail to refuse. Used to size
+  // tool_constraints' share of the "cells needed" total instead of assuming
+  // it covers every scenario the way no_policy and structured_policy do.
+  enforcementScope: new Set(),
   allResults: [],
   runList: [],
   // run_id -> run_id of the merged run that pooled it (app/merge.py). Every
@@ -559,24 +566,63 @@ function phaseTotal(phaseNumber) {
   return total;
 }
 
+// A Phase 2 run stored before the enforcement-scope axis existed ran
+// tool_constraints on every scenario by construction (the old grid had one
+// shared scenario list for all three conditions), so a missing value reads
+// as "all" — the same compatibility rule app/merge.py
+// _effective_enforcement_scope applies when merging runs.
+function effectiveEnforcementScope(result) {
+  return result.run_enforcement_scope || "all";
+}
+
+// tool_constraints is Phase 2's one enforced condition (app/phase2/scope.py
+// ENFORCED_CONDITIONS): under the default "rail_reachable" scope it only
+// ever runs on the scenarios its pay rail can actually intervene on
+// (state.enforcementScope, from GET /api/phase2/enforcement-scope) plus
+// their paired lookalikes — not every scenario, unlike no_policy and
+// structured_policy. A run stored under the "all" scope (or predating the
+// scope axis entirely) is the exception: it ran tool_constraints on
+// everything, so its share of "cells needed" stays the full scenarioTotal.
+// `enforcementScopes` disagreeing across the results being measured — which
+// app/merge.py already refuses to pool into one run — falls back to the
+// full count rather than guess which one to shrink toward.
+function phase2CellsNeeded(scenarioTotal, enforcementScopes) {
+  const unenforced = 2 * scenarioTotal; // no_policy, structured_policy: every scenario
+  const singleScope = enforcementScopes.size === 1 ? [...enforcementScopes][0] : null;
+  const toolConstraintsNeeded =
+    singleScope === "rail_reachable" ? Math.min(scenarioTotal, state.enforcementScope.size) : scenarioTotal;
+  return unenforced + toolConstraintsNeeded;
+}
+
 // One entry per phase touched by these results. Completion is measured in
 // scenario×condition CELLS, not scenarios: the full suite is every scenario
-// run under every one of the 3 control conditions, so a phase of 50 scenarios
-// needs 50×3 = 150 cells. `covered`/`total` are those cells (so the fraction
-// can never read "50/50" while conditions are still missing — it reads
-// "50/150"). `scenarios`/`conditions` expose each dimension for labels.
+// run under every control condition that applies to it. Phase 1's 3
+// conditions all run on every scenario, so a phase of 50 scenarios needs
+// 50×3 = 150 cells. Phase 2's tool_constraints doesn't (see
+// phase2CellsNeeded), so a 226-scenario Phase 2 phase needs 226+226+168 =
+// 620 cells today, not 226×3 = 678. `covered`/`total` are those cells (so
+// the fraction can never read "50/50" while conditions are still missing).
+// `scenarios`/`conditions` expose each dimension for labels.
 function phaseStatuses(results) {
   const byPhase = new Map();
   for (const result of results) {
     const phase = scenarioPhaseNumber(result.scenario_id) || "?";
     if (!byPhase.has(phase)) {
-      byPhase.set(phase, { scenarios: new Set(), conditions: new Set(), cells: new Set() });
+      byPhase.set(phase, {
+        scenarios: new Set(),
+        conditions: new Set(),
+        cells: new Set(),
+        enforcementScopes: new Set(),
+      });
     }
     const entry = byPhase.get(phase);
     entry.scenarios.add(result.scenario_id);
     if (result.control_condition) {
       entry.conditions.add(result.control_condition);
       entry.cells.add(`${result.scenario_id}::${result.control_condition}`);
+      if (result.control_condition === "tool_constraints") {
+        entry.enforcementScopes.add(effectiveEnforcementScope(result));
+      }
     }
   }
   return [...byPhase.entries()]
@@ -584,7 +630,10 @@ function phaseStatuses(results) {
     .map(([phase, entry]) => {
       const scenarioTotal = phase === "?" ? 0 : phaseTotal(phase);
       const conditionTotal = conditionsForPhase(phase).length;
-      const total = scenarioTotal * conditionTotal; // cells needed
+      const total =
+        phase === "2"
+          ? phase2CellsNeeded(scenarioTotal, entry.enforcementScopes)
+          : scenarioTotal * conditionTotal; // cells needed
       const covered = entry.cells.size; // cells covered
       const full = total > 0 && covered >= total;
       return {
@@ -610,14 +659,14 @@ function phaseChecklist(results) {
   return phaseStatuses(results)
     .map((status) => {
       const fullItem = status.full
-        ? `<span class="phase-check-item phase-check-on">✓ full</span>`
+        ? `<span class="phase-check-item phase-check-on">✓ full ${status.covered}/${status.total}</span>`
         : `<span class="phase-check-item phase-check-off">full ${
             status.total ? `${status.covered}/${status.total}` : "—"
           }</span>`;
       return `
         <div class="phase-check" title="Phase ${status.phase}: ${
           status.total
-            ? `${status.covered}/${status.total} scenario×condition cells (${status.scenarios}/${status.scenarioTotal} scenarios × ${status.conditions}/${status.conditionTotal} conditions)`
+            ? `${status.covered}/${status.total} scenario×condition cells; ${status.scenarios}/${status.scenarioTotal} scenarios and ${status.conditions}/${status.conditionTotal} conditions covered`
             : "custom scenario set"
         }">
           <span class="phase-check-label">Phase ${status.phase}</span>
@@ -1460,6 +1509,14 @@ async function refreshData() {
       state.surveyFloor = floor;
     }
     for (const result of run.results) {
+      // Stamped onto the shared result object (not just the state.allResults
+      // copy below) so phaseChecklist(run.results) — the Runs table's
+      // per-run badge, called straight off this array — sees it too.
+      // Denormalized from the run so per-result completeness math
+      // (phase2CellsNeeded) can tell a scope-limited tool_constraints result
+      // apart from a pre-scoping run's full-cross-product one without a
+      // separate run_id -> run lookup.
+      result.run_enforcement_scope = run.enforcement_scope ?? null;
       state.allResults.push({ ...result, run_id: run.run_id, run_created_at: run.created_at });
     }
   }
@@ -2863,8 +2920,12 @@ function phasesBreakdown() {
   return knownPhaseIds().map((phase) => {
     const scenarioTotal = phase === "?" ? 0 : phaseTotal(phase);
     const conditionTotal = conditionsForPhase(phase).length;
-    const cellsNeeded = scenarioTotal * conditionTotal;
     const all = byPhase.get(phase) || [];
+    const enforcementScopes = new Set(
+      all.filter((r) => r.control_condition === "tool_constraints").map(effectiveEnforcementScope)
+    );
+    const cellsNeeded =
+      phase === "2" ? phase2CellsNeeded(scenarioTotal, enforcementScopes) : scenarioTotal * conditionTotal;
     const coveredScenarios = new Set(all.map((r) => r.scenario_id)).size;
     const conditions = new Set(all.map((r) => r.control_condition).filter(Boolean));
     // Full suite = every scenario×condition cell covered, so the phase-level
@@ -2905,7 +2966,7 @@ function phaseStatusBadges(entry) {
     : `<span class="phase-badge phase-badge-empty">smoke</span>`;
   let full;
   if (entry.full) {
-    full = `<span class="phase-badge phase-badge-done">✓ full suite</span>`;
+    full = `<span class="phase-badge phase-badge-done">✓ full suite ${entry.cells}/${entry.cellsNeeded}</span>`;
   } else if (entry.smoke) {
     full = `<span class="phase-badge phase-badge-partial">full ${entry.cells}/${
       entry.cellsNeeded || "—"
@@ -3629,6 +3690,14 @@ async function init() {
   try {
     state.scenarios = await fetchJson("/api/scenarios");
     state.phase2Scenarios = await fetchJson("/api/phase2/scenarios").catch(() => []);
+    // Live-computed scope (app/phase2/scope.py enforcement_scope_ids), not the
+    // committed drift-detection snapshot — see the endpoint's own comment.
+    // Missing on fetch failure just means completeness math falls back to
+    // treating tool_constraints like the other two conditions.
+    const enforcementScope = await fetchJson("/api/phase2/enforcement-scope").catch(() => ({
+      in_enforced_arm: [],
+    }));
+    state.enforcementScope = new Set(enforcementScope.in_enforced_arm);
     for (const scenario of [...state.scenarios, ...state.phase2Scenarios]) {
       state.scenarioIndex.set(scenario.scenario_id, scenario);
     }

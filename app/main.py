@@ -222,6 +222,24 @@ def list_phase2_scenarios():
     return [model_to_dict(scenario) for scenario in load_scenarios(PHASE2_SCENARIO_SET)]
 
 
+@app.get("/api/phase2/enforcement-scope")
+def phase2_enforcement_scope():
+    # Which scenario ids tool_constraints actually runs on under the default
+    # "rail_reachable" scope: the reachable-scenario pair closure
+    # (app/phase2/scope.py), not every scenario in the set. The Lab's
+    # completeness math (static/lab.js phaseStatuses/phasesBreakdown) needs
+    # this live count to size tool_constraints' denominator correctly instead
+    # of assuming it covers every scenario the way no_policy and
+    # structured_policy do. Computed from the live scenario catalogue, not
+    # the committed drift-detection snapshot
+    # (data/answer_keys/phase2_enforcement_scope.json) — nothing at runtime
+    # should read that file, since it can go stale relative to this.
+    from .phase2 import PHASE2_SCENARIO_SET, enforcement_scope_ids
+
+    scenarios = load_scenarios(PHASE2_SCENARIO_SET)
+    return {"in_enforced_arm": sorted(enforcement_scope_ids(scenarios))}
+
+
 @app.get("/api/scenarios/{scenario_id}")
 def read_scenario(scenario_id: str):
     try:
