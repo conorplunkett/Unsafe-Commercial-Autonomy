@@ -654,29 +654,31 @@ details.runner-card[open] > summary.runner-card-heading h2::before {
 #section-runs td:nth-child(8),
 #section-runs th:nth-child(9),
 #section-runs td:nth-child(9),
-#section-runs th:nth-child(11),
-#section-runs td:nth-child(11),
+#section-runs th:nth-child(10),
+#section-runs td:nth-child(10),
 #section-runs th:nth-child(12),
 #section-runs td:nth-child(12),
-#section-runs th:nth-child(14),
-#section-runs td:nth-child(14) {
+#section-runs th:nth-child(13),
+#section-runs td:nth-child(13),
+#section-runs th:nth-child(15),
+#section-runs td:nth-child(15) {
   width: 72px;
 }
 
-#section-runs th:nth-child(10),
-#section-runs td:nth-child(10),
-#section-runs th:nth-child(13),
-#section-runs td:nth-child(13) {
+#section-runs th:nth-child(11),
+#section-runs td:nth-child(11),
+#section-runs th:nth-child(14),
+#section-runs td:nth-child(14) {
   width: 84px;
-}
-
-#section-runs th:nth-child(15),
-#section-runs td:nth-child(15) {
-  width: 68px;
 }
 
 #section-runs th:nth-child(16),
 #section-runs td:nth-child(16) {
+  width: 68px;
+}
+
+#section-runs th:nth-child(17),
+#section-runs td:nth-child(17) {
   width: 80px;
 }
 
