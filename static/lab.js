@@ -78,6 +78,16 @@ const state = {
   // "phase1_fallback" one, so a mixed load never pins the Phase 1 fallback
   // once a real Phase 2 floor exists in any loaded run.
   surveyFloor: null,
+  // The reflexive-ask floor bucketed by phase ("1"/"2"), so the survey-grounded
+  // axes read the floor for the phase the dashboard is focused on rather than a
+  // single global one. Populated in refreshData from each run's floor.source
+  // ("phase2" -> "2", "phase1"/"phase1_fallback" -> "1"). state.surveyFloor is
+  // kept as the phase-agnostic "prefer Phase 2" pick other code still reads.
+  surveyFloorByPhase: {},
+  // Which phase the By-model / Axes / Splits / Failure-modes sections are scoped
+  // to. Default Phase 2 (the only phase actively run now). Separate from
+  // state.phase, which drives the run form and nothing else.
+  dashboardPhase: "2",
   // Failure modes panel is closed by default and expensive to build (groups
   // every scored result by failure code), so renderFailureChart only caches
   // the current result set here — the actual chart is painted lazily, on
@@ -132,6 +142,7 @@ for (const id of [
   "keysStatus",
   "keysFields",
   "modelSectionMeta",
+  "dashPhaseChips",
   "modelDashboard",
   "chartUnsafe",
   "chartRefusal",
@@ -681,21 +692,6 @@ function phaseChecklist(results) {
 // Filter a result set to a single phase's scenarios.
 function resultsInPhase(results, phase) {
   return results.filter((result) => (scenarioPhaseNumber(result.scenario_id) || "?") === phase);
-}
-
-// Which phase the by-model charts should report for a model. The headline
-// number is the highest phase this model has *completed* (full suite), so an
-// in-progress higher phase never dilutes a finished lower one. If nothing is
-// complete yet, fall back to the highest phase that has any data, flagged
-// partial, so the model still appears rather than silently vanishing.
-function displayPhaseFor(results) {
-  const statuses = phaseStatuses(results);
-  if (!statuses.length) return null;
-  const byNumber = (a, b) => Number(b.phase) - Number(a.phase);
-  const complete = statuses.filter((status) => status.full).sort(byNumber);
-  if (complete.length) return { ...complete[0], complete: true };
-  const highest = [...statuses].sort(byNumber)[0];
-  return { ...highest, complete: false };
 }
 
 // Errored results carry a synthetic fallback action, not a real model
@@ -1492,6 +1488,7 @@ async function refreshData() {
   state.runList = [];
   state.allResults = [];
   state.surveyFloor = null;
+  state.surveyFloorByPhase = {};
   // Fresh light copies replace every result object, so pending transcript
   // fetches against the old ones must not land — new Map identity is the
   // signal ensureEpisodeDetail uses to drop them.
@@ -1507,6 +1504,26 @@ async function refreshData() {
     // exists in any loaded run.
     if (floor && (!state.surveyFloor || (state.surveyFloor.source !== "phase2" && floor.source === "phase2"))) {
       state.surveyFloor = floor;
+    }
+    // Bucket the floor by phase so the axes can show the floor for whichever
+    // phase the dashboard is focused on. "phase2" -> "2"; a Phase 1 or
+    // provisional Phase-1-fallback floor -> "1"; if the source is opaque, fall
+    // back to the phase of the run's own scenarios. Within a phase, a real
+    // floor supersedes a phase1_fallback one.
+    if (floor) {
+      const floorPhase =
+        floor.source === "phase2"
+          ? "2"
+          : floor.source === "phase1" || floor.source === "phase1_fallback"
+            ? "1"
+            : scenarioPhaseNumber((run.results[0] || {}).scenario_id);
+      const existing = floorPhase && state.surveyFloorByPhase[floorPhase];
+      if (
+        floorPhase &&
+        (!existing || (existing.source === "phase1_fallback" && floor.source !== "phase1_fallback"))
+      ) {
+        state.surveyFloorByPhase[floorPhase] = floor;
+      }
     }
     for (const result of run.results) {
       // Stamped onto the shared result object (not just the state.allResults
@@ -1549,12 +1566,14 @@ function supersededMap(runs) {
   return map;
 }
 
-// Best single complete run for a model: a run only counts as "full" if that
-// run *alone* covers every scenario×condition cell for a phase — merging
-// cells across several separate runs would let a pile of partial runs
-// masquerade as one finished one. Among runs that each complete the same
-// highest phase, a run with more seeds takes precedence over one with fewer.
-function bestCompleteRun(results) {
+// Best available run for a model *within a single phase*: among a model's runs,
+// pick the one whose phaseStatuses entry for `phase` covers the most cells,
+// ties broken by more seeds — headline metrics come from one run, never several
+// blended into an inflated N. Partial runs qualify (Phase 2's grid is large and
+// rarely fully covered by a single run), tagged with their coverage rather than
+// hidden. Returns null if no run has any results in this phase. Cell counts come
+// only from phaseStatuses (the decoupling seam) — no math here.
+function bestRunForPhase(results, phase) {
   const byRun = new Map();
   for (const result of results) {
     if (!byRun.has(result.run_id)) byRun.set(result.run_id, []);
@@ -1562,44 +1581,49 @@ function bestCompleteRun(results) {
   }
   let best = null;
   for (const runResults of byRun.values()) {
+    const status = phaseStatuses(runResults).find((entry) => entry.phase === phase);
+    if (!status) continue;
     const seeds = new Set(runResults.map((result) => result.seed)).size;
-    for (const status of phaseStatuses(runResults)) {
-      if (!status.full) continue;
-      const candidate = { ...status, complete: true, results: runResults, seeds };
-      const better =
-        !best ||
-        Number(candidate.phase) > Number(best.phase) ||
-        (Number(candidate.phase) === Number(best.phase) && candidate.seeds > best.seeds);
-      if (better) best = candidate;
-    }
+    const candidate = { ...status, complete: status.full, results: runResults, seeds };
+    const better =
+      !best ||
+      candidate.covered > best.covered ||
+      (candidate.covered === best.covered && candidate.seeds > best.seeds);
+    if (better) best = candidate;
   }
   return best;
 }
 
-function modelGroups() {
+function modelGroups(phase) {
   const groups = new Map();
   for (const result of state.allResults) {
     const label = modelLabel(result);
     if (!groups.has(label)) groups.set(label, []);
     groups.get(label).push(result);
   }
-  const rows = [...groups.entries()].map(([label, results]) => {
-    // Headline metrics come from a single complete run, so the charts and
-    // Models table never blend several separate runs (some possibly partial)
-    // into one inflated N. The full cross-phase, cross-run picture lives in
-    // the Phases section below.
-    const best = bestCompleteRun(results);
-    const display = best || displayPhaseFor(results);
-    const displayResults = best ? best.results : display ? resultsInPhase(results, display.phase) : results;
-    return {
+  const rows = [];
+  for (const [label, results] of groups.entries()) {
+    // Only models with data in the focused phase get a row; the full
+    // cross-phase, cross-run picture lives in the Phases section above.
+    const phaseResults = resultsInPhase(results, phase);
+    if (phaseResults.length === 0) continue;
+    // Headline metrics come from a single run (the most-covered one for this
+    // phase), so the charts and Models table never blend several separate runs
+    // into one inflated N. Partial runs are shown, tagged with their coverage.
+    const best = bestRunForPhase(results, phase);
+    const display = best || { phase, complete: false, covered: 0, total: 0 };
+    const displayResults = best
+      ? resultsInPhase(best.results, phase)
+      : phaseResults;
+    rows.push({
       label,
       results,
       displayResults,
       display,
       runs: new Set(displayResults.map((result) => result.run_id)).size,
       metrics: summarize(displayResults),
-    };
-  });
+    });
+  }
   rows.sort(compareModelRows);
   return rows;
 }
@@ -1759,29 +1783,30 @@ function renderSurveyAxes(rows) {
     // Refusing more often than the median respondent is the failure here, so
     // the positive side is the bad one — the opposite of ask calibration.
     positiveIsGood: false,
-    note: (metrics) =>
-      state.surveyFloor
+    note: (metrics) => {
+      const floor = currentFloor();
+      return floor
         ? `refused ${percent(metrics.refusedWhenSafeRate)} against a ${percent(
-            state.surveyFloor.rate
+            floor.rate
           )} human floor${floorCaveat()}`
-        : "no survey floor in the loaded runs",
+        : "no survey floor in the loaded runs";
+    },
   });
 
   const surveyedScenarios = new Set(
-    state.allResults
+    resultsInPhase(state.allResults, state.dashboardPhase)
       .filter((result) => result.human_preferred_share != null)
       .map((result) => result.scenario_id)
   ).size;
-  const parts = [];
+  const parts = [`Phase ${state.dashboardPhase}`];
   parts.push(
     surveyedScenarios
       ? `${surveyedScenarios} surveyed scenario${surveyedScenarios === 1 ? "" : "s"}`
-      : "no surveyed scenario in the loaded runs"
+      : "no surveyed scenario"
   );
-  if (state.surveyFloor) {
-    parts.push(
-      `${percent(state.surveyFloor.rate)} reflexive-ask floor (n=${state.surveyFloor.total})${floorCaveat()}`
-    );
+  const floor = currentFloor();
+  if (floor) {
+    parts.push(`${percent(floor.rate)} reflexive-ask floor (n=${floor.total})${floorCaveat()}`);
   }
   els.axesSectionMeta.textContent = parts.join(" · ");
 }
@@ -1790,10 +1815,16 @@ function renderSurveyAxes(rows) {
 // reported before Phase 2's own floor was collected (app.phase2.survey.
 // floor_for_phase2). "phase1"/"phase2" need no caveat -- both are exactly
 // what they claim to be.
+// The reflexive-ask floor for the phase the dashboard is focused on, or null if
+// no loaded run carries one for that phase. The survey-grounded axes read this
+// so the floor always matches the phase whose models are on screen.
+function currentFloor() {
+  return (state.surveyFloorByPhase && state.surveyFloorByPhase[state.dashboardPhase]) || null;
+}
+
 function floorCaveat() {
-  return state.surveyFloor && state.surveyFloor.source === "phase1_fallback"
-    ? " · Phase 1, provisional"
-    : "";
+  const floor = currentFloor();
+  return floor && floor.source === "phase1_fallback" ? " · Phase 1, provisional" : "";
 }
 
 // Refusal read against the human reflexive-ask floor: the share of surveyed
@@ -1801,8 +1832,9 @@ function floorCaveat() {
 // purchase. Negative means the agent stops less often than the median
 // respondent. Null until a loaded run carries the floor.
 function floorExcess(metrics) {
-  if (!state.surveyFloor) return null;
-  return metrics.refusedWhenSafeRate - state.surveyFloor.rate;
+  const floor = currentFloor();
+  if (!floor) return null;
+  return metrics.refusedWhenSafeRate - floor.rate;
 }
 
 // Display names for the verdict enum. The raw values already read cleanly once
@@ -3266,7 +3298,7 @@ function renderRunList() {
           <td title="${askCalibration ? `agent ${percent(askCalibration.agentAskRate)} vs human ${percent(askCalibration.humanAskRate)} ask-rate` : "not enough surveyed scenarios to correlate"}">${
             correlation(askCalibration && askCalibration.r)
           }</td>
-          <td title="${state.surveyFloor ? `${percent(metrics.refusedWhenSafeRate)} against a ${percent(state.surveyFloor.rate)} human floor${floorCaveat()}` : "no survey floor in the loaded runs"}">${
+          <td title="${currentFloor() ? `${percent(metrics.refusedWhenSafeRate)} against a ${percent(currentFloor().rate)} human floor${floorCaveat()}` : "no survey floor in the loaded runs"}">${
             signedPercent(floorExcess(metrics))
           }</td>
           <td class="col-divider">${errorCell}</td>
@@ -3349,16 +3381,13 @@ function renderAll() {
   renderPhases();
   renderRunList();
 
-  // The headline charts and Models table are a verified leaderboard, not a
-  // progress tracker — a model with only a partial run has an unreliable,
-  // non-comparable rate (small/skewed sample), so it's excluded here rather
-  // than shown next to finished models with a caveat easy to miss. Partial
-  // models are still fully visible in the Phases section above. Computed
-  // unconditionally (safe on an empty result set) so the modelFilter reset
-  // below runs before Results is built from it.
-  const allRows = modelGroups();
-  const rows = allRows.filter((row) => row.display && row.display.complete);
-  const incompleteCount = allRows.length - rows.length;
+  // The headline charts and Models table are scoped to the focused phase and
+  // show every model with data there — partial runs included, each tagged with
+  // its coverage — since Phase 2's grid is rarely fully covered by one run.
+  // Computed unconditionally (safe on an empty result set) so the modelFilter
+  // reset below runs before Results is built from it.
+  const rows = modelGroups(state.dashboardPhase);
+  const partialCount = rows.filter((row) => row.display && !row.display.complete).length;
   if (state.modelFilter && !rows.some((row) => row.label === state.modelFilter)) {
     state.modelFilter = null;
   }
@@ -3411,13 +3440,11 @@ function renderAll() {
     return;
   }
 
+  const phaseResultCount = resultsInPhase(state.allResults, state.dashboardPhase).length;
   els.modelSectionMeta.textContent =
-    `${state.allResults.length} results · ${state.runList.length} run${
-      state.runList.length === 1 ? "" : "s"
-    } · ${rows.length} model${rows.length === 1 ? "" : "s"} complete` +
-    (incompleteCount
-      ? ` · ${incompleteCount} still partial (see Phases above)`
-      : "");
+    `Phase ${state.dashboardPhase} · ${rows.length} model${rows.length === 1 ? "" : "s"} · ${phaseResultCount} result${
+      phaseResultCount === 1 ? "" : "s"
+    }` + (partialCount ? ` · ${partialCount} partial` : "");
 
   renderModelChart(rows, els.chartUnsafe, "unsafePaymentRate");
   renderModelChart(rows, els.chartRefusal, "refusedWhenSafeRate");
@@ -3455,17 +3482,17 @@ function renderAll() {
               <td title="${askCalibration ? `agent ${percent(askCalibration.agentAskRate)} vs human ${percent(askCalibration.humanAskRate)} ask-rate` : "not enough surveyed scenarios to correlate"}">${
                 correlation(askCalibration && askCalibration.r)
               }</td>
-              <td title="${state.surveyFloor ? `${percent(row.metrics.refusedWhenSafeRate)} against a ${percent(state.surveyFloor.rate)} human floor${floorCaveat()}` : "no survey floor in the loaded runs"}">${
+              <td title="${currentFloor() ? `${percent(row.metrics.refusedWhenSafeRate)} against a ${percent(currentFloor().rate)} human floor${floorCaveat()}` : "no survey floor in the loaded runs"}">${
                 signedPercent(floorExcess(row.metrics))
               }</td>
             </tr>
           `;
         })
         .join("")
-    : `<tr><td colspan="14" class="empty-state">No model has a complete Phase 1/2 run yet — see Phases above for progress.</td></tr>`;
+    : `<tr><td colspan="14" class="empty-state">No Phase ${state.dashboardPhase} runs yet — switch phase, or run one.</td></tr>`;
   els.modelSummaryStamp.textContent = state.modelFilter ? "Filtered — click again to clear" : "";
 
-  renderFailureChart(filtered);
+  renderFailureChart(resultsInPhase(filtered, state.dashboardPhase));
   requestAnimationFrame(fitPanelHeights);
 }
 
@@ -3499,6 +3526,17 @@ function bindEvents() {
   els.phaseChips.addEventListener("click", (event) => {
     const chip = event.target.closest("[data-phase]");
     if (chip) pickPhase(chip.dataset.phase);
+  });
+  // Dashboard phase toggle: scopes By model / Axes / Splits / Failure modes to
+  // Phase 1 or Phase 2. Separate from the run-form phase chips above.
+  els.dashPhaseChips.addEventListener("click", (event) => {
+    const chip = event.target.closest("[data-dash-phase]");
+    if (!chip) return;
+    state.dashboardPhase = chip.dataset.dashPhase;
+    for (const button of els.dashPhaseChips.querySelectorAll("[data-dash-phase]")) {
+      button.classList.toggle("chip-on", button.dataset.dashPhase === state.dashboardPhase);
+    }
+    renderAll();
   });
   // Shared toggle handler for the three Phase 2 axis chip-rows: each is a
   // multi-select Set keyed by the chip's data-value, re-rendered from state
