@@ -1,5 +1,37 @@
 # Changelog
 
+## [2026-08-25] Human Lab: Results/Detail layout, resizable panels, and delete/label polish
+
+Eight UI fixes, all in `static/`:
+
+- **Results and Detail panels are now equal height at every window size.** The
+  grid went from `align-items: start` (each panel sized to its own content, so
+  their bottoms were ragged) back to `stretch`, with the panels as flex columns
+  and their inner scroll regions (`.detail-content` / `.model-results-wrap`)
+  `flex: 1; min-height: 0; overflow: auto`. Removed `fitPanelHeights()` (the JS
+  viewport-guess that had caused the earlier "cut off at the bottom" clip) — pure
+  CSS now, so resizing never misfires. Long content scrolls inside the panel
+  instead of clipping.
+- **Draggable splitter** between the two panels (`#paneResizer`) sets the width
+  ratio via a `--results-col` grid variable; double-click resets to 50/50, and
+  the width is remembered per browser.
+- **Deleting a run updates the table in place** — `deleteRun`/
+  `deleteSupersededRuns` prune `state` locally instead of calling
+  `refreshData()`, so no spinner, no full refetch, and no dependency on the
+  server being reachable for a re-list.
+- **"full" dropped from partial coverage labels** — `phaseChecklist` and
+  `phasesBreakdown` now say `partial 35/620`; only a full suite says `✓ full`.
+- **Runs table "Preferred"/"Acceptable" headers** widened (100px) so they no
+  longer clip to "PREFERRE"/"ACCEPTAB"; table width 1482 → 1538.
+- **The When/date column is frozen** on horizontal scroll (sticky first column
+  with opaque hover/selected backgrounds and header-corner z-layering).
+- **The Detail "Axes" block is collapsible, collapsed by default.**
+- **Fact blocks pack into multiple columns** (`.detail-facts` auto-fill grid)
+  so the Axes/Human-vote/Decision/Policy facts use the panel width instead of
+  leaving the right side empty.
+- `styles.css?v=17`, `lab.css?v=27`, `lab.js?v=31`. Full suite green (863
+  passed, 2 skipped).
+
 ## [2026-08-25] Human Lab: dashboard sections now work for Phase 2
 
 The By model / Survey-grounded axes / Splits / Failure modes sections effectively
