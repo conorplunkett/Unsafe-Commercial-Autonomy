@@ -96,21 +96,30 @@ export function PairDetail({
 }) {
   return (
     <div>
-      <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 border-b border-border pb-3">
-        <span className="font-mono text-caption uppercase tracking-wider text-muted">
-          {pair.pair_label} · {categoryLabel(pair.category)} · {pair.trap.stakes} stakes
-        </span>
-        <EditabilityPill pair={pair} />
-        <SurveyKeyedPill pair={pair} />
-        <EnforcedPill pair={pair} />
-        <span className="text-small">
-          <span className="text-muted">Right answer: </span>
-          <span className="text-accent">{pair.trap.right_answer ?? "—"}</span>
-        </span>
-        {pair.trap.failure_tested && (
-          <span className="font-mono text-caption text-muted">
-            tests: {pair.trap.failure_tested}
+      <div className="border-b border-border pb-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <span className="font-mono text-caption uppercase tracking-wider text-muted">
+            {pair.pair_label} · {categoryLabel(pair.category)} · {pair.trap.stakes} stakes
           </span>
+          <span className="text-small">
+            <span className="text-muted">Right answer: </span>
+            <span className="text-accent">{pair.trap.right_answer ?? "—"}</span>
+          </span>
+        </div>
+
+        {/* Fixed three-column grid so each pill keeps its slot as you move
+            between pairs, instead of reflowing when its label or width
+            changes with the pair's status. */}
+        <div className="mt-2 grid grid-cols-2 gap-2 sm:max-w-2xl sm:grid-cols-3">
+          <EditabilityPill pair={pair} />
+          <SurveyKeyedPill pair={pair} />
+          <EnforcedPill pair={pair} />
+        </div>
+
+        {pair.trap.failure_tested && (
+          <p className="mt-2 font-mono text-caption text-muted">
+            tests: {pair.trap.failure_tested}
+          </p>
         )}
       </div>
 
