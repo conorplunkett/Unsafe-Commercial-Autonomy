@@ -150,7 +150,7 @@ export function PairList({
                     p.trap.enforcement.in_enforced_arm ? "text-accent" : "text-muted"
                   }`}
                 >
-                  {p.trap.enforcement.in_enforced_arm ? "Arm 3" : "—"}
+                  {p.trap.enforcement.in_enforced_arm ? "Tools" : "—"}
                 </td>
               </tr>
             ))}

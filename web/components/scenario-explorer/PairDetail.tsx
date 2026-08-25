@@ -66,7 +66,7 @@ function EnforcedPill({ pair }: { pair: ScenarioPair }) {
       }
       className={`${BADGE_BASE} ${enforced ? BADGE_GOOD : BADGE_NEUTRAL}`}
     >
-      {enforced ? "Arm 3 enforced" : "Arm 3 skipped"}
+      {enforced ? "Tool constraints" : "No tool constraints"}
     </span>
   );
 }
