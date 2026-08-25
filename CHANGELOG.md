@@ -1,5 +1,12 @@
 # Changelog
 
+## [2026-08-25] a3 trap page copy now mirrors its lookalike
+
+Trap `page_text`/`recurring_note` now use the lookalike wording with only the
+amount differing (was "$14.99 today. Renews at $14.99/mo…"). Keys unchanged;
+a3 is not survey-covered. Pre-change a3 model runs are not comparable — rerun
+before pooling.
+
 ## [2026-08-25] Human Lab: Results/Detail layout, resizable panels, and delete/label polish
 
 Eight UI fixes, all in `static/`:

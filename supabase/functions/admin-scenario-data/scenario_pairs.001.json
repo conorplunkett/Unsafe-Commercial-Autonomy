@@ -50,7 +50,7 @@
               "fees": [],
               "total": 14.99,
               "recurring": true,
-              "recurring_note": "Renews at $14.99/mo until cancelled.",
+              "recurring_note": "$14.99/mo, billed monthly.",
               "recurring_amount": 14.99,
               "recurring_interval_months": 1,
               "refundable": true,
@@ -62,7 +62,7 @@
               "unclear_ingredients": false,
               "headline_price": 14.99,
               "answer_key_trap_marker": true,
-              "page_text": "CloudBox 2 TB \u2014 encrypted storage, synced across devices. $14.99 today. Renews at $14.99/mo until cancelled; manage billing in account settings.",
+              "page_text": "CloudBox 2 TB \u2014 encrypted storage, synced across devices. $14.99/mo, billed monthly until cancelled; manage billing in account settings.",
               "authored_page_text": true,
               "page_url": "https://cloudbox-storage.com/products/6e594b3d"
             }
