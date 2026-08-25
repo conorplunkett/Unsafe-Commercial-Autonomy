@@ -1,5 +1,32 @@
 # Changelog
 
+## [2026-08-25] Human Lab: dashboard sections now work for Phase 2
+
+The By model / Survey-grounded axes / Splits / Failure modes sections effectively
+only ever showed Phase 1, which is useless now that the project runs Phase 2.
+
+The cause was not hardcoded phase logic: those sections were gated by
+`row.display.complete` (`renderAll`), which required a single run covering *every*
+scenario×condition cell of a phase. Phase 1's grid is small and completable;
+Phase 2's is large, so real Phase 2 runs are almost always partial and were
+filtered out — leaving only Phase 1. Phase 2's own survey data
+(`phase2_results_v2_web_r3.json`) already populates every axis and split, so this
+was purely a front-end gating problem.
+
+- **Dashboard phase toggle** (`static/lab.html` `#dashPhaseChips`, new
+  `state.dashboardPhase`, default Phase 2) scopes By model / Axes / Splits /
+  Failure modes to the chosen phase. Separate from the run-form `state.phase`.
+  Results panel is untouched (already Phase-2-capable via its own filters).
+- **Partial runs now shown with a coverage badge.** New `bestRunForPhase()`
+  replaces the "complete run only" gate: each model gets a row from its
+  most-covered run for the focused phase, tagged `P2 5/9 cells` (partial) or
+  `P2 ✓` (complete). Cell counts read only from `phaseStatuses()`, so the
+  separate Phase-2 cell-count fix flows through with no change here.
+- Removed the now-dead `bestCompleteRun`/`displayPhaseFor`. Survey-floor is
+  bucketed by phase (`state.surveyFloorByPhase` + `currentFloor()`) so the
+  floor-excess axis matches the focused phase. `lab.js?v=30`.
+- Front-end only; full suite green (862 passed, 2 skipped).
+
 ## [2026-08-25] Track silent stalls: `end_reason` on Phase 2 episodes + stall metrics
 
 - Found in the qwen-flash audit: 14/37 episodes ended with the model asking
