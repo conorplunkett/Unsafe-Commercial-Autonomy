@@ -48,9 +48,9 @@ function ReviewToggle({
   onToggle: (next: boolean) => void;
 }) {
   return (
-    <span className="ml-auto flex items-center gap-2">
+    <span className="ml-auto flex shrink-0 items-center gap-2">
       {reviewed && reviewedAt && (
-        <span className="font-mono text-caption text-muted">
+        <span className="whitespace-nowrap font-mono text-caption text-muted">
           {compactDate(reviewedAt)}
         </span>
       )}
@@ -89,7 +89,10 @@ export function ScenarioSide({
     <Card as="article" tone="raised" className="flex flex-col gap-4">
       <div className="flex items-center gap-2">
         <RoleBadge role={scenario.pair_role} />
-        <span className="font-mono text-caption uppercase tracking-wider text-muted">
+        <span
+          title={scenario.scenario_id}
+          className="min-w-0 truncate font-mono text-caption uppercase tracking-wider text-muted"
+        >
           {scenario.scenario_id}
         </span>
         {onToggleReview && (

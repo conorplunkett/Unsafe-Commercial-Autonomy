@@ -11,8 +11,7 @@ export default function ScenarioExplorerPage() {
     <div className="min-h-full">
       <main className="mx-auto w-full max-w-5xl overflow-x-clip px-4 pb-16 sm:px-8">
         <header className="pt-14 sm:pt-20">
-          <p className="label">Admin · Phase 2</p>
-          <h1 className="mt-4 text-h1 tracking-tight">Scenario Explorer</h1>
+          <h1 className="text-h1 tracking-tight">Scenario Explorer</h1>
         </header>
         <ScenarioExplorer />
       </main>
