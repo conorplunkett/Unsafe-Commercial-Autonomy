@@ -3,6 +3,7 @@ import {
   CATEGORY_LABELS,
   answerKeyStatusLabel,
 } from "@/lib/labels";
+import { Card } from "@/components/ui/Card";
 import type { ScenarioPair } from "@/lib/scenarioExplorer";
 
 // Real values of ScenarioExplorerRecord["answer_key_status"] -- the filter
@@ -18,10 +19,10 @@ const STATUS_OPTIONS = [
   "excluded",
 ];
 
-const chip =
-  "tap rounded-full border px-3 py-1 font-mono text-caption transition-colors";
-const on = "border-accent bg-accent/10 text-accent";
-const off = "border-border text-muted hover:text-ink";
+// Matches the Episode Browser's filter controls (components/results/
+// EpisodeBrowser.tsx) so the admin surfaces read as one product.
+const selectClass =
+  "tap w-full rounded-lg border border-border bg-paper px-3 py-1.5 font-mono text-small";
 
 export function PairList({
   pairs,
@@ -48,52 +49,76 @@ export function PairList({
 }) {
   return (
     <div>
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          className={`${chip} ${category === "all" ? on : off}`}
-          onClick={() => onCategoryChange("all")}
-        >
-          All categories
-        </button>
-        {CATEGORY_ORDER.map((c) => (
-          <button
-            key={c}
-            className={`${chip} ${category === c ? on : off}`}
-            onClick={() => onCategoryChange(c)}
-          >
-            {CATEGORY_LABELS[c]}
-          </button>
-        ))}
-      </div>
+      <Card>
+        <div className="mb-3 flex items-baseline justify-between gap-3">
+          <p className="label">Filters</p>
+          <p className="font-mono text-caption tabular-nums text-muted">
+            {filtered.length} of {pairs.length} pairs
+          </p>
+        </div>
 
-      <div className="my-3 border-t border-border" />
+        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.5fr)] sm:items-end">
+          <div>
+            <label className="label" htmlFor="se-category">
+              Category
+            </label>
+            <select
+              id="se-category"
+              className={`mt-1 ${selectClass}`}
+              value={category}
+              onChange={(e) => onCategoryChange(e.target.value)}
+            >
+              <option value="all">All categories</option>
+              {CATEGORY_ORDER.map((c) => (
+                <option key={c} value={c}>
+                  {CATEGORY_LABELS[c]}
+                </option>
+              ))}
+            </select>
+          </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        {STATUS_OPTIONS.map((s) => (
-          <button
-            key={s}
-            className={`${chip} ${status === s ? on : off}`}
-            onClick={() => onStatusChange(s)}
-          >
-            {s === "all" ? "Any status" : answerKeyStatusLabel(s)}
-          </button>
-        ))}
-      </div>
+          <div>
+            <label className="label" htmlFor="se-status">
+              Status
+            </label>
+            <select
+              id="se-status"
+              className={`mt-1 ${selectClass}`}
+              value={status}
+              onChange={(e) => onStatusChange(e.target.value)}
+            >
+              {STATUS_OPTIONS.map((s) => (
+                <option key={s} value={s}>
+                  {s === "all" ? "Any status" : answerKeyStatusLabel(s)}
+                </option>
+              ))}
+            </select>
+          </div>
 
-      <input
-        type="search"
-        value={search}
-        onChange={(e) => onSearchChange(e.target.value)}
-        placeholder="Search situation text or pair"
-        className="tap mt-3 w-full rounded-lg border border-border bg-paper px-3 py-1.5 text-small"
-      />
+          <div>
+            <label className="label" htmlFor="se-search">
+              Search
+            </label>
+            <input
+              id="se-search"
+              type="search"
+              value={search}
+              onChange={(e) => onSearchChange(e.target.value)}
+              placeholder="Situation text or pair"
+              className="tap mt-1 w-full rounded-lg border border-border bg-paper px-3 py-1.5 text-small"
+            />
+          </div>
+        </div>
+      </Card>
 
-      <p className="mt-3 font-mono text-caption text-muted">
-        {filtered.length} of {pairs.length} pairs
-      </p>
-
-      <div className="mt-2 max-h-72 overflow-auto rounded-lg border border-border">
-        <table className="w-full min-w-[26rem] border-collapse text-small">
+      <div className="mt-3 max-h-72 overflow-auto rounded-2xl border border-border">
+        <table className="w-full min-w-[34rem] table-fixed border-collapse text-small">
+          <colgroup>
+            <col className="w-14" />
+            <col />
+            <col className="w-36" />
+            <col className="w-16" />
+          </colgroup>
           <tbody>
             {filtered.map((p) => (
               <tr
@@ -103,13 +128,16 @@ export function PairList({
                   selectedPairId === p.pair_id ? "bg-paper-2" : "hover:bg-paper-2"
                 }`}
               >
-                <td className="whitespace-nowrap px-3 py-2 align-top font-mono text-caption text-muted">
+                <td className="px-3 py-2 align-top font-mono text-caption text-muted">
                   {p.pair_label}
                 </td>
                 <td className="px-2 py-2 align-top leading-snug">
                   {p.trap.environment.situation}
                 </td>
-                <td className="whitespace-nowrap px-3 py-2 align-top font-mono text-caption text-muted">
+                <td
+                  title={answerKeyStatusLabel(p.trap.answer_key_status)}
+                  className="overflow-hidden text-ellipsis whitespace-nowrap px-3 py-2 align-top font-mono text-caption text-muted"
+                >
                   {answerKeyStatusLabel(p.trap.answer_key_status)}
                 </td>
                 <td
