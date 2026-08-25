@@ -460,6 +460,16 @@ actual conversation:
 4. If all 12 turns pass without a terminal tool call:
    `result.error = "turn_budget_exhausted"`.
 
+Every exit stamps `end_reason` on the episode (and the stored result):
+`"terminal_tool"` (a terminal tool set `world.done`), `"model_stopped"` (text
+reply, no tool calls — a silent stall; the runner also records an
+`episode_end` audit event noting whether that final text was a question
+addressed to the user), `"turn_budget"`, `"repeated_call"`, or
+`"provider_error"`. Verdicts and headline rates never read it — it feeds the
+`stall_rate` and `refused_when_safe_stalled_rate` breakdowns in
+`app/metrics.py`, which for pre-field runs re-derive it from the stored
+`turns` (`metrics.episode_end_reason`).
+
 Per-turn transient failures (5xx, dropped connections) retry up to
 `DEFAULT_TRANSIENT_RETRIES = 3` times on a short backoff; a 429 waits out a
 provider-supplied `Retry-After` (or a growing default) on a `RateLimitGate`

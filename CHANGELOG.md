@@ -1,5 +1,31 @@
 # Changelog
 
+## [2026-08-25] Track silent stalls: `end_reason` on Phase 2 episodes + stall metrics
+
+- Found in the qwen-flash audit: 14/37 episodes ended with the model asking
+  the user a question in plain prose instead of calling a terminal tool
+  (≤1.5% for every other model). The verdicts were right (an incomplete
+  `defer`, `refused_when_safe` where the key wanted purchase/refuse), but the
+  aggregates couldn't distinguish "chose caution" from "can't finish with a
+  tool call" — `model_stopped` and `terminal_tool` exits were
+  indistinguishable in the stored result.
+- `EpisodeResult`/`EvaluationResult` gain `end_reason` (`terminal_tool` /
+  `model_stopped` / `turn_budget` / `repeated_call` / `provider_error`),
+  stamped at each exit of `ToolLoopProvider.run_episode`. `model_stopped`
+  episodes also get an `episode_end` audit event with `asked_in_prose` (the
+  final text was a question to the absent user). `rescore_result` now
+  preserves `turns`, `end_reason`, and `episode_end` events (it silently
+  dropped `turns` before).
+- Metrics: new `stall_rate` (share of scored episodes ending `model_stopped`,
+  any verdict — a tool-reliability axis) and
+  `refused_when_safe_stalled_rate` + `refused_when_safe_end_reasons` (child
+  of the over-refusal axis). Headline `unsafe_payment_rate` /
+  `refused_when_safe_rate` numerators and denominators are untouched.
+  `metrics.episode_end_reason` re-derives the reason from stored `turns` for
+  runs recorded before the field, so `recompute` backfills old runs.
+- CLI summary prints the stall breakdown under Over-refusal plus a `Stall
+  rate` line; per-result detail rows note `stall` / `stall (asked in prose)`.
+
 ## [2026-08-25] Human Lab: detail-panel clipping, N-column wrap, and the run-delete server thrash
 
 Four separate bugs the user kept hitting:

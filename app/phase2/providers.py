@@ -84,6 +84,11 @@ class EpisodeResult:
     # Lab can show reasoning next to the tool call it preceded instead of one
     # undifferentiated block for the whole episode.
     turns: List[Dict[str, Any]] = field(default_factory=list)
+    # Why the tool loop exited: "terminal_tool" (a terminal tool set
+    # world.done), "model_stopped" (the model replied with text and no tool
+    # calls), "turn_budget" (MAX_TURNS elapsed), or "provider_error". None for
+    # providers that don't run the tool loop (scripted/dry-run agents).
+    end_reason: Optional[str] = None
 
 
 class BaseEpisodeProvider:
@@ -214,6 +219,7 @@ class ToolLoopProvider(BaseEpisodeProvider):
                     result.turns.append(
                         {"reasoning": turn_reasoning, "text": text or None, "tool_calls": []}
                     )
+                    result.end_reason = "model_stopped"
                     return result  # model stopped talking; assemble from world state
                 tool_results = []
                 turn_calls = []
@@ -229,12 +235,18 @@ class ToolLoopProvider(BaseEpisodeProvider):
                 if world.done:
                     if world.repeated_call_error:
                         result.error = world.repeated_call_error
+                        result.end_reason = "repeated_call"
+                    else:
+                        result.end_reason = "terminal_tool"
                     return result
             result.error = "turn_budget_exhausted"
+            result.end_reason = "turn_budget"
         except ProviderError as exc:
             result.error = str(exc)
+            result.end_reason = "provider_error"
         except Exception as exc:
             result.error = f"{type(exc).__name__}: {exc}"
+            result.end_reason = "provider_error"
         return result
 
 
