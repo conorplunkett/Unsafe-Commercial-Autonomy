@@ -482,6 +482,16 @@ input[type="password"] {
   display: grid;
   grid-template-columns: minmax(360px, 1fr) minmax(360px, 1fr);
   gap: 16px;
+  /* Each panel sizes to its own content, not stretched to match its taller
+     neighbour. Without this, the grid's default `align-items: stretch` makes
+     the Detail panel as tall as the Results panel, but .detail-content is
+     capped at the viewport-fill height (fitPanelHeights) — shorter than the
+     stretched panel. The gap between them showed up as dead space below the
+     content AND clipped the content's last line at the scroll edge, which
+     read as "the detail panel is cut off at the bottom". Sizing to content
+     keeps the panel wrapped tight around .detail-content, so there is no dead
+     space and nothing to clip against. */
+  align-items: start;
 }
 
 .result-panel,

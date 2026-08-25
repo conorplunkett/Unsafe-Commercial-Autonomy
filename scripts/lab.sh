@@ -28,4 +28,8 @@ fi
   done
 ) &
 
-exec "$UVICORN" app.main:app --host "$HOST" --port "$PORT" --reload "$@"
+# --reload-dir app scopes hot-reload to the Python source. A bare --reload
+# watches the whole tree, so every run written to or deleted from runtime/runs/
+# (each "Run experiment" and each delete in the Lab) restarts the server
+# mid-request — which blanked the Runs tab on delete and thrashed the terminal.
+exec "$UVICORN" app.main:app --host "$HOST" --port "$PORT" --reload --reload-dir app "$@"

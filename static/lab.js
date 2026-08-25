@@ -1417,7 +1417,26 @@ async function refreshData() {
   // already back.
   state.loading = true;
   renderAll();
-  const runList = await fetchJson("/api/runs").catch(() => []);
+  // A failed list fetch must never blank the dashboard. Before this guard, a
+  // single failed `/api/runs` (e.g. the dev server bouncing) fell through to
+  // `.catch(() => [])`, which then wiped state.runList/allResults to empty —
+  // so a hiccup mid-delete blanked the whole Runs tab until a manual page
+  // refresh. Retry a few times so a sub-second blip self-heals, and if it
+  // still fails, keep the last-good data and let the next refresh recover.
+  let runList = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      runList = await fetchJson("/api/runs");
+      break;
+    } catch (error) {
+      if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 300 * (attempt + 1)));
+    }
+  }
+  if (runList === null) {
+    state.loading = false;
+    renderAll();
+    return;
+  }
   const runs = await Promise.all(
     runList.map((meta) => fetchJson(`/api/runs/${meta.run_id}`).catch(() => null))
   );
