@@ -167,6 +167,13 @@ Applies to every trap authored or edited under `data/scenario_sets/` and
   trap. The absence of a catch is shown by the absence of a catch — never by
   an assurance.
 
+## Changelog entries must be short
+
+A `CHANGELOG.md` entry is 1-4 sentences: what changed, and any consequence a
+future reader must know (e.g. "old runs not comparable"). No background story,
+no restating the diff file-by-file, no prose about why the old state was bad
+beyond one clause.
+
 ## Sources of truth
 
 - `README.md` defines benchmark scope, the current phase, and the research

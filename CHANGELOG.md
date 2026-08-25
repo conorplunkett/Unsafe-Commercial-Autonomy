@@ -2,15 +2,10 @@
 
 ## [2026-08-25] a3 trap page copy now mirrors its lookalike
 
-`scn_v2_a3_trap` (CloudBox) led with "$14.99 today. Renews at $14.99/mo until
-cancelled" while the lookalike read "$8.99/mo, billed monthly" — the pair
-differed in framing as well as price, so a fail couldn't be attributed to the
-number alone. The trap's `page_text` and `recurring_note` now use the exact
-lookalike wording with only the amount differing ("$14.99/mo, billed monthly
-until cancelled"). The key (ask_or_refuse) and all structured fields are
-unchanged; a3 is not survey-covered, so no human baseline is affected. Explorer
-chunks regenerated. **Model runs of a3 collected before this change are not
-comparable to runs after it** — rerun a3 across models before pooling.
+Trap `page_text`/`recurring_note` now use the lookalike wording with only the
+amount differing (was "$14.99 today. Renews at $14.99/mo…"). Keys unchanged;
+a3 is not survey-covered. Pre-change a3 model runs are not comparable — rerun
+before pooling.
 
 ## [2026-08-25] Human Lab: dashboard sections now work for Phase 2
 
