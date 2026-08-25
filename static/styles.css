@@ -478,26 +478,67 @@ input[type="password"] {
   letter-spacing: 0;
 }
 
+/* Three tracks: Results | drag handle | Detail. --results-col defaults to 1fr
+   (so both panels are equal, minus the handle); the drag handler overrides it
+   with a px width and Detail's 1fr takes the rest. align-items: stretch makes
+   both panels — and the handle — the same height at every window size, so the
+   two panels always end on the same line (the earlier align-items:start sized
+   each to its own content, which left their bottoms ragged). Equal height with
+   flex-fill inner scroll regions (below) means the content never clips: a long
+   panel scrolls inside itself instead of the last line being cut off. */
 .content-grid {
   display: grid;
-  grid-template-columns: minmax(360px, 1fr) minmax(360px, 1fr);
-  gap: 16px;
-  /* Each panel sizes to its own content, not stretched to match its taller
-     neighbour. Without this, the grid's default `align-items: stretch` makes
-     the Detail panel as tall as the Results panel, but .detail-content is
-     capped at the viewport-fill height (fitPanelHeights) — shorter than the
-     stretched panel. The gap between them showed up as dead space below the
-     content AND clipped the content's last line at the scroll edge, which
-     read as "the detail panel is cut off at the bottom". Sizing to content
-     keeps the panel wrapped tight around .detail-content, so there is no dead
-     space and nothing to clip against. */
-  align-items: start;
+  grid-template-columns: var(--results-col, 1fr) auto 1fr;
+  gap: 12px;
+  align-items: stretch;
 }
 
 .result-panel,
 .detail-panel,
 .taxonomy-panel {
   overflow: hidden;
+}
+
+/* Equal-height, self-scrolling panels. flex-column so the panel's inner scroll
+   region (.model-results-wrap / .detail-content) fills the leftover height and
+   scrolls, rather than a fixed cap that could fall short of the stretched
+   panel. Bounded so a very long transcript can't push the pair past the
+   viewport; both share the cap so they stay level. */
+.result-panel,
+.detail-panel {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 120px);
+}
+
+/* Drag handle occupying the grid's middle track. Full height (the grid
+   stretches it), a thin visible bar inside a wider grab area. The drag handler
+   (lab.js) sets --results-col on .content-grid; double-click resets to 1fr. */
+.pane-resizer {
+  align-self: stretch;
+  width: 10px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: col-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+}
+
+.pane-resizer::before {
+  content: "";
+  width: 3px;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--border);
+  transition: background 0.12s ease;
+}
+
+.pane-resizer:hover::before,
+.pane-resizer.dragging::before {
+  background: var(--accent);
 }
 
 .panel-heading {
@@ -637,11 +678,11 @@ tbody tr.selected {
   display: grid;
   gap: 14px;
   padding: 16px;
-  /* Scales with the viewport instead of a flat px cap, so the panel fills
-     the available window height on a tall screen and still leaves room for
-     the page around it on a short one — a fixed cap either way reads as the
-     content being cut off rather than a box you can keep scrolling. */
-  max-height: max(480px, calc(100vh - 220px));
+  /* Fills the panel's leftover height (panel is flex-column) and scrolls its
+     own overflow — no viewport-guess cap, so it never falls short of the
+     stretched panel and clips its last line. */
+  flex: 1 1 auto;
+  min-height: 0;
   overflow: auto;
 }
 
@@ -800,10 +841,11 @@ tbody tr.selected {
 }
 
 .model-results-wrap {
-  /* Matches .detail-content's viewport-scaled cap so the Results and Detail
-     panels stay level with each other instead of the table stopping short of
-     the taller detail panel (or vice versa) on any given window size. */
-  max-height: max(400px, calc(100vh - 220px));
+  /* Fills the Results panel's leftover height (panel is flex-column) and
+     scrolls, so it stays level with the Detail panel without a viewport cap. */
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
 }
 
 /* The global `table { table-layout: fixed }` splits 5 columns evenly, which
@@ -874,6 +916,17 @@ tbody tr.selected {
 
   .content-grid {
     grid-template-columns: 1fr;
+  }
+
+  /* Panels stack; a horizontal width handle makes no sense, and the panels
+     size to their own content again (no shared-height cap on a stacked layout). */
+  .pane-resizer {
+    display: none;
+  }
+
+  .result-panel,
+  .detail-panel {
+    max-height: none;
   }
 }
 
