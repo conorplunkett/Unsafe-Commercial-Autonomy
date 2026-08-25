@@ -609,7 +609,7 @@ details.runner-card[open] > summary.runner-card-heading h2::before {
    trade is fine: a header you can read beats one squeezed to fit. */
 #section-runs table {
   table-layout: fixed;
-  width: 1460px;
+  width: 1482px;
 }
 
 #section-runs th,
@@ -637,10 +637,13 @@ details.runner-card[open] > summary.runner-card-heading h2::before {
   width: 260px;
 }
 
-/* n just holds a small integer. */
+/* n holds the scored-episode count, up to ~5 digits on a full Phase 2 grid
+   ("13560"). nowrap + enough width so "1356"/"620" never wrap to two lines the
+   way they did at 44px. */
 #section-runs th:nth-child(5),
 #section-runs td:nth-child(5) {
-  width: 44px;
+  width: 66px;
+  white-space: nowrap;
 }
 
 #section-runs th:nth-child(6),

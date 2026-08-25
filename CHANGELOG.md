@@ -1,5 +1,35 @@
 # Changelog
 
+## [2026-08-25] Human Lab: detail-panel clipping, N-column wrap, and the run-delete server thrash
+
+Four separate bugs the user kept hitting:
+
+- **Detail panel "cut off at the bottom".** The Results/Detail grid used the
+  default `align-items: stretch`, so the Detail panel was stretched to match the
+  taller Results panel, but `.detail-content` is capped at the viewport-fill
+  height (`fitPanelHeights`). The panel was therefore taller than its own
+  content: the content's last line clipped at the scroll edge with dead space
+  below it, which read as "cut off". Root cause was the stretch, not the cap —
+  fixed with `align-items: start` so each panel wraps tight around its content
+  (verified: dead space 75px → 1px, full reasoning text now visible).
+- **N column wrapping** ("1356" → "135/6", "620" → "62/0"). The Runs table's n
+  column was 44px, narrower than a 4-digit count. Widened to 66px with
+  `white-space: nowrap`; table width 1460 → 1482.
+- **Deleting a run restarted the server and blanked the Runs tab.** Run files
+  live under `runtime/runs/`, and `uvicorn --reload` (both `app/main.py`'s
+  `uvicorn.run(reload=True)` and the documented CLI) watched the whole tree — so
+  every run write/delete tripped StatReload and bounced the server mid-request.
+  Scoped hot-reload to `app/` only in `app/main.py` (`reload_dirs=["app"]`),
+  `scripts/lab.sh` (`--reload-dir app`), and the README/RUNBOOK commands.
+  Verified live: a run-file create+delete no longer reloads, an `app/` source
+  change still does.
+- **The Runs tab blanked even on a transient blip.** `refreshData` masked a
+  failed `/api/runs` fetch as an empty list, wiping `state.runList`/`allResults`
+  to empty. Now it retries a few times and, if the fetch still fails, keeps the
+  last-good data instead of blanking (verified with a stubbed refetch failure).
+- `styles.css?v=16`, `lab.css?v=26`, `lab.js?v=29`. Full suite green (854
+  passed, 2 skipped).
+
 ## [2026-08-25] Human Lab: Results table's verdict pill overlapped the scenario title
 
 - The global `table { table-layout: fixed }` split the Results table's 5

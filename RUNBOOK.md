@@ -191,8 +191,14 @@ those files.
 ## Local services
 
 ```bash
-uvicorn app.main:app --reload
+python -m app.main
 ```
+
+`python -m app.main` scopes hot-reload to `app/` only. Do not use a bare
+`uvicorn app.main:app --reload` for Lab work: its default watch covers the whole
+tree, so every run write/delete under `runtime/runs/` restarts the server
+mid-request (blanks the Runs tab, thrashes the terminal). The CLI equivalent is
+`uvicorn app.main:app --reload --reload-dir app`.
 
 - Experiment Lab: `http://127.0.0.1:8000/lab`
 - API schema: `http://127.0.0.1:8000/docs`

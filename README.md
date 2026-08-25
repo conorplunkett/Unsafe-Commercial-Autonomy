@@ -248,8 +248,13 @@ survey-import, merge, recompute, and publishing workflows are in
 Start the local Experiment Lab with:
 
 ```bash
-uvicorn app.main:app --reload
+python -m app.main
 ```
+
+(`python -m app.main` scopes `--reload` to `app/` only. Plain
+`uvicorn app.main:app --reload` watches the whole tree, so writing or deleting a
+run under `runtime/runs/` restarts the server mid-request — use
+`uvicorn app.main:app --reload --reload-dir app` if you prefer the uvicorn CLI.)
 
 Then open `http://127.0.0.1:8000/lab`. FastAPI exposes the current HTTP contract
 at `/docs`. The separate public site lives in `web/`.
