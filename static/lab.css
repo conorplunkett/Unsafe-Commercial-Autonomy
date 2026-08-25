@@ -594,8 +594,33 @@ details.runner-card[open] > summary.runner-card-heading h2::before {
      over the overflowing tail. */
   position: sticky;
   top: 0;
+  z-index: 2;
+  background: var(--surface);
+}
+
+/* Freeze the When column so the date stays readable as the wide table scrolls
+   sideways. It needs its own opaque background (transparent would let scrolled
+   columns show through) that tracks the row's hover/selected state, and a
+   z-index layering: the header row (z2) sits above the frozen body cells (z1),
+   and the corner (frozen header cell, z3) sits above both. */
+#section-runs td:nth-child(1) {
+  position: sticky;
+  left: 0;
   z-index: 1;
   background: var(--surface);
+}
+
+#section-runs th:nth-child(1) {
+  left: 0;
+  z-index: 3;
+}
+
+#section-runs tbody tr:hover td:nth-child(1) {
+  background: var(--paper-deep);
+}
+
+#section-runs tbody tr.selected td:nth-child(1) {
+  background: var(--surface-strong);
 }
 
 /* 16 columns, explicit px widths rather than %. A percentage-width column
@@ -609,7 +634,7 @@ details.runner-card[open] > summary.runner-card-heading h2::before {
    trade is fine: a header you can read beats one squeezed to fit. */
 #section-runs table {
   table-layout: fixed;
-  width: 1482px;
+  width: 1538px;
 }
 
 #section-runs th,
@@ -656,10 +681,6 @@ details.runner-card[open] > summary.runner-card-heading h2::before {
 #section-runs td:nth-child(9),
 #section-runs th:nth-child(10),
 #section-runs td:nth-child(10),
-#section-runs th:nth-child(12),
-#section-runs td:nth-child(12),
-#section-runs th:nth-child(13),
-#section-runs td:nth-child(13),
 #section-runs th:nth-child(15),
 #section-runs td:nth-child(15) {
   width: 72px;
@@ -670,6 +691,17 @@ details.runner-card[open] > summary.runner-card-heading h2::before {
 #section-runs th:nth-child(14),
 #section-runs td:nth-child(14) {
   width: 84px;
+}
+
+/* Preferred (12) and Acceptable (13) are single words wider than the 72px the
+   other rate columns use — at 72px "Preferred"/"Acceptable" overflowed and the
+   next column's opaque background painted the tail off ("PREFERRE"/"ACCEPTAB").
+   Wide enough to hold the whole word on one line. */
+#section-runs th:nth-child(12),
+#section-runs td:nth-child(12),
+#section-runs th:nth-child(13),
+#section-runs td:nth-child(13) {
+  width: 100px;
 }
 
 #section-runs th:nth-child(16),
@@ -952,26 +984,35 @@ details.runner-card[open] > summary.runner-card-heading h2::before {
 
 /* ---- Detail facts (axes, human vote) ---- */
 
+/* Pack label/value pairs into as many columns as the panel width allows,
+   instead of one pair per row with the whole right side left empty. Each fact
+   is its own flex cell so the grid can flow several across; it collapses to a
+   single column when the panel is dragged narrow. */
 .detail-facts {
   display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: 4px 12px;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 4px 20px;
   margin: 0;
   font-size: 12px;
 }
 
 .detail-fact {
-  display: contents;
+  display: flex;
+  gap: 8px;
+  min-width: 0;
 }
 
 .detail-fact dt {
   color: var(--muted);
+  flex-shrink: 0;
 }
 
 .detail-fact dd {
   margin: 0;
   color: var(--ink);
   font-variant-numeric: tabular-nums;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 /* ---- Episode audit trail (Transcript and Scoring blocks) ---- */
@@ -1117,31 +1158,41 @@ details.runner-card[open] > summary.runner-card-heading h2::before {
   color: var(--muted);
 }
 
-/* ---- Raw JSON toggle ---- */
+/* ---- Collapsible detail blocks (Raw JSON toggle, Axes) ---- */
 
-.detail-raw > summary {
+.detail-raw > summary,
+.detail-collapsible > summary {
   cursor: pointer;
   list-style: none;
 }
 
-.detail-raw > summary::-webkit-details-marker {
+.detail-raw > summary::-webkit-details-marker,
+.detail-collapsible > summary::-webkit-details-marker {
   display: none;
 }
 
 /* The summary reuses the block's h3 styling plus its own caret so the closed
    state reads like the other section headings. */
-.detail-raw > summary h3 {
+.detail-raw > summary h3,
+.detail-collapsible > summary h3 {
   display: inline;
 }
 
-.detail-raw > summary::before {
+.detail-raw > summary::before,
+.detail-collapsible > summary::before {
   content: "▸ ";
   color: var(--muted);
   font-size: 12px;
 }
 
-.detail-raw[open] > summary::before {
+.detail-raw[open] > summary::before,
+.detail-collapsible[open] > summary::before {
   content: "▾ ";
+}
+
+/* Space the facts below the summary when the Axes block is expanded. */
+.detail-collapsible[open] > .detail-facts {
+  margin-top: 8px;
 }
 
 .detail-raw h4 {

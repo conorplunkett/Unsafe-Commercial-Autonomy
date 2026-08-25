@@ -191,6 +191,7 @@ for (const id of [
   "modelDetailVerdict",
   "modelDetailContent",
   "modelResultsWrap",
+  "paneResizer",
   "runListTable",
   "runListStamp",
   "runSupersededAction",
@@ -669,9 +670,11 @@ function phaseStatuses(results) {
 function phaseChecklist(results) {
   return phaseStatuses(results)
     .map((status) => {
+      // "full" only when the suite actually is full; a partial run says
+      // "partial X/Y" so the word "full" never sits next to an incomplete count.
       const fullItem = status.full
         ? `<span class="phase-check-item phase-check-on">✓ full ${status.covered}/${status.total}</span>`
-        : `<span class="phase-check-item phase-check-off">full ${
+        : `<span class="phase-check-item phase-check-off">partial ${
             status.total ? `${status.covered}/${status.total}` : "—"
           }</span>`;
       return `
@@ -2300,7 +2303,12 @@ function axesBlock(result) {
   if (result.urgency) facts.push(factRow("Urgency", urgencyLabel(result.urgency)));
   if (result.user_availability)
     facts.push(factRow("User availability", userAvailabilityLabel(result.user_availability)));
-  return `<div class="detail-block"><h3>Axes</h3><dl class="detail-facts">${facts.join("")}</dl></div>`;
+  // Collapsed by default — the axes are reference detail, not the first thing
+  // you read on a result, so they fold away above the fold (Instruction /
+  // Decision / Reasoning) unless expanded.
+  return `<details class="detail-block detail-collapsible"><summary><h3>Axes</h3></summary><dl class="detail-facts">${facts.join(
+    ""
+  )}</dl></details>`;
 }
 
 // A table's loading placeholder: same cell shape as its "no data yet"
@@ -2848,23 +2856,6 @@ function repaintDetailIfSelected(result) {
   renderDetail(applyResultFilters(state.allResults));
 }
 
-// static/styles.css caps .detail-content/.model-results-wrap at
-// calc(100vh - 220px) as a fallback, but "220px" is a guess at how much
-// chrome sits above the panel — wrong on any window where the real number
-// differs, which reads as the panel's last line being cut off rather than
-// scrollable. This measures the panel's actual top edge and fits it to
-// what's really left above the viewport bottom, so it's never a guess.
-function fitPanelHeights() {
-  const bottomMargin = 24;
-  const minHeight = 320;
-  for (const el of [els.modelDetailContent, els.modelResultsWrap]) {
-    if (!el) continue;
-    const top = el.getBoundingClientRect().top;
-    const available = window.innerHeight - top - bottomMargin;
-    el.style.maxHeight = `${Math.max(minHeight, available)}px`;
-  }
-}
-
 function renderDetail(results) {
   const result = results.find((item) => resultKey(item) === state.selectedKey);
   const verdictEl = els.modelDetailVerdict;
@@ -3068,15 +3059,17 @@ function phaseStatusBadges(entry) {
   const smoke = entry.smoke
     ? `<span class="phase-badge phase-badge-done">✓ smoke</span>`
     : `<span class="phase-badge phase-badge-empty">smoke</span>`;
+  // "full suite" only when it actually is full; partial/empty say "partial"
+  // so the word "full" never labels an incomplete count.
   let full;
   if (entry.full) {
     full = `<span class="phase-badge phase-badge-done">✓ full suite ${entry.cells}/${entry.cellsNeeded}</span>`;
   } else if (entry.smoke) {
-    full = `<span class="phase-badge phase-badge-partial">full ${entry.cells}/${
+    full = `<span class="phase-badge phase-badge-partial">partial ${entry.cells}/${
       entry.cellsNeeded || "—"
     }</span>`;
   } else {
-    full = `<span class="phase-badge phase-badge-empty">full ${
+    full = `<span class="phase-badge phase-badge-empty">partial ${
       entry.cellsNeeded ? `0/${entry.cellsNeeded}` : "—"
     }</span>`;
   }
@@ -3387,6 +3380,26 @@ function renderRunList() {
     .join("");
 }
 
+// Drop deleted runs from in-memory state and re-render in place — no
+// refreshData(). The server DELETE already succeeded, so re-fetching the whole
+// run list (and every run's JSON) just to learn what we already know would
+// blank the table to a spinner and, if the dev server is mid-reload, hit a
+// server that isn't answering. Pruning locally keeps deletion instant and
+// independent of the server being reachable for a re-list.
+function pruneRunsLocally(runIds) {
+  const gone = new Set(runIds);
+  state.runList = state.runList.filter((run) => !gone.has(run.run_id));
+  state.allResults = state.allResults.filter((result) => !gone.has(result.run_id));
+  for (const runId of gone) state.runFilters.delete(runId);
+  state.superseded = supersededMap(state.runList);
+  // A selection pointing at a now-deleted result would otherwise linger in the
+  // Detail panel; clear it so the panel falls back to "No result selected".
+  if (state.selectedKey && !state.allResults.some((result) => resultKey(result) === state.selectedKey)) {
+    state.selectedKey = null;
+  }
+  renderAll();
+}
+
 async function deleteRun(runId, label) {
   const mergedInto = state.superseded.get(runId);
   const note = mergedInto
@@ -3403,8 +3416,7 @@ async function deleteRun(runId, label) {
   try {
     const response = await fetch(`/api/runs/${runId}`, { method: "DELETE" });
     if (!response.ok) throw new Error(`${response.status} ${await response.text()}`);
-    await refreshData();
-    renderAll();
+    pruneRunsLocally([runId]);
   } catch (error) {
     window.alert(`Could not delete run: ${error.message}`);
   }
@@ -3431,16 +3443,17 @@ async function deleteSupersededRuns() {
     return;
   }
   const failed = [];
+  const deleted = [];
   for (const runId of targets) {
     try {
       const response = await fetch(`/api/runs/${runId}`, { method: "DELETE" });
       if (!response.ok) throw new Error(`${response.status} ${await response.text()}`);
+      deleted.push(runId);
     } catch (error) {
       failed.push(`${runId}: ${error.message}`);
     }
   }
-  await refreshData();
-  renderAll();
+  if (deleted.length) pruneRunsLocally(deleted);
   if (failed.length) {
     window.alert(`Could not delete ${failed.length} run(s):\n${failed.join("\n")}`);
   }
@@ -3571,15 +3584,89 @@ function renderAll() {
   els.modelSummaryStamp.textContent = state.modelFilter ? "Filtered — click again to clear" : "";
 
   renderFailureChart(resultsInPhase(filtered, state.dashboardPhase));
-  requestAnimationFrame(fitPanelHeights);
 }
 
 /* ------------------------------------------------------------------ */
 /* Events + init                                                       */
 /* ------------------------------------------------------------------ */
 
+// Draggable width between the Results and Detail panels. The grid reads its
+// first track from `--results-col` on .content-grid; dragging writes a px width
+// there (clamped so neither panel drops below MIN), double-click resets to the
+// 1fr default, and the last width is remembered per browser. Pure layout — no
+// re-render, so dragging is smooth and never touches the data.
+const PANE_RESIZER_MIN = 320;
+const PANE_RESIZER_STORAGE = "uca_lab_results_col";
+
+function applyResultsCol(px, grid) {
+  grid.style.setProperty("--results-col", `${px}px`);
+}
+
+function bindPaneResizer() {
+  const handle = els.paneResizer;
+  const grid = handle && handle.closest(".content-grid");
+  if (!handle || !grid) return;
+
+  // Restore a saved width, but only when the panels are actually side by side
+  // (the handle is hidden and the grid is single-column on a narrow screen).
+  try {
+    const saved = Number(localStorage.getItem(PANE_RESIZER_STORAGE));
+    if (saved && handle.offsetParent !== null) applyResultsCol(saved, grid);
+  } catch (error) {
+    /* localStorage may be unavailable (private mode); the 1fr default is fine. */
+  }
+
+  let dragging = false;
+  const onMove = (event) => {
+    if (!dragging) return;
+    const rect = grid.getBoundingClientRect();
+    const handleWidth = handle.offsetWidth;
+    const max = rect.width - handleWidth - PANE_RESIZER_MIN;
+    const px = Math.max(PANE_RESIZER_MIN, Math.min(event.clientX - rect.left, max));
+    applyResultsCol(px, grid);
+  };
+  const onUp = (event) => {
+    if (!dragging) return;
+    dragging = false;
+    handle.classList.remove("dragging");
+    try {
+      handle.releasePointerCapture(event.pointerId);
+    } catch (error) {
+      /* capture may already be gone */
+    }
+    const current = grid.style.getPropertyValue("--results-col");
+    try {
+      if (current) localStorage.setItem(PANE_RESIZER_STORAGE, String(parseInt(current, 10)));
+    } catch (error) {
+      /* ignore persistence failure */
+    }
+  };
+  handle.addEventListener("pointerdown", (event) => {
+    dragging = true;
+    handle.classList.add("dragging");
+    try {
+      handle.setPointerCapture(event.pointerId);
+    } catch (error) {
+      /* not all browsers/tests support capture */
+    }
+    event.preventDefault();
+  });
+  handle.addEventListener("pointermove", onMove);
+  handle.addEventListener("pointerup", onUp);
+  handle.addEventListener("pointercancel", onUp);
+  // Double-click restores the even 1fr / 1fr split.
+  handle.addEventListener("dblclick", () => {
+    grid.style.removeProperty("--results-col");
+    try {
+      localStorage.removeItem(PANE_RESIZER_STORAGE);
+    } catch (error) {
+      /* ignore */
+    }
+  });
+}
+
 function bindEvents() {
-  window.addEventListener("resize", fitPanelHeights);
+  bindPaneResizer();
   els.runBenchmark.addEventListener("click", runExperiment);
   els.providerChips.addEventListener("click", (event) => {
     const chip = event.target.closest("[data-provider]");
