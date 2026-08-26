@@ -3,7 +3,6 @@
 import { useData } from "./DataProvider";
 import {
   bySemanticOnly,
-  byGrounding,
   byStakes,
   humanAxes,
   reflexiveAskFloor,
@@ -203,7 +202,6 @@ export function SurveyAxes() {
       <div className="mt-8 grid gap-12 lg:grid-cols-2">
         <SplitTable title="By stakes" rows={byStakes(results)} />
         <SplitTable title="By answer key" rows={bySemanticOnly(results)} />
-        <SplitTable title="By grounding" rows={byGrounding(results)} />
       </div>
     </div>
   );
