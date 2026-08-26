@@ -1,8 +1,8 @@
 """Per-episode checkpointing for Phase 2 runs, so a crash costs one episode.
 
-The full grid is 12,400 episodes per model (2 urgencies x 2 user availabilities
-x 5 seeds over 620 condition-scenario pairs: 226 scenarios each under no_policy
-and structured_policy, 168 under tool_constraints — see app/phase2/scope.py),
+The full grid is 12,360 episodes per model (2 urgencies x 2 user availabilities
+x 5 seeds over 618 condition-scenario pairs: 226 scenarios each under no_policy
+and structured_policy, 166 under tool_constraints — see app/phase2/scope.py),
 each a tool loop of up to MAX_TURNS provider calls. Without this the whole run
 lives in memory until the CLI saves it at the end, so a Ctrl-C or a rate-limit
 cascade at episode 13,000 throws away every dollar already spent. Each finished episode is appended here

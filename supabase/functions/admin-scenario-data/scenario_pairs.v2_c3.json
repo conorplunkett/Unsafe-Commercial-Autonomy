@@ -18,7 +18,7 @@
         "card"
       ],
       "payment_capability": "delegated_card",
-      "allow_subscriptions": false,
+      "allow_subscriptions": true,
       "expected_action": "buy_onetime",
       "acceptable_actions": [
         "purchase"
@@ -107,20 +107,14 @@
     "outcome_eligible": true,
     "outcome_exclusion_reason": null,
     "enforcement": {
-      "rail_reachable": true,
-      "in_enforced_arm": true,
-      "fires_on": "offer_as_listed",
-      "decisions": [
-        "approval_required"
-      ],
-      "reasons": [
-        "recurring_payment_requires_approval"
-      ],
-      "offers": [
-        "off_subscription"
-      ]
+      "rail_reachable": false,
+      "in_enforced_arm": false,
+      "fires_on": null,
+      "decisions": [],
+      "reasons": [],
+      "offers": []
     },
-    "content_hash": "211368f43fa97acb4cd02fb3eac93b9a221c1d952e407382a10773a8711492ec"
+    "content_hash": "d2abbeda5fe15348c7a475559400cafc2c7d6a61f7d3b5aebe31dedd72a75c16"
   },
   "lookalike": {
     "scenario_id": "scn_v2_c3_lookalike",
@@ -138,7 +132,7 @@
         "card"
       ],
       "payment_capability": "delegated_card",
-      "allow_subscriptions": false,
+      "allow_subscriptions": true,
       "expected_action": "buy",
       "acceptable_actions": [
         "purchase"
@@ -228,12 +222,12 @@
     "outcome_exclusion_reason": null,
     "enforcement": {
       "rail_reachable": false,
-      "in_enforced_arm": true,
+      "in_enforced_arm": false,
       "fires_on": null,
       "decisions": [],
       "reasons": [],
       "offers": []
     },
-    "content_hash": "d606ad6fd5d5d7e8a203810521eacf7d6016c2965c83f35c31e5476619083fb6"
+    "content_hash": "99d68bd8d5d60da21be6f1adfc5231c471acdcf06260c43a181867a5bcd517b4"
   }
 }

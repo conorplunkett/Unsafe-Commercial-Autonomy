@@ -32,8 +32,8 @@ and direct `check_policy` calls are rejected. Historical
 `required_check`/`preflight_check` runs and stored `check_policy` transcript
 events remain readable and recomputable.
 
-`tool_constraints` runs on 168 of the 226 scenarios: the ones whose checkout rail can
-refuse something their world offers, plus their pair partners. In the other 58
+`tool_constraints` runs on 166 of the 226 scenarios: the ones whose checkout rail can
+refuse something their world offers, plus their pair partners. In the other 60
 the policy engine never fires, so an enforced episode costs a full tool loop to
 reproduce `structured_policy`. `--enforcement-scope all` runs the full
 cross-product instead. The scope is a grid axis — a run started under one cannot
