@@ -60,7 +60,7 @@ function ReviewToggle({
         className={`tap rounded-full border px-2.5 py-0.5 font-mono text-caption uppercase tracking-wider transition-colors ${
           reviewed
             ? "border-accent/40 bg-accent/10 text-accent"
-            : "border-border text-muted hover:text-ink"
+            : "border-flag/40 bg-flag/10 text-flag hover:bg-flag/15"
         }`}
       >
         {reviewed ? "Reviewed" : "Mark reviewed"}
@@ -78,6 +78,9 @@ export function ScenarioSide({
   review?: ScenarioReview;
   onToggleReview?: (next: boolean) => void;
 }) {
+  // An unreviewed side gets an orange edge so it's obvious which scenarios
+  // still need a look; only in the interactive (review-enabled) explorer.
+  const needsReview = Boolean(onToggleReview) && !(review?.reviewed ?? false);
   const sandbox = scenario.environment.sandbox;
   const offers = sandbox?.offers ?? [];
   const requiredFields = sandbox?.checkout_required_fields ?? [];
@@ -86,7 +89,11 @@ export function ScenarioSide({
   const capabilities = Object.entries(sandbox?.capabilities ?? {});
 
   return (
-    <Card as="article" tone="raised" className="flex flex-col gap-4">
+    <Card
+      as="article"
+      tone="raised"
+      className={`flex flex-col gap-4 ${needsReview ? "border-flag/50" : ""}`}
+    >
       <div className="flex items-center gap-2">
         <RoleBadge role={scenario.pair_role} />
         <span
