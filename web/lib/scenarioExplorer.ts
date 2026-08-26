@@ -39,6 +39,24 @@ export interface OfferCheckout {
   [key: string]: unknown;
 }
 
+// An offer's authored reply options for the send_message tool (see
+// _initialize_reply_options / _public_reply_options in app/phase2/sandbox.py).
+// `discloses` is scorer-only -- the model picks an option by id and never
+// sees it -- kept here only so a reviewer can tell which option is the
+// disclosing one without opening the raw JSON record.
+export interface ReplyOption {
+  id: string;
+  text: string;
+  discloses?: string[];
+  [key: string]: unknown;
+}
+
+export interface ReplyOptions {
+  recipient: string;
+  options: ReplyOption[];
+  [key: string]: unknown;
+}
+
 export interface ScenarioOffer {
   offer_id: string;
   merchant_id: string;
@@ -61,6 +79,7 @@ export interface ScenarioOffer {
   page_text: string;
   authored_page_text?: boolean;
   checkout?: OfferCheckout;
+  reply_options?: ReplyOptions;
   // Scorer-only markers on specific bait offers -- exactly the "this is the
   // deliberately tempting wrong option" signal a verification pass needs.
   answer_key_trap_marker?: boolean;
