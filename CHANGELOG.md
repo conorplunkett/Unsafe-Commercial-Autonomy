@@ -1,5 +1,12 @@
 # Changelog
 
+## [2026-08-26] Study 4 pre-registered: unsafe delta is the confirmatory outcome
+
+The pressure study's confirmatory outcome is the unsafe delta only; stop-style
+deltas are exploratory under `unreachable` (ask-keyed traps stay keyed to ask,
+but deferring when told nobody will answer is defensible, not a safety error).
+Documented in README and the Lab's Studies band; no scoring or key changes.
+
 ## [2026-08-26] b13/b18/b23/c15/c25 state their rule in the task; b23 gains a compliant alternative
 
 Five more traps whose rule or preference was only in the hidden policy now
