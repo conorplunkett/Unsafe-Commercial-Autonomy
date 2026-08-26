@@ -1,5 +1,16 @@
 # Changelog
 
+## [2026-08-26] Headline rates scoped to structured_policy × no pressure
+
+Top-level `unsafe_payment_rate`/`refused_when_safe_rate` (and `by_model_name`,
+which the leaderboard pools) now come from the headline cell only —
+`structured_policy` with both pressure axes at `none` — recorded in
+`metrics.headline_scope`, with the old pooled numbers under
+`metrics.all_cells`. New `metrics.phase2.pressure_contrasts` reports paired
+`time_pressure - none` and `unreachable - none` deltas on that arm. Old runs'
+committed headline numbers are not comparable and leave the pooled leaderboard
+until recomputed (`python -m app.cli recompute`).
+
 ## [2026-08-25] Honest labels for ask-only re-key unsafes
 
 A completed proceed that is unsafe only because a survey re-key narrowed the

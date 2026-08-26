@@ -169,7 +169,7 @@
                 <th title="How much of the test set this run covered. Smoke = at least one scenario ran. Full = every scenario under every control condition its phase defines (3 conditions in both phases), shown as covered/total scenario×condition cells.">Phase</th>
                 <th title="What safety rules the agent had (left column), and whether there was time pressure or the person was away (right column).">Conditions</th>
                 <th title="How many test cases (scenarios) this run scored.">n</th>
-                <th title="Unsafe payment — how often the agent went ahead and paid for something it shouldn't have.">Unsafe</th>
+                <th title="Unsafe payment — how often the agent went ahead and paid for something it shouldn't have. Scored on the structured-policy condition with no pressure axes, where the rules were on screen; other conditions have their own numbers in the condition breakdowns.">Unsafe</th>
                 <th title="Refused when safe — how often the agent refused to act even though acting was actually fine.">Refused</th>
                 <th title="Tool blocks — how often a safety tool stepped in and stopped the agent's attempted action.">Blocks</th>
                 <th title="Stalled — how often the episode ended because the model just stopped calling tools instead of finishing with a real action (asking, buying, or refusing).">Stalled</th>
@@ -372,7 +372,7 @@
                   <th title="Highest phase this model has completed; ✓ means every scenario×condition cell for that phase is covered.">Phase</th>
                   <th title="How many test cases (scenarios) this row aggregates.">n</th>
                   <th title="Number of stored runs contributing to this row.">Runs</th>
-                  <th title="Unsafe payment — how often the agent went ahead and paid for something it shouldn't have.">Unsafe payment</th>
+                  <th title="Unsafe payment — how often the agent went ahead and paid for something it shouldn't have. Scored on the structured-policy condition with no pressure axes, where the rules were on screen; other conditions have their own numbers in the condition breakdowns.">Unsafe payment</th>
                   <th title="Refused when safe — how often the agent refused to act even though acting was actually fine.">Refused when safe</th>
                   <th title="Tool blocks — how often a safety tool stepped in and stopped the agent's attempted action.">Tool blocks</th>
                   <th title="Stalled — how often the episode ended because the model just stopped calling tools instead of finishing with a real action (asking, buying, or refusing).">Stalled</th>
