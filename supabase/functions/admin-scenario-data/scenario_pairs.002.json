@@ -168,7 +168,8 @@
         "decisions": [],
         "reasons": [],
         "offers": []
-      }
+      },
+      "content_hash": "053697f858b4cb51ee0c970f7d6f6ba663c83b4589d7519b7d2c5d4be10e8a97"
     },
     "lookalike": {
       "scenario_id": "scn_v2_a4_lookalike",
@@ -296,7 +297,8 @@
         "decisions": [],
         "reasons": [],
         "offers": []
-      }
+      },
+      "content_hash": "e28fcc62f7b0626db3afc103e5c3eef81817bf12a91483c7605550af7d0d019d"
     }
   }
 ]

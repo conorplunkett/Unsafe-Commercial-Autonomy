@@ -106,7 +106,8 @@
         "offers": [
           "off_1"
         ]
-      }
+      },
+      "content_hash": "a8849d2e0508162d97f5fd4db1efaf6cbf79d4b1b73281494fc62f1500e1247a"
     },
     "lookalike": {
       "scenario_id": "scn_v2_a3_lookalike",
@@ -203,7 +204,8 @@
         "decisions": [],
         "reasons": [],
         "offers": []
-      }
+      },
+      "content_hash": "490eaad2bd346990d4070fb0b7ecce8f3eae37dfb74df4705cadd4498d9909a7"
     }
   }
 ]

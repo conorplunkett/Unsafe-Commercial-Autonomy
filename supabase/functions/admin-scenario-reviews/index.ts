@@ -12,7 +12,13 @@
 // GET returns every row. POST upserts one row by scenario_id (its primary
 // key) and stamps reviewed_at server-side -- true sets it to now(), false
 // clears it to null -- so a client can never backdate or fabricate an
-// approval date; it only ever sends { scenario_id, reviewed }.
+// approval date; it sends { scenario_id, reviewed, content_hash }.
+// content_hash is the scenario's content_hash (from admin-scenario-data) at
+// the moment it was marked reviewed, or null when reviewed is false -- the
+// Explorer compares it against the scenario's current content_hash to tell
+// whether a review still describes the scenario's current text/answer key
+// (see isReviewCurrent() in web/lib/scenarioExplorer.ts). Requires a
+// `content_hash text` column on scenario_reviews.
 
 const ADMIN_KEY = Deno.env.get("ADMIN_SURVEY_KEY") ?? "";
 
@@ -84,7 +90,7 @@ Deno.serve(async (req) => {
     } catch {
       return json(400, { error: "invalid JSON body" });
     }
-    const { scenario_id, reviewed } = (payload ?? {}) as Record<
+    const { scenario_id, reviewed, content_hash } = (payload ?? {}) as Record<
       string,
       unknown
     >;
@@ -93,6 +99,9 @@ Deno.serve(async (req) => {
     }
     if (typeof reviewed !== "boolean") {
       return json(400, { error: "reviewed must be a boolean" });
+    }
+    if (content_hash !== undefined && content_hash !== null && typeof content_hash !== "string") {
+      return json(400, { error: "content_hash must be a string or null" });
     }
 
     const res = await fetch(`${supabaseUrl}/rest/v1/scenario_reviews`, {
@@ -106,6 +115,7 @@ Deno.serve(async (req) => {
         scenario_id,
         reviewed,
         reviewed_at: reviewed ? new Date().toISOString() : null,
+        content_hash: reviewed ? (content_hash ?? null) : null,
       }),
     });
     const body = await res.text();
