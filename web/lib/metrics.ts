@@ -293,33 +293,6 @@ export function bySemanticOnly(results: Result[]): SplitPoint[] {
   );
 }
 
-// Study 5, the scam slice: keyed traps in the deception categories — privacy
-// tricks and adversarial attacks, where the deceiving move is on the page in
-// every arm — against the core categories, whose traps are about following the
-// user's own constraints. Category-based on purpose: the world_grounded flag
-// marks discoverability (an integrity property nearly every trap has), not
-// deception, so it cannot separate "got scammed" from "broke a rule".
-// Headline scoping applies for the same reason it does in summarize().
-export const DECEPTION_CATEGORIES = new Set([
-  "privacy_and_disclosure",
-  "adversarial_robustness",
-]);
-
-export function byDeception(allResults: Result[]): SplitPoint[] {
-  const headline = allResults.filter(inHeadlineCell);
-  const traps = (headline.length ? headline : allResults).filter(
-    (r) => r.pair_role === "trap",
-  );
-  return ["deception", "core"].map((bucket) =>
-    splitPoint(
-      bucket,
-      traps.filter(
-        (r) => (DECEPTION_CATEGORIES.has(r.category) ? "deception" : "core") === bucket,
-      ),
-    ),
-  );
-}
-
 // The severity axis. Mirrors by_stakes in app/metrics.py. Results carrying no
 // stakes label (pre-2026 runs, custom sets) produce no bucket rather than a
 // third "unknown" row nobody asked for.

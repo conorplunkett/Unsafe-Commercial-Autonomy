@@ -22,14 +22,6 @@
         </div>
       </header>
 
-      <div class="chip-row lab-studies" aria-label="Studies">
-        <span class="chip chip-static" title="Shown the rules with no pressure, does the model break them? The headline unsafe rate's cell: structured_policy, no pressure axes.">1 · Policy compliance</span>
-        <span class="chip chip-static" title="The rule is in the task either way — does a formal policy block improve compliance? no_policy vs structured_policy.">2 · Formalization</span>
-        <span class="chip chip-static" title="Do hard blocks stop violations, or push models into workarounds? structured_policy vs tool_constraints, plus blocked attempts.">3 · Enforcement</span>
-        <span class="chip chip-static" title="Does time pressure or an unreachable user erode compliance? structured_policy crossed with the two pressure axes.">4 · Pressure</span>
-        <span class="chip chip-static" title="Can a merchant or attacker trick it? Unsafe rate on the deception categories (privacy + adversarial).">5 · Scam resistance</span>
-      </div>
-
       <nav class="lab-toc" id="labToc" aria-label="Contents"></nav>
 
       <details class="runner-card" id="section-run" aria-label="Experiment controls">
@@ -165,6 +157,14 @@
           to disk on the server or published.
         </p>
       </details>
+
+      <div class="chip-row lab-studies" aria-label="Studies">
+        <span class="chip chip-static" title="Shown the rules with no pressure, does the model break them? The headline unsafe rate's cell: structured_policy, no pressure axes.">1 · Policy compliance</span>
+        <span class="chip chip-static" title="The rule is in the task either way — does a formal policy block improve compliance? no_policy vs structured_policy.">2 · Formalization</span>
+        <span class="chip chip-static" title="Do hard blocks stop violations, or push models into workarounds? structured_policy vs tool_constraints, plus blocked attempts.">3 · Enforcement</span>
+        <span class="chip chip-static" title="Does time pressure or an unreachable user erode compliance? structured_policy crossed with the two pressure axes.">4 · Pressure</span>
+        <span class="chip chip-static" title="Can a merchant or attacker trick it? Read off the privacy and adversarial bars in the category breakdown.">5 · Scam resistance</span>
+      </div>
 
       <section class="taxonomy-panel lab-runs" id="section-runs" aria-label="Runs">
         <div class="panel-heading">
@@ -420,7 +420,6 @@
                   <th rowspan="2" title="Which AI model this row aggregates.">Model</th>
                   <th colspan="2" title="Unsafe payment rate, split by how much money was at stake.">Unsafe payment · stakes</th>
                   <th colspan="2" title="Unsafe payment rate, split by how the correct answer was decided.">Unsafe payment · key</th>
-                  <th colspan="2" title="Unsafe payment rate over keyed traps, split by trap family. Deception (categories D+E): the scam is on the page itself — the scam-resistance slice. Core (A–C): the trap is about the user's own constraints.">Unsafe payment · scams</th>
                   <th colspan="2" title="Refused when safe rate, split by how the correct answer was decided.">Refused when safe · key</th>
                 </tr>
                 <tr>
@@ -428,8 +427,6 @@
                   <th title="A low-stakes scenario.">Low</th>
                   <th title="Humans surveyed did not agree on the right call, so a person had to validate it by hand.">Ambiguous</th>
                   <th title="A structured policy rule decides the right call outright.">Objective</th>
-                  <th title="Privacy tricks and adversarial attacks — falling for one is being scammed.">Deception</th>
-                  <th title="Spend limits, authorization scope, consent and escalation.">Core</th>
                   <th title="Humans surveyed did not agree on the right call, so a person had to validate it by hand.">Ambiguous</th>
                   <th title="A structured policy rule decides the right call outright.">Objective</th>
                 </tr>

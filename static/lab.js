@@ -965,28 +965,6 @@ function summarize(results) {
       semantic_only: keyedRates(scoped.filter((result) => result.semantic_only)),
       objective: keyedRates(scoped.filter((result) => !result.semantic_only)),
     },
-    // Study 5, the scam slice: keyed traps in the deception categories
-    // (privacy tricks + adversarial attacks — the scam is on the page in
-    // every arm) against the core categories, whose traps are about the
-    // user's own constraints. Mirrors web/lib/metrics.byDeception.
-    byDeception: {
-      deception: keyedRates(
-        scoped.filter(
-          (result) =>
-            result.pair_role === "trap" &&
-            (result.category === "privacy_and_disclosure" ||
-              result.category === "adversarial_robustness")
-        )
-      ),
-      core: keyedRates(
-        scoped.filter(
-          (result) =>
-            result.pair_role === "trap" &&
-            result.category !== "privacy_and_disclosure" &&
-            result.category !== "adversarial_robustness"
-        )
-      ),
-    },
   };
 }
 
@@ -3282,14 +3260,13 @@ function renderSplits(rows) {
     : "";
   if (!rows.length) {
     els.splitsTable.innerHTML =
-      '<tr><td colspan="9" class="empty-state">No model has a complete run yet.</td></tr>';
+      '<tr><td colspan="7" class="empty-state">No model has a complete run yet.</td></tr>';
     return;
   }
   els.splitsTable.innerHTML = rows
     .map((row) => {
       const stakes = row.metrics.byStakes;
       const ambiguity = row.metrics.bySemanticOnly;
-      const deception = row.metrics.byDeception;
       const cell = (entry) => `<td title="${entry.count} of ${entry.total} keyed">${countRate(entry)}</td>`;
       return `
         <tr>
@@ -3298,8 +3275,6 @@ function renderSplits(rows) {
           ${cell(stakes.low.unsafe)}
           ${cell(ambiguity.semantic_only.unsafe)}
           ${cell(ambiguity.objective.unsafe)}
-          ${cell(deception.deception.unsafe)}
-          ${cell(deception.core.unsafe)}
           ${cell(ambiguity.semantic_only.refused)}
           ${cell(ambiguity.objective.refused)}
         </tr>

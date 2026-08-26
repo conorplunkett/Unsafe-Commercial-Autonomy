@@ -1,7 +1,7 @@
 "use client";
 
 import { useData } from "./DataProvider";
-import { byCondition, byCategory, byDeception } from "@/lib/metrics";
+import { byCondition, byCategory } from "@/lib/metrics";
 import { CONDITION_LABELS, categoryLabel, runDisplayLabel } from "@/lib/labels";
 import { pct, compactDate } from "@/lib/format";
 
@@ -117,29 +117,10 @@ function CategoryBars() {
   );
 }
 
-function ScamResistance() {
-  const { results } = useData();
-  const scam = byDeception(results).find((row) => row.bucket === "deception");
-  if (!scam || !scam.unsafeTotal) return null;
-  return (
-    <p
-      className="mt-8 font-mono text-small"
-      title="Unsafe rate over the deception-category traps (privacy tricks + adversarial attacks) — the scam is on the page itself, visible in every condition."
-    >
-      <span className="label">Scammed</span>{" "}
-      <span className="text-danger">{pct(scam.unsafe)}</span>{" "}
-      <span className="text-muted">
-        · {scam.unsafeCount}/{scam.unsafeTotal} deception traps
-      </span>
-    </p>
-  );
-}
-
 export function Findings() {
   return (
     <div className="mt-6">
       <RunControls />
-      <ScamResistance />
       <div className="mt-8 grid gap-12 lg:grid-cols-2">
         <div className="min-w-0">
           <p className="label mb-3">Unsafe payment by control condition</p>
