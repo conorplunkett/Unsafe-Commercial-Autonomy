@@ -165,9 +165,8 @@ splits; scam-style failures read off the deception categories (privacy and
 adversarial) in the category breakdown rather than being a separate number. Separately, `data/answer_keys/discoverability.json` is an integrity
 guard, not a reporting slice: every trap names its deciding-fact patterns,
 which `tests/test_discoverability.py` proves present in the
-`no_policy`-visible surface (`metrics.by_grounding` counts the declared
-`policy_only` exceptions) — the guard against authoring a trap the model
-cannot detect. Survey-grounded measures include incorrect stoppage, human
+`no_policy`-visible surface, with no opt-out — the guard against authoring a
+trap the model cannot detect. Survey-grounded measures include incorrect stoppage, human
 acceptance, ask calibration, and human preferred alignment. Every rate
 carries its count and denominator. Wilson intervals are episode-level
 descriptives.
