@@ -43,41 +43,58 @@ const PLAIN_PURCHASE_EXPECTATIONS = new Set(["buy", "pay", "purchase", "proceed"
 // expected_action starts with one of the other three, it's describing THAT
 // branch, not the purchase branch -- e.g. b4_trap's expected_action is
 // refuse_find_item with acceptable_actions ["purchase", "refuse"]: that text
-// describes the refuse path, so blending it onto the purchase pill previously
-// produced a nonsensical "purchase · refuse find item" and had to be reverted.
-// Only when expected_action isn't claimed by ask/defer/refuse does it belong
-// to purchase, and is safe to show as a qualifier (e.g. "purchase · buy
-// union made", "purchase · decline insurance").
+// describes the refuse path, not the purchase one.
 const OTHER_ACTION_PREFIXES = ["ask", "defer", "refuse"];
+
+type PurchaseQualifierContext = { expectedAction?: string; offers: ScenarioOffer[] };
+
+// A qualifier resolver names what "purchase" actually means when it's listed
+// as acceptable but isn't the scenario's primary expected_action. Each one is
+// independent and returns null when it has nothing to say; the first non-null
+// answer wins. Adding a new way to disambiguate "purchase" -- a new marker
+// convention, say -- means writing one more resolver and adding it to the
+// list below, not another branch inside a growing if/else.
+type PurchaseQualifierResolver = (ctx: PurchaseQualifierContext) => string | null;
+
+// expected_action sometimes already IS the purchase's own description (e.g.
+// "buy_union_made", "decline_insurance") rather than naming a refuse/ask/defer
+// branch -- see OTHER_ACTION_PREFIXES. When so, show it verbatim.
+const qualifyFromExpectedAction: PurchaseQualifierResolver = ({ expectedAction }) => {
+  if (
+    !expectedAction ||
+    PLAIN_PURCHASE_EXPECTATIONS.has(expectedAction) ||
+    OTHER_ACTION_PREFIXES.some((prefix) => expectedAction.startsWith(prefix))
+  ) {
+    return null;
+  }
+  return expectedAction.replace(/_/g, " ");
+};
+
+// unsafe_marker_unless_disclosed offers (see OfferCard) are unsafe to pay
+// either way, disclosed or withheld -- so an acceptable "purchase" only ever
+// means a purchase that doesn't need the named field(s).
+const qualifyFromDisclosureMarkers: PurchaseQualifierResolver = ({ offers }) => {
+  const fields = Array.from(new Set(offers.flatMap((o) => o.unsafe_marker_unless_disclosed ?? [])));
+  if (!fields.length) return null;
+  return `without disclosing ${fields.map((f) => f.replace(/_/g, " ")).join(", ")}`;
+};
+
+const PURCHASE_QUALIFIER_RESOLVERS: PurchaseQualifierResolver[] = [
+  qualifyFromExpectedAction,
+  qualifyFromDisclosureMarkers,
+];
 
 function acceptableActionLabel(
   value: string,
   expectedAction: string | undefined,
   offers: ScenarioOffer[],
 ): string {
-  if (value === "purchase") {
-    if (
-      expectedAction &&
-      !PLAIN_PURCHASE_EXPECTATIONS.has(expectedAction) &&
-      !OTHER_ACTION_PREFIXES.some((prefix) => expectedAction.startsWith(prefix))
-    ) {
-      return `purchase · ${expectedAction.replace(/_/g, " ")}`;
-    }
-    // One or more offers carry a disclosure marker (unsafe_marker_unless_disclosed
-    // -- see OfferCard): paying THAT offer is unsafe either way, disclosed or
-    // withheld, so "purchase" only ever means a purchase that doesn't need the
-    // named field. Named positively and derived from the marker's own field
-    // list, matching the expected-action qualifier above (e.g. "purchase · buy
-    // union made") rather than pointing at where else on the page to look.
-    const disclosureFields = Array.from(
-      new Set(offers.flatMap((o) => o.unsafe_marker_unless_disclosed ?? [])),
-    );
-    if (disclosureFields.length > 0) {
-      const named = disclosureFields.map((f) => f.replace(/_/g, " ")).join(", ");
-      return `purchase · without disclosing ${named}`;
-    }
+  if (value !== "purchase") return value.replace(/_/g, " ");
+  for (const resolve of PURCHASE_QUALIFIER_RESOLVERS) {
+    const qualifier = resolve({ expectedAction, offers });
+    if (qualifier) return `purchase · ${qualifier}`;
   }
-  return value.replace(/_/g, " ");
+  return "purchase";
 }
 
 function Pills({ values }: { values: string[] }) {
