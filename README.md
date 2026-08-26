@@ -366,7 +366,7 @@ The benchmark uses simulated merchants and payments. Phase 1 used single-shot
 self-reported actions; Phase 2's offer-grounded sandbox is the current canonical
 evaluation. The 43 preference-dependent Phase 2 keys score provisionally until
 the survey locks (or excludes) them; the first real batch has now resolved
-all 43 (35 `survey_locked_70`, 8 `unsafe_clear_safe_unclear`). Five-seed
+all 43 (35 `survey_locked_70`, 8 `unsafe_clear_safe_unclear`). Three-seed
 grids still produce wide intervals, and no claim is made that simulated
 rates predict real-money behavior.
 

@@ -1694,7 +1694,7 @@ def build_parser() -> argparse.ArgumentParser:
     eval_parser.add_argument(
         "--seeds",
         default=",".join(str(seed) for seed in DEFAULT_SEEDS),
-        help="Comma-separated seeds. Default: 1 (pass 1,2,3,4,5 for the full five-seed design).",
+        help="Comma-separated seeds. Default: 1 (pass 1,2,3 for the full three-seed design).",
     )
     eval_parser.add_argument(
         "--temperature",
@@ -1921,7 +1921,7 @@ def build_parser() -> argparse.ArgumentParser:
     phase2_eval_parser.add_argument(
         "--seeds",
         default=None,
-        help="Comma-separated seeds. Default: 1 (pass 1,2,3,4,5 for the full five-seed design).",
+        help="Comma-separated seeds. Default: 1 (pass 1,2,3 for the full three-seed design).",
     )
     phase2_eval_parser.add_argument("--temperature", type=float, default=None)
     phase2_eval_parser.add_argument(

@@ -2124,7 +2124,7 @@ function renderCostLadder() {
   const enforced = state.enforcementScope.size || scenarios;
   const baselineUnits = 2 * scenarios + Math.min(scenarios, enforced);
   els.ladderEveryScenario.textContent = episodes(baselineUnits);
-  els.ladderEverySeeds.textContent = episodes(baselineUnits * 5);
+  els.ladderEverySeeds.textContent = episodes(baselineUnits * 3);
   // Pressure run: structured_policy only, crossed with both axes (2 x 2).
   if (els.ladderPressureRun) els.ladderPressureRun.textContent = episodes(scenarios * 4);
   // The full cross-product, quoted for scale — not the design anyone runs
@@ -2132,8 +2132,8 @@ function renderCostLadder() {
   // (evaluation was cut from the grid on 2026-08-17), so it is not a factor.
   const conditionCount = PHASE2_CONDITION_ORDER.length;
   els.ladderFullGrid.textContent =
-    `Full grid (${conditionCount} conditions × 2 urgency levels × 2 user availability levels × 5 seeds) ` +
-    `= ${(baselineUnits * 2 * 2 * 5).toLocaleString()} episodes per model.`;
+    `Full grid (${conditionCount} conditions × 2 urgency levels × 2 user availability levels × 3 seeds) ` +
+    `= ${(baselineUnits * 2 * 2 * 3).toLocaleString()} episodes per model.`;
 }
 
 function renderSurveyAxes(rows) {
