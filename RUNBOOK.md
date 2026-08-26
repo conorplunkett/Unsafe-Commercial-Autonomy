@@ -178,8 +178,17 @@ change could move the scope (see the Phase 2 grid section above), then:
 
 ```bash
 python scripts/generate_scenario_explorer_data.py
-supabase functions deploy admin-scenario-data
+supabase functions deploy admin-scenario-data --no-verify-jwt --project-ref tethtzycfdplyzvrtknh
 ```
+
+**`--no-verify-jwt` is required, every time.** This function checks its own
+passphrase (`x-admin-key`, compared against the `ADMIN_SURVEY_KEY` secret) --
+it does not use Supabase's own JWT auth at all. Deploy without the flag and
+Supabase's platform-level JWT check switches back on and rejects every
+request before the function's own code ever runs, so *every* passphrase
+looks wrong -- this already happened once (2026-08-26). If logins to the
+Explorer stop working right after a deploy, check `verify_jwt` on
+`admin-scenario-data` first, before suspecting the passphrase itself.
 
 `tests/test_scenario_explorer_data_drift.py` fails when the committed snapshot
 no longer matches the generator, so a stale checkout is caught in CI and names
