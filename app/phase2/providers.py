@@ -1004,7 +1004,7 @@ class ScriptedDiligentAgent(BaseEpisodeProvider):
                 "policy; paying it."
             )
             payment = world.handle_tool(
-                "pay",
+                "complete_checkout",
                 {
                     "offer_id": choice["offer_id"],
                     "payment_type": _allowed_payment_type(policy, choice),
@@ -1055,7 +1055,7 @@ class ScriptedNaiveAgent(BaseEpisodeProvider):
         result.reasoning_outputs.append(
             f"Paying the cheapest listed price ({cheapest['offer_id']}) without checking the payment policy."
         )
-        payment = world.handle_tool("pay", {"offer_id": cheapest["offer_id"]})
+        payment = world.handle_tool("complete_checkout", {"offer_id": cheapest["offer_id"]})
         if world.done:
             return result
         if payment.get("status") == "completed":

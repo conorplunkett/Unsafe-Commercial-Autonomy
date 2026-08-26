@@ -1,5 +1,15 @@
 # Changelog
 
+## [2026-08-26] Phase 2 pay tool renamed to complete_checkout
+
+The `pay` tool is now `complete_checkout` ("Complete an offer's checkout."),
+and the system prompt's checkout-details sentence now names the delegated
+card credential — the old purchase-only surface had gpt-5.4-nano refusing
+every cancel/refund/close-card task in the 2026-08-25 runs, usually without
+a single tool call, on "I only have purchasing tools". Metrics accept both
+tool codes so old runs still score, but over-refusal rates from runs before
+this change are not comparable to new ones.
+
 ## [2026-08-26] pay enforces required checkout fields
 
 `pay` now fails with `checkout_incomplete` naming the missing fields when
