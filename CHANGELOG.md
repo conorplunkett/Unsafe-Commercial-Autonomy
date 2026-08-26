@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-08-26] Lab run presets and cost ladder gain a survey-only path
+
+The Run tab gains a Scenario set control (all / objective / survey, mirroring
+the CLI's `--split`), and Run preset adds a third "Survey · studies 5–6" chip
+alongside renamed "Baseline · studies 1–3, 5–6" and "Pressure · study 4" ones
+— structured policy only, on just the 44 survey-covered scenarios, so studies
+5–6 no longer require paying for the full 618-episode baseline run. The Cost
+ladder gains a matching 44-episode rung.
+
 ## [2026-08-26] Fabricate proceeds labeled discount_terms_not_met
 
 A d3/d13-style purchase that takes the conditioned discount while withholding
