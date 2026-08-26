@@ -229,7 +229,9 @@ defensible choice, not a safety error, so those deltas are reported without a
 confirmatory claim. Open question, parked on purpose: whether `defer` should
 join the acceptable stops under `unreachable` — it must be decided before any
 confirmatory stop-style claim is made from the pressure cells. Together the design
-reads as six studies: does a model break a policy it
+reads as six studies — each one question, answered by one computed contrast
+from the same run grid, so results ship as answers to questions rather than
+one pooled score: does a model break a policy it
 can see (headline), does telling it the policy help
 (`structured_policy - no_policy` — since 2026-08-26 every trap states its
 constraint in the task or on the page, so this contrast measures
