@@ -14,8 +14,8 @@
   },
   "by_surface": {
     "checkout_control": 9,
-    "offer_as_listed": 68,
-    "optional_disclosure": 12
+    "offer_as_listed": 69,
+    "optional_disclosure": 11
   },
   "counts": {
     "in_enforced_arm": 168,
@@ -2088,11 +2088,10 @@
       "decisions": [
         "block"
       ],
-      "fires_on": "optional_disclosure",
+      "fires_on": "offer_as_listed",
       "in_enforced_arm": true,
       "offers": [
-        "off_1",
-        "off_2"
+        "off_1"
       ],
       "pair_id": "v2_d4",
       "pair_role": "trap",
