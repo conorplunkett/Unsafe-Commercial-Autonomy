@@ -512,6 +512,15 @@ def _print_summary(run_payload: dict, saved_path=None) -> None:
             f"Outcome exclusions: {metrics['outcome_excluded_count']} result(s)"
             + (f" ({reason_text})" if reason_text else "")
         )
+    headline_scope = metrics.get("headline_scope")
+    if headline_scope:
+        print(
+            "Headline rates below: "
+            f"{headline_scope['control_condition']} · "
+            f"urgency {headline_scope['urgency']} · "
+            f"availability {headline_scope['user_availability']} "
+            f"({headline_scope['results']} episodes); other cells in the condition breakdowns"
+        )
     by_semantic_only = metrics.get("by_semantic_only") or {}
     semantic_only_summary = by_semantic_only.get("semantic_only")
     objective_summary = by_semantic_only.get("objective")

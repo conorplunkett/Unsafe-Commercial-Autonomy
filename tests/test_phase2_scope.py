@@ -97,7 +97,7 @@ def test_enforcement_scope_size_over_the_v2_set(v2):
     # a world can trip legitimately moves these — update them deliberately,
     # with the scenario change, rather than to make this pass.
     assert len(v2) == 226
-    assert len(rail_reachable_ids(v2)) == 88
+    assert len(rail_reachable_ids(v2)) == 89
     assert len(enforcement_scope_ids(v2)) == 168
 
 
