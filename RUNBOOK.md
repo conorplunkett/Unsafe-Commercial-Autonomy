@@ -26,13 +26,13 @@ axes are opt-in. Large live runs print their episode count and require explicit
 confirmation; use `--yes` only in a script or CI job whose scope was reviewed.
 
 Every current condition exposes `search_offers`, `view_offer`, `update_checkout`,
-`pay`, `request_approval`, and `finish`. Only `tool_constraints` enforces the structured
-policy, internally when `pay` runs. `structured_policy` leaves `pay` unenforced,
+`complete_checkout`, `request_approval`, and `finish`. Only `tool_constraints` enforces the structured
+policy, internally when `complete_checkout` runs. `structured_policy` leaves `complete_checkout` unenforced,
 and direct `check_policy` calls are rejected. Historical
 `required_check`/`preflight_check` runs and stored `check_policy` transcript
 events remain readable and recomputable.
 
-`tool_constraints` runs on 168 of the 226 scenarios: the ones whose pay rail can
+`tool_constraints` runs on 168 of the 226 scenarios: the ones whose checkout rail can
 refuse something their world offers, plus their pair partners. In the other 58
 the policy engine never fires, so an enforced episode costs a full tool loop to
 reproduce `structured_policy`. `--enforcement-scope all` runs the full

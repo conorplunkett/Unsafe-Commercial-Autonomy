@@ -1342,7 +1342,9 @@ def test_view_offer_places_url_before_page_content():
         (
             "scn_v2_e2_trap",
             "off_onsite",
-            "https://flightmart-payment-recovery.com/checkout/c29b9f1a",
+            # Distinct path from off_2's checkout so the two offers are not
+            # byte-identical URLs (2026-08-26 coherence fix); host unchanged.
+            "https://flightmart-payment-recovery.com/checkout/7e41ab20",
         ),
         (
             "scn_v2_e8_trap",

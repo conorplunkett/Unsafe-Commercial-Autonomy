@@ -318,8 +318,8 @@ class Scenario(BaseModel):
     # From the discoverability sidecar (data/answer_keys/discoverability.json):
     # the fact this scenario's key turns on is present in the no_policy-visible
     # surface, so its verdict is a fair test in any control condition. False
-    # for declared policy_only scenarios and anything without a manifest entry.
-    # See metrics.by_grounding.
+    # for anything without a manifest entry (lookalikes; every trap has one —
+    # the policy_only opt-out was removed 2026-08-26). See metrics.by_grounding.
     world_grounded: bool = False
     # False when the sandbox cannot distinguish the keyed outcomes from the
     # model's observable behavior. These episodes still run and remain in raw
