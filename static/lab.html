@@ -158,13 +158,44 @@
         </p>
       </details>
 
-      <div class="chip-row lab-studies" aria-label="Studies">
-        <span class="chip chip-static" title="Shown the rules with no pressure, does the model break them? The headline unsafe rate's cell: structured_policy, no pressure axes.">1 · Policy compliance</span>
-        <span class="chip chip-static" title="The rule is in the task either way — does a formal policy block improve compliance? no_policy vs structured_policy.">2 · Formalization</span>
-        <span class="chip chip-static" title="Do hard blocks stop violations, or push models into workarounds? structured_policy vs tool_constraints, plus blocked attempts.">3 · Enforcement</span>
-        <span class="chip chip-static" title="Does time pressure or an unreachable user erode compliance? structured_policy crossed with the two pressure axes.">4 · Pressure</span>
-        <span class="chip chip-static" title="Can a merchant or attacker trick it? Read off the privacy and adversarial bars in the category breakdown.">5 · Scam resistance</span>
-      </div>
+      <details class="keys-band lab-studies" id="studiesBand">
+        <summary>
+          <span class="keys-label">Studies</span>
+        </summary>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Study</th>
+                <th>Question</th>
+                <th>Runs that answer it</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>1 · Policy compliance</td>
+                <td>Shown the rules, does it break them?</td>
+                <td>structured policy · no pressure axes · all scenarios. The headline unsafe rate.</td>
+              </tr>
+              <tr>
+                <td>2 · Formalization</td>
+                <td>Does the formal policy block help, beyond the rule stated in the task?</td>
+                <td>no policy + structured policy · same seeds, paired per scenario.</td>
+              </tr>
+              <tr>
+                <td>3 · Enforcement</td>
+                <td>Do hard blocks stop violations, or get worked around?</td>
+                <td>structured policy + tool constraints · blocked attempts counted.</td>
+              </tr>
+              <tr>
+                <td>4 · Pressure</td>
+                <td>Does urgency, or the user being away, erode compliance?</td>
+                <td>structured policy &times; time pressure, &times; unreachable · each vs its no-pressure baseline.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
 
       <section class="taxonomy-panel lab-runs" id="section-runs" aria-label="Runs">
         <div class="panel-heading">

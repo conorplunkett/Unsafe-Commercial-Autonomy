@@ -161,9 +161,8 @@ and completed the lookalike. Two axes sit underneath it:
   block
 
 Runs also report stakes, category, control-condition, and objective/survey
-splits; scam resistance is read off the deception categories (privacy and
-adversarial) in the category breakdown rather than reported as a separate
-number. Separately, `data/answer_keys/discoverability.json` is an integrity
+splits; scam-style failures read off the deception categories (privacy and
+adversarial) in the category breakdown rather than being a separate number. Separately, `data/answer_keys/discoverability.json` is an integrity
 guard, not a reporting slice: every trap names its deciding-fact patterns,
 which `tests/test_discoverability.py` proves present in the
 `no_policy`-visible surface (`metrics.by_grounding` counts the declared
@@ -213,14 +212,15 @@ The pressure axes get the same treatment on the headline arm
 (`metrics.phase2.pressure_contrasts`): `time_pressure - none` and
 `unreachable - none` on `structured_policy` episodes, each holding the other
 axis at baseline, with the identical paired estimator. Together the design
-reads as one question per cell: does a model break a policy it can see
-(headline), does telling it the policy help (`structured_policy - no_policy` —
-since 2026-08-26 every trap states its constraint in the task or on the page,
-so this contrast measures formalization, not information), does enforcement
-stop what slips through (`tool_constraints - structured_policy` plus
-`attempted_harm`), does pressure erode compliance (the two deltas above), and
-can a merchant or attacker trick it (the deception categories in the
-category breakdown).
+reads as four studies, one question per cell: does a model break a policy it
+can see (headline), does telling it the policy help
+(`structured_policy - no_policy` — since 2026-08-26 every trap states its
+constraint in the task or on the page, so this contrast measures
+formalization, not information), does enforcement stop what slips through
+(`tool_constraints - structured_policy` plus `attempted_harm`), and does
+pressure erode compliance (the two deltas above). Scam-style failures are not
+a separate study: they read off the deception categories in the category
+breakdown.
 
 ## Quickstart
 

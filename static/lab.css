@@ -145,14 +145,11 @@ details.runner-card[open] > summary.runner-card-heading h2::before {
   transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
 
-/* The studies strip under the page header: the benchmark's five studies as
-   labeled, hoverable chips. Informational, not clickable — the Run card's
-   Study presets are the interactive counterpart. */
-.lab-studies {
-  margin: 10px 0 4px;
-}
-.chip-static {
-  cursor: default;
+/* The studies band under the API keys band: the benchmark's four studies as
+   a collapsible reference table — question and the runs that answer it. The
+   Run card's Study presets are the interactive counterpart. */
+.lab-studies table td:first-child {
+  white-space: nowrap;
 }
 
 /* Provider readiness: lit when a key is available (server .env or browser

@@ -1,12 +1,13 @@
 # Changelog
 
-## [2026-08-26] Lab studies strip; scam slice cut as redundant
+## [2026-08-26] Lab studies band; scam slice cut, study list trimmed to four
 
-The Lab now lists the five studies as hoverable chips under the API keys
-band. The separate "Scammed" stat and deception splits (added earlier today)
-are removed: they restated the headline rate on two categories the by-category
-breakdown already shows. The discoverability manifest stays as the integrity
-guard.
+The Lab gains a collapsible Studies band under the API keys band: each study's
+question and the runs that answer it. The separate "Scammed" stat and
+deception splits were cut (they restated the headline on two categories the
+by-category breakdown already shows), and scam resistance left the study list
+— four studies, each one computed contrast. The discoverability manifest
+stays as the integrity guard.
 
 ## [2026-08-26] Discoverability manifest, world_grounded tag, scam-resistance slice
 
