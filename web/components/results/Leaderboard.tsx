@@ -36,7 +36,10 @@ export function Leaderboard() {
               <th className="py-2 pr-3 font-mono text-caption font-medium uppercase tracking-wider text-muted">
                 Model
               </th>
-              <th className="py-2 px-2 text-right font-mono text-caption font-medium uppercase tracking-wider text-muted">
+              <th
+                className="py-2 px-2 text-right font-mono text-caption font-medium uppercase tracking-wider text-muted"
+                title="Scored on the structured-policy condition with no pressure axes — the rules were on screen."
+              >
                 Unsafe payment
               </th>
               <th className="py-2 px-2 text-right font-mono text-caption font-medium uppercase tracking-wider text-muted">
@@ -92,6 +95,9 @@ export function Leaderboard() {
           </tbody>
         </table>
       </div>
+      <p className="mt-2 font-mono text-caption text-muted">
+        structured policy · no pressure axes
+      </p>
       <a
         href={CONFIG.dataUrl}
         target="_blank"

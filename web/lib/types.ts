@@ -189,9 +189,24 @@ export interface RunQuality {
   reasons?: string[];
 }
 
+/**
+ * Which grid cell the run's top-level rates and by_model_name block were
+ * computed over (app/metrics.py headline scoping): structured_policy with both
+ * pressure axes at "none". Null when the run has no such episodes — its
+ * committed rates are then pooled across whatever cells it ran, and the
+ * leaderboard must not sum them with headline-scoped counts.
+ */
+export interface HeadlineScope {
+  control_condition: string;
+  urgency: string;
+  user_availability: string;
+  results: number;
+}
+
 export interface RunMetrics {
   by_model_name?: Record<string, ModelMetrics>;
   quality?: RunQuality;
+  headline_scope?: HeadlineScope | null;
   [key: string]: unknown;
 }
 
