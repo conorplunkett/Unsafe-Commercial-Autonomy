@@ -315,7 +315,7 @@ Two things to know before trusting results from this path:
   Treat this as a way to spot-check one specific open-weight model, not a
   substitute for the hosted-provider grid.
 - **Tool calling.** Phase 2 scenarios drive the model through tool calls
-  (`search_offers`, `view_offer`, `pay`, `request_approval`, `finish`). Not
+  (`search_offers`, `view_offer`, `update_checkout`, `complete_checkout`, `request_approval`, `finish`). Not
   every self-hosted server enables OpenAI-style tool calling by default —
   vLLM needs `--enable-auto-tool-choice` plus a `--tool-call-parser` matched
   to the model family. Check that before trusting a Phase 2 run against it.

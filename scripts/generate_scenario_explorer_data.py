@@ -55,16 +55,20 @@ INDEX_PATH = OUT_DIR / "index.ts"
 META_PATH = OUT_DIR / "meta.json"
 ENFORCEMENT_SCOPE_PATH = ROOT / "data" / "answer_keys" / "phase2_enforcement_scope.json"
 
-# The two files a human actually edits to change scenario content or answer
-# keys (phase2_enforcement_scope.json is derived from these, not a primary
-# source -- see generate_phase2_enforcement_scope.py). Their git blob shas at
-# generation time are embedded in meta.json so the Explorer can compare
-# against the live blob sha GitHub reports for these paths on `main` and flag
-# when the deployed snapshot no longer reflects what's actually committed --
-# see the freshness check in web/components/scenario-explorer/ScenarioExplorer.tsx.
+# The three inputs this generator folds into the pair records: the two files
+# a human edits to change scenario content or answer keys, plus the committed
+# enforcement-scope projection (derived by generate_phase2_enforcement_scope.py,
+# but regenerable on its own — a scope-only refresh changes pair records too,
+# so it must be tracked or the freshness banner lies "current" on a stale
+# deploy). Their git blob shas at generation time are embedded in meta.json so
+# the Explorer can compare against the live blob sha GitHub reports for these
+# paths on `main` and flag when the deployed snapshot no longer reflects
+# what's actually committed -- see the freshness check in
+# web/components/scenario-explorer/ScenarioExplorer.tsx.
 SOURCE_PATHS = (
     "data/scenario_sets/v2_250_scenarios.md",
     "data/answer_keys/v2_constraints.json",
+    "data/answer_keys/phase2_enforcement_scope.json",
 )
 
 # Per-scenario fields folded into each pair's trap/lookalike record, read from

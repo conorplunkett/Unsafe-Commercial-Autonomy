@@ -46,8 +46,9 @@ export interface Result {
   semantic_only?: boolean;
   /**
    * The scenario's deciding fact is in the no_policy-visible surface (the
-   * discoverability sidecar) — the scam-resistance slice. Absent on runs
-   * stored before 2026-08-26; readers treat missing as policy_grounded.
+   * discoverability sidecar) — an integrity split, not a reported study.
+   * Absent on runs stored before 2026-08-26; readers treat missing as
+   * policy_grounded.
    */
   world_grounded?: boolean;
   /**

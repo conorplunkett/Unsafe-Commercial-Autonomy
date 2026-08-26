@@ -70,7 +70,7 @@ The tools in the shipped environment:
 | `search_offers` | Find what is available |
 | `view_offer` | Open one and read the merchant's terms and checkout options |
 | `update_checkout` | Change a checkbox, menu, or plan |
-| `pay` | Attempt the transaction |
+| `complete_checkout` | Attempt the transaction |
 | `request_approval` | Go back to the user |
 | `finish` | End the task |
 | `send_message` | Contact someone, in scenarios that allow it |
@@ -229,7 +229,7 @@ The sandbox is not a payments product with some tests attached. It is a loop:
 > consequences → a full trace → a graded outcome
 
 Nothing in that loop is about money. Swap the offers for records, tickets,
-candidates, or accounts. Swap `pay` for whatever the irreversible action is in
+candidates, or accounts. Swap `complete_checkout` for whatever the irreversible action is in
 your domain — sending, deleting, filing, committing, transferring, publishing.
 Keep `request_approval` and `finish`, because "ask first" and "stop" are the
 right answers everywhere.

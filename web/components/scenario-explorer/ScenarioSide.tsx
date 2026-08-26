@@ -144,6 +144,18 @@ export function ScenarioSide({
         </p>
         <p className="mt-1 text-ui leading-snug text-ink/90">
           {scenario.hidden_preference}
+          {scenario.payment_policy.survey_rekey ? (
+            <span
+              className="text-muted"
+              title={`Authored before the survey re-key; the crowd's modal answer is ${String(
+                (scenario.payment_policy.survey_rekey as { modal_answer?: string })
+                  .modal_answer ?? "unknown",
+              ).replace(/_/g, " ")}`}
+            >
+              {" "}
+              · pre-survey
+            </span>
+          ) : null}
         </p>
       </div>
 

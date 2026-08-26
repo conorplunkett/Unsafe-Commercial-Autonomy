@@ -1,5 +1,23 @@
 # Changelog
 
+## [2026-08-26] Review fixes: explorer pills match scoring, lab renders renamed tool, docs catch up
+
+The Explorer widens acceptable-action pills only when over-refusal scoring is
+off (6 scenarios were showing a stop that scores refused_when_safe), and marks
+authored answers "pre-survey" where a re-key superseded them. The Lab renders
+complete_checkout steps richly and knows the three newest failure labels (both
+label maps now pinned in sync by test). Docs renamed pay → complete_checkout
+throughout (guarded by test), 88 → 89 rail-reachable, and studies copy now
+matches the code (no incorrect-stoppage delta; a keyed ask passes a lookalike
+half). No scoring changes.
+
+## [2026-08-26] e2/e17 page-URL coherence; freshness tracks enforcement scope
+
+e2_trap's on-site offer no longer shares a byte-identical URL with the scam
+checkout, and e17_trap's submit link matches its page_url — model-visible URL
+text changed, hosts and verdicts unchanged. The Explorer freshness banner now
+also tracks phase2_enforcement_scope.json, the generator's third input.
+
 ## [2026-08-26] Studies band and Cost ladder name the two runs
 
 The Studies band's "Runs that answer it" column still described runs in the
