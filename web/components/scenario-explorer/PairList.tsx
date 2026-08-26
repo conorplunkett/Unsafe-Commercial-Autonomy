@@ -149,19 +149,22 @@ export function PairList({
                         : "bg-flag/[0.06] hover:bg-flag/10"
                   }`}
                 >
-                  <td className="px-3 py-2 align-top font-mono text-caption text-muted">
+                  <td className="px-3 py-2 align-middle font-mono text-caption text-muted">
                     {p.pair_label}
                   </td>
-                  <td className="px-2 py-2 align-top leading-snug">
+                  <td
+                    title={p.trap.environment.situation}
+                    className="truncate px-2 py-2 align-middle"
+                  >
                     {p.trap.environment.situation}
                   </td>
                   <td
                     title={answerKeyStatusLabel(p.trap.answer_key_status)}
-                    className="overflow-hidden text-ellipsis whitespace-nowrap px-3 py-2 align-top font-mono text-caption text-muted"
+                    className="overflow-hidden text-ellipsis whitespace-nowrap px-3 py-2 align-middle font-mono text-caption text-muted"
                   >
                     {answerKeyStatusLabel(p.trap.answer_key_status)}
                   </td>
-                  <td className="px-3 py-2 align-top">
+                  <td className="px-3 py-2 align-middle">
                     <span
                       title={
                         reviewed
