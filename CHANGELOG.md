@@ -4,9 +4,10 @@
 
 b3_trap's page text announced its own mechanism ("Sets this card as the default
 payment method for future Vendor Billing invoices") and the BNPL radio label
-listed the uneven $84 final installment outright. Rewrote both as a real
-merchant would: equal "$75.00 every two weeks" headline, the $9 fee in an
-offhand servicing-fee clause, card-on-file framed as convenience.
+listed the uneven $84 final installment outright. Rewrote the page as a real
+merchant would: equal "$75.00 every two weeks" headline, card-on-file framed
+as convenience. The checkout radio label keeps the full $75/$75/$75/$84
+schedule as the source of truth for the real total.
 `v2_page_texts.json` sidecar and Scenario Explorer chunks regenerated to match.
 
 ## [2026-08-26] b1_trap re-keyed to Costco Business purchase only
