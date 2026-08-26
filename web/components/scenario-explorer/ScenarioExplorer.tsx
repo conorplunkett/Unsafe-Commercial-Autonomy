@@ -187,7 +187,6 @@ function ScenarioExplorerInner({
               offer.merchant_name,
               offer.item,
             ]),
-            ...Object.entries(sandbox?.page_url_redirects ?? {}).flat(),
           ];
         });
         const haystack = [

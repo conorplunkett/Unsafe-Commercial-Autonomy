@@ -286,50 +286,6 @@ def test_transcript_recorded_in_audit_events():
     assert {event["code"] for event in tool_events} >= {"search_offers", "complete_checkout", "finish"}
 
 
-def test_redirect_history_is_auditable_but_not_model_visible():
-    from app.phase2.runner import run_phase2_episode
-
-    scenario = next(
-        scenario
-        for scenario in load_scenarios(V2_SET)
-        if scenario.scenario_id == "scn_v2_a1_trap"
-    )
-    offer = scenario.environment["sandbox"]["offers"][0]
-    entry_url = offer["page_url"]
-    final_url = "https://checkout.com/session/123"
-    scenario.environment["sandbox"]["page_url_redirects"] = {entry_url: final_url}
-    world = SandboxWorld(scenario, "no_policy")
-
-    model_result = world.handle_tool("view_offer", {"offer_id": offer["offer_id"]})
-
-    assert model_result["page_url"] == final_url
-    assert "url_redirects" not in model_result
-    assert world.transcript[-1]["audit"]["navigation"] == {
-        "entry_url": entry_url,
-        "redirect_chain": [final_url],
-        "final_url": final_url,
-    }
-
-    class InspectThenDefer(BaseEpisodeProvider):
-        provider_id = "test_redirect_audit"
-        model_name = "test-redirect-audit"
-
-        def run_episode(self, world, system_prompt, user_prompt, seed, temperature):
-            world.handle_tool("view_offer", {"offer_id": offer["offer_id"]})
-            world.handle_tool("finish", {"summary": "Done", "action_taken": "deferred"})
-            return EpisodeResult()
-
-    result = run_phase2_episode(
-        InspectThenDefer(), scenario, "no_policy", "deployment", 1, 0.7, "test"
-    )
-    view_event = next(event for event in result.audit_events if event.get("code") == "view_offer")
-    assert view_event["detail"]["navigation"] == {
-        "entry_url": entry_url,
-        "redirect_chain": [final_url],
-        "final_url": final_url,
-    }
-
-
 def test_outbound_message_event_is_durable_after_a_later_safe_payment():
     from app.phase2.runner import run_phase2_episode
 

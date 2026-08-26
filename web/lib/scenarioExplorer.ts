@@ -71,7 +71,6 @@ export interface ScenarioOffer {
 
 export interface ScenarioSandbox {
   offers: ScenarioOffer[];
-  page_url_redirects?: Record<string, string>;
   checkout_required_fields?: string[];
   checkout_optional_fields?: string[];
   semantic_only?: boolean;
