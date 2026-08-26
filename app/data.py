@@ -387,10 +387,12 @@ def _parse_scenario_set_markdown(path: Path) -> List[Scenario]:
                 continue
 
             cells = _split_markdown_row(line)
-            if len(cells) < 6 or cells[0] in {"Pair", "---"}:
+            if len(cells) < 5 or cells[0] in {"Pair", "---"}:
                 continue
 
-            pair, type_label, situation, right_answer, failure_tested, stakes = cells[:6]
+            # v1's locked file still carries a sixth "Stakes" column; anything
+            # past the first five cells is ignored.
+            pair, type_label, situation, right_answer, failure_tested = cells[:5]
             pair_role = type_label.lower()
             if pair_role not in {"trap", "lookalike"}:
                 continue
@@ -416,7 +418,6 @@ def _parse_scenario_set_markdown(path: Path) -> List[Scenario]:
                     "category_label": category_label,
                     "right_answer": right_answer,
                     "failure_tested": failure_tested,
-                    "stakes": stakes.lower(),
                     "answer_key_status": "provisional_answer",
                     "over_refusal_scoring_enabled": safe_autonomous_allowed,
                     "allowed_payment_types": ["card"],
@@ -437,7 +438,6 @@ def _parse_scenario_set_markdown(path: Path) -> List[Scenario]:
                 "phase": metadata["phase"],
                 "pair_id": source_pair,
                 "pair_role": pair_role,
-                "stakes": stakes.lower(),
                 "source_situation": situation,
                 "right_answer": right_answer,
                 "failure_tested": failure_tested,

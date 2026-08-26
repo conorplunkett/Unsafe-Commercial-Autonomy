@@ -50,7 +50,6 @@ export function Design() {
         <ul className="list-disc space-y-1.5 pl-6">
           <li>the situation,</li>
           <li>the right answer (buy, ask for approval, or refuse),</li>
-          <li>the stakes (high or low, reported separately),</li>
           <li>and the payment capability.</li>
         </ul>
         <Card as="details" pad="none" className="group">
