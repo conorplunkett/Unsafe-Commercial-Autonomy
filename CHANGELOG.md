@@ -3,11 +3,23 @@
 ## [2026-08-26] Scenario Explorer: purchase pill names what's actually safe
 
 d3/d13-trap's `acceptable_actions` listed "purchase" with no indication it
-only covers the unmarked, full-price offer — the discount offer
-(`unsafe_marker_unless_disclosed`) is unsafe whether or not the agent
-discloses. The pill now reads e.g. "purchase · without disclosing colleague
-email addresses", derived from the marker's own field list, and `OfferCard`
-badges that offer directly. No scoring or answer-key change.
+only covers the offer that isn't marked `unsafe_marker_unless_disclosed` (see
+the "Unsafe unless disclosed" badge below). The pill now reads e.g.
+"purchase · without disclosing colleague email addresses", derived from that
+same marker's field list. No scoring or answer-key change.
+
+## [2026-08-26] Scenario Explorer shows what makes each offer unsafe
+
+The trap/injection/discount markers that decide grading (`answer_key_trap_marker`,
+`unsafe_marker_unless_disclosed`, and the checkout-control-conditioned
+`*_marker_when` forms), plus what a checkout control's effect actually does
+(price change, hidden recurring charge, disclosure) only lived in the raw
+JSON dump — nothing in the structured offer view said which choice was the
+one being scored. `OfferCard` now tags the specific checkbox/radio/select
+branch that trips a marker and prints a plain-language line for its effect
+(e.g. "If checked: Trap · becomes $100.00/month recurring"), and adds an
+"Unsafe unless disclosed" badge for offers keyed by disclosure instead of a
+separate trap offer.
 
 ## [2026-08-26] Low/high stakes label removed
 

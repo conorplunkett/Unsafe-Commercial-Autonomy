@@ -1,5 +1,10 @@
 import { currency } from "@/lib/format";
-import type { CheckoutControl, ReplyOption, ScenarioOffer } from "@/lib/scenarioExplorer";
+import type {
+  CheckoutControl,
+  CheckoutEffect,
+  ReplyOption,
+  ScenarioOffer,
+} from "@/lib/scenarioExplorer";
 
 const MARKERS: Array<{
   key: keyof ScenarioOffer;
@@ -23,6 +28,104 @@ const MARKERS: Array<{
   },
 ];
 
+// Both `_when` markers key by control_id -> the branch values that make the
+// act. A checkbox's listed values arrive as JSON booleans (true/false); every
+// other effect/marker key on the branch is the raw string choice value. This
+// mirrors the exact normalization app/phase2/sandbox.py applies when
+// validating them, so a branch here always matches a key in `effects`.
+function branchKey(value: string | boolean): string {
+  if (value === true) return "true";
+  if (value === false) return "false";
+  return value;
+}
+
+// Which markers fire, and what a checkout control's effect does, for one
+// branch (a checkbox's checked/unchecked state, or one radio/select choice)
+// -- the two things that turn "picking this" into the measured failure.
+function branchInfo(
+  offer: ScenarioOffer,
+  controlId: string,
+  branch: string,
+): { tags: string[]; effect: CheckoutEffect | undefined } {
+  const tags: string[] = [];
+  if (branchesFor(offer.answer_key_trap_marker_when, controlId).includes(branch)) {
+    tags.push("Trap");
+  }
+  if (branchesFor(offer.injection_compliance_marker_when, controlId).includes(branch)) {
+    tags.push("Injection");
+  }
+  return { tags, effect: offer.checkout?.effects?.[controlId]?.[branch] };
+}
+
+function branchesFor(
+  condition: Record<string, Array<string | boolean>> | undefined,
+  controlId: string,
+): string[] {
+  return (condition?.[controlId] ?? []).map(branchKey);
+}
+
+// Plain-language summary of one checkout effect -- what silently changes
+// about the offer if the agent picks this branch. See CheckoutEffect in
+// web/lib/scenarioExplorer.ts for the field meanings.
+function describeEffect(effect: CheckoutEffect): string[] {
+  const parts: string[] = [];
+  if (typeof effect.amount_delta === "number") {
+    const sign = effect.amount_delta >= 0 ? "+" : "−";
+    parts.push(`${sign}${currency(Math.abs(effect.amount_delta))}`);
+  }
+  if (typeof effect.amount === "number") {
+    parts.push(`total becomes ${currency(effect.amount)}`);
+  }
+  if (effect.recurrence != null) {
+    if (typeof effect.recurrence === "object") {
+      const { amount, interval } = effect.recurrence;
+      parts.push(
+        amount != null
+          ? `becomes ${currency(amount)}/${interval ?? "period"} recurring`
+          : "becomes recurring",
+      );
+    } else if (effect.recurrence === true) {
+      parts.push("becomes recurring");
+    } else if (typeof effect.recurrence === "string") {
+      parts.push(effect.recurrence);
+    }
+  }
+  if (effect.rail) parts.push(`rail: ${effect.rail}`);
+  if (effect.disclosures?.length) parts.push(`discloses: ${effect.disclosures.join(", ")}`);
+  for (const auth of effect.authorizations ?? []) {
+    if (typeof auth?.amount === "number") {
+      const kind = auth.type ? ` (${String(auth.type).replace(/_/g, " ")})` : "";
+      parts.push(`authorizes ${currency(auth.amount)}/${auth.interval ?? "charge"}${kind}`);
+    }
+  }
+  return parts;
+}
+
+function BranchTags({ tags, effect }: { tags: string[]; effect: CheckoutEffect | undefined }) {
+  const parts = effect ? describeEffect(effect) : [];
+  if (!tags.length && !parts.length) return null;
+  return (
+    <span className="ml-1.5 inline-flex flex-wrap items-center gap-1 align-middle">
+      {tags.map((tag) => (
+        <span
+          key={tag}
+          title={
+            tag === "Trap"
+              ? "Picking this is the bait this trap's answer key expects the agent not to take"
+              : "Picking this represents complying with an injected/adversarial instruction"
+          }
+          className="rounded-full border border-danger/40 bg-danger/10 px-1.5 py-0 font-mono text-caption uppercase tracking-wider text-danger"
+        >
+          {tag}
+        </span>
+      ))}
+      {parts.length > 0 && (
+        <span className="font-mono text-caption text-warn">{parts.join(" · ")}</span>
+      )}
+    </span>
+  );
+}
+
 function ControlLabel({ control }: { control: CheckoutControl }) {
   return (
     <span className="text-small text-ink">
@@ -39,31 +142,49 @@ function ControlLabel({ control }: { control: CheckoutControl }) {
 // Static picture of one merchant checkout control in its initial state --
 // ticked/unticked, selected/unselected -- exactly as the checkout page
 // presents it before the agent touches anything. Not interactive.
-function ControlRow({ control }: { control: CheckoutControl }) {
+//
+// Each branch (checked/unchecked, or one radio/select choice) can carry a
+// scorer-only trap/injection marker and a checkout effect -- what silently
+// happens if the agent picks it, invisible on the merchant page itself. See
+// branchInfo/describeEffect above; BranchTags renders whichever of those a
+// branch actually has.
+function ControlRow({ control, offer }: { control: CheckoutControl; offer: ScenarioOffer }) {
   if (control.kind === "checkbox") {
     const checked = control.initial_value === true;
     return (
-      <div className="flex items-start gap-2">
-        <span
-          className={`mt-0.5 flex size-4 shrink-0 items-center justify-center rounded border ${
-            checked ? "border-ink bg-ink" : "border-muted bg-paper"
-          }`}
-        >
-          {checked && (
-            <svg
-              viewBox="0 0 12 12"
-              className="size-3 text-paper"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M2.5 6.5 5 9l4.5-6" />
-            </svg>
-          )}
-        </span>
-        <ControlLabel control={control} />
+      <div>
+        <div className="flex items-start gap-2">
+          <span
+            className={`mt-0.5 flex size-4 shrink-0 items-center justify-center rounded border ${
+              checked ? "border-ink bg-ink" : "border-muted bg-paper"
+            }`}
+          >
+            {checked && (
+              <svg
+                viewBox="0 0 12 12"
+                className="size-3 text-paper"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M2.5 6.5 5 9l4.5-6" />
+              </svg>
+            )}
+          </span>
+          <ControlLabel control={control} />
+        </div>
+        {(["true", "false"] as const).map((branch) => {
+          const { tags, effect } = branchInfo(offer, control.control_id, branch);
+          if (!tags.length && !effect) return null;
+          return (
+            <p key={branch} className="mt-1 pl-6 text-caption text-muted">
+              {branch === "true" ? "If checked" : "If unchecked"}
+              <BranchTags tags={tags} effect={effect} />
+            </p>
+          );
+        })}
       </div>
     );
   }
@@ -77,8 +198,9 @@ function ControlRow({ control }: { control: CheckoutControl }) {
         <div className="mt-1.5 space-y-1.5">
           {choices.map((choice) => {
             const selected = control.initial_value === choice.value;
+            const { tags, effect } = branchInfo(offer, control.control_id, choice.value);
             return (
-              <div key={choice.value} className="flex items-start gap-2">
+              <div key={choice.value} className="flex flex-wrap items-start gap-2">
                 <span
                   className={`mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border ${
                     selected ? "border-ink bg-paper" : "border-muted bg-paper"
@@ -87,6 +209,7 @@ function ControlRow({ control }: { control: CheckoutControl }) {
                   {selected && <span className="size-2 rounded-full bg-ink" />}
                 </span>
                 <span className="text-small text-ink">{choice.label}</span>
+                <BranchTags tags={tags} effect={effect} />
               </div>
             );
           })}
@@ -102,14 +225,16 @@ function ControlRow({ control }: { control: CheckoutControl }) {
       <div className="mt-1.5 overflow-hidden rounded border border-border bg-paper">
         {choices.map((choice) => {
           const selected = control.initial_value === choice.value;
+          const { tags, effect } = branchInfo(offer, control.control_id, choice.value);
           return (
             <div
               key={choice.value}
-              className={`px-2 py-1 text-small ${
+              className={`flex flex-wrap items-center gap-1 px-2 py-1 text-small ${
                 selected ? "bg-paper-2 font-medium text-ink" : "text-ink/80"
               }`}
             >
               {choice.label}
+              <BranchTags tags={tags} effect={effect} />
             </div>
           );
         })}
@@ -145,7 +270,7 @@ export function OfferCard({
   total: number;
 }) {
   const activeMarkers = MARKERS.filter((m) => offer[m.key]);
-  const disclosureFields = offer.unsafe_marker_unless_disclosed ?? [];
+  const discloseUnlessFields = offer.unsafe_marker_unless_disclosed ?? [];
 
   return (
     <div className="rounded-lg border border-border p-3">
@@ -172,12 +297,12 @@ export function OfferCard({
               {m.label}
             </span>
           ))}
-          {disclosureFields.length > 0 && (
+          {!!discloseUnlessFields.length && (
             <span
-              title="Paying this offer is unsafe either way: disclosing the listed field(s) is the privacy leak, withholding them while still taking this price is fabricating the discount's terms. An acceptable_actions 'purchase' means a different, unmarked offer."
+              title={`Paying this offer without disclosing ${discloseUnlessFields.join(", ")} is the measured failure`}
               className="rounded-full border border-danger/40 bg-danger/10 px-2 py-0.5 font-mono text-caption uppercase tracking-wider text-danger"
             >
-              Disclosure marker: {disclosureFields.map((f) => f.replace(/_/g, " ")).join(", ")}
+              Unsafe unless disclosed
             </span>
           )}
         </div>
@@ -237,7 +362,7 @@ export function OfferCard({
           <p className="text-caption text-muted">Checkout</p>
           <div className="mt-1 space-y-2.5 rounded-lg border border-border bg-paper-2 p-3">
             {offer.checkout.controls.map((control) => (
-              <ControlRow key={control.control_id} control={control} />
+              <ControlRow key={control.control_id} control={control} offer={offer} />
             ))}
           </div>
         </div>
