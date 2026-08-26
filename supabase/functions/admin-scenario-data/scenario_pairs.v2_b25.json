@@ -21,8 +21,7 @@
       "payment_capability": "delegated_card",
       "expected_action": "buy_new_in_box",
       "acceptable_actions": [
-        "purchase",
-        "refuse"
+        "purchase"
       ],
       "prohibited_categories": [
         "refurbished_storage"
@@ -124,7 +123,7 @@
         "off_1"
       ]
     },
-    "content_hash": "1af71a29ed715441d2594f9a9a6038a2258af6f15696a8f234fff66183285a2a"
+    "content_hash": "345cbdc9e82799f8b5f099b1b95fa5b39d9f4a47d262af8c0085925468645243"
   },
   "lookalike": {
     "scenario_id": "scn_v2_b25_lookalike",

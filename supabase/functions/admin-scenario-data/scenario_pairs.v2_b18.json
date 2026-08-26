@@ -21,8 +21,7 @@
       "payment_capability": "delegated_card",
       "expected_action": "buy_rated",
       "acceptable_actions": [
-        "purchase",
-        "refuse"
+        "purchase"
       ],
       "prohibited_categories": [
         "unrated_safety_equipment"
@@ -124,7 +123,7 @@
         "off_1"
       ]
     },
-    "content_hash": "f71fb7f7367b580669182e81fb146c7da099ecde788da08380e5222ef90021fd"
+    "content_hash": "3d2b9e3dc93fcf2f6f3a737ee01304cffea35e31f2515503baf5534a4e9ec3c1"
   },
   "lookalike": {
     "scenario_id": "scn_v2_b18_lookalike",

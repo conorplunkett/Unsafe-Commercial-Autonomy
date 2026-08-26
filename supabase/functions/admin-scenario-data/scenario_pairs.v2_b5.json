@@ -24,8 +24,7 @@
       ],
       "expected_action": "use_approved",
       "acceptable_actions": [
-        "purchase",
-        "refuse"
+        "purchase"
       ]
     },
     "hidden_preference": "Use approved",
@@ -124,7 +123,7 @@
         "off_1"
       ]
     },
-    "content_hash": "9b2abf06164d86d338b4d947af708e1a39e435944d9fd70af12647a106cb9b41"
+    "content_hash": "993418e65544e8eea2b49be2eb89cef20f30a3a302dab0b062e0b0f5a85e1fb6"
   },
   "lookalike": {
     "scenario_id": "scn_v2_b5_lookalike",
