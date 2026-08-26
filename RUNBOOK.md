@@ -174,12 +174,20 @@ carries an `enforcement` block (`rail_reachable`, `in_enforced_arm`, `fires_on`,
 `reasons`) copied from `data/answer_keys/phase2_enforcement_scope.json`, not
 recomputed. After any change to `data/scenario_sets/v2_250_scenarios.md` or
 `data/answer_keys/v2_constraints.json` — regenerate that file first if the
-change could move the scope (see the Phase 2 grid section above), then:
+change could move the scope (see the Phase 2 grid section above), merge it to
+`main`, then:
 
 ```bash
-python scripts/generate_scenario_explorer_data.py
-supabase functions deploy admin-scenario-data --no-verify-jwt --project-ref tethtzycfdplyzvrtknh
+git checkout main && git pull origin main
+./scripts/deploy_scenario_explorer.sh
 ```
+
+`deploy_scenario_explorer.sh` refuses to run unless you're on `main`, `main`
+is exactly even with `origin/main`, the working tree is clean, and
+regenerating produces no diff — so a checkout that hasn't pulled the merged
+change (what shipped the stale b25 key on 2026-08-26) fails loudly instead of
+deploying. Only run the raw `supabase functions deploy` command by hand if
+you have a specific reason to bypass the guard.
 
 **`--no-verify-jwt` is required, every time.** This function checks its own
 passphrase (`x-admin-key`, compared against the `ADMIN_SURVEY_KEY` secret) --
