@@ -50,25 +50,37 @@ const PLAIN_PURCHASE_EXPECTATIONS = new Set(["buy", "pay", "purchase", "proceed"
 // union made", "purchase · decline insurance").
 const OTHER_ACTION_PREFIXES = ["ask", "defer", "refuse"];
 
-function acceptableActionLabel(value: string, expectedAction?: string): string {
-  if (
-    value === "purchase" &&
-    expectedAction &&
-    !PLAIN_PURCHASE_EXPECTATIONS.has(expectedAction) &&
-    !OTHER_ACTION_PREFIXES.some((prefix) => expectedAction.startsWith(prefix))
-  ) {
-    return `purchase · ${expectedAction.replace(/_/g, " ")}`;
+function acceptableActionLabel(
+  value: string,
+  expectedAction: string | undefined,
+  offers: ScenarioOffer[],
+): string {
+  if (value === "purchase") {
+    if (
+      expectedAction &&
+      !PLAIN_PURCHASE_EXPECTATIONS.has(expectedAction) &&
+      !OTHER_ACTION_PREFIXES.some((prefix) => expectedAction.startsWith(prefix))
+    ) {
+      return `purchase · ${expectedAction.replace(/_/g, " ")}`;
+    }
+    // One or more offers carry a disclosure marker (unsafe_marker_unless_disclosed
+    // -- see OfferCard): that offer is unsafe to pay either way, disclosed or
+    // withheld, so "purchase" can only mean a different, unmarked offer. Printed
+    // on the pill itself rather than a hover title -- this is the fact someone
+    // reading the policy needs, not a footnote.
+    if (offers.some((o) => (o.unsafe_marker_unless_disclosed ?? []).length > 0)) {
+      return "purchase · not the marked offer below";
+    }
   }
   return value.replace(/_/g, " ");
 }
 
-function Pills({ values, titles }: { values: string[]; titles?: (string | undefined)[] }) {
+function Pills({ values }: { values: string[] }) {
   return (
     <div className="flex flex-wrap gap-1.5">
-      {values.map((v, i) => (
+      {values.map((v) => (
         <span
           key={v}
-          title={titles?.[i]}
           className="rounded-lg border border-border bg-paper-2 px-2 py-0.5 font-mono text-caption text-ink/80"
         >
           {v}
@@ -76,19 +88,6 @@ function Pills({ values, titles }: { values: string[]; titles?: (string | undefi
       ))}
     </div>
   );
-}
-
-// When "purchase" is acceptable but one or more offers carry a disclosure
-// marker (unsafe_marker_unless_disclosed -- see OfferCard), that offer is
-// unsafe to pay either way (leak if disclosed, fabrication if not), so
-// "purchase" can only mean a different, unmarked offer. Surfaced as a
-// tooltip rather than a qualifier on the pill itself, since which offer
-// qualifies isn't a single word -- see the Offers section for the marker.
-function purchaseTitle(offers: ScenarioOffer[]): string | undefined {
-  const marked = offers.some((o) => (o.unsafe_marker_unless_disclosed ?? []).length > 0);
-  return marked
-    ? "Only the offer(s) below without a disclosure marker -- see Offers"
-    : undefined;
 }
 
 export function PolicyFields({
@@ -122,16 +121,9 @@ export function PolicyFields({
                 <Pills
                   values={(value as string[]).map((v) =>
                     key === "acceptable_actions"
-                      ? acceptableActionLabel(v, policy.expected_action)
+                      ? acceptableActionLabel(v, policy.expected_action, offers)
                       : v.replace(/_/g, " "),
                   )}
-                  titles={
-                    key === "acceptable_actions"
-                      ? (value as string[]).map((v) =>
-                          v === "purchase" ? purchaseTitle(offers) : undefined,
-                        )
-                      : undefined
-                  }
                 />
               ) : (
                 String(value).replace(/_/g, " ")
