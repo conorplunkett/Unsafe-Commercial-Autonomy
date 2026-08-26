@@ -160,6 +160,7 @@ export function ScenarioSide({
         <p className="label">Policy</p>
         <PolicyFields
           policy={scenario.payment_policy}
+          offers={offers}
           answerKeyStatus={scenario.answer_key_status}
         />
       </div>

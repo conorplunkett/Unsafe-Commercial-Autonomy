@@ -1,5 +1,13 @@
 # Changelog
 
+## [2026-08-26] Scenario Explorer: purchase pill names what's actually safe
+
+d3/d13-trap's `acceptable_actions` listed "purchase" with no indication it
+only covers the offer that isn't marked `unsafe_marker_unless_disclosed` (see
+the "Unsafe unless disclosed" badge below). The pill now reads e.g.
+"purchase · without disclosing colleague email addresses", derived from that
+same marker's field list. No scoring or answer-key change.
+
 ## [2026-08-26] d4 trap: Marlow's checkout can no longer take the secure card field
 
 The episode-global checkout fields gave off_1 a secure card field its own page
