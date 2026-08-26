@@ -8,17 +8,17 @@ the only way that function's data gets refreshed -- re-run it and redeploy
 after any change to data/scenario_sets/v2_250_scenarios.md or
 data/answer_keys/v2_constraints.json.
 
-Split into many small chunk files (scenario_pairs.NNN.json, each a plain
-JSON array of a few pairs) rather than one ~850KB combined file: the
-combined file -- and even one file per category -- is too large for some
-tooling to read or relay in a single piece. Chunks are packed greedily by
-serialized size (CHUNK_SIZE_BUDGET), not by a fixed pair count: pair size
-varies a lot (category E's prompt-injection pairs run much longer than a
-plain spend-limit pair), so a fixed count doesn't bound file size the way
-a size budget does. index.ts imports every chunk in numeric order and
-concatenates them; nothing about a pair's category or role depends on
-which chunk it landed in, since both are already fields on the pair record
-itself.
+Split into one file per pair (scenario_pairs.<pair_id>.json, e.g.
+scenario_pairs.v2_c12.json, each holding that pair's record) rather than
+one ~850KB combined file: the combined file -- and even one file per
+category -- is too large for some tooling to read or relay in a single
+piece. The filename is the pair's identity, not a position: editing one
+scenario changes exactly that pair's file and nothing else, so a diff of
+this directory reads as the content change it is. (The previous scheme
+packed pairs into sequentially numbered files by size, so any pair growing
+or shrinking re-flowed every pair after it into a different file and one
+small edit diffed as a near-total rewrite.) index.ts imports every pair
+file in canonical pair order and concatenates them.
 
 Pair order is NOT recomputed: it is exactly the first-seen order of pair_id
 in load_scenarios() output, i.e. the Markdown file's own row order (category
@@ -57,14 +57,10 @@ ENFORCEMENT_SCOPE_PATH = ROOT / "data" / "answer_keys" / "phase2_enforcement_sco
 # them at the top level.
 ENFORCEMENT_FIELDS = ("rail_reachable", "in_enforced_arm", "fires_on", "decisions", "reasons", "offers")
 
-# Target serialized size (bytes) per chunk file, packed greedily -- see the
-# module docstring for why this is a byte budget rather than a pair count.
-CHUNK_SIZE_BUDGET = 15_000
-
-# Category order is no longer the file-splitting axis (chunks are sequential
-# across the whole 113-pair order, independent of category boundaries), but
-# this is still the canonical A-to-E order build_pairs() produces and the
-# order Prev/Next walks in the UI.
+# Category order is not the file-splitting axis (files are one-per-pair,
+# independent of category boundaries), but this is still the canonical
+# A-to-E order build_pairs() produces and the order Prev/Next walks in the
+# UI.
 CATEGORY_ORDER = [
     "spend_limits",
     "authorization_scope",
@@ -154,73 +150,64 @@ def build_pairs() -> List[Dict[str, Any]]:
     return pairs
 
 
-def chunk_filename(index: int) -> str:
-    return f"scenario_pairs.{index:03d}.json"
+def pair_filename(pair_id: str) -> str:
+    return f"scenario_pairs.{pair_id}.json"
 
 
-def pack_chunks(pairs: List[Dict[str, Any]], budget: int) -> List[List[Dict[str, Any]]]:
-    """Greedily group consecutive pairs so each chunk's own serialized size
-    stays near `budget`. A single pair larger than the budget still gets its
-    own one-pair chunk rather than being split (a pair is never divided)."""
-    chunks: List[List[Dict[str, Any]]] = []
-    current: List[Dict[str, Any]] = []
-    current_size = 2  # "[]"
-    for pair in pairs:
-        pair_size = len(json.dumps(pair, indent=2))
-        addition = pair_size + 2  # ", " (or the closing bracket, roughly)
-        if current and current_size + addition > budget:
-            chunks.append(current)
-            current, current_size = [], 2
-        current.append(pair)
-        current_size += addition
-    if current:
-        chunks.append(current)
-    return chunks
+def pair_import_name(pair_id: str) -> str:
+    return f"pair_{pair_id}"
 
 
-def write_chunk_files(pairs: List[Dict[str, Any]], out_dir: Path) -> List[Path]:
-    # Clear any chunk files from a previous run with a different chunk count,
-    # so a shrinking chunk count never leaves a stale, no-longer-imported
-    # file behind for a human to wonder about.
+def write_pair_files(pairs: List[Dict[str, Any]], out_dir: Path) -> List[Path]:
+    # Clear any pair files from a previous run first, so a removed or renamed
+    # pair never leaves a stale, no-longer-imported file behind for a human
+    # to wonder about.
     for stale in out_dir.glob("scenario_pairs.*.json"):
         stale.unlink()
 
     out_dir.mkdir(parents=True, exist_ok=True)
     written: List[Path] = []
-    for i, chunk in enumerate(pack_chunks(pairs, CHUNK_SIZE_BUDGET)):
-        path = out_dir / chunk_filename(i)
-        path.write_text(json.dumps(chunk, indent=2) + "\n", encoding="utf-8")
+    for pair in pairs:
+        path = out_dir / pair_filename(pair["pair_id"])
+        path.write_text(json.dumps(pair, indent=2) + "\n", encoding="utf-8")
         written.append(path)
     return written
 
 
-def sync_index_chunks(index_path: Path, written: List[Path]) -> None:
-    """Keep the Edge Function's imports in step with generated chunk count."""
+def sync_index_imports(index_path: Path, pairs: List[Dict[str, Any]]) -> None:
+    """Keep the Edge Function's imports in step with the generated pair files.
+
+    The import list, in build_pairs() order, is what preserves the canonical
+    A-to-E pair order the UI's Prev/Next walks -- the filenames themselves
+    sort lexicographically (v2_a1, v2_a10, v2_a11...), so the order lives
+    here, not in the directory listing.
+    """
     source = index_path.read_text(encoding="utf-8")
     imports = "\n".join(
-        f'import chunk{i:03d} from "./{path.name}" with {{ type: "json" }};'
-        for i, path in enumerate(written)
+        f'import {pair_import_name(p["pair_id"])} from "./{pair_filename(p["pair_id"])}"'
+        f' with {{ type: "json" }};'
+        for p in pairs
     )
-    spreads = ",\n".join(f"  ...chunk{i:03d}" for i in range(len(written)))
-    replacement = f"{imports}\n\nconst SCENARIO_PAIRS = [\n{spreads}\n];"
+    entries = ",\n".join(f"  {pair_import_name(p['pair_id'])}" for p in pairs)
+    replacement = f"{imports}\n\nconst SCENARIO_PAIRS = [\n{entries}\n];"
     updated, count = re.subn(
-        r'import chunk000 from .*?\n\nconst SCENARIO_PAIRS = \[.*?\n\];',
+        r'import \w+ from "\./scenario_pairs\..*?\n\nconst SCENARIO_PAIRS = \[.*?\n\];',
         replacement,
         source,
         count=1,
         flags=re.DOTALL,
     )
     if count != 1:
-        raise ValueError(f"Could not locate generated chunk block in {index_path}")
+        raise ValueError(f"Could not locate generated import block in {index_path}")
     index_path.write_text(updated, encoding="utf-8")
 
 
 def main(out_dir: Path = OUT_DIR) -> None:
     pairs = build_pairs()
-    written = write_chunk_files(pairs, out_dir)
+    written = write_pair_files(pairs, out_dir)
     if out_dir.resolve() == OUT_DIR.resolve():
-        sync_index_chunks(INDEX_PATH, written)
-    print(f"Wrote {len(pairs)} pairs across {len(written)} chunk files to {out_dir}")
+        sync_index_imports(INDEX_PATH, pairs)
+    print(f"Wrote {len(pairs)} pairs across {len(written)} pair files to {out_dir}")
 
 
 if __name__ == "__main__":
