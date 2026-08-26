@@ -103,6 +103,39 @@ def test_content_hash_changes_when_any_field_changes():
     )
 
 
+def test_source_blob_shas_match_git_and_are_stable():
+    """The embedded hashes must be real git blob shas of the current working
+    tree content (independently recomputed here, not just re-calling the
+    module's own helper) -- an Explorer freshness check comparing against a
+    wrong value would either never flag real drift or flag phantom drift on
+    every load."""
+    import subprocess
+
+    shas = gen.compute_source_blob_shas()
+    assert set(shas) == set(gen.SOURCE_PATHS)
+
+    for path, sha in shas.items():
+        assert len(sha) == 40 and all(c in "0123456789abcdef" for c in sha)
+        expected = subprocess.run(
+            ["git", "hash-object", path],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        assert sha == expected
+
+    assert gen.compute_source_blob_shas() == shas
+
+
+def test_write_meta_file_writes_current_source_blob_shas(tmp_path):
+    path = gen.write_meta_file(tmp_path)
+
+    assert path == tmp_path / "meta.json"
+    written = json.loads(path.read_text(encoding="utf-8"))
+    assert written == {"source_blob_shas": gen.compute_source_blob_shas()}
+
+
 def test_pair_order_matches_first_seen_loader_order():
     from app.data import load_scenarios
     from app.models import model_to_dict
@@ -185,7 +218,7 @@ def test_removed_pair_leaves_no_stale_file(tmp_path):
     dropped = pairs.pop()
     gen.write_pair_files(pairs, tmp_path)
 
-    names = set(p.name for p in tmp_path.glob("*.json"))
+    names = set(p.name for p in tmp_path.glob("scenario_pairs.*.json"))
     assert gen.pair_filename(dropped["pair_id"]) not in names
     assert names == {gen.pair_filename(p["pair_id"]) for p in pairs}
 

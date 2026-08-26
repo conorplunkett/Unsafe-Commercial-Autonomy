@@ -26,6 +26,11 @@ A to E, ascending pair number within each category, including the numbering
 gaps left by the 2026-07-24 twelve-pair cut -- e.g. category B skips to B1,
 B3, B4, B5, B10...). Prev/Next in the UI walks this order.
 
+Also writes meta.json: the git blob sha of the two source files (v2_250_scenarios.md,
+v2_constraints.json) at generation time. The Explorer compares this against the
+live blob sha GitHub reports for those paths to flag a deployed snapshot that's
+fallen behind a source edit -- see ScenarioExplorer.tsx's freshness check.
+
 Run from the repo root:  python scripts/generate_scenario_explorer_data.py
 """
 from __future__ import annotations
@@ -33,6 +38,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any, Dict, List
@@ -46,7 +52,20 @@ from app.phase2 import PHASE2_SCENARIO_SET  # noqa: E402
 
 OUT_DIR = ROOT / "supabase" / "functions" / "admin-scenario-data"
 INDEX_PATH = OUT_DIR / "index.ts"
+META_PATH = OUT_DIR / "meta.json"
 ENFORCEMENT_SCOPE_PATH = ROOT / "data" / "answer_keys" / "phase2_enforcement_scope.json"
+
+# The two files a human actually edits to change scenario content or answer
+# keys (phase2_enforcement_scope.json is derived from these, not a primary
+# source -- see generate_phase2_enforcement_scope.py). Their git blob shas at
+# generation time are embedded in meta.json so the Explorer can compare
+# against the live blob sha GitHub reports for these paths on `main` and flag
+# when the deployed snapshot no longer reflects what's actually committed --
+# see the freshness check in web/components/scenario-explorer/ScenarioExplorer.tsx.
+SOURCE_PATHS = (
+    "data/scenario_sets/v2_250_scenarios.md",
+    "data/answer_keys/v2_constraints.json",
+)
 
 # Per-scenario fields folded into each pair's trap/lookalike record, read from
 # the committed enforcement-scope projection (data/answer_keys/
@@ -77,6 +96,33 @@ EXPECTED_CATEGORY_COUNTS = {
     "adversarial_robustness": 25,
 }
 EXPECTED_PAIR_COUNT = sum(EXPECTED_CATEGORY_COUNTS.values())
+
+
+def git_blob_sha(path: Path) -> str:
+    """The blob sha `git add` would give this file's current content --
+    computed with `git hash-object` rather than `git rev-parse HEAD:path` so
+    it matches the working tree right now, the moment before this generation
+    gets committed alongside whatever source edit it reflects."""
+    result = subprocess.run(
+        ["git", "hash-object", str(path)],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return result.stdout.strip()
+
+
+def compute_source_blob_shas() -> Dict[str, str]:
+    return {path: git_blob_sha(ROOT / path) for path in SOURCE_PATHS}
+
+
+def write_meta_file(out_dir: Path) -> Path:
+    meta = {"source_blob_shas": compute_source_blob_shas()}
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = out_dir / "meta.json"
+    path.write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
+    return path
 
 
 def load_enforcement_scope() -> Dict[str, Dict[str, Any]]:
@@ -214,6 +260,7 @@ def sync_index_imports(index_path: Path, pairs: List[Dict[str, Any]]) -> None:
 def main(out_dir: Path = OUT_DIR) -> None:
     pairs = build_pairs()
     written = write_pair_files(pairs, out_dir)
+    write_meta_file(out_dir)
     if out_dir.resolve() == OUT_DIR.resolve():
         sync_index_imports(INDEX_PATH, pairs)
     print(f"Wrote {len(pairs)} pairs across {len(written)} pair files to {out_dir}")

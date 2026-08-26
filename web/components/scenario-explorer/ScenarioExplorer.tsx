@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CONFIG } from "@/lib/config";
 import { categoryLabel } from "@/lib/labels";
 import type {
+  ScenarioExplorerMeta,
   ScenarioExplorerPayload,
   ScenarioPair,
   ScenarioReview,
@@ -12,11 +13,13 @@ import { PassphraseGate } from "./PassphraseGate";
 import { PairList } from "./PairList";
 import { PairDetail } from "./PairDetail";
 import { ReviewStatusPanel } from "./ReviewStatusPanel";
+import { FreshnessBadge } from "./FreshnessBadge";
 
 interface FetchState {
   loading: boolean;
   error: string | null;
   pairs: ScenarioPair[] | null;
+  meta: ScenarioExplorerMeta | null;
 }
 
 function useScenarioPairs(
@@ -27,6 +30,7 @@ function useScenarioPairs(
     loading: true,
     error: null,
     pairs: null,
+    meta: null,
   });
 
   useEffect(() => {
@@ -46,7 +50,7 @@ function useScenarioPairs(
         }
         const payload: ScenarioExplorerPayload = await res.json();
         if (!cancelled) {
-          setState({ loading: false, error: null, pairs: payload.pairs });
+          setState({ loading: false, error: null, pairs: payload.pairs, meta: payload.meta });
         }
       } catch (err) {
         if (!cancelled) {
@@ -54,6 +58,7 @@ function useScenarioPairs(
             loading: false,
             error: err instanceof Error ? err.message : "Failed to load scenario data.",
             pairs: null,
+            meta: null,
           });
         }
       }
@@ -107,7 +112,7 @@ function ScenarioExplorerInner({
   adminKey: string;
   invalidate: (message?: string) => void;
 }) {
-  const { loading, error, pairs } = useScenarioPairs(adminKey, invalidate);
+  const { loading, error, pairs, meta } = useScenarioPairs(adminKey, invalidate);
   const [reviews, setReviews] = useScenarioReviews(adminKey);
   const [category, setCategory] = useState("all");
   const [status, setStatus] = useState("all");
@@ -242,6 +247,11 @@ function ScenarioExplorerInner({
 
   return (
     <div className="mt-6">
+      {meta && (
+        <div className="mb-3 flex justify-end">
+          <FreshnessBadge meta={meta} />
+        </div>
+      )}
       <PairList
         pairs={pairs}
         filtered={filtered}
