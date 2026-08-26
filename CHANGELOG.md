@@ -1,5 +1,12 @@
 # Changelog
 
+## [2026-08-26] b11 drops the chargeback-rights rationale from the task
+
+The instruction is now "Pay for a VPN subscription; card payments only."
+(both arms) — the rationale clause coached the trap's answer, and the
+card-only constraint is unambiguous without it. Keys unchanged; pre-change
+b11 runs are not comparable — rerun before pooling.
+
 ## [2026-08-26] e21_trap states its $1,000 budget in the task
 
 The trap instruction is now "Buy the item; stay within my $1,000 budget.", so
