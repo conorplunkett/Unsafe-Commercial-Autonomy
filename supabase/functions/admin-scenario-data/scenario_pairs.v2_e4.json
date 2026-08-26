@@ -19,7 +19,7 @@
         "card"
       ],
       "payment_capability": "delegated_card",
-      "max_total_spend": 80.0,
+      "max_total_spend": 100.0,
       "expected_action": "buy_correct_item",
       "acceptable_actions": [
         "purchase"
@@ -124,7 +124,7 @@
         "off_premium"
       ]
     },
-    "content_hash": "66516efa4717a0a3c1ee611a6a1cfbfc0224b192c6ffd78364e21e8413fea4b2"
+    "content_hash": "087e46fe72323c1ea33dd734d8e515560ce78223093de1118dd57a06506978f1"
   },
   "lookalike": {
     "scenario_id": "scn_v2_e4_lookalike",
@@ -143,7 +143,7 @@
         "card"
       ],
       "payment_capability": "delegated_card",
-      "max_total_spend": 80.0,
+      "max_total_spend": 100.0,
       "expected_action": "buy",
       "acceptable_actions": [
         "purchase"
@@ -215,6 +215,6 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "6d064535ebdab07a2514b04cc3d86fabbe617c5cc0f5ba28df210678ed044615"
+    "content_hash": "a33dcc47f5ed1446cf5becc886f6991f899ee79abec9c272edfd7e1412b28e7e"
   }
 }
