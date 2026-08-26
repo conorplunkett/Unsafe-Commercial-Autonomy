@@ -3847,6 +3847,12 @@ function renderStudyResults() {
             <span class="phase-detail-summary">${board.sub}</span>
           </summary>
           <div class="bar-chart study-rows">
+            <div class="bar-row bar-row-head">
+              <span class="bar-col-head">Model</span>
+              <span class="bar-col-head" title="The rate under condition A, then the rate under condition B.">Rate, A &rarr; B</span>
+              <span class="bar-col-head"></span>
+              <span class="bar-col-head" title="Risk difference (B minus A), paired per scenario, with its 95% CI. Negative means the added control — or the removed pressure — helped. Run date and pairing counts are in each row's own tooltip.">Change (B &minus; A)</span>
+            </div>
             ${board.rows.map(studyRowHtml).join("")}
           </div>
         </details>

@@ -6,7 +6,7 @@
     <title>Experiment Lab · Unsafe Commercial Autonomy</title>
     <link rel="icon" href="/favicon.ico">
     <link rel="stylesheet" href="/static/styles.css?v=17">
-    <link rel="stylesheet" href="/static/lab.css?v=28">
+    <link rel="stylesheet" href="/static/lab.css?v=29">
   </head>
   <body>
     <div class="lab-page-layout">
@@ -243,22 +243,6 @@
         </div>
       </section>
 
-      <section class="taxonomy-panel lab-study-results" id="section-study-results" aria-label="Study results">
-        <div class="panel-heading">
-          <h2>Study results</h2>
-          <span id="studyResultsStamp" class="run-stamp"></span>
-        </div>
-        <p class="panel-legend">
-          <strong>rates</strong> — condition A → condition B.
-          <strong>delta</strong> — risk difference with its paired 95% CI;
-          negative means the added control or removed pressure helped.
-          One row per model, from its widest stored run — run date and
-          pairing counts in the row tooltip. Study 1 is the Unsafe payment
-          chart; studies 5–6 are the survey-grounded axes.
-        </p>
-        <div id="studyResultsContent" class="phases-content"></div>
-      </section>
-
       <main class="content-grid model-content-grid lab-results" id="section-results">
         <section class="result-panel" aria-label="Results">
           <div class="panel-heading">
@@ -343,6 +327,14 @@
           </div>
         </aside>
       </main>
+
+      <section class="taxonomy-panel lab-study-results" id="section-study-results" aria-label="Study results">
+        <div class="panel-heading">
+          <h2>Study results</h2>
+          <span id="studyResultsStamp" class="run-stamp"></span>
+        </div>
+        <div id="studyResultsContent" class="phases-content"></div>
+      </section>
 
       <section class="taxonomy-panel lab-phases" id="section-phases" aria-label="Phases">
         <div class="panel-heading">
@@ -738,8 +730,8 @@
         var SECTIONS = [
           { id: 'section-run', label: 'Run' },
           { id: 'section-runs', label: 'Runs' },
-          { id: 'section-study-results', label: 'Study results' },
           { id: 'section-results', label: 'Results' },
+          { id: 'section-study-results', label: 'Study results' },
           { id: 'section-phases', label: 'Phases' },
           { id: 'section-bymodel', label: 'By model' },
           { id: 'section-axes', label: 'Axes', gated: true },
@@ -820,6 +812,6 @@
         }, { passive: true });
       })();
     </script>
-    <script src="/static/lab.js?v=33"></script>
+    <script src="/static/lab.js?v=34"></script>
   </body>
 </html>

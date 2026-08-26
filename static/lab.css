@@ -667,6 +667,20 @@ details.runner-card[open] > summary.runner-card-heading h2::before {
   grid-template-columns: minmax(170px, 260px) max-content 1fr max-content;
 }
 
+/* Column labels for the study-results grid, same look as a table's <th> —
+   this is the only header the bar-chart layout gets, so it carries the
+   "what is column 2 vs column 4" definitions as tooltips instead of a
+   paragraph above the whole panel. */
+.bar-row-head .bar-col-head {
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
 .study-flag {
   display: inline-block;
   margin-left: 6px;
