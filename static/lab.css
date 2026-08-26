@@ -613,6 +613,54 @@ details.runner-card[open] > summary.runner-card-heading h2::before {
   font-weight: 400;
 }
 
+/* Run-form readout: which studies the current chip selection answers.
+   Same states and tokens as the dots, sized to sit beside the run count. */
+.study-readout {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.study-readout-label {
+  color: var(--muted);
+  font-size: 11px;
+  margin-right: 2px;
+}
+
+.study-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.study-pill-on {
+  background: var(--ok-bg);
+  color: var(--ok);
+}
+
+.study-pill-part {
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+
+.study-pill-off {
+  border-color: var(--border);
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.study-pill-unknown {
+  border-color: var(--muted);
+  border-style: dashed;
+  color: var(--muted);
+  font-weight: 400;
+}
+
 /* The Runs list, Results panel, and Phases tracker sit above the by-model
    dashboard and are always shown. */
 .lab-runs,

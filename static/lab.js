@@ -124,6 +124,7 @@ const els = {};
 for (const id of [
   "runBenchmark",
   "runCount",
+  "studyReadout",
   "runProgress",
   "progressFill",
   "progressLabel",
@@ -1424,6 +1425,99 @@ function axisCount(selected, defaultCount) {
   return selected.size || defaultCount;
 }
 
+// The six studies against the CURRENT form selection — pure derivation, so
+// hand-picked chips get the same truth the presets do. Returns
+// [{id, label, state: "on"|"part"|"off"|"unknown", hint}]; hints name the
+// missing piece and stay in the title.
+function runFormStudyStates() {
+  const pool = scenarioPool();
+  const choice = els.scenarioFilter.value;
+  const wholeSet = choice === "all" && els.categoryFilter.value === "all";
+  const subsetIds =
+    choice === "all" || choice === "random"
+      ? pool.map((scenario) => scenario.scenario_id)
+      : pool.some((scenario) => scenario.scenario_id === choice)
+        ? [choice]
+        : [];
+  // Empty axis selections mean the CLI's own default level ("none"), same
+  // rule as axisCount above.
+  const effUrgencies = state.urgencies.size ? state.urgencies : new Set(["none"]);
+  const effAvailabilities = state.userAvailabilities.size
+    ? state.userAvailabilities
+    : new Set(["none"]);
+  const baselineHint = !state.conditions.has("structured_policy")
+    ? "add structured policy"
+    : !effUrgencies.has("none") || !effAvailabilities.has("none")
+      ? "add the no-pressure baseline"
+      : null;
+  // Breadth of the baseline cell over the scenario selection: "on" only for
+  // the whole set; any category/scenario narrowing answers a slice.
+  const base = baselineHint ? "off" : wholeSet ? "on" : "part";
+  const slice = wholeSet ? null : `${subsetIds.length} of ${phaseTotal("2")} scenarios in selection`;
+  const gate = (condition, hint) => {
+    if (baselineHint) return { state: "off", hint: baselineHint };
+    if (!condition) return { state: "off", hint };
+    return { state: base, hint: slice };
+  };
+  const s1 = gate(true, null);
+  const s2 = gate(state.conditions.has("no_policy"), "add no policy");
+  let s3 = gate(state.conditions.has("tool_constraints"), "add tool constraints");
+  if (
+    s3.state !== "off" &&
+    state.enforcementScope.size > 0 &&
+    subsetIds.length &&
+    !subsetIds.some((id) => state.enforcementScope.has(id))
+  ) {
+    s3 = { state: "off", hint: "selection is outside the enforced arm" };
+  }
+  const wantsTp = state.urgencies.has("time_pressure");
+  const wantsUnreachable = state.userAvailabilities.has("unreachable");
+  let s4;
+  if (baselineHint) {
+    s4 = { state: "off", hint: baselineHint };
+  } else if (wantsTp && wantsUnreachable) {
+    s4 = { state: base, hint: slice };
+  } else if (wantsTp || wantsUnreachable) {
+    s4 = { state: "part", hint: wantsTp ? "add user away" : "add time pressure" };
+  } else {
+    s4 = { state: "off", hint: "add time pressure + user away" };
+  }
+  let s56;
+  if (state.surveyCoverage === null) {
+    s56 = { state: "unknown", hint: "survey coverage unavailable" };
+  } else if (baselineHint) {
+    s56 = { state: "off", hint: baselineHint };
+  } else {
+    const surveyed = subsetIds.filter((id) => state.surveyCoverage.has(id)).length;
+    s56 =
+      surveyed === 0
+        ? { state: "off", hint: `selection has none of the ${state.surveyCoverage.size} surveyed scenarios` }
+        : surveyed === state.surveyCoverage.size && choice !== "random"
+          ? { state: "on", hint: null }
+          : { state: "part", hint: `${surveyed}/${state.surveyCoverage.size} surveyed in selection` };
+  }
+  return [s1, s2, s3, s4, s56, { ...s56 }].map((study, index) => ({
+    id: index + 1,
+    label: STUDY_META[index].label,
+    ...study,
+  }));
+}
+
+function renderStudyReadout() {
+  if (state.phase !== "2") {
+    els.studyReadout.hidden = true;
+    return;
+  }
+  els.studyReadout.hidden = false;
+  const pills = runFormStudyStates()
+    .map((study) => {
+      const title = `${study.id} · ${study.label}${study.hint ? ` — ${study.hint}` : ""}`;
+      return `<span class="study-pill study-pill-${study.state}" title="${title}">S${study.id}</span>`;
+    })
+    .join("");
+  els.studyReadout.innerHTML = `<span class="study-readout-label">studies</span>${pills}`;
+}
+
 function updateRunCount() {
   updateModelCapabilityFields();
   const pool = scenarioPool();
@@ -1481,6 +1575,7 @@ function updateRunCount() {
     els.runBenchmark.disabled = !cells;
     els.runBenchmark.textContent = "Run benchmark";
   }
+  renderStudyReadout();
   updateCliCommand();
 }
 
