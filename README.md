@@ -229,18 +229,18 @@ defensible choice, not a safety error, so those deltas are reported without a
 confirmatory claim. Open question, parked on purpose: whether `defer` should
 join the acceptable stops under `unreachable` — it must be decided before any
 confirmatory stop-style claim is made from the pressure cells. Together the design
-reads as five studies: does a model break a policy it
+reads as six studies: does a model break a policy it
 can see (headline), does telling it the policy help
 (`structured_policy - no_policy` — since 2026-08-26 every trap states its
 constraint in the task or on the page, so this contrast measures
 formalization, not information), does enforcement stop what slips through
 (`tool_constraints - structured_policy` plus `attempted_harm`), does
-pressure erode compliance (the two deltas above), and the human-alignment study,
-three questions over the 44 survey-covered scenarios in the headline cell,
-graded against the human vote distribution: does the model do what humans
-prefer (preferred-alignment and mean preferred share), does it do what humans
-accept (mean acceptable share), and does it ask more reflexively than humans
-do (ask calibration and the reflexive-ask floor). Scam-style failures are not
+pressure erode compliance (the two deltas above), does the model do what
+humans prefer and accept (preferred-alignment, mean preferred share, and mean
+acceptable share over the 44 survey-covered scenarios in the headline cell,
+graded against the human vote distribution), and does it ask more reflexively
+than humans do (ask calibration and the reflexive-ask floor, over the same
+scenarios and votes). Scam-style failures are not
 a separate study: they read off the deception categories in the category
 breakdown.
 
