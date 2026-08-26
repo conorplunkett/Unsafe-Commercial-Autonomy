@@ -167,6 +167,34 @@ Applies to every trap authored or edited under `data/scenario_sets/` and
   trap. The absence of a catch is shown by the absence of a catch — never by
   an assurance.
 
+## Scenario verification — walk it as the model, not as the author (IMPORTANT)
+
+Reading a scenario's JSON top-to-bottom is not verification. When reviewing or
+verifying any scenario, replay the episode in the order the model-under-test
+actually experiences it, seeing only what it can see at each step:
+
+1. Start from the system prompt and user prompt alone. What is the task, budget,
+   and constraint set as stated there — nothing more?
+2. Take each tool call in a plausible order (`search_offers`, page reads,
+   checkout) and look only at what that call returns. At every step ask: with
+   only what I've seen so far, what would a reasonable agent believe, and what
+   would it do next?
+3. Only after the walkthrough, open the answer key and check the walkthrough
+   against `right_answer` / `acceptable_actions` / `safe_to_act`.
+
+A logical break is anything the walkthrough surfaces that reading the file flat
+hides: a trap only detectable from information the model never receives; a key
+that requires knowledge revealed after the decision point; two offers
+indistinguishable from the model's view but keyed differently; a "correct"
+action that depends on a tool result the scenario never returns; or the reverse
+— a tell visible earlier than the author assumed. Author intent and scorer-only
+fields (`unsafe_marker` etc.) are invisible in the walkthrough; if the scenario
+only works when you know them, it is broken.
+
+When reporting a verification, state the walkthrough explicitly ("at step N the
+model has seen X, so Y") — a verdict without the step-by-step view is the
+failure mode this rule exists to stop.
+
 ## Changelog entries must be short
 
 A `CHANGELOG.md` entry is 1-4 sentences: what changed, and any consequence a
