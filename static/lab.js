@@ -47,6 +47,10 @@ const state = {
   framings: new Set(),
   urgencies: new Set(),
   userAvailabilities: new Set(),
+  // The benchmark study the runner chips are currently set to, or null for a
+  // hand-built selection. Presets only write the chips; any manual chip edit
+  // clears this back to null so the highlight never lies about what will run.
+  studyPreset: null,
   modelFilter: null,
   // Results-panel slice filters, independent of the model click-filter above.
   // Each is a Set of selected values (run_id, verdict, condition, ...); empty
@@ -122,6 +126,7 @@ for (const id of [
   "modelSelect",
   "modelCustomInput",
   "phaseChips",
+  "studyPresetChips",
   "conditionChips",
   "phase2AxesRow",
   "framingChips",
@@ -1122,6 +1127,79 @@ function pickProvider(providerId) {
   renderModelSelect();
 }
 
+// The benchmark's studies as runner presets: each is one question and the
+// exact cells that answer it. Applying one writes the condition/axis chips;
+// it adds no new run mechanics — the same grid the chips always described.
+const STUDY_PRESETS = {
+  headline: {
+    label: "Headline",
+    title: "Policy compliance — structured policy, no pressure axes: the headline unsafe rate's cell.",
+    conditions: ["structured_policy"],
+    urgencies: [],
+    userAvailabilities: [],
+  },
+  formalization: {
+    label: "Formalization",
+    title: "Does a formal policy block improve compliance over the rule stated in the task? no_policy vs structured_policy, no pressure axes.",
+    conditions: ["no_policy", "structured_policy"],
+    urgencies: [],
+    userAvailabilities: [],
+  },
+  enforcement: {
+    label: "Enforcement",
+    title: "Do hard blocks stop violations, or push models into workarounds? structured_policy vs tool_constraints, no pressure axes.",
+    conditions: ["structured_policy", "tool_constraints"],
+    urgencies: [],
+    userAvailabilities: [],
+  },
+  pressure: {
+    label: "Pressure",
+    title: "Does time pressure or an unreachable user erode compliance? structured_policy crossed with both pressure axes (Phase 2, CLI only).",
+    conditions: ["structured_policy"],
+    urgencies: ["none", "time_pressure"],
+    userAvailabilities: ["none", "unreachable"],
+  },
+};
+
+function renderStudyPresetChips() {
+  els.studyPresetChips.innerHTML = Object.entries(STUDY_PRESETS)
+    .map(
+      ([key, preset]) => `
+      <button type="button" class="chip ${state.studyPreset === key ? "chip-on" : ""}"
+        data-study="${key}" title="${preset.title}">
+        ${preset.label}
+      </button>
+    `
+    )
+    .join("");
+}
+
+function clearStudyPreset() {
+  if (state.studyPreset == null) return;
+  state.studyPreset = null;
+  renderStudyPresetChips();
+}
+
+function applyStudyPreset(key) {
+  const preset = STUDY_PRESETS[key];
+  if (!preset) return;
+  // The pressure axes only exist in Phase 2; the arm presets work in either
+  // phase, so only the pressure preset forces the phase over.
+  if (preset.urgencies.length && state.phase !== "2") pickPhase("2");
+  state.studyPreset = key;
+  state.conditions = new Set(preset.conditions);
+  // The axis chip handlers hold a reference to these Sets (bindAxisChips), so
+  // mutate in place rather than replacing them.
+  state.urgencies.clear();
+  for (const value of preset.urgencies) state.urgencies.add(value);
+  state.userAvailabilities.clear();
+  for (const value of preset.userAvailabilities) state.userAvailabilities.add(value);
+  renderStudyPresetChips();
+  renderConditionChips();
+  renderPhase2AxesChips();
+  updateRunCount();
+}
+
 function renderConditionChips() {
   const conditionOrder = conditionsForPhase(state.phase);
   els.conditionChips.innerHTML = conditionOrder
@@ -1168,6 +1246,7 @@ function renderPhase2AxesChips() {
 // switching phases never leaves a Phase 1 condition checked that Phase 2's
 // chip row doesn't even render (and vice versa).
 function pickPhase(phase) {
+  clearStudyPreset();
   state.phase = phase;
   state.conditions = new Set(conditionsForPhase(phase));
   els.phaseChips
@@ -3698,11 +3777,18 @@ function bindEvents() {
   els.conditionChips.addEventListener("click", (event) => {
     const chip = event.target.closest("[data-condition]");
     if (!chip) return;
+    clearStudyPreset();
     const condition = chip.dataset.condition;
     if (state.conditions.has(condition)) state.conditions.delete(condition);
     else state.conditions.add(condition);
     renderConditionChips();
     updateRunCount();
+  });
+  els.studyPresetChips.addEventListener("click", (event) => {
+    const chip = event.target.closest("[data-study]");
+    if (!chip) return;
+    if (state.studyPreset === chip.dataset.study) clearStudyPreset();
+    else applyStudyPreset(chip.dataset.study);
   });
   els.phaseChips.addEventListener("click", (event) => {
     const chip = event.target.closest("[data-phase]");
@@ -3726,6 +3812,7 @@ function bindEvents() {
     el.addEventListener("click", (event) => {
       const chip = event.target.closest("[data-value]");
       if (!chip) return;
+      clearStudyPreset();
       const value = chip.dataset.value;
       if (selectedSet.has(value)) selectedSet.delete(value);
       else selectedSet.add(value);
@@ -3891,6 +3978,7 @@ function bindEvents() {
 }
 
 async function init() {
+  renderStudyPresetChips();
   renderConditionChips();
   renderPhase2AxesChips();
   bindEvents();
