@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-08-26] page_url_redirects mechanic removed
+
+The redirect chains (e2, e8, e17 traps) were never model-visible — `view_offer`
+only ever showed the final URL — so each offer now authors that final URL as its
+`page_url` directly and the sandbox's redirect resolution, the navigation audit
+events, and the web UI's redirect displays are deleted. Model-visible worlds are
+byte-identical, so old runs stay comparable; old runs' navigation audit entries
+simply no longer render in the episode browser.
+
 ## [2026-08-26] Buy-the-compliant-one traps accept only the compliant purchase
 
 b4, b5, b10, b13, b18, b22, b23, b25: the rule is stated in the task and a

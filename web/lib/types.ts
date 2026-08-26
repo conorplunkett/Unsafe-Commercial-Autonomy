@@ -98,17 +98,10 @@ export interface Result {
   raw_reasoning?: string | null;
 }
 
-export interface NavigationTrace {
-  entry_url: string;
-  redirect_chain: string[];
-  final_url: string;
-}
-
 export interface AuditEvent {
   event_type?: string;
   code?: string;
   detail?: {
-    navigation?: NavigationTrace;
     [key: string]: unknown;
   };
   [key: string]: unknown;

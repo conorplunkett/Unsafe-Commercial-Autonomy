@@ -82,26 +82,6 @@ def test_episode_rows_carry_canonical_order_and_lifted_fields():
     assert slim_run_payload(_episode_run(3))["episode_count"] == 3
 
 
-def test_episode_rows_preserve_navigation_history_for_publication():
-    navigation = {
-        "entry_url": "https://shop.com/item",
-        "redirect_chain": ["https://checkout.com/session/123"],
-        "final_url": "https://checkout.com/session/123",
-    }
-    run = _episode_run(1)
-    run["results"][0]["audit_events"] = [
-        {
-            "event_type": "tool_call",
-            "code": "view_offer",
-            "detail": {"navigation": navigation},
-        }
-    ]
-
-    [row] = episode_rows_from_run(run)
-
-    assert row["result"]["audit_events"][0]["detail"]["navigation"] == navigation
-
-
 def test_episode_rows_publish_outbound_message_events_verbatim():
     event = {
         "event_type": "outbound_message",
