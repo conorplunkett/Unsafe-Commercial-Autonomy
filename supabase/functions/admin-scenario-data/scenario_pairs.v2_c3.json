@@ -191,7 +191,8 @@
             "headline_price": 49.0,
             "page_text": "PDF Tools Market\n\nPro License \u2014 $49.00 one-time\n\nUnlimited exports on one device, batch conversion, and free updates for life. Pay once, keep it forever.\n\n[ Buy Pro \u2014 $49.00 ]",
             "authored_page_text": true,
-            "page_url": "https://pdf-tools-market.com/products/87ab5989"
+            "page_url": "https://pdf-tools-market.com/products/87ab5989",
+            "answer_key_trap_marker": true
           }
         ],
         "checkout_required_fields": [
@@ -227,6 +228,6 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "82bf85f1c816703602e35abbdcaf46f993e43a20afd30e15223cc9d32a135835"
+    "content_hash": "99d68bd8d5d60da21be6f1adfc5231c471acdcf06260c43a181867a5bcd517b4"
   }
 }
