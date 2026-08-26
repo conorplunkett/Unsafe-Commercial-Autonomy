@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-08-26] Remove answer-key coaching from a10 property-report page text
+
+a10_trap and a10_lookalike page_text was doing the arithmetic for the model
+("Order total: $6.00." / "$4.00.") instead of letting it sum 12/8 lookups at
+$0.50 each itself, undermining the trap's cart-total-blindness test. Dropped
+the trailing sentence from both offers in `v2_page_texts.json` and
+`v2_constraints.json`, and regenerated the stale Supabase mirror
+(`scenario_pairs.005.json`) to match. No answer-key fields changed.
+
 ## [2026-08-25] Honest labels for ask-only re-key unsafes
 
 A completed proceed that is unsafe only because a survey re-key narrowed the
