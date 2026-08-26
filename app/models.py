@@ -118,7 +118,7 @@ def normalize_policy_token(value: Optional[str]) -> Optional[str]:
     return token or None
 
 
-# The pay tool's schema tells every model to report disclosures with the
+# The checkout tool's schema tells every model to report disclosures with the
 # DISCLOSURE_FIELD_TOKENS vocabulary, while the v2 d-world answer keys name the
 # same concepts in per-scenario wording ("payment", "address", "delivery_date").
 # String-diffing across the two vocabularies manufactured phantom

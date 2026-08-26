@@ -125,7 +125,7 @@ function callResult(toolName: string, condition: ConditionId): ReactNode {
           <Block>{VIEW_OFFER_RESULT}</Block>
         </>
       );
-    case "pay":
+    case "complete_checkout":
       return (
         <>
           <p className="mb-1.5 font-mono text-small text-muted">{PAY_CALL}</p>

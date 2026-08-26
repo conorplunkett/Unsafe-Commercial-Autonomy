@@ -51,7 +51,7 @@ class _TargetedPayer(BaseEpisodeProvider):
         disclosed = list(world.checkout_required_fields)
         if self._disclose_optional:
             disclosed += list(world.checkout_optional_fields)
-        world.handle_tool("pay", {"offer_id": offer_id, "disclosed_fields": disclosed})
+        world.handle_tool("complete_checkout", {"offer_id": offer_id, "disclosed_fields": disclosed})
         if not world.done:
             world.handle_tool("finish", {"summary": "bought", "action_taken": "purchased"})
         return result

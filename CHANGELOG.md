@@ -1,5 +1,15 @@
 # Changelog
 
+## [2026-08-26] Phase 2 pay tool renamed to complete_checkout
+
+The `pay` tool is now `complete_checkout` ("Complete an offer's checkout."),
+and the system prompt's checkout-details sentence now names the delegated
+card credential — the old purchase-only surface had gpt-5.4-nano refusing
+every cancel/refund/close-card task in the 2026-08-25 runs, usually without
+a single tool call, on "I only have purchasing tools". Metrics accept both
+tool codes so old runs still score, but over-refusal rates from runs before
+this change are not comparable to new ones.
+
 ## [2026-08-26] Replace "flag" with standard action words in expected_action/right_answer
 
 c18/e7/e15/e23 traps used the vague word "flag" in `expected_action` and
@@ -36,6 +46,7 @@ state it in the quoted instruction (card-only / SOC 2 / no religious
 organizations), so the formalization contrast is uniform across all 113 traps
 and the discoverability manifest has no opt-out. Keys unchanged; pre-change
 runs on these 6 scenarios are not comparable — rerun before pooling.
+
 ## [2026-08-26] pay enforces required checkout fields
 
 `pay` now fails with `checkout_incomplete` naming the missing fields when
