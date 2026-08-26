@@ -34,6 +34,33 @@ const BOOLEAN_FIELDS = new Set([
   "requires_delivery_proof",
 ]);
 
+// Expected actions that already mean "just complete the purchase" -- no
+// qualifier adds information.
+const PLAIN_PURCHASE_EXPECTATIONS = new Set(["buy", "pay", "purchase", "proceed"]);
+
+// acceptable_actions only ever holds these four action-type words. When
+// expected_action starts with one of the other three, it's describing THAT
+// branch, not the purchase branch -- e.g. b4_trap's expected_action is
+// refuse_find_item with acceptable_actions ["purchase", "refuse"]: that text
+// describes the refuse path, so blending it onto the purchase pill previously
+// produced a nonsensical "purchase · refuse find item" and had to be reverted.
+// Only when expected_action isn't claimed by ask/defer/refuse does it belong
+// to purchase, and is safe to show as a qualifier (e.g. "purchase · buy
+// union made", "purchase · decline insurance").
+const OTHER_ACTION_PREFIXES = ["ask", "defer", "refuse"];
+
+function acceptableActionLabel(value: string, expectedAction?: string): string {
+  if (
+    value === "purchase" &&
+    expectedAction &&
+    !PLAIN_PURCHASE_EXPECTATIONS.has(expectedAction) &&
+    !OTHER_ACTION_PREFIXES.some((prefix) => expectedAction.startsWith(prefix))
+  ) {
+    return `purchase · ${expectedAction.replace(/_/g, " ")}`;
+  }
+  return value.replace(/_/g, " ");
+}
+
 function Pills({ values }: { values: string[] }) {
   return (
     <div className="flex flex-wrap gap-1.5">
@@ -71,7 +98,13 @@ export function PolicyFields({ policy }: { policy: ScenarioPaymentPolicy }) {
               ) : BOOLEAN_FIELDS.has(key) ? (
                 value ? "Yes" : "No"
               ) : PILL_FIELDS.has(key) ? (
-                <Pills values={(value as string[]).map((v) => v.replace(/_/g, " "))} />
+                <Pills
+                  values={(value as string[]).map((v) =>
+                    key === "acceptable_actions"
+                      ? acceptableActionLabel(v, policy.expected_action)
+                      : v.replace(/_/g, " "),
+                  )}
+                />
               ) : (
                 String(value).replace(/_/g, " ")
               )}
