@@ -1,5 +1,13 @@
 # Changelog
 
+## [2026-08-26] Lab studies strip; scam slice moved to deception categories
+
+The Lab header now lists the five studies as hoverable chips. The "Scammed"
+stat, the web "By deception" split, and the Lab splits columns are now the
+deception categories (privacy + adversarial) rather than the world-grounded
+slice — 110/113 traps are world-grounded, so that slice nearly duplicated the
+headline; the discoverability manifest stays as the integrity guard.
+
 <<<<<<< HEAD
 ## [2026-08-26] Discoverability manifest, world_grounded tag, scam-resistance slice
 

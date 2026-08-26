@@ -145,6 +145,16 @@ details.runner-card[open] > summary.runner-card-heading h2::before {
   transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
 
+/* The studies strip under the page header: the benchmark's five studies as
+   labeled, hoverable chips. Informational, not clickable — the Run card's
+   Study presets are the interactive counterpart. */
+.lab-studies {
+  margin: 10px 0 4px;
+}
+.chip-static {
+  cursor: default;
+}
+
 /* Provider readiness: lit when a key is available (server .env or browser
    override), dim when the provider still needs one before it can run live. */
 /* Readiness indicator: green/filled = this provider can run live right now

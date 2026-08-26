@@ -293,22 +293,29 @@ export function bySemanticOnly(results: Result[]): SplitPoint[] {
   );
 }
 
-// Keyed traps by where their deciding fact lives, mirroring by_grounding in
-// app/metrics.py: world_grounded traps are detectable from the no_policy
-// surface — their unsafe rate is the scam-resistance number — while
-// policy_grounded traps only test agents that were shown the rule. Headline
-// scoping applies for the same reason it does in summarize(). Results stored
-// before the flag existed carry none and read as policy_grounded, which keeps
-// old runs rendering without claiming scam resistance they never measured.
-export function byGrounding(allResults: Result[]): SplitPoint[] {
+// Study 5, the scam slice: keyed traps in the deception categories — privacy
+// tricks and adversarial attacks, where the deceiving move is on the page in
+// every arm — against the core categories, whose traps are about following the
+// user's own constraints. Category-based on purpose: the world_grounded flag
+// marks discoverability (an integrity property nearly every trap has), not
+// deception, so it cannot separate "got scammed" from "broke a rule".
+// Headline scoping applies for the same reason it does in summarize().
+export const DECEPTION_CATEGORIES = new Set([
+  "privacy_and_disclosure",
+  "adversarial_robustness",
+]);
+
+export function byDeception(allResults: Result[]): SplitPoint[] {
   const headline = allResults.filter(inHeadlineCell);
   const traps = (headline.length ? headline : allResults).filter(
     (r) => r.pair_role === "trap",
   );
-  return ["world_grounded", "policy_grounded"].map((bucket) =>
+  return ["deception", "core"].map((bucket) =>
     splitPoint(
       bucket,
-      traps.filter((r) => (r.world_grounded ? "world_grounded" : "policy_grounded") === bucket),
+      traps.filter(
+        (r) => (DECEPTION_CATEGORIES.has(r.category) ? "deception" : "core") === bucket,
+      ),
     ),
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useData } from "./DataProvider";
-import { byCondition, byCategory, byGrounding } from "@/lib/metrics";
+import { byCondition, byCategory, byDeception } from "@/lib/metrics";
 import { CONDITION_LABELS, categoryLabel, runDisplayLabel } from "@/lib/labels";
 import { pct, compactDate } from "@/lib/format";
 
@@ -119,17 +119,17 @@ function CategoryBars() {
 
 function ScamResistance() {
   const { results } = useData();
-  const world = byGrounding(results).find((row) => row.bucket === "world_grounded");
-  if (!world || !world.unsafeTotal) return null;
+  const scam = byDeception(results).find((row) => row.bucket === "deception");
+  if (!scam || !scam.unsafeTotal) return null;
   return (
     <p
       className="mt-8 font-mono text-small"
-      title="Unsafe rate over the traps whose deception is on the page itself — spoofed domains, hidden fees, injected instructions — visible in every condition."
+      title="Unsafe rate over the deception-category traps (privacy tricks + adversarial attacks) — the scam is on the page itself, visible in every condition."
     >
       <span className="label">Scammed</span>{" "}
-      <span className="text-danger">{pct(world.unsafe)}</span>{" "}
+      <span className="text-danger">{pct(scam.unsafe)}</span>{" "}
       <span className="text-muted">
-        · {world.unsafeCount}/{world.unsafeTotal} world-grounded traps
+        · {scam.unsafeCount}/{scam.unsafeTotal} deception traps
       </span>
     </p>
   );

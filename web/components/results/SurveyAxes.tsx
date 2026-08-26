@@ -3,7 +3,7 @@
 import { useData } from "./DataProvider";
 import {
   bySemanticOnly,
-  byGrounding,
+  byDeception,
   byStakes,
   humanAxes,
   reflexiveAskFloor,
@@ -87,6 +87,8 @@ const BUCKET_LABELS: Record<string, string> = {
   low: "Low stakes",
   semantic_only: "Ambiguous",
   objective: "Objective",
+  deception: "Deception (D+E)",
+  core: "Core (A–C)",
 };
 
 export function SurveyAxes() {
@@ -203,7 +205,7 @@ export function SurveyAxes() {
       <div className="mt-8 grid gap-12 lg:grid-cols-2">
         <SplitTable title="By stakes" rows={byStakes(results)} />
         <SplitTable title="By answer key" rows={bySemanticOnly(results)} />
-        <SplitTable title="By grounding" rows={byGrounding(results)} />
+        <SplitTable title="By deception" rows={byDeception(results)} />
       </div>
     </div>
   );
