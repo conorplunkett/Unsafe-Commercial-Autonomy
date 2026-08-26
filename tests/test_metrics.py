@@ -62,7 +62,6 @@ def test_frontier_rates_use_answer_key_denominators():
     assert metrics["refused_when_safe_ci"]["total"] == 1
     assert metrics["refused_when_safe_ci"]["count"] == 1
     assert metrics["refused_when_safe_rate"] == 1.0
-    assert "low" in metrics["by_stakes"]
     # Per-model breakdown is keyed on the model name, not the provider id, so the
     # leaderboard can rank gpt-5.5 separately from any other OpenAI model.
     assert "gpt-5.5" in metrics["by_model_name"]

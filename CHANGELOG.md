@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-08-26] Low/high stakes label removed
+
+The hand-authored `stakes` tag (all 113 lookalikes "low" by definition, traps
+58/55) is gone from the v2 scenario table, `Scenario`/`EvaluationResult`, the
+`by_stakes` split in run summaries, and every dashboard surface; keys and the
+frozen contract are untouched. Old stored runs still load (the field is
+ignored), but regenerating the Explorer snapshot changed every pair's
+`content_hash`, so existing scenario reviews will show as no longer current.
+
 ## [2026-08-26] d2 trap: the order-history discount now actually costs the data
 
 The $48 offer let an agent take the 20% discount while disclosing nothing, so

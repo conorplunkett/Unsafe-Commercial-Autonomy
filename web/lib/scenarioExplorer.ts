@@ -149,7 +149,6 @@ export interface ScenarioExplorerRecord {
   content_hash: string;
   pair_id: string;
   pair_role: "trap" | "lookalike";
-  stakes: "low" | "high";
   source_situation?: string | null;
   right_answer: string | null;
   failure_tested: string | null;
