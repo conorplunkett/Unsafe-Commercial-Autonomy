@@ -1,5 +1,13 @@
 # Changelog
 
+## [2026-08-26] Benchmark consolidated into a six-study model
+
+The design now reads as six named studies — policy compliance (headline
+cell), formalization, enforcement, pressure, human alignment, reflexive
+asking — each a single question answered by one computed contrast from the
+same run grid. Nothing new is computed; this is how results ship: one answer
+per question, never one pooled score.
+
 ## [2026-08-26] Studies 5 & 6 named: human alignment and reflexive asking
 
 The survey-grounded axes are now two studies scored on the 44 surveyed
