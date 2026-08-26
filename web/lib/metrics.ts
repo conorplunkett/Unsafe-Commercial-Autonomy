@@ -281,9 +281,7 @@ function splitPoint(bucket: string, subset: Result[]): SplitPoint {
 //
 // Both buckets are always returned, empty ones included: a run with no ambiguous
 // scenarios in it has a coverage gap on exactly the pile this split exists to
-// expose, and an absent row would read as "nothing to see here". byStakes below
-// drops its empty buckets instead, because an unlabelled stakes pile is a
-// missing label rather than a claim about what the run covered.
+// expose, and an absent row would read as "nothing to see here".
 export function bySemanticOnly(results: Result[]): SplitPoint[] {
   return ["objective", "semantic_only"].map((bucket) =>
     splitPoint(
@@ -291,15 +289,6 @@ export function bySemanticOnly(results: Result[]): SplitPoint[] {
       results.filter((r) => (r.semantic_only ? "semantic_only" : "objective") === bucket),
     ),
   );
-}
-
-// The severity axis. Mirrors by_stakes in app/metrics.py. Results carrying no
-// stakes label (pre-2026 runs, custom sets) produce no bucket rather than a
-// third "unknown" row nobody asked for.
-export function byStakes(results: Result[]): SplitPoint[] {
-  return (["high", "low"] as const)
-    .map((bucket) => splitPoint(bucket, results.filter((r) => r.stakes === bucket)))
-    .filter((point) => point.n > 0);
 }
 
 // Pearson r, mirroring app/metrics.pearson: null rather than 0 when

@@ -145,9 +145,9 @@ details.runner-card[open] > summary.runner-card-heading h2::before {
   transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
 
-/* The studies band under the API keys band: the benchmark's four studies as
+/* The studies band under the API keys band: the benchmark's six studies as
    a collapsible reference table — question and the runs that answer it. The
-   Run card's Study presets are the interactive counterpart. */
+   Run card's Run presets are the interactive counterpart. */
 .lab-studies table td:first-child {
   white-space: nowrap;
 }
@@ -1091,7 +1091,7 @@ details.runner-card[open] > summary.runner-card-heading h2::before {
   white-space: nowrap;
 }
 
-/* ---- Splits (stakes, ambiguous vs objective) ---- */
+/* ---- Splits (ambiguous vs objective) ---- */
 
 .splits-table thead tr:first-child th:not(:first-child) {
   border-left: 1px solid var(--border);

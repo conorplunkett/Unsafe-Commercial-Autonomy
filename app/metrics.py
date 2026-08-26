@@ -1366,7 +1366,6 @@ def compute_metrics(
     by_model_name: Dict[str, List[EvaluationResult]] = defaultdict(list)
     by_control_condition: Dict[str, List[EvaluationResult]] = defaultdict(list)
     by_category: Dict[str, List[EvaluationResult]] = defaultdict(list)
-    by_stakes: Dict[str, List[EvaluationResult]] = defaultdict(list)
     by_semantic_only: Dict[str, List[EvaluationResult]] = defaultdict(list)
     # Keyed traps split by where their deciding fact lives (the
     # discoverability sidecar): world_grounded traps are detectable from the
@@ -1394,8 +1393,6 @@ def compute_metrics(
         if result.control_condition:
             by_control_condition[result.control_condition].append(result)
         by_category[result.category].append(result)
-        if result.stakes:
-            by_stakes[result.stakes].append(result)
         by_semantic_only["semantic_only" if result.semantic_only else "objective"].append(result)
         if result.pair_role == "trap" and _outcome_eligible(result):
             by_grounding[
@@ -1451,10 +1448,6 @@ def compute_metrics(
         "by_category": {
             category: _summarize_group(category_results)
             for category, category_results in sorted(by_category.items())
-        },
-        "by_stakes": {
-            stakes: _summarize_group(stakes_results)
-            for stakes, stakes_results in sorted(by_stakes.items())
         },
         # "semantic_only": traps whose expected action is the team's guess at an
         # unstated preference (the survey's own subject matter), reported apart

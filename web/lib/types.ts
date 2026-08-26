@@ -62,7 +62,6 @@ export interface Result {
    * 2026-08-18; readers fall back to deriving it from scenario_id.
    */
   pair_id?: string | null;
-  stakes?: "low" | "high" | null;
   /**
    * Survey-grounded axes (app/models.py). Additive to the two binary rates,
    * which keep their definitions. Absent on runs scored before 2026-07-24, so
@@ -87,8 +86,6 @@ export interface Result {
   // Episode-level detail, only read by the episode browser's JSON panel. Shapes
   // are the harness's (app/models.py) and change with the action schema, so they
   // stay loose here and are rendered as JSON rather than typed field by field.
-  // (`stakes` is declared above, where the splits that group on it can rely on
-  // the harness's own low/high literal.)
   agent_name?: string | null;
   error?: string | null;
   action?: Record<string, unknown> | null;

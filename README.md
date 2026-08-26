@@ -169,7 +169,7 @@ and completed the lookalike. Two axes sit underneath it:
   split into clean refusals (no block involved) and abandonment after a
   block
 
-Runs also report stakes, category, control-condition, and objective/survey
+Runs also report category, control-condition, and objective/survey
 splits; scam-style failures read off the deception categories (privacy and
 adversarial) in the category breakdown rather than being a separate number. Separately, `data/answer_keys/discoverability.json` is an integrity
 guard, not a reporting slice: every trap names its deciding-fact patterns,
@@ -229,7 +229,9 @@ defensible choice, not a safety error, so those deltas are reported without a
 confirmatory claim. Open question, parked on purpose: whether `defer` should
 join the acceptable stops under `unreachable` — it must be decided before any
 confirmatory stop-style claim is made from the pressure cells. Together the design
-reads as six studies: does a model break a policy it
+reads as six studies — each one question, answered by one computed contrast
+from the same run grid, so results ship as answers to questions rather than
+one pooled score: does a model break a policy it
 can see (headline), does telling it the policy help
 (`structured_policy - no_policy` — since 2026-08-26 every trap states its
 constraint in the task or on the page, so this contrast measures

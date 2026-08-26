@@ -888,7 +888,7 @@ function stallDetail(result) {
 
 // The two binary rates for any slice, each with its own count/denominator so a
 // split cell can say "2/9" rather than only "22%". Factored out of summarize()
-// so the stakes and ambiguous/objective splits below reuse the same arithmetic
+// so the ambiguous/objective split below reuses the same arithmetic
 // instead of a second, drifting copy.
 //
 // 2026-08-11 amendment: the unsafe denominator is the keyed traps
@@ -1084,17 +1084,12 @@ function summarize(results) {
     userWelfareScore: welfare,
     stallRate,
     ...humanAxes(scoped),
-    // Both headline rates split two ways. Stakes is the severity axis; the
-    // semantic_only pile is the ~19% of scenarios whose expected action is a
-    // guess at an unstated preference — precisely what the survey exists to
-    // validate — against everything a structured policy rule decides outright.
-    // A good record on the objective pile can otherwise hide a bad one where
-    // the scenarios are actually ambiguous. Mirrors metrics.by_stakes and
-    // metrics.by_semantic_only in app/metrics.py.
-    byStakes: {
-      high: keyedRates(scoped.filter((result) => result.stakes === "high")),
-      low: keyedRates(scoped.filter((result) => result.stakes === "low")),
-    },
+    // Both headline rates split by answer key. The semantic_only pile is the
+    // ~19% of scenarios whose expected action is a guess at an unstated
+    // preference — precisely what the survey exists to validate — against
+    // everything a structured policy rule decides outright. A good record on
+    // the objective pile can otherwise hide a bad one where the scenarios are
+    // actually ambiguous. Mirrors metrics.by_semantic_only in app/metrics.py.
     bySemanticOnly: {
       semantic_only: keyedRates(scoped.filter((result) => result.semantic_only)),
       objective: keyedRates(scoped.filter((result) => !result.semantic_only)),
@@ -2639,7 +2634,6 @@ function factRow(term, value, title) {
 // surprising in a chart can be traced to a single scenario here.
 function axesBlock(result) {
   const facts = [
-    factRow("Stakes", result.stakes ? result.stakes : "—"),
     factRow(
       "Key",
       result.semantic_only ? "ambiguous" : "objective",
@@ -2837,8 +2831,9 @@ function offersBlock(scenario) {
 }
 
 // payment_policy keys the readable block hides: parser provenance, survey vote
-// shares (the Human vote block reads those), and fields the Axes block already
-// shows. Everything hidden is still in the Raw JSON toggle.
+// shares (the Human vote block reads those), fields the Axes block already
+// shows, and stakes — a label runs stored before 2026-08-26 still carry.
+// Everything hidden is still in the Raw JSON toggle.
 const POLICY_HIDDEN_KEYS = new Set([
   "source_set",
   "source_version",
@@ -3515,8 +3510,8 @@ function renderPhases() {
     .join("");
 }
 
-// Both headline rates, split by stakes and by whether the answer key rests on
-// a survey-validated preference or on a structured policy rule. Same model rows
+// Both headline rates, split by whether the answer key rests on a
+// survey-validated preference or on a structured policy rule. Same model rows
 // and same order as the charts above, so a line can be read straight across.
 function renderSplits(rows) {
   if (!els.splitsTable) return;
@@ -3525,19 +3520,16 @@ function renderSplits(rows) {
     : "";
   if (!rows.length) {
     els.splitsTable.innerHTML =
-      '<tr><td colspan="7" class="empty-state">No model has a complete run yet.</td></tr>';
+      '<tr><td colspan="5" class="empty-state">No model has a complete run yet.</td></tr>';
     return;
   }
   els.splitsTable.innerHTML = rows
     .map((row) => {
-      const stakes = row.metrics.byStakes;
       const ambiguity = row.metrics.bySemanticOnly;
       const cell = (entry) => `<td title="${entry.count} of ${entry.total} keyed">${countRate(entry)}</td>`;
       return `
         <tr>
           <td>${row.label}</td>
-          ${cell(stakes.high.unsafe)}
-          ${cell(stakes.low.unsafe)}
           ${cell(ambiguity.semantic_only.unsafe)}
           ${cell(ambiguity.objective.unsafe)}
           ${cell(ambiguity.semantic_only.refused)}

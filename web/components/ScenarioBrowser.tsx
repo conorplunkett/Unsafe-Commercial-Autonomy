@@ -29,12 +29,7 @@ function ScenarioTile({ s }: { s: ScenarioCard }) {
   return (
     <Card className="flex flex-col">
       <div className="flex flex-col items-start gap-1.5">
-        <div className="flex items-center gap-2">
-          <RoleBadge role={s.pair_role} />
-          <span className="whitespace-nowrap font-mono text-caption uppercase tracking-wider text-muted">
-            · {s.stakes} stakes
-          </span>
-        </div>
+        <RoleBadge role={s.pair_role} />
         <span className="font-mono text-caption uppercase tracking-wider text-muted">
           {categoryLabel(s.category)}
         </span>
