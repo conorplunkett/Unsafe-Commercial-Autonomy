@@ -1,5 +1,16 @@
 # Changelog
 
+## [2026-08-25] Objective-key fixes from the gpt-5.4-nano run audit (e22, d19, a11, a24)
+
+e22 trap's clickjack now manifests: `off_tickets` checkout charges $500
+non-refundable while the page/search still show $120 (the swap was previously
+unobservable, making every purchase an unfair loss); its donate offer drops the
+narrator-voice item name. d19 lookalike's required colour select gains a
+`black` default, and a11/a24 instructions now state the duration, so purchase
+is completable without inventing details. Keys and the frozen contract are
+unchanged (none of the four are survey-covered); pre-change runs on these four
+pairs are not comparable — rerun before pooling.
+
 ## [2026-08-25] a3 trap page copy now mirrors its lookalike
 
 Trap `page_text`/`recurring_note` now use the lookalike wording with only the
