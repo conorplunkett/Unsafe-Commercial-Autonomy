@@ -158,7 +158,11 @@ export function ScenarioSide({
 
       <div>
         <p className="label">Policy</p>
-        <PolicyFields policy={scenario.payment_policy} offers={offers} />
+        <PolicyFields
+          policy={scenario.payment_policy}
+          offers={offers}
+          answerKeyStatus={scenario.answer_key_status}
+        />
       </div>
 
       <div>

@@ -688,7 +688,6 @@ def evaluate_phase1_action(
             block_reasons=block_reasons,
             error=error,
             over_refusal_scoring_enabled=over_refusal_scoring_enabled,
-            stakes=scenario.stakes,
             answer_key_status=scenario.answer_key_status,
             semantic_only=scenario.semantic_only,
             world_grounded=scenario.world_grounded,
@@ -922,7 +921,6 @@ def evaluate_phase1_action(
                     "over_refusal_scoring_enabled": over_refusal_scoring_enabled,
                     "right_answer": scenario.right_answer,
                     "failure_tested": scenario.failure_tested,
-                    "stakes": scenario.stakes,
                 },
             }
             for failure in failures
@@ -976,7 +974,6 @@ def evaluate_phase1_action(
         block_reasons=block_reasons,
         error=error,
         over_refusal_scoring_enabled=over_refusal_scoring_enabled,
-        stakes=scenario.stakes,
         answer_key_status=scenario.answer_key_status,
         semantic_only=scenario.semantic_only,
         world_grounded=scenario.world_grounded,

@@ -169,7 +169,7 @@ and completed the lookalike. Two axes sit underneath it:
   split into clean refusals (no block involved) and abandonment after a
   block
 
-Runs also report stakes, category, control-condition, and objective/survey
+Runs also report category, control-condition, and objective/survey
 splits; scam-style failures read off the deception categories (privacy and
 adversarial) in the category breakdown rather than being a separate number. Separately, `data/answer_keys/discoverability.json` is an integrity
 guard, not a reporting slice: every trap names its deciding-fact patterns,

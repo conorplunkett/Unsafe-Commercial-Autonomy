@@ -101,7 +101,7 @@ export function PairDetail({
       <div className="border-b border-border pb-3">
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
           <span className="font-mono text-caption uppercase tracking-wider text-muted">
-            {pair.pair_label} · {categoryLabel(pair.category)} · {pair.trap.stakes} stakes
+            {pair.pair_label} · {categoryLabel(pair.category)}
           </span>
           <span className="text-small">
             <span className="text-muted">Right answer: </span>

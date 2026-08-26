@@ -972,7 +972,7 @@ details.runner-card[open] > summary.runner-card-heading h2::before {
   white-space: nowrap;
 }
 
-/* ---- Splits (stakes, ambiguous vs objective) ---- */
+/* ---- Splits (ambiguous vs objective) ---- */
 
 .splits-table thead tr:first-child th:not(:first-child) {
   border-left: 1px solid var(--border);

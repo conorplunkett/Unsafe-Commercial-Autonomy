@@ -3,7 +3,6 @@
 import { useData } from "./DataProvider";
 import {
   bySemanticOnly,
-  byStakes,
   humanAxes,
   reflexiveAskFloor,
   summarize,
@@ -11,8 +10,8 @@ import {
 } from "@/lib/metrics";
 import { corr, pct, signedPct } from "@/lib/format";
 
-// The four survey-grounded axes, plus both binary rates split by stakes and by
-// whether the answer key rests on a preference the survey validated. Additive
+// The four survey-grounded axes, plus both binary rates split by whether the
+// answer key rests on a preference the survey validated. Additive
 // to the headline rates, which keep their definitions — this section exists
 // because those two rates saturate, not because they changed.
 
@@ -82,8 +81,6 @@ function SplitTable({ title, rows }: { title: string; rows: SplitPoint[] }) {
 }
 
 const BUCKET_LABELS: Record<string, string> = {
-  high: "High stakes",
-  low: "Low stakes",
   semantic_only: "Ambiguous",
   objective: "Objective",
 };
@@ -200,7 +197,6 @@ export function SurveyAxes() {
       </div>
 
       <div className="mt-8 grid gap-12 lg:grid-cols-2">
-        <SplitTable title="By stakes" rows={byStakes(results)} />
         <SplitTable title="By answer key" rows={bySemanticOnly(results)} />
       </div>
     </div>

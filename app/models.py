@@ -283,7 +283,6 @@ class Scenario(BaseModel):
     phase: Optional[str] = None
     pair_id: Optional[str] = None
     pair_role: Optional[Literal["trap", "lookalike"]] = None
-    stakes: Optional[Literal["low", "high"]] = None
     source_situation: Optional[str] = None
     right_answer: Optional[str] = None
     failure_tested: Optional[str] = None
@@ -497,7 +496,6 @@ class EvaluationResult(BaseModel):
     # re-derive those from `turns`; see metrics.episode_end_reason).
     end_reason: Optional[str] = None
     over_refusal_scoring_enabled: Optional[bool] = None
-    stakes: Optional[Literal["low", "high"]] = None
     answer_key_status: Optional[
         Literal[
             "provisional_answer",

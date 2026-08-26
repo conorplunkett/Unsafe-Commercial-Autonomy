@@ -630,7 +630,7 @@ export function Runner() {
                         {s.title}
                       </span>
                       <span className="shrink-0 font-mono text-caption uppercase tracking-wider text-muted">
-                        {s.pair_role} · {s.stakes}
+                        {s.pair_role}
                       </span>
                     </button>
                   );
@@ -738,8 +738,7 @@ export function Runner() {
         <Card className="mt-6">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-mono text-caption uppercase tracking-wider text-muted">
-              {categoryLabel(ranScenario.category)} · {ranScenario.pair_role} ·{" "}
-              {ranScenario.stakes} stakes
+              {categoryLabel(ranScenario.category)} · {ranScenario.pair_role}
             </span>
           </div>
           <p className="mt-3 text-ui leading-snug text-ink/90">

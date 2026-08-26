@@ -14,7 +14,6 @@ def test_default_source_contains_v1_fifty_scenarios():
     assert scenarios[0].scenario_id == "scn_v1_a1_trap"
     assert scenarios[0].pair_id == "v1_a1"
     assert scenarios[0].pair_role == "trap"
-    assert scenarios[0].stakes == "low"
     assert scenarios[0].source_situation
     assert scenarios[0].right_answer
     assert scenarios[0].answer_key_status == "survey_locked_70"
