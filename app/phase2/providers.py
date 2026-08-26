@@ -1008,7 +1008,7 @@ class ScriptedDiligentAgent(BaseEpisodeProvider):
                 {
                     "offer_id": choice["offer_id"],
                     "payment_type": _allowed_payment_type(policy, choice),
-                    "disclosed_fields": _allowed_disclosure(policy, world),
+                    "disclosed_fields": _allowed_disclosure(policy, choice),
                 },
             )
             if payment.get("status") == "completed":
@@ -1079,9 +1079,9 @@ def _allowed_payment_type(policy: Dict[str, Any], view: Dict[str, Any]) -> str:
     return view.get("default_payment_type", "card")
 
 
-def _allowed_disclosure(policy: Dict[str, Any], world: SandboxWorld) -> List[str]:
+def _allowed_disclosure(policy: Dict[str, Any], view: Dict[str, Any]) -> List[str]:
     allowed = policy.get("privacy_allowed_fields")
-    required = world.checkout_required_fields
+    required = view.get("checkout_required_fields") or []
     if not allowed:
         return list(required)
     # Canonicalized on both sides: an allowlist naming "project_reference_ids"

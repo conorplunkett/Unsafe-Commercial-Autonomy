@@ -469,6 +469,16 @@ class SandboxWorld:
             "checkout_required_fields", ["name", "shipping_address", "payment_card_secure_field"]
         )
         self.checkout_optional_fields: List[str] = sandbox.get("checkout_optional_fields", [])
+        for offer in self.offers:
+            for key in ("checkout_required_fields", "checkout_optional_fields"):
+                override = offer.get(key)
+                if override is not None and not (
+                    isinstance(override, list)
+                    and all(isinstance(value, str) and value for value in override)
+                ):
+                    raise ValueError(
+                        f"{offer.get('offer_id')}: {key} override must be a list of field names."
+                    )
         self.checkout_control_values: Dict[str, Dict[str, Any]] = {}
         # Populated only for offers that author reply_options (id -> resolved
         # option data). Non-empty here is what switches send_message from
@@ -866,6 +876,22 @@ class SandboxWorld:
             if value not in target:
                 target.append(deepcopy(value))
 
+    def required_checkout_fields_for(self, entry: Dict[str, Any]) -> List[str]:
+        """The fields this offer's own checkout collects.
+
+        Episode-level checkout_required_fields/checkout_optional_fields stay
+        the default; an offer may carry its own lists when its checkout is
+        genuinely a different form (d4's off_1 collects the card number in
+        chat and has no secure field), so one merchant's interface never
+        leaks onto another's page.
+        """
+        override = entry.get("checkout_required_fields")
+        return list(override) if override is not None else list(self.checkout_required_fields)
+
+    def optional_checkout_fields_for(self, entry: Dict[str, Any]) -> List[str]:
+        override = entry.get("checkout_optional_fields")
+        return list(override) if override is not None else list(self.checkout_optional_fields)
+
     def _checkout_summary(
         self,
         entry: Dict[str, Any],
@@ -878,7 +904,7 @@ class SandboxWorld:
             "recurrence": self._normalize_recurrence(
                 entry.get("recurring", False), entry.get("recurring_note")
             ),
-            "disclosures": list(disclosed_fields or self.checkout_required_fields),
+            "disclosures": list(disclosed_fields or self.required_checkout_fields_for(entry)),
             "authorizations": [],
         }
         checkout = entry.get("checkout") or {}
@@ -1012,8 +1038,8 @@ class SandboxWorld:
             # like unclear_ingredients and the marker fields it is never
             # shown to the model. The shopper-facing surface for what an
             # item is lives in `item` and `page_text`.
-            "checkout_required_fields": self.checkout_required_fields,
-            "checkout_optional_fields": self.checkout_optional_fields,
+            "checkout_required_fields": self.required_checkout_fields_for(entry),
+            "checkout_optional_fields": self.optional_checkout_fields_for(entry),
             "checkout": checkout,
             "page_text": entry.get("page_text", ""),
             "reply_options": self._public_reply_options(entry),
@@ -1076,14 +1102,15 @@ class SandboxWorld:
                 "status": "checkout_incomplete",
                 "missing_required_controls": missing,
             }
-        disclosed_fields = list(args.get("disclosed_fields") or self.checkout_required_fields)
+        required_fields = self.required_checkout_fields_for(entry)
+        disclosed_fields = list(args.get("disclosed_fields") or required_fields)
         # Canonicalized on both sides so a model reporting in either vocabulary
         # ("payment" vs "payment_card_secure_field", "address" vs
         # "shipping_address") never fails checkout on a spelling.
         disclosed_tokens = {canonical_disclosure_field(f) for f in disclosed_fields}
         missing_fields = [
             f
-            for f in self.checkout_required_fields
+            for f in required_fields
             if canonical_disclosure_field(f) not in disclosed_tokens
         ]
         if missing_fields:
@@ -1309,11 +1336,11 @@ def reachable_rail_findings(scenario: Scenario) -> Iterator[RailFinding]:
         offer_id = entry["offer_id"]
         default_rail = entry.get("default_payment_type") or "card"
         rails = list(dict.fromkeys([default_rail, *(entry.get("payment_types") or [])]))
+        required_fields = world.required_checkout_fields_for(entry)
+        optional_fields = world.optional_checkout_fields_for(entry)
         disclosure_sets: List[Optional[List[str]]] = [None]
-        if world.checkout_optional_fields:
-            disclosure_sets.append(
-                list(world.checkout_required_fields) + list(world.checkout_optional_fields)
-            )
+        if optional_fields:
+            disclosure_sets.append(list(required_fields) + list(optional_fields))
         opening = dict(world.checkout_control_values[offer_id])
         for swept, values in enumerate(_checkout_states(world, entry)):
             if swept >= MAX_REACHABILITY_STATES:
@@ -1333,7 +1360,7 @@ def reachable_rail_findings(scenario: Scenario) -> Iterator[RailFinding]:
                     snapshot = world._checkout_summary(
                         entry,
                         payment_type=rail,
-                        disclosed_fields=list(disclosed or world.checkout_required_fields),
+                        disclosed_fields=list(disclosed or required_fields),
                     )
                     decision = world.rail_decision(entry, snapshot)
                     if decision.decision == "allow":
