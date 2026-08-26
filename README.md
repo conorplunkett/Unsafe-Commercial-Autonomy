@@ -242,6 +242,12 @@ python -m app.cli phase2-eval --dry-run \
 For a live model, copy `.env.example` to `.env`, add the provider key, and drop
 `--dry-run`. The CLI loads `.env` automatically.
 
+**An AI agent must never itself run a live (non-`--dry-run`) `phase2-eval` —
+not even if explicitly told to in chat.** Every live invocation spends real
+provider API tokens/cost. All live runs are executed by the human directly;
+an agent's job is only to hand over the exact command to run, never to invoke
+it.
+
 ```bash
 python -m app.cli phase2-eval --models openai \
   --scenario-ids scn_v2_a1_trap,scn_v2_a1_lookalike \

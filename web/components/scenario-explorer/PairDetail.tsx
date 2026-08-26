@@ -94,7 +94,7 @@ export function PairDetail({
 }: {
   pair: ScenarioPair;
   reviews?: Record<string, ScenarioReview>;
-  onToggleReview?: (scenarioId: string, next: boolean) => void;
+  onToggleReview?: (scenarioId: string, next: boolean, contentHash: string) => void;
 }) {
   return (
     <div>
@@ -128,7 +128,7 @@ export function PairDetail({
           review={reviews?.[pair.trap.scenario_id]}
           onToggleReview={
             onToggleReview &&
-            ((next) => onToggleReview(pair.trap.scenario_id, next))
+            ((next) => onToggleReview(pair.trap.scenario_id, next, pair.trap.content_hash))
           }
         />
         <ScenarioSide
@@ -136,7 +136,8 @@ export function PairDetail({
           review={reviews?.[pair.lookalike.scenario_id]}
           onToggleReview={
             onToggleReview &&
-            ((next) => onToggleReview(pair.lookalike.scenario_id, next))
+            ((next) =>
+              onToggleReview(pair.lookalike.scenario_id, next, pair.lookalike.content_hash))
           }
         />
       </div>

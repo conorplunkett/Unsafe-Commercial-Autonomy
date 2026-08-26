@@ -30,6 +30,7 @@ Run from the repo root:  python scripts/generate_scenario_explorer_data.py
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import sys
@@ -90,11 +91,27 @@ def load_enforcement_scope() -> Dict[str, Dict[str, Any]]:
     }
 
 
+def compute_content_hash(record: Dict[str, Any]) -> str:
+    """Fingerprint of everything a reviewer sees for this scenario.
+
+    web/lib/scenarioExplorer.ts's isReviewCurrent() compares this against the
+    hash a review was stored against (scenario_reviews.content_hash) to decide
+    whether that review still describes the current scenario -- so this must
+    be called before `content_hash` itself is added to `record`, and it must
+    stay a plain, order-independent hash of the whole displayed record (not a
+    subset of "important" fields) so no edit -- text, answer key, enforcement
+    scope, anything -- can change under a review without being caught.
+    """
+    canonical = json.dumps(record, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
 def build_pairs() -> List[Dict[str, Any]]:
     enforcement = load_enforcement_scope()
     records = [model_to_dict(s) for s in load_scenarios(PHASE2_SCENARIO_SET)]
     for record in records:
         record["enforcement"] = enforcement[record["scenario_id"]]
+        record["content_hash"] = compute_content_hash(record)
 
     grouped: Dict[str, Dict[str, Dict[str, Any]]] = {}
     order: List[str] = []
