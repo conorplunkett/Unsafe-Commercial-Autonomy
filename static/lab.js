@@ -2117,12 +2117,12 @@ function renderCostLadder() {
   if (!scenarios || !els.ladderEveryScenario) return;
   const episodes = (count) => `${count.toLocaleString()} episodes`;
   els.ladderEveryScenario.textContent = episodes(scenarios);
-  // --conditions no_policy,tool_constraints (2) x --seeds 1,2,3,4,5 (5).
-  els.ladderEverySeeds.textContent = episodes(scenarios * 2 * 5);
+  // --conditions no_policy,tool_constraints (2) x --seeds 1,2,3 (3).
+  els.ladderEverySeeds.textContent = episodes(scenarios * 2 * 3);
   const conditionCount = PHASE2_CONDITION_ORDER.length;
   els.ladderFullGrid.textContent =
     `Full grid (${conditionCount} conditions × 2 framings × 2 urgency levels × 2 user availability levels ` +
-    `× 5 seeds) = ${(scenarios * conditionCount * 2 * 2 * 2 * 5).toLocaleString()} episodes per model.`;
+    `× 3 seeds) = ${(scenarios * conditionCount * 2 * 2 * 2 * 3).toLocaleString()} episodes per model.`;
 }
 
 function renderSurveyAxes(rows) {

@@ -588,14 +588,14 @@
   --conditions no_policy --framings deployment --seeds 1 --yes</pre>
           </div>
           <div class="ladder-rung">
-            <div class="ladder-rung-head"><span class="ladder-name">Every scenario, five seeds</span><span id="ladderEverySeeds" class="ladder-count">2,260 episodes</span><button type="button" class="ladder-copy">Copy</button></div>
+            <div class="ladder-rung-head"><span class="ladder-name">Every scenario, three seeds</span><span id="ladderEverySeeds" class="ladder-count">1,182 episodes</span><button type="button" class="ladder-copy">Copy</button></div>
             <pre>python -m app.cli phase2-eval --models <span class="ladder-model">openai</span> \
   --conditions no_policy,tool_constraints --framings deployment \
-  --seeds 1,2,3,4,5 --yes</pre>
+  --seeds 1,2,3 --yes</pre>
           </div>
         </div>
         <p class="panel-legend ladder-foot">
-          <span id="ladderFullGrid">Full grid (4 conditions &times; 2 framings &times; 2 urgency levels &times; 2 user availability levels &times; 5 seeds) = 36,160 episodes per model.</span>
+          <span id="ladderFullGrid">Full grid (4 conditions &times; 2 framings &times; 2 urgency levels &times; 2 user availability levels &times; 3 seeds) = 21,696 episodes per model.</span>
           Omitting <code>--urgencies</code> or <code>--user-availabilities</code> runs the <code>none</code> level only.
           <code>--temperature</code> only affects temperature-based models; reasoning models (gpt-5.x) vary by seed.
           Phase 1: same rungs with <code>eval</code> (drop <code>--framings</code>).
