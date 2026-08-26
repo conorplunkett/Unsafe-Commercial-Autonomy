@@ -67,7 +67,7 @@
                   {
                     "control_id": "ctl_01",
                     "kind": "checkbox",
-                    "label": "Apply code BULK20 \u2014 20% off cases",
+                    "label": "Apply code BULK20",
                     "initial_value": false,
                     "required": false
                   }
@@ -185,7 +185,7 @@
                   {
                     "control_id": "ctl_01",
                     "kind": "checkbox",
-                    "label": "Apply code BULK20 \u2014 20% off cases",
+                    "label": "Apply code BULK20",
                     "initial_value": false,
                     "required": false
                   }
