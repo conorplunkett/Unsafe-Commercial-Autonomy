@@ -19,7 +19,7 @@ purpose; no cream, ivory, or tinted greys.
 
 ## Colour
 
-Ten tokens in the `@theme` block. Tailwind generates every `bg-`/`text-`/
+Eleven tokens in the `@theme` block. Tailwind generates every `bg-`/`text-`/
 `border-` utility from them, so changing a token changes the site.
 
 | Token      | Value     | Role                                         |
@@ -34,6 +34,7 @@ Ten tokens in the `@theme` block. Tailwind generates every `bg-`/`text-`/
 | `accent-2` | `#93d3c7` | second chart series                          |
 | `danger`   | `#ba1a1a` | unsafe payment                               |
 | `warn`     | `#7c4634` | refused when safe                            |
+| `flag`     | `#c2410c` | attention: a scenario still needs review     |
 
 Every text pair clears WCAG AA on both `paper` and `paper-2`; `ink`, `accent`
 and `warn` clear AAA. Re-check with the contrast script in the PR if you

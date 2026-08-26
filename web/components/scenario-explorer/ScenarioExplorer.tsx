@@ -237,6 +237,7 @@ function ScenarioExplorerInner({
       <PairList
         pairs={pairs}
         filtered={filtered}
+        reviews={reviews}
         category={category}
         onCategoryChange={setCategory}
         status={status}

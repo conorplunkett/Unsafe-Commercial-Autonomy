@@ -4,7 +4,19 @@ import {
   answerKeyStatusLabel,
 } from "@/lib/labels";
 import { Card } from "@/components/ui/Card";
-import type { ScenarioPair } from "@/lib/scenarioExplorer";
+import type { ScenarioPair, ScenarioReview } from "@/lib/scenarioExplorer";
+
+// A pair counts as reviewed only once both of its scenarios are; until then it
+// reads as still needing review and is flagged in the list.
+function pairReviewed(
+  pair: ScenarioPair,
+  reviews: Record<string, ScenarioReview>,
+): boolean {
+  return Boolean(
+    reviews[pair.trap.scenario_id]?.reviewed &&
+      reviews[pair.lookalike.scenario_id]?.reviewed,
+  );
+}
 
 // Real values of ScenarioExplorerRecord["answer_key_status"] -- the filter
 // compares against these directly (see ScenarioExplorer.tsx), so an option
@@ -27,6 +39,7 @@ const selectClass =
 export function PairList({
   pairs,
   filtered,
+  reviews,
   category,
   onCategoryChange,
   status,
@@ -38,6 +51,7 @@ export function PairList({
 }: {
   pairs: ScenarioPair[];
   filtered: ScenarioPair[];
+  reviews: Record<string, ScenarioReview>;
   category: string;
   onCategoryChange: (value: string) => void;
   status: string;
@@ -112,48 +126,63 @@ export function PairList({
       </Card>
 
       <div className="mt-3 max-h-72 overflow-auto rounded-2xl border border-border">
-        <table className="w-full min-w-[34rem] table-fixed border-collapse text-small">
+        <table className="w-full min-w-[36rem] table-fixed border-collapse text-small">
           <colgroup>
             <col className="w-14" />
             <col />
             <col className="w-36" />
-            <col className="w-16" />
+            <col className="w-32" />
           </colgroup>
           <tbody>
-            {filtered.map((p) => (
-              <tr
-                key={p.pair_id}
-                onClick={() => onSelect(p.pair_id)}
-                className={`cursor-pointer border-b border-border transition-colors ${
-                  selectedPairId === p.pair_id ? "bg-paper-2" : "hover:bg-paper-2"
-                }`}
-              >
-                <td className="px-3 py-2 align-top font-mono text-caption text-muted">
-                  {p.pair_label}
-                </td>
-                <td className="px-2 py-2 align-top leading-snug">
-                  {p.trap.environment.situation}
-                </td>
-                <td
-                  title={answerKeyStatusLabel(p.trap.answer_key_status)}
-                  className="overflow-hidden text-ellipsis whitespace-nowrap px-3 py-2 align-top font-mono text-caption text-muted"
-                >
-                  {answerKeyStatusLabel(p.trap.answer_key_status)}
-                </td>
-                <td
-                  title={
-                    p.trap.enforcement.in_enforced_arm
-                      ? "tool_constraints runs this pair"
-                      : "tool_constraints skips this pair"
-                  }
-                  className={`whitespace-nowrap px-3 py-2 align-top font-mono text-caption ${
-                    p.trap.enforcement.in_enforced_arm ? "text-accent" : "text-muted"
+            {filtered.map((p) => {
+              const reviewed = pairReviewed(p, reviews);
+              const selected = selectedPairId === p.pair_id;
+              return (
+                <tr
+                  key={p.pair_id}
+                  onClick={() => onSelect(p.pair_id)}
+                  className={`cursor-pointer border-b border-border transition-colors ${
+                    selected
+                      ? "bg-paper-2"
+                      : reviewed
+                        ? "hover:bg-paper-2"
+                        : "bg-flag/[0.06] hover:bg-flag/10"
                   }`}
                 >
-                  {p.trap.enforcement.in_enforced_arm ? "Tools" : "—"}
-                </td>
-              </tr>
-            ))}
+                  <td className="px-3 py-2 align-middle font-mono text-caption text-muted">
+                    {p.pair_label}
+                  </td>
+                  <td
+                    title={p.trap.environment.situation}
+                    className="truncate px-2 py-2 align-middle"
+                  >
+                    {p.trap.environment.situation}
+                  </td>
+                  <td
+                    title={answerKeyStatusLabel(p.trap.answer_key_status)}
+                    className="overflow-hidden text-ellipsis whitespace-nowrap px-3 py-2 align-middle font-mono text-caption text-muted"
+                  >
+                    {answerKeyStatusLabel(p.trap.answer_key_status)}
+                  </td>
+                  <td className="px-3 py-2 align-middle">
+                    <span
+                      title={
+                        reviewed
+                          ? "Both sides reviewed"
+                          : "Still needs review"
+                      }
+                      className={`inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-caption font-semibold ${
+                        reviewed
+                          ? "bg-accent/10 text-accent"
+                          : "bg-flag/10 text-flag"
+                      }`}
+                    >
+                      {reviewed ? "Reviewed" : "Not reviewed"}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
             {!filtered.length && (
               <tr>
                 <td colSpan={4} className="px-3 py-6 text-muted">
