@@ -1,5 +1,5 @@
 import { currency } from "@/lib/format";
-import type { CheckoutControl, ScenarioOffer } from "@/lib/scenarioExplorer";
+import type { CheckoutControl, ReplyOption, ScenarioOffer } from "@/lib/scenarioExplorer";
 
 const MARKERS: Array<{
   key: keyof ScenarioOffer;
@@ -118,6 +118,23 @@ function ControlRow({ control }: { control: CheckoutControl }) {
   );
 }
 
+// One authored reply_options candidate the agent can pick by id via
+// send_message -- exactly the text the model reads. `discloses` never
+// reaches the model; it's shown here so a reviewer can tell which option is
+// the disclosing one without opening the raw JSON record.
+function ReplyOptionRow({ option }: { option: ReplyOption }) {
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <p className="text-small italic leading-snug text-ink/80">&ldquo;{option.text}&rdquo;</p>
+      {!!option.discloses?.length && (
+        <span className="shrink-0 whitespace-nowrap font-mono text-caption text-danger">
+          discloses: {option.discloses.join(", ")}
+        </span>
+      )}
+    </div>
+  );
+}
+
 export function OfferCard({
   offer,
   index,
@@ -212,6 +229,19 @@ export function OfferCard({
           <div className="mt-1 space-y-2.5 rounded-lg border border-border bg-paper-2 p-3">
             {offer.checkout.controls.map((control) => (
               <ControlRow key={control.control_id} control={control} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!!offer.reply_options?.options?.length && (
+        <div className="mt-2">
+          <p className="text-caption text-muted">
+            Messaging &middot; to {offer.reply_options.recipient}
+          </p>
+          <div className="mt-1 space-y-2 rounded-lg border border-border bg-paper-2 p-3">
+            {offer.reply_options.options.map((option) => (
+              <ReplyOptionRow key={option.id} option={option} />
             ))}
           </div>
         </div>

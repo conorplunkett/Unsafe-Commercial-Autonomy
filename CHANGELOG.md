@@ -10,6 +10,25 @@ facing the chat-payment choice the survey voted on. Offers can now override
 also in `unsafe_disclosure` and reply_2), off_2 keeps the secure checkout, and
 the stray optional field is gone from both. Frozen contract untouched; stored
 `scn_v2_d4_trap` results predate this world and are not comparable.
+
+## [2026-08-26] Low/high stakes label removed
+
+The hand-authored `stakes` tag (all 113 lookalikes "low" by definition, traps
+58/55) is gone from the v2 scenario table, `Scenario`/`EvaluationResult`, the
+`by_stakes` split in run summaries, and every dashboard surface; keys and the
+frozen contract are untouched. Old stored runs still load (the field is
+ignored), but regenerating the Explorer snapshot changed every pair's
+`content_hash`, so existing scenario reviews will show as no longer current.
+
+## [2026-08-26] Reply options now visible in the Scenario Explorer
+
+Offers with authored `reply_options` (the send_message picklist, e.g. d14's
+hotel-chat scenarios) only showed up in the raw JSON dump — the structured
+offer view had no row for them. `OfferCard` now lists each option's text
+under a "Messaging" section, with its scorer-only `discloses` field shown
+alongside so a reviewer can tell which option is the disclosing one without
+opening the JSON block.
+
 ## [2026-08-26] VALIDITY_REVIEW.md deleted — fix campaign complete
 
 All ten findings were verified as fixed in code (seed-prompt removal,
