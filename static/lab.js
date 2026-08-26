@@ -1441,12 +1441,40 @@ function updateRunCount() {
   const urgencyCount = isPhase2 ? axisCount(state.urgencies, 1) : 1;
   const availabilityCount = isPhase2 ? axisCount(state.userAvailabilities, 1) : 1;
   const axesCount = framingCount * urgencyCount * availabilityCount;
-  const cells = scenarioCount * state.conditions.size * parseSeeds().length * axesCount;
+  // The scenario axis is per condition: tool_constraints only runs the
+  // scenarios its pay rail can intervene on (app/phase2/scope.py), so the
+  // arms are summed, not multiplied — the runner produces 620 episodes for
+  // the 226×3 baseline grid, not 678. Scope unknown (fetch failed) falls
+  // back to the full count, same as the coverage math.
+  const scopeKnown = isPhase2 && state.enforcementScope.size > 0;
+  const choice = els.scenarioFilter.value;
+  const toolConstraintsCount = !scopeKnown
+    ? scenarioCount
+    : choice === "all"
+      ? pool.filter((scenario) => state.enforcementScope.has(scenario.scenario_id)).length
+      : choice === "random"
+        ? scenarioCount
+        : state.enforcementScope.has(choice)
+          ? scenarioCount
+          : 0;
+  const scenarioUnits = [...state.conditions].reduce(
+    (sum, condition) =>
+      sum + (isPhase2 && condition === "tool_constraints" ? toolConstraintsCount : scenarioCount),
+    0
+  );
+  const cells = scenarioUnits * parseSeeds().length * axesCount;
   const axesPart = isPhase2 && axesCount > 1 ? ` × ${axesCount} axis combo${axesCount === 1 ? "" : "s"}` : "";
+  const toolPart =
+    isPhase2 && state.conditions.has("tool_constraints") && toolConstraintsCount < scenarioCount
+      ? ` · tool constraints ${toolConstraintsCount}/${scenarioCount}`
+      : "";
+  const unit = isPhase2 ? "episode" : "call";
   els.runCount.textContent = cells
     ? `${scenarioCount} scenario${scenarioCount === 1 ? "" : "s"} × ${state.conditions.size} condition${
         state.conditions.size === 1 ? "" : "s"
-      } × ${parseSeeds().length} seed${parseSeeds().length === 1 ? "" : "s"}${axesPart} = ${cells} calls`
+      } × ${parseSeeds().length} seed${parseSeeds().length === 1 ? "" : "s"}${axesPart}${toolPart} = ${cells} ${unit}${
+        cells === 1 ? "" : "s"
+      }`
     : state.conditions.size
       ? ""
       : "Pick at least one condition.";
