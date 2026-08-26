@@ -720,7 +720,7 @@ def run_phase2_evaluation(
             with ThreadPoolExecutor(max_workers=workers) as executor:
                 # Submit in bounded waves rather than queueing the whole grid,
                 # so an abort stops spending within a wave instead of after
-                # 12,400 futures have already been handed to the pool.
+                # 12,360 futures have already been handed to the pool.
                 for start in range(0, len(pending), workers * 4):
                     if state["aborted"] is not None or stop.is_set():
                         break

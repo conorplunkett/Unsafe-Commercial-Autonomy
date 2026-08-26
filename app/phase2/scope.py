@@ -10,8 +10,8 @@ that `pay` consults the policy engine before completing. Where no payment the
 world can produce evaluates to anything but `allow`, that engine never fires:
 the arm spends a full tool loop per episode to re-measure what the unenforced
 arm already measured. Across the v2 set that is most of it — the rail can
-refuse in 88 of 226 scenarios, 84 pairs once each reachable scenario brings its
-partner, leaving 29 pairs where enforcement has nothing to enforce.
+refuse in 88 of 226 scenarios, 83 pairs once each reachable scenario brings its
+partner, leaving 30 pairs where enforcement has nothing to enforce.
 
 So the enforced arm runs on the pair closure of the reachable scenarios, and
 the other two run on everything selected. Closure matters: a trap the rail

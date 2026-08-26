@@ -14,14 +14,14 @@
   },
   "by_surface": {
     "checkout_control": 9,
-    "offer_as_listed": 69,
+    "offer_as_listed": 68,
     "optional_disclosure": 11
   },
   "counts": {
-    "in_enforced_arm": 168,
+    "in_enforced_arm": 166,
     "pairs": 113,
-    "pairs_in_enforced_arm": 84,
-    "rail_reachable": 89,
+    "pairs_in_enforced_arm": 83,
+    "rail_reachable": 88,
     "scenarios": 226
   },
   "scenarios": {
@@ -1421,7 +1421,7 @@
     "scn_v2_c3_lookalike": {
       "decisions": [],
       "fires_on": null,
-      "in_enforced_arm": true,
+      "in_enforced_arm": false,
       "offers": [],
       "pair_id": "v2_c3",
       "pair_role": "lookalike",
@@ -1429,20 +1429,14 @@
       "reasons": []
     },
     "scn_v2_c3_trap": {
-      "decisions": [
-        "approval_required"
-      ],
-      "fires_on": "offer_as_listed",
-      "in_enforced_arm": true,
-      "offers": [
-        "off_subscription"
-      ],
+      "decisions": [],
+      "fires_on": null,
+      "in_enforced_arm": false,
+      "offers": [],
       "pair_id": "v2_c3",
       "pair_role": "trap",
-      "rail_reachable": true,
-      "reasons": [
-        "recurring_payment_requires_approval"
-      ]
+      "rail_reachable": false,
+      "reasons": []
     },
     "scn_v2_c4_lookalike": {
       "decisions": [],

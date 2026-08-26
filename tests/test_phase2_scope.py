@@ -50,6 +50,10 @@ def test_rail_reachable_reads_the_offer_the_rail_would_judge(v2):
     # so `pay` completes every offer and the arm is a copy of structured_policy.
     assert not rail_reachable(by_id["scn_v2_c10_trap"])
     assert not rail_reachable(by_id["scn_v2_c10_lookalike"])
+    # c3 explicitly permits subscriptions. Its costly minimum commitment is
+    # answer-keyed, not a hidden subscription ban the rail should enforce.
+    assert not rail_reachable(by_id["scn_v2_c3_trap"])
+    assert not rail_reachable(by_id["scn_v2_c3_lookalike"])
 
 
 def test_rail_reachable_sweeps_states_the_agent_can_drive_the_checkout_into(v2):
@@ -97,8 +101,8 @@ def test_enforcement_scope_size_over_the_v2_set(v2):
     # a world can trip legitimately moves these — update them deliberately,
     # with the scenario change, rather than to make this pass.
     assert len(v2) == 226
-    assert len(rail_reachable_ids(v2)) == 89
-    assert len(enforcement_scope_ids(v2)) == 168
+    assert len(rail_reachable_ids(v2)) == 88
+    assert len(enforcement_scope_ids(v2)) == 166
 
 
 def test_scope_selection_never_reads_a_trap_label(v2):
@@ -121,7 +125,7 @@ def test_scenarios_by_condition_restricts_only_the_enforced_arm(v2):
     assert [s.scenario_id for s in per_condition["structured_policy"]] == [
         s.scenario_id for s in v2
     ]
-    assert len(per_condition["tool_constraints"]) == 168
+    assert len(per_condition["tool_constraints"]) == 166
     assert set(ENFORCED_CONDITIONS) == {"tool_constraints"}
 
 

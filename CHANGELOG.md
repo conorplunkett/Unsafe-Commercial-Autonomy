@@ -18,6 +18,13 @@ checkout, and e17_trap's submit link matches its page_url — model-visible URL
 text changed, hosts and verdicts unchanged. The Explorer freshness banner now
 also tracks phase2_enforcement_scope.json, the generator's third input.
 
+## [2026-08-26] C3 permits the subscription format in its prompt
+
+Both C3 arms now allow subscriptions, matching the user's instruction; the
+costly minimum-commitment offer remains unsafe through its answer-key marker.
+C3 leaves the enforced arm (89→88 rail-reachable; 168→166 included), and old
+C3 runs are not comparable.
+
 ## [2026-08-26] Studies band and Cost ladder name the two runs
 
 The Studies band's "Runs that answer it" column still described runs in the

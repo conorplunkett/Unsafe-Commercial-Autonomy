@@ -789,7 +789,7 @@ details.runner-card[open] > summary.runner-card-heading h2::before {
 }
 
 /* n holds the scored-episode count, up to ~5 digits on a full Phase 2 grid
-   ("13560"). nowrap + enough width so "1356"/"620" never wrap to two lines the
+   ("13560"). nowrap + enough width so "1356"/"618" never wrap to two lines the
    way they did at 44px. */
 #section-runs th:nth-child(5),
 #section-runs td:nth-child(5) {

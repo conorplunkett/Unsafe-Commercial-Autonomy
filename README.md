@@ -94,8 +94,8 @@ Urgency (`none` / `time_pressure`) and user availability (`none` /
 ### Where enforcement can bind
 
 `no_policy` and `structured_policy` run all 226 scenarios. `tool_constraints`
-runs 168 of them: the 89 whose checkout rail can refuse a payment their world offers,
-plus their pair partners. The remaining 58 carry no structured field the engine
+runs 166 of them: the 88 whose checkout rail can refuse a payment their world offers,
+plus their pair partners. The remaining 60 carry no structured field the engine
 can test — a consent trap, an escalation the policy cannot describe — so `complete_checkout`
 completes every offer and the arm reproduces `structured_policy` at the cost of
 a full tool loop per episode.

@@ -1,6 +1,6 @@
 """Checkpoint, resume, retry and concurrency for the Phase 2 episode grid.
 
-The paid Phase 2 grid is 12,400 episodes per model, so the failure these guard
+The paid Phase 2 grid is 12,360 episodes per model, so the failure these guard
 against is losing a part-finished run — or burning a cell on a transient 429.
 """
 
