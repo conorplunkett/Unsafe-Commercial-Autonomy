@@ -24,10 +24,11 @@ CONSTRAINTS_PATHS = {
     "v2": DATA_DIR / "answer_keys" / "v2_constraints.json",
 }
 # Sidecar naming each trap's deciding fact as substring/regex patterns the
-# no_policy-visible surface must contain, or declaring "policy_only" on
-# purpose. Test tooling like v2_page_texts.json, never read by the sandbox, so
-# nothing in it can reach a model. tests/test_discoverability.py enforces both
-# the manifest's shape and that every pattern actually matches the surface.
+# no_policy-visible surface must contain (the policy_only opt-out was removed
+# 2026-08-26 — every trap names its patterns). Test tooling like
+# v2_page_texts.json, never read by the sandbox, so nothing in it can reach a
+# model. tests/test_discoverability.py enforces both the manifest's shape and
+# that every pattern actually matches the surface.
 DISCOVERABILITY_PATH = DATA_DIR / "answer_keys" / "discoverability.json"
 
 
@@ -487,7 +488,8 @@ def _parse_scenario_set_markdown(path: Path) -> List[Scenario]:
             # answer key: a scenario whose manifest entry names deciding-fact
             # patterns is world_grounded (the fact the key turns on is in the
             # no_policy-visible surface, so e.g. a scam trap is a fair test in
-            # any arm); a "policy_only" declaration — or no entry — is not.
+            # any arm); anything without an entry — lookalikes — is not. Every
+            # trap has one (the policy_only opt-out was removed 2026-08-26).
             raw_scenario["world_grounded"] = bool(
                 (discoverability.get(scenario_id) or {}).get("deciding_fact")
             )
