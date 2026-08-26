@@ -566,6 +566,53 @@ details.runner-card[open] > summary.runner-card-heading h2::before {
   font-weight: 400;
 }
 
+/* Numbered per-study coverage dots (studies 1–6) beside the smoke/full
+   pills. Same token pairs as the phase badges: filled green = answerable,
+   amber = partly covered, hollow = nothing yet, dashed = studies 5/6 when
+   the survey-coverage fetch failed (unknown, not zero). */
+.study-dots {
+  display: inline-flex;
+  gap: 2px;
+  align-items: center;
+}
+
+.study-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 5px;
+  border: 1px solid transparent;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.study-dot-on {
+  background: var(--ok-bg);
+  color: var(--ok);
+}
+
+.study-dot-part {
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+
+.study-dot-off {
+  border-color: var(--border);
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.study-dot-unknown {
+  border-color: var(--muted);
+  border-style: dashed;
+  color: var(--muted);
+  font-weight: 400;
+}
+
 /* The Runs list, Results panel, and Phases tracker sit above the by-model
    dashboard and are always shown. */
 .lab-runs,

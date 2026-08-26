@@ -598,34 +598,139 @@ function effectiveEnforcementScope(result) {
   return result.run_enforcement_scope || "all";
 }
 
-// tool_constraints is Phase 2's one enforced condition (app/phase2/scope.py
-// ENFORCED_CONDITIONS): under the default "rail_reachable" scope it only
-// ever runs on the scenarios its pay rail can actually intervene on
-// (state.enforcementScope, from GET /api/phase2/enforcement-scope) plus
-// their paired lookalikes — not every scenario, unlike no_policy and
-// structured_policy. A run stored under the "all" scope (or predating the
-// scope axis entirely) is the exception: it ran tool_constraints on
-// everything, so its share of "cells needed" stays the full scenarioTotal.
-// `enforcementScopes` disagreeing across the results being measured — which
-// app/merge.py already refuses to pool into one run — falls back to the
-// full count rather than guess which one to shrink toward.
-function phase2CellsNeeded(scenarioTotal, enforcementScopes) {
-  const unenforced = 2 * scenarioTotal; // no_policy, structured_policy: every scenario
-  const singleScope = enforcementScopes.size === 1 ? [...enforcementScopes][0] : null;
-  const toolConstraintsNeeded =
-    singleScope === "rail_reachable" ? Math.min(scenarioTotal, state.enforcementScope.size) : scenarioTotal;
-  return unenforced + toolConstraintsNeeded;
+// One Phase 2 grid cell. Urgency/availability are part of the key: a run
+// covering every baseline cell answers nothing about pressure, and pressure
+// episodes must not vanish into the baseline cells they are not. The
+// || "none" folding mirrors inHeadlineCell, so results stored before the
+// axes existed read as baseline cells — exactly what those runs were.
+function phase2CellTriple(result) {
+  return `${result.control_condition}::${result.urgency || "none"}::${result.user_availability || "none"}`;
+}
+
+// The benchmark's six studies (README "reads as six studies"; the Studies
+// band above the runner is the prose version). Coverage math and the run
+// form's readout both key off this list.
+const STUDY_META = [
+  { id: 1, label: "Policy compliance" },
+  { id: 2, label: "Formalization" },
+  { id: 3, label: "Enforcement" },
+  { id: 4, label: "Pressure" },
+  { id: 5, label: "Human alignment" },
+  { id: 6, label: "Reflexive asking" },
+];
+
+// scenario_id -> Set of "condition::urgency::availability" triples, over
+// Phase 2 results only.
+function phase2ScenarioAxisMap(results) {
+  const map = new Map();
+  for (const result of results) {
+    if (!result.control_condition) continue;
+    if (!map.has(result.scenario_id)) map.set(result.scenario_id, new Set());
+    map.get(result.scenario_id).add(phase2CellTriple(result));
+  }
+  return map;
+}
+
+// Which of the six studies a Phase 2 result set can answer, per study and
+// rolled up. The cells each study needs (all at the other axes' baseline):
+//   S1  structured_policy                     S4  + time_pressure and
+//   S2  + no_policy                               + unreachable cells
+//   S3  + tool_constraints (its scope only)   S5/S6  S1 cells on the
+//                                                    survey-covered scenarios
+// tool_constraints under the default "rail_reachable" scope only runs the
+// scenarios its pay rail can intervene on plus their pair partners
+// (state.enforcementScope); a run under scope "all" (or predating the axis,
+// or mixed scopes — which app/merge.py refuses to pool anyway) needs every
+// scenario. An empty scope set (the fetch failed) also falls back to every
+// scenario, so a missing fetch can only ever make "full" harder, not easier.
+// S5/S6 with state.surveyCoverage null read unknown, never zero, and block
+// the rollup's "full" the same way.
+function phase2StudyStatuses(axisMap, scenarioTotal, enforcementScopes) {
+  const scoped =
+    enforcementScopes.size === 1 &&
+    enforcementScopes.has("rail_reachable") &&
+    state.enforcementScope.size > 0;
+  const s3Total = scoped ? Math.min(scenarioTotal, state.enforcementScope.size) : scenarioTotal;
+  const surveyed = state.surveyCoverage;
+  const counts = { s1: 0, noPolicy: 0, tc: 0, tp: 0, unreachable: 0, s2: 0, s3: 0, s4: 0, s56: 0 };
+  for (const [scenarioId, triples] of axisMap) {
+    const s1 = triples.has("structured_policy::none::none");
+    const noPolicy = triples.has("no_policy::none::none");
+    const inS3 = !scoped || state.enforcementScope.has(scenarioId);
+    const tc = inS3 && triples.has("tool_constraints::none::none");
+    const tp = triples.has("structured_policy::time_pressure::none");
+    const unreachable = triples.has("structured_policy::none::unreachable");
+    counts.s1 += s1;
+    counts.noPolicy += noPolicy;
+    counts.tc += tc;
+    counts.tp += tp;
+    counts.unreachable += unreachable;
+    counts.s2 += s1 && noPolicy;
+    counts.s3 += s1 && tc;
+    // The time_pressure×unreachable interaction cell is deliberately not
+    // required: neither pressure contrast reads it.
+    counts.s4 += s1 && tp && unreachable;
+    counts.s56 += Boolean(surveyed && surveyed.has(scenarioId) && s1);
+  }
+  const entry = (id, covered, total, unknown = false) => ({
+    id,
+    label: STUDY_META[id - 1].label,
+    covered,
+    total,
+    unknown,
+    full: !unknown && total > 0 && covered >= total,
+  });
+  const surveyTotal = surveyed ? surveyed.size : 0;
+  const studies = [
+    entry(1, counts.s1, scenarioTotal),
+    entry(2, counts.s2, scenarioTotal),
+    entry(3, counts.s3, s3Total),
+    entry(4, counts.s4, scenarioTotal),
+    entry(5, surveyed ? counts.s56 : 0, surveyTotal, !surveyed),
+    entry(6, surveyed ? counts.s56 : 0, surveyTotal, !surveyed),
+  ];
+  // Rollup in distinct needed cells (S5/S6 add none — they reuse S1's).
+  const covered = counts.s1 + counts.noPolicy + counts.tc + counts.tp + counts.unreachable;
+  const total = 4 * scenarioTotal + s3Total;
+  return {
+    studies,
+    covered,
+    total,
+    full: total > 0 && studies.every((study) => study.full),
+  };
+}
+
+// The numbered per-study dots shared by the Runs-table checklist and the
+// Phases badges. Fractions and hints stay in the title.
+function studyDots(studies) {
+  if (!studies) return "";
+  const dots = studies
+    .map((study) => {
+      const cls = study.unknown
+        ? "study-dot-unknown"
+        : study.full
+          ? "study-dot-on"
+          : study.covered > 0
+            ? "study-dot-part"
+            : "study-dot-off";
+      const title = study.unknown
+        ? `${study.id} · ${study.label} — survey coverage unavailable`
+        : `${study.id} · ${study.label} ${study.covered}/${study.total}`;
+      return `<span class="study-dot ${cls}" title="${title}">${study.id}</span>`;
+    })
+    .join("");
+  return `<span class="study-dots">${dots}</span>`;
 }
 
 // One entry per phase touched by these results. Completion is measured in
-// scenario×condition CELLS, not scenarios: the full suite is every scenario
-// run under every control condition that applies to it. Phase 1's 3
-// conditions all run on every scenario, so a phase of 50 scenarios needs
-// 50×3 = 150 cells. Phase 2's tool_constraints doesn't (see
-// phase2CellsNeeded), so a 226-scenario Phase 2 phase needs 226+226+168 =
-// 620 cells today, not 226×3 = 678. `covered`/`total` are those cells (so
-// the fraction can never read "50/50" while conditions are still missing).
-// `scenarios`/`conditions` expose each dimension for labels.
+// CELLS, not scenarios: the full suite is every cell the six studies need.
+// Phase 1's 3 conditions all run on every scenario, so a phase of 50
+// scenarios needs 50×3 = 150 cells. Phase 2's cells carry the pressure axes
+// too (see phase2StudyStatuses): 226+226+168 baseline cells plus 226+226
+// pressure cells = 1072 today, and `full` means all six studies are
+// answerable — a run covering every baseline cell is partial, with study 4
+// still to run. `scenarios`/`conditions` expose each dimension for labels;
+// phase 2 entries also carry `studies` (per-study coverage) for the dots.
 function phaseStatuses(results) {
   const byPhase = new Map();
   for (const result of results) {
@@ -635,11 +740,13 @@ function phaseStatuses(results) {
         scenarios: new Set(),
         conditions: new Set(),
         cells: new Set(),
+        results: [],
         enforcementScopes: new Set(),
       });
     }
     const entry = byPhase.get(phase);
     entry.scenarios.add(result.scenario_id);
+    entry.results.push(result);
     if (result.control_condition) {
       entry.conditions.add(result.control_condition);
       entry.cells.add(`${result.scenario_id}::${result.control_condition}`);
@@ -653,12 +760,22 @@ function phaseStatuses(results) {
     .map(([phase, entry]) => {
       const scenarioTotal = phase === "?" ? 0 : phaseTotal(phase);
       const conditionTotal = conditionsForPhase(phase).length;
-      const total =
-        phase === "2"
-          ? phase2CellsNeeded(scenarioTotal, entry.enforcementScopes)
-          : scenarioTotal * conditionTotal; // cells needed
-      const covered = entry.cells.size; // cells covered
-      const full = total > 0 && covered >= total;
+      let covered;
+      let total;
+      let full;
+      let studies = null;
+      if (phase === "2") {
+        const rollup = phase2StudyStatuses(
+          phase2ScenarioAxisMap(entry.results),
+          scenarioTotal,
+          entry.enforcementScopes
+        );
+        ({ covered, total, full, studies } = rollup);
+      } else {
+        total = scenarioTotal * conditionTotal; // cells needed
+        covered = entry.cells.size; // cells covered
+        full = total > 0 && covered >= total;
+      }
       return {
         phase,
         covered,
@@ -668,6 +785,7 @@ function phaseStatuses(results) {
         conditions: entry.conditions.size,
         conditionTotal,
         full,
+        studies,
       };
     });
 }
@@ -688,15 +806,17 @@ function phaseChecklist(results) {
         : `<span class="phase-check-item phase-check-off">partial ${
             status.total ? `${status.covered}/${status.total}` : "—"
           }</span>`;
+      const cellsWord = status.studies ? "scenario×condition×pressure cells" : "scenario×condition cells";
       return `
         <div class="phase-check" title="Phase ${status.phase}: ${
           status.total
-            ? `${status.covered}/${status.total} scenario×condition cells; ${status.scenarios}/${status.scenarioTotal} scenarios and ${status.conditions}/${status.conditionTotal} conditions covered`
+            ? `${status.covered}/${status.total} ${cellsWord}; ${status.scenarios}/${status.scenarioTotal} scenarios and ${status.conditions}/${status.conditionTotal} conditions covered`
             : "custom scenario set"
         }">
           <span class="phase-check-label">Phase ${status.phase}</span>
           <span class="phase-check-item phase-check-on">✓ smoke</span>
           ${fullItem}
+          ${studyDots(status.studies)}
         </div>
       `;
     })
@@ -1680,7 +1800,7 @@ async function refreshData() {
       // copy below) so phaseChecklist(run.results) — the Runs table's
       // per-run badge, called straight off this array — sees it too.
       // Denormalized from the run so per-result completeness math
-      // (phase2CellsNeeded) can tell a scope-limited tool_constraints result
+      // (phase2StudyStatuses) can tell a scope-limited tool_constraints result
       // apart from a pre-scoping run's full-cross-product one without a
       // separate run_id -> run lookup.
       result.run_enforcement_scope = run.enforcement_scope ?? null;
@@ -1734,11 +1854,17 @@ function bestRunForPhase(results, phase) {
     const status = phaseStatuses(runResults).find((entry) => entry.phase === phase);
     if (!status) continue;
     const seeds = new Set(runResults.map((result) => result.seed)).size;
-    const candidate = { ...status, complete: status.full, results: runResults, seeds };
+    // Full studies outrank raw cell count: a pressure run's 904 episodes
+    // cover fewer studies than a 620-episode baseline run, and the run the
+    // headline charts cite should be the one answering the most studies.
+    const fullStudies = status.studies ? status.studies.filter((study) => study.full).length : 0;
+    const candidate = { ...status, complete: status.full, results: runResults, seeds, fullStudies };
     const better =
       !best ||
-      candidate.covered > best.covered ||
-      (candidate.covered === best.covered && candidate.seeds > best.seeds);
+      candidate.fullStudies > best.fullStudies ||
+      (candidate.fullStudies === best.fullStudies &&
+        (candidate.covered > best.covered ||
+          (candidate.covered === best.covered && candidate.seeds > best.seeds)));
     if (better) best = candidate;
   }
   return best;
@@ -3117,20 +3243,29 @@ function phasesBreakdown() {
     const scenarioTotal = phase === "?" ? 0 : phaseTotal(phase);
     const conditionTotal = conditionsForPhase(phase).length;
     const all = byPhase.get(phase) || [];
-    const enforcementScopes = new Set(
-      all.filter((r) => r.control_condition === "tool_constraints").map(effectiveEnforcementScope)
-    );
-    const cellsNeeded =
-      phase === "2" ? phase2CellsNeeded(scenarioTotal, enforcementScopes) : scenarioTotal * conditionTotal;
     const coveredScenarios = new Set(all.map((r) => r.scenario_id)).size;
     const conditions = new Set(all.map((r) => r.control_condition).filter(Boolean));
-    // Full suite = every scenario×condition cell covered, so the phase-level
-    // fraction matches the per-model one (cells, not scenarios).
-    const cells = new Set(
-      all.filter((r) => r.control_condition).map((r) => `${r.scenario_id}::${r.control_condition}`)
-    ).size;
+    // Same cell math as phaseStatuses, pooled across runs: phase 2 counts the
+    // cells the six studies need (so a baseline run plus a pressure run light
+    // all six dots at phase level), other phases count scenario×condition.
+    let cells;
+    let cellsNeeded;
+    let full;
+    let studies = null;
+    if (phase === "2") {
+      const enforcementScopes = new Set(
+        all.filter((r) => r.control_condition === "tool_constraints").map(effectiveEnforcementScope)
+      );
+      const rollup = phase2StudyStatuses(phase2ScenarioAxisMap(all), scenarioTotal, enforcementScopes);
+      ({ covered: cells, total: cellsNeeded, full, studies } = rollup);
+    } else {
+      cellsNeeded = scenarioTotal * conditionTotal;
+      cells = new Set(
+        all.filter((r) => r.control_condition).map((r) => `${r.scenario_id}::${r.control_condition}`)
+      ).size;
+      full = cellsNeeded > 0 && cells >= cellsNeeded;
+    }
     const smoke = all.length > 0;
-    const full = cellsNeeded > 0 && cells >= cellsNeeded;
     const rows = [...(byModel.get(phase) || new Map()).entries()]
       .map(([label, results]) => ({
         label,
@@ -3150,6 +3285,7 @@ function phasesBreakdown() {
       conditionTotal,
       smoke,
       full,
+      studies,
     };
   });
 }
@@ -3174,7 +3310,7 @@ function phaseStatusBadges(entry) {
       entry.cellsNeeded ? `0/${entry.cellsNeeded}` : "—"
     }</span>`;
   }
-  return smoke + full;
+  return smoke + full + studyDots(entry.studies);
 }
 
 function renderPhases() {
