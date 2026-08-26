@@ -32,8 +32,18 @@ fi
 LOCAL_HEAD="$(git rev-parse HEAD)"
 REMOTE_HEAD="$(git rev-parse origin/main)"
 if [ "$LOCAL_HEAD" != "$REMOTE_HEAD" ]; then
-  echo "error: local main ($LOCAL_HEAD) is behind origin/main ($REMOTE_HEAD)." >&2
-  echo "Run: git pull origin main" >&2
+  AHEAD="$(git rev-list --count origin/main..HEAD)"
+  BEHIND="$(git rev-list --count HEAD..origin/main)"
+  if [ "$AHEAD" -gt 0 ] && [ "$BEHIND" -gt 0 ]; then
+    echo "error: local main ($LOCAL_HEAD) has diverged from origin/main ($REMOTE_HEAD): $AHEAD ahead, $BEHIND behind." >&2
+    echo "Move the local commits to a branch, then: git reset --hard origin/main" >&2
+  elif [ "$AHEAD" -gt 0 ]; then
+    echo "error: local main ($LOCAL_HEAD) is $AHEAD commit(s) ahead of origin/main ($REMOTE_HEAD)." >&2
+    echo "Those commits aren't on main yet. Move them to a branch, open a PR, merge it, then: git pull origin main" >&2
+  else
+    echo "error: local main ($LOCAL_HEAD) is $BEHIND commit(s) behind origin/main ($REMOTE_HEAD)." >&2
+    echo "Run: git pull origin main" >&2
+  fi
   exit 1
 fi
 

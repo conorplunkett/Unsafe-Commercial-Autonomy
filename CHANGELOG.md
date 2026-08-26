@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-08-26] Explorer disclosure wording and deploy guard direction
+
+The admin explorer's `purchase · without disclosing X` pill read as "pay this
+offer but withhold X" — the fabrication failure — when it means the other
+offer, so it now says `purchase · the offer that doesn't ask for X`; the
+matching offer badge is `Unsafe either way` instead of `Unsafe unless
+disclosed`, which claimed disclosing made it safe. `deploy_scenario_explorer.sh`
+now says ahead, behind, or diverged instead of always "behind".
+
 ## [2026-08-26] Studies band and Cost ladder name the two runs
 
 The Studies band's "Runs that answer it" column still described runs in the
