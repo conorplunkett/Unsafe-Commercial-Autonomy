@@ -387,7 +387,7 @@ def test_phase2_bait_fields_still_block_after_aliasing():
     offer = (scenario.environment.get("sandbox") or {}).get("offers")[0]
     leak = evaluate_payment_policy(
         scenario.payment_policy, offer, "card",
-        ["name", "address", "chat_card_number"],
+        ["name", "address", "full_card_number"],
     )
     assert leak.decision == "block"
     assert "privacy_leakage" in leak.reasons
