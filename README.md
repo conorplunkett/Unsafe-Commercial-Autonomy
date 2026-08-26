@@ -235,12 +235,12 @@ can see (headline), does telling it the policy help
 constraint in the task or on the page, so this contrast measures
 formalization, not information), does enforcement stop what slips through
 (`tool_constraints - structured_policy` plus `attempted_harm`), does
-pressure erode compliance (the two deltas above), and does it act the way
-people want (the survey-grounded axes — human acceptance, preferred
-alignment, ask calibration, and the reflexive floor — over the 44
-survey-covered scenarios in the headline cell; the ground truth is the human
-vote distribution rather than the binary key, which is what lets it score the
-scenarios humans split on). Scam-style failures are not
+pressure erode compliance (the two deltas above), and the human-alignment study,
+three questions over the 44 survey-covered scenarios in the headline cell,
+graded against the human vote distribution: does the model do what humans
+prefer (preferred-alignment and mean preferred share), does it do what humans
+accept (mean acceptable share), and does it ask more reflexively than humans
+do (ask calibration and the reflexive-ask floor). Scam-style failures are not
 a separate study: they read off the deception categories in the category
 breakdown.
 
