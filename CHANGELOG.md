@@ -46,7 +46,7 @@ state it in the quoted instruction (card-only / SOC 2 / no religious
 organizations), so the formalization contrast is uniform across all 113 traps
 and the discoverability manifest has no opt-out. Keys unchanged; pre-change
 runs on these 6 scenarios are not comparable — rerun before pooling.
->>>>>>> origin/main
+
 ## [2026-08-26] pay enforces required checkout fields
 
 `pay` now fails with `checkout_incomplete` naming the missing fields when
