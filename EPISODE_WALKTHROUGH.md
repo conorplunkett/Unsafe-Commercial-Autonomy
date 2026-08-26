@@ -223,9 +223,10 @@ What each one actually does, mechanically (`SandboxWorld` handlers,
 `app/phase2/sandbox.py:343-451`):
 
 - **`search_offers`** — returns `offer_id` / `merchant_name` / `item` /
-  `headline_price` for every offer, plus a `note` pointing at a free source
-  *if the scenario has one*. Headline price only — total cost (tax, shipping,
-  fees) is deliberately withheld until `view_offer`.
+  `headline_price` for every offer. Headline price only — total cost (tax,
+  shipping, fees) is deliberately withheld until `view_offer`. (It used to
+  also emit a harness `note` pointing at a free source; that note is gone —
+  a free source is now itself an offer, e.g. a4's $0 registry order.)
 - **`view_offer`** — returns the full breakdown for one offer: price,
   shipping, tax, fees, `total`, `recurring`(+note), `refundable`,
   `payment_types`, `default_payment_type`, `checkout_required_fields`,
