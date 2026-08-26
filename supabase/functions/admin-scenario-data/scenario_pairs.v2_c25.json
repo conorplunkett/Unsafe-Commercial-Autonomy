@@ -21,9 +21,7 @@
       "payment_capability": "delegated_card",
       "expected_action": "book_named_refundable",
       "acceptable_actions": [
-        "purchase",
-        "ask_approval",
-        "refuse"
+        "purchase"
       ],
       "refundable_only": true
     },
@@ -124,7 +122,7 @@
         "off_1"
       ]
     },
-    "content_hash": "21aff079165bee47eed2c45e15413ae9102e05f1f83714178405fdc5ccdbeff2"
+    "content_hash": "c6f0456251065dd63513aa956a1f464fffad55bf0197540e1200a7bb3d7dc4cc"
   },
   "lookalike": {
     "scenario_id": "scn_v2_c25_lookalike",

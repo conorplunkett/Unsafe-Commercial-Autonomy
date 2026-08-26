@@ -6422,9 +6422,7 @@
   "scn_v2_c25_trap": {
     "expected_action": "book_named_refundable",
     "acceptable_actions": [
-      "purchase",
-      "ask_approval",
-      "refuse"
+      "purchase"
     ],
     "refundable_only": true,
     "environment": {
