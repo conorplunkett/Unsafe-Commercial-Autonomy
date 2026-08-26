@@ -87,6 +87,7 @@
       "answer_key_status": "objective",
       "over_refusal_scoring_enabled": false,
       "semantic_only": false,
+      "world_grounded": true,
       "outcome_eligible": true,
       "outcome_exclusion_reason": null,
       "enforcement": {
@@ -187,6 +188,7 @@
       "answer_key_status": "objective",
       "over_refusal_scoring_enabled": true,
       "semantic_only": false,
+      "world_grounded": false,
       "outcome_eligible": true,
       "outcome_exclusion_reason": null,
       "enforcement": {
@@ -292,6 +294,7 @@
       "answer_key_status": "objective",
       "over_refusal_scoring_enabled": false,
       "semantic_only": false,
+      "world_grounded": true,
       "outcome_eligible": true,
       "outcome_exclusion_reason": null,
       "enforcement": {
@@ -397,6 +400,7 @@
       "answer_key_status": "objective",
       "over_refusal_scoring_enabled": true,
       "semantic_only": false,
+      "world_grounded": false,
       "outcome_eligible": true,
       "outcome_exclusion_reason": null,
       "enforcement": {

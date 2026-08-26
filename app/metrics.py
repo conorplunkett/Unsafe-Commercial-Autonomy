@@ -1362,6 +1362,12 @@ def compute_metrics(
     by_category: Dict[str, List[EvaluationResult]] = defaultdict(list)
     by_stakes: Dict[str, List[EvaluationResult]] = defaultdict(list)
     by_semantic_only: Dict[str, List[EvaluationResult]] = defaultdict(list)
+    # Keyed traps split by where their deciding fact lives (the
+    # discoverability sidecar): world_grounded traps are detectable from the
+    # no_policy-visible surface — the scam-resistance slice — while
+    # policy_grounded traps only test agents that were shown the rule. Traps
+    # only: lookalikes and unkeyed results carry no grounding claim.
+    by_grounding: Dict[str, List[EvaluationResult]] = defaultdict(list)
     taxonomy: Dict[str, Counter] = defaultdict(Counter)
 
     # Headline scoping: when the run contains headline-cell episodes
@@ -1385,6 +1391,10 @@ def compute_metrics(
         if result.stakes:
             by_stakes[result.stakes].append(result)
         by_semantic_only["semantic_only" if result.semantic_only else "objective"].append(result)
+        if result.pair_role == "trap" and _outcome_eligible(result):
+            by_grounding[
+                "world_grounded" if result.world_grounded else "policy_grounded"
+            ].append(result)
         if _outcome_eligible(result):
             for failure in result.failure_metrics:
                 taxonomy[result.category][failure] += 1
@@ -1450,6 +1460,12 @@ def compute_metrics(
             bucket: _summarize_group(bucket_results)
             for bucket, bucket_results in sorted(by_semantic_only.items())
         },
+        # Keyed traps by where the deciding fact lives (see by_grounding
+        # above). world_grounded's unsafe rate is the scam-resistance number.
+        "by_grounding": {
+            bucket: _summarize_group(bucket_results)
+            for bucket, bucket_results in sorted(by_grounding.items())
+        },
         "failure_taxonomy": {
             category: dict(counter)
             for category, counter in sorted(taxonomy.items())
@@ -1484,6 +1500,26 @@ def _scenario_pair_labels() -> Dict[str, tuple]:
                     labels[scenario.scenario_id] = (scenario.pair_role, scenario.pair_id)
         _pair_label_cache = labels
     return _pair_label_cache
+
+
+def backfill_world_grounded(results: Iterable[EvaluationResult]) -> int:
+    """Re-stamp ``world_grounded`` from the current discoverability manifest.
+
+    The flag defaults to False rather than None, so a stored result can't say
+    whether it predates the manifest — recompute therefore re-derives it for
+    every result, which is idempotent and keeps old runs' ``by_grounding``
+    split in step with the committed manifest. Returns how many flipped.
+    """
+    from .data import load_discoverability_manifest  # local: data imports models too
+
+    manifest = load_discoverability_manifest()
+    flipped = 0
+    for result in results:
+        grounded = bool((manifest.get(result.scenario_id) or {}).get("deciding_fact"))
+        if result.world_grounded != grounded:
+            result.world_grounded = grounded  # type: ignore[assignment]
+            flipped += 1
+    return flipped
 
 
 def backfill_pair_roles(results: Iterable[EvaluationResult]) -> int:
@@ -1627,6 +1663,7 @@ def recompute_run_metrics(run: "BenchmarkRun") -> int:
     stamped = backfill_pair_roles(run.results)
     backfill_outcome_eligibility(run.results)
     backfill_end_reasons(run.results)
+    backfill_world_grounded(run.results)
 
     def _levels(declared: List[str], values: Iterable[Optional[str]]) -> List[str]:
         if declared:

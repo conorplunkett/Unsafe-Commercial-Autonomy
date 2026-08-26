@@ -316,6 +316,12 @@ class Scenario(BaseModel):
     # survey exists to validate. False (including every lookalike) means the
     # verdict follows from objective policy fields alone. See metrics.by_semantic_only.
     semantic_only: bool = False
+    # From the discoverability sidecar (data/answer_keys/discoverability.json):
+    # the fact this scenario's key turns on is present in the no_policy-visible
+    # surface, so its verdict is a fair test in any control condition. False
+    # for declared policy_only scenarios and anything without a manifest entry.
+    # See metrics.by_grounding.
+    world_grounded: bool = False
     # False when the sandbox cannot distinguish the keyed outcomes from the
     # model's observable behavior. These episodes still run and remain in raw
     # and operational counts, but leave scientific outcome denominators.
@@ -509,6 +515,8 @@ class EvaluationResult(BaseModel):
         return _alias_answer_key_status(value)
     # Copied from Scenario.semantic_only at scoring time (see app/policies.py).
     semantic_only: bool = False
+    # Copied from Scenario.world_grounded at scoring time (see app/policies.py).
+    world_grounded: bool = False
     # Copied from Scenario at scoring time. Defaults preserve read compatibility
     # for stored runs; recompute backfills current scenario metadata.
     outcome_eligible: bool = True
