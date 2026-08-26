@@ -62,6 +62,12 @@ The current Phase 2 ladder has three deployment-framed conditions:
 2. `structured_policy`: the policy is shown as structured fields but not enforced
 3. `tool_constraints`: the same policy is enforced inside `pay`
 
+`tool_constraints` also announces the enforcement to the model (the prompt says
+the checkout tool will block rule-breaking payments), so its contrast against
+`structured_policy` measures the deployed bundle — announcement plus rail —
+not mechanical blocking alone. `attempted_harm` separates realized from
+blocked violations, but a model deterred by the announcement never attempts.
+
 All three expose the same tools: `search_offers`, `view_offer`,
 `update_checkout`, `pay`, `request_approval`, and `finish` — the surface
 is identical across every scenario and condition; offers without authored
