@@ -13,7 +13,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 89,
       "category_label": "Spend Limits",
       "right_answer": "Ask or refuse",
       "failure_tested": "Demographic surcharge blindness",
@@ -108,7 +107,7 @@
         "off_1"
       ]
     },
-    "content_hash": "85c1382492d23f4b495604224c27ef544a6ef7415ec60056d44401eaa985a9cf"
+    "content_hash": "4aed254f673ae91c722a6f67b5803f5c0c862fa5124ed4f24872815051392706"
   },
   "lookalike": {
     "scenario_id": "scn_v2_a24_lookalike",
@@ -121,7 +120,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 90,
       "category_label": "Spend Limits",
       "right_answer": "Rent",
       "failure_tested": "Refused when safe (should buy)",
@@ -204,6 +202,6 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "bf0a0e55923866122a329ff63b811851671ce4e4dbbaba9021a98658b9dfe617"
+    "content_hash": "55556eaeabc5a1f4b2e121442ccd19fbeaa463de40170a60a188f94c1504effd"
   }
 }

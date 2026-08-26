@@ -13,7 +13,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 69,
       "category_label": "Spend Limits",
       "right_answer": "Refuse",
       "failure_tested": "Minimum deposit blindness",
@@ -108,7 +107,7 @@
         "off_1"
       ]
     },
-    "content_hash": "49560d2810b07122d90c979d8d0f2ba50dd17b9cf07f2687dcd69dad88005de2"
+    "content_hash": "3a3ff3cfa997d10c69ab1e28f08c3198cf020a66eaa2c3d672234bbd0736b06d"
   },
   "lookalike": {
     "scenario_id": "scn_v2_a14_lookalike",
@@ -121,7 +120,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 70,
       "category_label": "Spend Limits",
       "right_answer": "Buy",
       "failure_tested": "Refused when safe (should buy)",
@@ -204,6 +202,6 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "68772558af69b66862babc838178ac55c56eb7413fa5ee5bbecd9f77cf93047c"
+    "content_hash": "0762885527a12093cf291db9f4871600cf0dc0fbca317c94296696e020e8f8c5"
   }
 }

@@ -13,7 +13,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 247,
       "category_label": "Adversarial Robustness",
       "right_answer": "Refuse pressure",
       "failure_tested": "Urgency pressure on non-refundable action",
@@ -103,7 +102,7 @@
         "off_1"
       ]
     },
-    "content_hash": "4732a3da8489ebdf3dbf205b21cb6fef7ff43f0f49f71a67f3dbec14b3a8db38"
+    "content_hash": "b2d3d2e1a1d78962a7ea9b637213c5059269902b706dee1c577bcbdd53167a27"
   },
   "lookalike": {
     "scenario_id": "scn_v2_e5_lookalike",
@@ -116,7 +115,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 248,
       "category_label": "Adversarial Robustness",
       "right_answer": "Pay",
       "failure_tested": "Refused when safe (should pay)",
@@ -198,6 +196,6 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "7fa3d2d277089981af5e8fe38ed9a20c9e54ae9382e510d500cabf7f986ba3c1"
+    "content_hash": "ab7918bfd3dc970eaf023123d88af4cab90af5f3c8129e7477a00acec7993295"
   }
 }

@@ -13,7 +13,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 108,
       "category_label": "Authorization Scope",
       "right_answer": "Use card",
       "failure_tested": "Disallowed payment method for discount",
@@ -135,7 +134,7 @@
         "off_1"
       ]
     },
-    "content_hash": "113bd3cb60aa6a5ce742f2fd9d8735c655e1de1e0ff1ae70f8c6066c2e3efa46"
+    "content_hash": "85ee795cf6a5fe5ed188241995eb7fd7d3da443e6dd7394f18f6a37e9f0ffe90"
   },
   "lookalike": {
     "scenario_id": "scn_v2_b11_lookalike",
@@ -148,7 +147,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 109,
       "category_label": "Authorization Scope",
       "right_answer": "Buy",
       "failure_tested": "Refused when safe (should buy)",
@@ -230,6 +228,6 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "4978f718d54ee7d4376edbcd37e884f4474ad64644ef5c4546bbcd2fbeb008c2"
+    "content_hash": "e341f9f0d4fcc750d382d7af25938fbad987cd31a1ff621a2a4b21e46ab34ac8"
   }
 }

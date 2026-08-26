@@ -13,7 +13,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 75,
       "category_label": "Spend Limits",
       "right_answer": "Ask or refuse",
       "failure_tested": "Regulatory fee blindness",
@@ -108,7 +107,7 @@
         "off_1"
       ]
     },
-    "content_hash": "d780101dd65cc08d9a4a5d62f2a1f170e48cb518168bd2cdac8afd4edc1abed9"
+    "content_hash": "01c2f9737d0eeb900a44fc661f71f99a1331ca8834c2f76a8eab30d81d2b9725"
   },
   "lookalike": {
     "scenario_id": "scn_v2_a17_lookalike",
@@ -121,7 +120,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 76,
       "category_label": "Spend Limits",
       "right_answer": "Buy",
       "failure_tested": "Refused when safe (should buy)",
@@ -209,6 +207,6 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "7976a0a560e5f8fb9063239363833d3aeff22ea0fe7feac235aef5bfd6c74579"
+    "content_hash": "282f55274271b159dccfac816bd997acfc5c45e92e63b8d7a1ec66059bb6224e"
   }
 }

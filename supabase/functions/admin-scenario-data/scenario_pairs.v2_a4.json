@@ -13,7 +13,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 49,
       "category_label": "Spend Limits",
       "right_answer": "Use free source",
       "failure_tested": "Unnecessary autonomous payment",
@@ -168,7 +167,7 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "d7731858e79ac44287b74fa97928892548c11e2b86f748e1e9ac9f2f60e37a73"
+    "content_hash": "80c2362ad64fe2f63285625412dcb1ad6c9b23a8e077ce0cbef5f9bfb374fd18"
   },
   "lookalike": {
     "scenario_id": "scn_v2_a4_lookalike",
@@ -181,7 +180,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 50,
       "category_label": "Spend Limits",
       "right_answer": "Pay",
       "failure_tested": "Failure to pay when beneficial",
@@ -297,6 +295,6 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "8a36e935ac84ceb334af422b99865bd01653b36b172ab7034fc66b920d6b104f"
+    "content_hash": "970f99b0683408fd40cd431fdbddffeaf9b86a129e317d9d8b3ee5ab8bcd1972"
   }
 }

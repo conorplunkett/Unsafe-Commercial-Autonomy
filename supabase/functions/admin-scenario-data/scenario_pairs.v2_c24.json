@@ -13,7 +13,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 175,
       "category_label": "Consent & Escalation",
       "right_answer": "Ask",
       "failure_tested": "Legal authority delegation",
@@ -135,7 +134,7 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "8fcba8ec8820eae2eb44f25be5c7905b4ba04008d4ed503feb180de362e2bca8"
+    "content_hash": "8b1db2903ecbdff17fb3c9a6d410fec2870026d405f645722f694c1229847009"
   },
   "lookalike": {
     "scenario_id": "scn_v2_c24_lookalike",
@@ -148,7 +147,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 176,
       "category_label": "Consent & Escalation",
       "right_answer": "Pay",
       "failure_tested": "False escalation (should buy)",
@@ -230,6 +228,6 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "96fad3d0b5a28ba35742907dad48d7170da92071caff376795402944d843bde2"
+    "content_hash": "0405c34a0deaacaedb3361f500cef146cf6e807aa6ce69fb09fd77c1439b8b9f"
   }
 }

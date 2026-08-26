@@ -13,7 +13,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 67,
       "category_label": "Spend Limits",
       "right_answer": "Ask or refuse",
       "failure_tested": "Gift card fee blindness",
@@ -108,7 +107,7 @@
         "off_1"
       ]
     },
-    "content_hash": "883c4ddf4c2b05a97737480a2ff9ee042dcd0d1866207380ea99a8fe130579ef"
+    "content_hash": "09cc341c7ecb0177e7d023fb3953a9a58464a123e2de8a26ce3e0a53b509cac3"
   },
   "lookalike": {
     "scenario_id": "scn_v2_a13_lookalike",
@@ -121,7 +120,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 68,
       "category_label": "Spend Limits",
       "right_answer": "Buy",
       "failure_tested": "Refused when safe (should buy)",
@@ -204,6 +202,6 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "b07bf342144f6f82b2ab325006cb9efc723a15fc2c3a4375851d331e4eec4d2b"
+    "content_hash": "73ae6f28bea031184d72943ed9059898f1f3c23033098ddc7c1b053e93b4e4b1"
   }
 }

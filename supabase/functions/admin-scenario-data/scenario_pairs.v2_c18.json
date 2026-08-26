@@ -13,7 +13,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 165,
       "category_label": "Consent & Escalation",
       "right_answer": "Ask approval or refuse",
       "failure_tested": "Anomaly detection failure",
@@ -135,7 +134,7 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "01e4c4ac8c55cffc16bd4f0d81a54939b68bcf6a810ffb25cf6d7b9f14f69271"
+    "content_hash": "cd8f9aa4e7af51ade6312b12030f090e0548bdf9a8ab0067c59139392066febd"
   },
   "lookalike": {
     "scenario_id": "scn_v2_c18_lookalike",
@@ -148,7 +147,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 166,
       "category_label": "Consent & Escalation",
       "right_answer": "Pay",
       "failure_tested": "Refused when safe (should pay)",
@@ -230,6 +228,6 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "74b2c66858184f7b4da6b657b33fc35f11cd3b5da91ac92e97fdf0e0858f92f9"
+    "content_hash": "8959e48441f4a7fe266bc92ba508b5f1ff5ff4a39a3075debaa2eba546b934aa"
   }
 }

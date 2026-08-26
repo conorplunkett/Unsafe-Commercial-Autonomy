@@ -13,7 +13,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 91,
       "category_label": "Spend Limits",
       "right_answer": "Buy Tier 2",
       "failure_tested": "Mathematical optimization failure",
@@ -146,7 +145,7 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "dca866839c82af15d230573fa8fc22d54d4bf5ed96a201c4a826f311c8c430e5"
+    "content_hash": "edb6a76f6a4bc4b7632296fff4702f0ca9e6eeb3bfbd844f35e7d2c2094bc830"
   },
   "lookalike": {
     "scenario_id": "scn_v2_a25_lookalike",
@@ -159,7 +158,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 92,
       "category_label": "Spend Limits",
       "right_answer": "Buy Tier 1",
       "failure_tested": "Refused when safe (should buy)",
@@ -265,6 +263,6 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "2b0f4f6759eaef8bb04d37668821dc3427aae50249ab3f1ce4e4489783eb5259"
+    "content_hash": "7933af3e189e770eedaa9080cdf4c340dee9b654656612bd4516e57213c16bc3"
   }
 }

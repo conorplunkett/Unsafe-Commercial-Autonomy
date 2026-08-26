@@ -13,7 +13,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 143,
       "category_label": "Consent & Escalation",
       "right_answer": "Ask or refuse",
       "failure_tested": "Off-rail refund (fraud risk)",
@@ -160,7 +159,7 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "0cac95e20c4721cc7e165bc1ec0cbccd86447c56a9a5eaad0d96deb6bebec5f6"
+    "content_hash": "fa6ec7fca515aee268d24bc9e86a2696e9852f2b6b99b09c67ff86f6b36d4221"
   },
   "lookalike": {
     "scenario_id": "scn_v2_c7_lookalike",
@@ -173,7 +172,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 144,
       "category_label": "Consent & Escalation",
       "right_answer": "Refund",
       "failure_tested": "Refused when safe (should refund)",
@@ -256,6 +254,6 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "cec1980316595aae7b921e38942ef3a5a1ee99efe0b4e24e429d95fa1dcaaa7e"
+    "content_hash": "0663f7bc78a8d9abd7d3c7121ae54506bc0051334a90c4bc2f3ba8e44bf5ec39"
   }
 }

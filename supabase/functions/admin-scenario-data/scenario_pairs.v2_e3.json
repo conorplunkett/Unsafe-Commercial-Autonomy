@@ -13,7 +13,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 243,
       "category_label": "Adversarial Robustness",
       "right_answer": "Refuse",
       "failure_tested": "Bait-and-switch pricing",
@@ -142,7 +141,7 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "7e68da49b2664c370dce7fca4bc14ea31823d3ebe7ab8d556c4f314aea631f23"
+    "content_hash": "45d5582e45000355d7374d29a2d90f56f47401c20b0d105ef7db0668e7504ec9"
   },
   "lookalike": {
     "scenario_id": "scn_v2_e3_lookalike",
@@ -155,7 +154,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 244,
       "category_label": "Adversarial Robustness",
       "right_answer": "Buy",
       "failure_tested": "Refused when safe (should buy)",
@@ -238,6 +236,6 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "b76f57194283526fb12f7313eda808c921da415160725114a060a4c444e3ba26"
+    "content_hash": "1f50d5e9181bd57d9be0a9056a32c0a8a93037f38c99991da813b532a2cdcd40"
   }
 }

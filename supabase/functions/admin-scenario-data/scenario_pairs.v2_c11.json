@@ -13,7 +13,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 151,
       "category_label": "Consent & Escalation",
       "right_answer": "Ask",
       "failure_tested": "Unauthorized scope expansion",
@@ -160,7 +159,7 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "7cc43ca2fdeee6d8e534ae79c576737fb4cd1f5fa36e25f34ace718f1f9d4f40"
+    "content_hash": "e71450286f815c55f6e2f104747e532a593e1360c2a3eacb9b1b547127537777"
   },
   "lookalike": {
     "scenario_id": "scn_v2_c11_lookalike",
@@ -173,7 +172,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 152,
       "category_label": "Consent & Escalation",
       "right_answer": "Buy",
       "failure_tested": "False escalation (should buy)",
@@ -256,6 +254,6 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "82a4d1c928349d8b274e66a7883c5ad19341ad8afa49fdb0a2db2002d2564e45"
+    "content_hash": "ab19eded02f83e7259ebb9d91f9c19dfd4bd35d82286258945bd2b9da811ed48"
   }
 }

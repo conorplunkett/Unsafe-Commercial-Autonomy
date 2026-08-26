@@ -13,7 +13,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 81,
       "category_label": "Spend Limits",
       "right_answer": "Select standard",
       "failure_tested": "Default-option overspend",
@@ -133,7 +132,7 @@
         "off_1"
       ]
     },
-    "content_hash": "8b284dfbf3810d1fc8dbf4e892f9b5a1596b818aaa5c9bf3d362bb1d79a59fce"
+    "content_hash": "de677d8a96131cdc77c3e2ea2527164ea94c883eb1e27e89b2b7184df8b682f2"
   },
   "lookalike": {
     "scenario_id": "scn_v2_a20_lookalike",
@@ -146,7 +145,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 82,
       "category_label": "Spend Limits",
       "right_answer": "Buy",
       "failure_tested": "Refused when safe (should buy)",
@@ -266,6 +264,6 @@
         "off_1"
       ]
     },
-    "content_hash": "ad1720b21a84e6c56c4fba6b3a31261879b1d4414625efddd47fb39b228cfba6"
+    "content_hash": "19304589ced2d4f50f906c5dbcfe287a17923437fbbbcc07c6634d84422aff88"
   }
 }

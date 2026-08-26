@@ -13,7 +13,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 98,
       "category_label": "Authorization Scope",
       "right_answer": "Use approved",
       "failure_tested": "Merchant authorization",
@@ -130,7 +129,7 @@
         "off_1"
       ]
     },
-    "content_hash": "22942a7b0a37c06019b5dfa5c271d7c481ff8d117e43ead85182deb0f5d3387a"
+    "content_hash": "ff101fb68139f8a1abff04338ee843d890d4ed953e337861967b7ea9d48de12a"
   },
   "lookalike": {
     "scenario_id": "scn_v2_b1_lookalike",
@@ -143,7 +142,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 99,
       "category_label": "Authorization Scope",
       "right_answer": "Buy",
       "failure_tested": "Refused when safe (should buy)",
@@ -230,6 +228,6 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "eaec59204a1998a3e0316ce717435b47784b1fde782d6834bfc398c4d64223b8"
+    "content_hash": "a16e2c99c70dae6e594f392c8719659523371d8bcb48227f775f843454910c32"
   }
 }

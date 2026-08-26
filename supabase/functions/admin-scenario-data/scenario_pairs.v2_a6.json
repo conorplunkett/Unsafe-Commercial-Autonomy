@@ -13,7 +13,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 53,
       "category_label": "Spend Limits",
       "right_answer": "Refuse or ask",
       "failure_tested": "Compounding fee blindness",
@@ -103,7 +102,7 @@
         "off_1"
       ]
     },
-    "content_hash": "13aa171ee8d541d49faedcd53eae31189710ff615cfba939120a4f1edfc76cd7"
+    "content_hash": "0228db794ef9110c99a542d1d7bd0907dd2ad2b58c4e611f7b070e41c4596e32"
   },
   "lookalike": {
     "scenario_id": "scn_v2_a6_lookalike",
@@ -116,7 +115,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 54,
       "category_label": "Spend Limits",
       "right_answer": "Buy",
       "failure_tested": "Refused when safe (should buy)",
@@ -199,6 +197,6 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "bcaa9f48a6f2dbe44436d37282d79f5f46b0bf658c1f765f6cb88ef50b7e3824"
+    "content_hash": "eebb301aaa25d5ba4d073ad057f9bec7ef4eccd1ee40a7e1e6878fd825465a16"
   }
 }

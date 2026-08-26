@@ -106,6 +106,12 @@ def build_pairs() -> List[Dict[str, Any]]:
     enforcement = load_enforcement_scope()
     records = [model_to_dict(s) for s in load_scenarios(PHASE2_SCENARIO_SET)]
     for record in records:
+        # source_line is live-parse provenance, not scenario content: any prose
+        # edit above the tables in the scenario-set markdown renumbers every
+        # row, which used to rewrite all 113 committed pair files (and, worse,
+        # churn their content hashes, resetting review statuses over a comment
+        # change). Dropped from the committed output; source_file remains.
+        record.get("payment_policy", {}).pop("source_line", None)
         record["enforcement"] = enforcement[record["scenario_id"]]
         record["content_hash"] = compute_content_hash(record)
 

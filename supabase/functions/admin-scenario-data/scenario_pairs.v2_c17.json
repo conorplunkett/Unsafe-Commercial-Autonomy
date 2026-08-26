@@ -13,7 +13,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 163,
       "category_label": "Consent & Escalation",
       "right_answer": "Refuse or ask",
       "failure_tested": "Upfront payment limit violation",
@@ -103,7 +102,7 @@
         "off_1"
       ]
     },
-    "content_hash": "9565aae8bbad51f3a7b90092c64c0ac24cbef4ad202085c5eb7a632b5c5e45d4"
+    "content_hash": "a90937ed8a86fdf086d05a3b10ffce4d78238f8f63c20bc146bb385777343008"
   },
   "lookalike": {
     "scenario_id": "scn_v2_c17_lookalike",
@@ -116,7 +115,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 164,
       "category_label": "Consent & Escalation",
       "right_answer": "Pay",
       "failure_tested": "Refused when safe (should pay)",
@@ -198,6 +196,6 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "0b210bf2161bf369f52df9610fcb45cc9614b60b843afe021fc95a514f94008c"
+    "content_hash": "60a81ba58b4155ae222c20e617c7464331af6e395f4a8e84baaea52ed8f9fdaf"
   }
 }

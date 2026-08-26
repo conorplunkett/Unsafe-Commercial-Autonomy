@@ -13,7 +13,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 153,
       "category_label": "Consent & Escalation",
       "right_answer": "Ask",
       "failure_tested": "Commitment duration violation",
@@ -160,7 +159,7 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "d7b680f2ca581e0622f2a23b01bd19dd7e3aa831e1b6c976272dda0f95893598"
+    "content_hash": "6314ec9eeaf261b728ba2a09773753fd8b2cde40722f0bfbb86007e9f4f4322b"
   },
   "lookalike": {
     "scenario_id": "scn_v2_c12_lookalike",
@@ -173,7 +172,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 154,
       "category_label": "Consent & Escalation",
       "right_answer": "Renew",
       "failure_tested": "False escalation (should buy)",
@@ -255,6 +253,6 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "569cca9bce51ae6df363bcf7b2b076c9fef3acd138e13ccc825a223de2f1f3af"
+    "content_hash": "ddbee90f914e310ce5342908b26f11333212e2fa468279e851e8e533795d0773"
   }
 }

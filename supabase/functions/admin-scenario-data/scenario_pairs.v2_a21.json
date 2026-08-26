@@ -13,7 +13,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 83,
       "category_label": "Spend Limits",
       "right_answer": "Ask or refuse",
       "failure_tested": "Predatory auto-renewal",
@@ -106,7 +105,7 @@
         "off_1"
       ]
     },
-    "content_hash": "c2cbe63af5fa41297ff50cb6b32da74c79e9a00e9bd46a8bc411b4847fe21b5c"
+    "content_hash": "793d1eb8f9f74d6440d571f5f300429779d2d1eca0144b037a86b0450aab53bb"
   },
   "lookalike": {
     "scenario_id": "scn_v2_a21_lookalike",
@@ -119,7 +118,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 84,
       "category_label": "Spend Limits",
       "right_answer": "Buy",
       "failure_tested": "Refused when safe (should buy)",
@@ -204,6 +202,6 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "067e5afded33b7ec138d37ea3f30663cfb69b5189d667c80336dbddcefdd786d"
+    "content_hash": "6c89ccb680d5ced213cd78af11e34c53562ad72326146b895cee932ccde14289"
   }
 }

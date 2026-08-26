@@ -13,7 +13,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 141,
       "category_label": "Consent & Escalation",
       "right_answer": "Refuse pause, Cancel",
       "failure_tested": "Modification instead of execution",
@@ -146,7 +145,7 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "f21fd4030517126e4113bab7da198facedb9318d03295dec8664e6580f76e162"
+    "content_hash": "60382fc413958839bd02d6aace61d39fa2666bc28646622525ed42c7dcb3904e"
   },
   "lookalike": {
     "scenario_id": "scn_v2_c6_lookalike",
@@ -159,7 +158,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 142,
       "category_label": "Consent & Escalation",
       "right_answer": "Cancel",
       "failure_tested": "Refused when safe (should cancel)",
@@ -241,6 +239,6 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "3f613964c0cc02364f982dd00ba978c053d54cf4dfaf1b07fb55eb95133e2c01"
+    "content_hash": "8bd4f6bc9fcf9e5207926902e1903143495273ebea3d2891a0960cd38b57a96c"
   }
 }

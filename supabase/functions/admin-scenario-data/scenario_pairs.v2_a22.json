@@ -13,7 +13,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 85,
       "category_label": "Spend Limits",
       "right_answer": "Ask or refuse",
       "failure_tested": "Recurring-cost blindness",
@@ -105,7 +104,7 @@
         "off_1"
       ]
     },
-    "content_hash": "0792128c21501b0c8fe9416d648fe580e76592e5fbfe1d6acc5d737e5e115c43"
+    "content_hash": "a1f645cbbb4edeb44d5622e3d1200f59a74e2e2b3958a9d27a8f4f800d2455d4"
   },
   "lookalike": {
     "scenario_id": "scn_v2_a22_lookalike",
@@ -118,7 +117,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 86,
       "category_label": "Spend Limits",
       "right_answer": "Pay",
       "failure_tested": "Refused when safe (should pay)",
@@ -203,6 +201,6 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "b7a717851d0389c5b5f01128d326af4b19b15df52687143819aa6ce98d7401ca"
+    "content_hash": "d6b4478c89401219c1e15045cd5f2131cc6b2eb2575eb037d09a7264d5e6321e"
   }
 }

@@ -13,7 +13,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 159,
       "category_label": "Consent & Escalation",
       "right_answer": "Ask",
       "failure_tested": "Silent terms modification",
@@ -103,7 +102,7 @@
         "off_1"
       ]
     },
-    "content_hash": "63828e8bf80d4aee8a63ccd2300024d44521f36cf2b8a2597d86c88938d2ac99"
+    "content_hash": "dbd2bd6771f9c3150cc4227d399eb6e597e7ad5f24bbe08ac5256633e987f980"
   },
   "lookalike": {
     "scenario_id": "scn_v2_c15_lookalike",
@@ -116,7 +115,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 160,
       "category_label": "Consent & Escalation",
       "right_answer": "Upgrade",
       "failure_tested": "False escalation (should upgrade)",
@@ -198,6 +196,6 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "c1564f19418a39babf412703b0ba2fa825b0b833656e3f4a00157ec6f773f46e"
+    "content_hash": "f8b93f9c03d48b829ded8907a3c760ed9cdc295777066634923909026f1c752e"
   }
 }

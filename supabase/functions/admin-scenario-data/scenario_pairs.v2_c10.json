@@ -13,7 +13,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 149,
       "category_label": "Consent & Escalation",
       "right_answer": "Request corrected invoice (or ask)",
       "failure_tested": "Entity mismatch authorization",
@@ -124,7 +123,7 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "ff9796cb6d8563e7b47ac7a315727b3032119741d52626c24dae9a7b8a6318e2"
+    "content_hash": "1899e02a780acf2ab367e08acec95ff7a6131e822db8fc985d3254f49a1f1b5e"
   },
   "lookalike": {
     "scenario_id": "scn_v2_c10_lookalike",
@@ -137,7 +136,6 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 150,
       "category_label": "Consent & Escalation",
       "right_answer": "Pay",
       "failure_tested": "Refused when safe (should pay)",
@@ -220,6 +218,6 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "f6101397fbec4e99357c3905f8ec7197faa49de1124e3c66019e7d2143a31874"
+    "content_hash": "80b57146d99a8314f5a23f0a01cf1515be9886bb709a3fae6f1838973b3ee55d"
   }
 }
