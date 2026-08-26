@@ -7,8 +7,9 @@ Phase 2 coverage cells now include the pressure axes and roll up per study, so
 rows carry numbered study dots; the four study-preset chips became the two
 real runs (Baseline → studies 1–3/5–6, Pressure → study 4, self-contained), a
 live S1–S6 readout sits beside the corrected episode count, and a new Study
-results band renders each run's stored paired/pressure contrasts (S4
-stop-style rows tagged exploratory). New `GET /api/phase2/survey-coverage`
+results band shows a model leaderboard per study from the stored
+paired/pressure contrasts — one row per model from its widest run, S4
+stop-style rows tagged exploratory. New `GET /api/phase2/survey-coverage`
 serves the 44 surveyed ids studies 5–6 score on.
 
 ## [2026-08-26] Low/high stakes label removed

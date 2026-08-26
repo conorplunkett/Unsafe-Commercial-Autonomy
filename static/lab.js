@@ -3644,18 +3644,25 @@ function runConditionsPills(results) {
 // PHASE2_PRIMARY_CONTRASTS) as they appear in stored
 // metrics.phase2.paired_contrasts rows, mapped to their studies.
 const PAIRED_CONTRAST_META = {
-  structured_policy_minus_no_policy: { study: 2, name: "S2 formalization" },
-  tool_constraints_minus_structured_policy: { study: 3, name: "S3 enforcement" },
+  structured_policy_minus_no_policy: {
+    block: "S2 · Formalization",
+    order: 0,
+    sub: "structured policy − no policy",
+  },
+  tool_constraints_minus_structured_policy: {
+    block: "S3 · Enforcement",
+    order: 1,
+    sub: "tool constraints − structured policy",
+  },
 };
 
 // Same vocabulary as the Runs table's Unsafe/Refused columns.
 const OUTCOME_LABELS = { unsafe_verdict: "unsafe", refused_when_safe: "refused" };
 
-// Rows for one run's Study-results block, from the contrasts the runner
-// stored with the run (app/phase2/runner.py) — read, never recomputed.
-// Paired rows exist per (model, framing, urgency, availability) cell in
-// pooled runs; only the baseline-axes cells are the S2/S3 design, so the
-// rest are dropped here. Every pressure row is S4.
+// Contrast rows one run stores (app/phase2/runner.py) — read, never
+// recomputed. Paired rows exist per (model, framing, urgency, availability)
+// cell in pooled runs; only the baseline-axes cells are the S2/S3 design, so
+// the rest are dropped here. Every pressure row is S4.
 function runStudyRows(run) {
   const phase2 = run.metrics && run.metrics.phase2;
   if (!phase2) return [];
@@ -3667,8 +3674,9 @@ function runStudyRows(run) {
     if ((comparison.urgency || "none") !== "none") continue;
     if ((comparison.user_availability || "none") !== "none") continue;
     rows.push({
-      study: meta.study,
-      name: meta.name,
+      block: meta.block,
+      blockOrder: meta.order,
+      sub: meta.sub,
       outcome: comparison.outcome,
       model: comparison.model,
       framing: comparison.framing,
@@ -3677,6 +3685,7 @@ function runStudyRows(run) {
       riskDifference: comparison.risk_difference,
       ciLow: comparison.ci_low,
       ciHigh: comparison.ci_high,
+      scenarioCount: comparison.scenario_count,
       exploratory: false,
       counts: [
         `${comparison.scenario_count} scenarios`,
@@ -3692,10 +3701,11 @@ function runStudyRows(run) {
   }
   const pressure = (phase2.pressure_contrasts && phase2.pressure_contrasts.comparisons) || [];
   for (const comparison of pressure) {
+    const timePressure = comparison.axis === "urgency";
     rows.push({
-      study: 4,
-      name: `S4 ${comparison.axis === "urgency" ? "time pressure" : "user away"}`,
-      axisOrder: comparison.axis === "urgency" ? 0 : 1,
+      block: timePressure ? "S4 · Time pressure" : "S4 · User away",
+      blockOrder: timePressure ? 2 : 3,
+      sub: timePressure ? "time pressure − none" : "user away − none",
       outcome: comparison.outcome,
       model: comparison.model,
       framing: comparison.framing,
@@ -3704,6 +3714,7 @@ function runStudyRows(run) {
       riskDifference: comparison.risk_difference,
       ciLow: comparison.ci_low,
       ciHigh: comparison.ci_high,
+      scenarioCount: comparison.scenario_count,
       // Pre-registered: the pressure study's confirmatory outcome is the
       // unsafe delta only (README) — stop-style deltas report without a
       // confirmatory claim.
@@ -3715,18 +3726,52 @@ function runStudyRows(run) {
       ],
     });
   }
-  rows.sort(
-    (a, b) =>
-      a.study - b.study ||
-      (a.axisOrder || 0) - (b.axisOrder || 0) ||
-      (a.outcome === "unsafe_verdict" ? 0 : 1) - (b.outcome === "unsafe_verdict" ? 0 : 1) ||
-      String(a.model).localeCompare(String(b.model))
-  );
   return rows;
 }
 
-function studyRowHtml(row, multiModel) {
-  const modelPrefix = multiModel ? `${row.model} · ` : "";
+// One leaderboard per study block: model rows pooled across every stored
+// run, one row per (model, outcome, framing). When the same model has the
+// contrast in several runs, the widest run wins (most scenarios paired),
+// newest on a tie — same instinct as bestRunForPhase; the losing runs stay
+// reachable through the Runs table. Contrasts are never pooled across runs
+// here: that is what `merge` is for.
+function studyLeaderboards() {
+  const best = new Map();
+  for (const run of state.runList) {
+    // Superseded runs are skipped — the merged run that pooled them carries
+    // the pooled contrasts.
+    if (state.superseded.has(run.run_id)) continue;
+    for (const row of runStudyRows(run)) {
+      const key = `${row.block}::${row.outcome}::${row.model}::${row.framing || ""}`;
+      const current = best.get(key);
+      // state.runList is newest-first, so replacing only on strictly more
+      // scenarios keeps the newest run on ties.
+      if (!current || (row.scenarioCount || 0) > (current.scenarioCount || 0)) {
+        best.set(key, { ...row, runAt: run.created_at });
+      }
+    }
+  }
+  const blocks = new Map();
+  for (const row of best.values()) {
+    if (!blocks.has(row.block)) {
+      blocks.set(row.block, { block: row.block, blockOrder: row.blockOrder, sub: row.sub, rows: [] });
+    }
+    blocks.get(row.block).rows.push(row);
+  }
+  const rank = (a, b) =>
+    // Worst first within an outcome, matching the Unsafe payment chart:
+    // most positive delta (the control hurt / pressure eroded) on top,
+    // no-pairs rows last.
+    (a.outcome === "unsafe_verdict" ? 0 : 1) - (b.outcome === "unsafe_verdict" ? 0 : 1) ||
+    (a.riskDifference == null) - (b.riskDifference == null) ||
+    (b.riskDifference || 0) - (a.riskDifference || 0) ||
+    String(a.model).localeCompare(String(b.model));
+  return [...blocks.values()]
+    .sort((a, b) => a.blockOrder - b.blockOrder)
+    .map((entry) => ({ ...entry, rows: entry.rows.sort(rank) }));
+}
+
+function studyRowHtml(row) {
   const framingTag =
     row.framing && row.framing !== "deployment" && row.framing !== "unspecified"
       ? `<span class="study-flag" title="Non-deployment framing">${framingShortLabel(row.framing)}</span>`
@@ -3749,11 +3794,11 @@ function studyRowHtml(row, multiModel) {
   const title = [
     ...row.counts,
     ...(row.riskDifference != null && row.ciLow == null ? ["CI needs ≥2 scenarios"] : []),
-    ...(multiModel ? [row.model] : []),
+    `run ${compactTime(row.runAt)}`,
   ].join(" · ");
   return `
     <div class="bar-row" title="${title}">
-      <span class="bar-name">${modelPrefix}${row.name} · ${OUTCOME_LABELS[row.outcome] || row.outcome}${framingTag}${exploratoryTag}</span>
+      <span class="bar-name">${row.model} · ${OUTCOME_LABELS[row.outcome] || row.outcome}${framingTag}${exploratoryTag}</span>
       <span class="bar-phase">${rates}</span>
       ${signedTrack(row.riskDifference, false)}
       <span class="bar-value">${value}</span>
@@ -3767,38 +3812,30 @@ function renderStudyResults() {
     els.studyResultsContent.innerHTML = "";
     return;
   }
-  // Superseded runs are skipped — the merged run that pooled them carries
-  // the pooled contrasts.
-  const entries = state.runList
-    .filter((run) => !state.superseded.has(run.run_id))
-    .map((run) => ({ run, rows: runStudyRows(run) }))
-    .filter((entry) => entry.rows.length);
-  els.studyResultsStamp.textContent = `${entries.length} run${
-    entries.length === 1 ? "" : "s"
-  } with stored contrasts`;
-  if (!entries.length) {
+  const boards = studyLeaderboards();
+  const models = new Set(boards.flatMap((board) => board.rows.map((row) => row.model)));
+  els.studyResultsStamp.textContent = models.size
+    ? `${models.size} model${models.size === 1 ? "" : "s"}`
+    : "";
+  if (!boards.length) {
     els.studyResultsContent.innerHTML =
       '<p class="phase-empty">No stored Phase 2 contrasts — <code>python -m app.cli recompute</code> rebuilds older runs’ metrics.</p>';
     return;
   }
-  els.studyResultsContent.innerHTML = entries
-    .map(({ run, rows }, index) => {
-      const models = [...new Set(run.results.map(modelLabel))].join(", ");
-      const rowModels = new Set(rows.map((row) => row.model));
-      const mergedFlag =
-        run.merged_from && run.merged_from.length ? ` · merged ×${run.merged_from.length}` : "";
-      return `
-        <details class="phase-detail" ${index === 0 ? "open" : ""}>
+  els.studyResultsContent.innerHTML = boards
+    .map(
+      (board) => `
+        <details class="phase-detail" open>
           <summary>
-            <span class="phase-detail-title">${compactTime(run.created_at)}</span>
-            <span class="phase-detail-summary">${models}${mergedFlag}</span>
+            <span class="phase-detail-title">${board.block}</span>
+            <span class="phase-detail-summary">${board.sub}</span>
           </summary>
           <div class="bar-chart study-rows">
-            ${rows.map((row) => studyRowHtml(row, rowModels.size > 1)).join("")}
+            ${board.rows.map(studyRowHtml).join("")}
           </div>
         </details>
-      `;
-    })
+      `
+    )
     .join("");
 }
 
