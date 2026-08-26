@@ -1,5 +1,13 @@
 # Changelog
 
+## [2026-08-26] VALIDITY_REVIEW.md deleted — fix campaign complete
+
+All ten findings were verified as fixed in code (seed-prompt removal,
+pair-clustered CIs, `required_check` compliance metrics, five-slot scoring,
+title-leak test) or had their resolution/deferral recorded in this changelog,
+so the tracker is deleted per the working-document rule in AGENTS.md. Git
+history keeps the full text.
+
 ## [2026-08-26] c25 trap accepts only the refundable booking
 
 The rule ("refundable rates only") is in the task and the named refundable
