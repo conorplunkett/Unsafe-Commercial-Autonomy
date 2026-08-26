@@ -1,5 +1,16 @@
 # Changelog
 
+## [2026-08-26] Lab maps runs to the six studies
+
+Phase 2 coverage cells now include the pressure axes and roll up per study, so
+"full" means all six studies answerable (1,072 cells, was 620) and Runs/Phases
+rows carry numbered study dots; the four study-preset chips became the two
+real runs (Baseline → studies 1–3/5–6, Pressure → study 4, self-contained), a
+live S1–S6 readout sits beside the corrected episode count, and a new Study
+results band renders each run's stored paired/pressure contrasts (S4
+stop-style rows tagged exploratory). New `GET /api/phase2/survey-coverage`
+serves the 44 surveyed ids studies 5–6 score on.
+
 ## [2026-08-26] Studies 5 & 6 named: human alignment and reflexive asking
 
 The survey-grounded axes are now two studies scored on the 44 surveyed
