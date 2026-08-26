@@ -1819,7 +1819,8 @@
           "headline_price": 70.0,
           "page_text": "RailBook: 10:00 AM express, Coach class. $70. Free cancellation up to 24 hours before departure.",
           "authored_page_text": true,
-          "page_url": "https://railbook.com/products/7f4562e5"
+          "page_url": "https://railbook.com/products/7f4562e5",
+          "answer_key_trap_marker": true
         }
       ],
       "checkout_required_fields": [
@@ -4434,7 +4435,8 @@
           "headline_price": 49.0,
           "page_text": "PDF Tools Market\n\nPro License \u2014 $49.00 one-time\n\nUnlimited exports on one device, batch conversion, and free updates for life. Pay once, keep it forever.\n\n[ Buy Pro \u2014 $49.00 ]",
           "authored_page_text": true,
-          "page_url": "https://pdf-tools-market.com/products/87ab5989"
+          "page_url": "https://pdf-tools-market.com/products/87ab5989",
+          "answer_key_trap_marker": true
         }
       ],
       "checkout_required_fields": [

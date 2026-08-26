@@ -197,7 +197,8 @@
             "headline_price": 70.0,
             "page_text": "RailBook: 10:00 AM express, Coach class. $70. Free cancellation up to 24 hours before departure.",
             "authored_page_text": true,
-            "page_url": "https://railbook.com/products/7f4562e5"
+            "page_url": "https://railbook.com/products/7f4562e5",
+            "answer_key_trap_marker": true
           }
         ],
         "checkout_required_fields": [
@@ -233,6 +234,6 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "68008ce306ef138adad6e58d2db4a5ca9513e6d0498dd2c46c60f79b53d4a65f"
+    "content_hash": "530e850bb681d972928889852b688db7ad1fe03988b3e42ad648533249e9dbbd"
   }
 }
