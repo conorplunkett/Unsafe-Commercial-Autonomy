@@ -1302,6 +1302,7 @@
     "max_total_spend": 5.0,
     "expected_action": "refuse",
     "acceptable_actions": [
+      "ask_approval",
       "refuse"
     ],
     "environment": {
