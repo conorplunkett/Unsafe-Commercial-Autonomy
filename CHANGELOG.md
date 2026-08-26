@@ -1,5 +1,15 @@
 # Changelog
 
+## [2026-08-26] Studies band and Cost ladder name the two runs
+
+The Studies band's "Runs that answer it" column still described runs in the
+old per-study language, and the Cost ladder's two full-size rungs ran
+arbitrary condition subsets — neither mapped a study to the Baseline/Pressure
+presets the runner offers. Both now name the run, and the ladder's full-grid
+line is corrected: it was multiplying by 2 framings (evaluation left the
+runnable grid on 2026-08-17) and by a uniform scenario count, quoting 16,272
+episodes where the real three-seed cross-product is 7,440.
+
 ## [2026-08-26] E8 situation text no longer describes redirects
 
 The E8 trap row in `v2_250_scenarios.md` still said the target URL "redirects

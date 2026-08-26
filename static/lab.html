@@ -176,32 +176,32 @@
               <tr>
                 <td>1 · Policy compliance</td>
                 <td>Shown the rules, does it break them?</td>
-                <td>structured policy · no pressure axes · all scenarios. The headline unsafe rate.</td>
+                <td>Baseline run · structured policy, axes at none. The headline unsafe rate.</td>
               </tr>
               <tr>
                 <td>2 · Formalization</td>
                 <td>Does the formal policy block help, beyond the rule stated in the task?</td>
-                <td>no policy + structured policy · same seeds, paired per scenario.</td>
+                <td>Baseline run · structured policy − no policy, paired per scenario.</td>
               </tr>
               <tr>
                 <td>3 · Enforcement</td>
                 <td>Do hard blocks stop violations, or get worked around?</td>
-                <td>structured policy + tool constraints · blocked attempts counted.</td>
+                <td>Baseline run · tool constraints − structured policy, blocked attempts counted.</td>
               </tr>
               <tr>
                 <td>4 · Pressure</td>
                 <td>Does urgency, or the user being away, erode compliance?</td>
-                <td>structured policy &times; time pressure, &times; unreachable · each vs its no-pressure baseline. Unsafe delta only; stop-style deltas are exploratory.</td>
+                <td>Pressure run · each level &minus; its no-pressure baseline. Unsafe delta only; stop-style deltas are exploratory.</td>
               </tr>
               <tr>
                 <td>5 · Human alignment</td>
                 <td>Does the model do what humans prefer and accept?</td>
-                <td>Same headline runs, scored on the 44 survey-covered scenarios against the human vote distribution — see the Survey-grounded axes section.</td>
+                <td>Baseline run · 44 survey-covered scenarios against the human vote distribution. Survey-grounded axes.</td>
               </tr>
               <tr>
                 <td>6 · Reflexive asking</td>
                 <td>Does the model ask more reflexively than humans do?</td>
-                <td>Same headline runs and scenarios — ask calibration and the reflexive-ask floor in the Survey-grounded axes section.</td>
+                <td>Baseline run · same scenarios and votes. Ask calibration and the reflexive-ask floor.</td>
               </tr>
             </tbody>
           </table>
@@ -583,15 +583,20 @@
   --urgencies all --user-availabilities all --scenario-ids scn_v2_a1_trap --seeds 1</pre>
           </div>
           <div class="ladder-rung">
-            <div class="ladder-rung-head"><span class="ladder-name">Every scenario once</span><span id="ladderEveryScenario" class="ladder-count">226 episodes</span><button type="button" class="ladder-copy">Copy</button></div>
+            <div class="ladder-rung-head"><span class="ladder-name">Baseline run · studies 1&ndash;3, 5&ndash;6</span><span id="ladderEveryScenario" class="ladder-count">620 episodes</span><button type="button" class="ladder-copy">Copy</button></div>
             <pre>python -m app.cli phase2-eval --models <span class="ladder-model">openai</span> \
-  --conditions no_policy --framings deployment --seeds 1 --yes</pre>
+  --conditions all --seeds 1 --yes</pre>
           </div>
           <div class="ladder-rung">
-            <div class="ladder-rung-head"><span class="ladder-name">Every scenario, three seeds</span><span id="ladderEverySeeds" class="ladder-count">1,182 episodes</span><button type="button" class="ladder-copy">Copy</button></div>
+            <div class="ladder-rung-head"><span class="ladder-name">Pressure run · study 4</span><span id="ladderPressureRun" class="ladder-count">904 episodes</span><button type="button" class="ladder-copy">Copy</button></div>
             <pre>python -m app.cli phase2-eval --models <span class="ladder-model">openai</span> \
-  --conditions no_policy,tool_constraints --framings deployment \
-  --seeds 1,2,3 --yes</pre>
+  --conditions structured_policy --urgencies all \
+  --user-availabilities all --seeds 1 --yes</pre>
+          </div>
+          <div class="ladder-rung">
+            <div class="ladder-rung-head"><span class="ladder-name">Baseline run, three seeds</span><span id="ladderEverySeeds" class="ladder-count">1,860 episodes</span><button type="button" class="ladder-copy">Copy</button></div>
+            <pre>python -m app.cli phase2-eval --models <span class="ladder-model">openai</span> \
+  --conditions all --seeds 1,2,3 --yes</pre>
           </div>
         </div>
         <p class="panel-legend ladder-foot">
@@ -815,6 +820,6 @@
         }, { passive: true });
       })();
     </script>
-    <script src="/static/lab.js?v=32"></script>
+    <script src="/static/lab.js?v=33"></script>
   </body>
 </html>
