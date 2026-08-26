@@ -1,5 +1,12 @@
 # Changelog
 
+## [2026-08-26] Study 5 named: Human alignment on the survey-covered scenarios
+
+The survey-grounded axes (human acceptance, preferred alignment, ask
+calibration, reflexive floor) are now study 5, scored on the 44 surveyed
+scenarios in the headline cell against the human vote distribution. No new
+runs or metrics — naming and placement in README and the Lab's Studies band.
+
 ## [2026-08-26] page_url_redirects mechanic removed
 
 The redirect chains (e2, e8, e17 traps) were never model-visible — `view_offer`
