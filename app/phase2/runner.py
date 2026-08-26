@@ -105,11 +105,17 @@ class GridCell:
 
     @property
     def label(self) -> str:
-        return (
-            f"{self.model_id} / {self.control_condition} / {self.framing} / "
-            f"{self.urgency} / {self.user_availability} / "
-            f"{self.scenario.scenario_id} / seed {self.seed}"
+        conditions = ", ".join(
+            [
+                self.control_condition,
+                self.framing,
+                self.urgency,
+                self.user_availability,
+                self.scenario.scenario_id,
+                f"seed {self.seed}",
+            ]
         )
+        return f"{self.model_id} [{conditions}]"
 
 
 def _grid_cells(
@@ -718,14 +724,14 @@ def run_phase2_evaluation(
                     if state["aborted"] is not None or stop.is_set():
                         break
                     wave = pending[start : start + workers * 4]
-                    futures = [executor.submit(_execute, cell) for cell in wave]
+                    futures = {executor.submit(_execute, cell): cell for cell in wave}
                     try:
                         for future in futures:
                             future.result()
                             if progress_cb is not None:
                                 with lock:
                                     completed_now = state["completed"]
-                                progress_cb(completed_now, total_units, f"{completed_now}/{total_units} episodes")
+                                progress_cb(completed_now, total_units, futures[future].label)
                     except BaseException:
                         # Ctrl-C (or a crashed worker): stop the queue NOW.
                         # In-flight episodes finish and are checkpointed —
