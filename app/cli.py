@@ -4,6 +4,7 @@ import argparse
 import os
 import shutil
 import sys
+import textwrap
 from pathlib import Path
 from typing import Iterable, List, Optional, TextIO
 from uuid import uuid4
@@ -186,18 +187,23 @@ def _add_split_argument(parser: argparse.ArgumentParser) -> None:
 
 
 class _ProgressBar:
-    """Render a determinate, single-line progress bar for a CLI eval run.
+    """Render a determinate, possibly multi-line progress bar for a CLI eval run.
 
     Driven by ``run_phase1_evaluation``'s ``progress_cb`` (completed, total,
     label). Only draws when the stream is a TTY so redirected/piped output and
-    the test suite stay clean. Uses ``\\r`` to redraw in place and clears the
-    line when the run finishes, leaving the summary table untouched.
+    the test suite stay clean. The label can be longer than one terminal row
+    (it names the model plus every axis of the grid cell just run), so the
+    whole line is wrapped to the terminal width across as many rows as it
+    needs rather than truncated. Redraws in place each update by moving the
+    cursor back up over the previous frame's rows, and clears every row when
+    the run finishes, leaving the summary table untouched.
     """
 
     def __init__(self, stream: Optional[TextIO] = None, width: int = 24) -> None:
         self._stream = stream if stream is not None else sys.stderr
         self._width = width
         self._active = bool(getattr(self._stream, "isatty", lambda: False)())
+        self._last_row_count = 0
 
     def _columns(self) -> int:
         # shutil.get_terminal_size() prefers the COLUMNS env var over the tty's
@@ -210,6 +216,11 @@ class _ProgressBar:
         except (AttributeError, OSError, ValueError):
             return shutil.get_terminal_size((80, 20)).columns
 
+    def _move_to_frame_start(self) -> None:
+        if self._last_row_count > 1:
+            self._stream.write(f"\033[{self._last_row_count - 1}A")
+        self._stream.write("\r")
+
     def update(self, completed: int, total: int, label: str) -> None:
         if not self._active:
             return
@@ -218,17 +229,23 @@ class _ProgressBar:
         bar = "█" * filled + "░" * (self._width - filled)
         verb = "done" if completed >= total else "running"
         line = f"[{bar}] {int(frac * 100):3d}% ({completed}/{total}) {verb} {label}"
-        cols = self._columns()
-        # Pad to the terminal width so a shorter label can't leave stale text
-        # behind from the previous, longer line.
-        self._stream.write("\r" + line[: cols - 1].ljust(cols - 1))
+        cols = max(1, self._columns() - 1)
+        rows = textwrap.wrap(line, width=cols, break_long_words=False, break_on_hyphens=False) or [""]
+        self._move_to_frame_start()
+        self._stream.write("\n".join(row.ljust(cols) for row in rows))
+        self._last_row_count = len(rows)
         self._stream.flush()
 
     def finish(self) -> None:
         if not self._active:
             return
-        cols = self._columns()
-        self._stream.write("\r" + " " * (cols - 1) + "\r")
+        cols = max(1, self._columns() - 1)
+        self._move_to_frame_start()
+        blank_rows = self._last_row_count or 1
+        self._stream.write("\n".join(" " * cols for _ in range(blank_rows)))
+        self._last_row_count = blank_rows
+        self._move_to_frame_start()
+        self._last_row_count = 0
         self._stream.flush()
 
 

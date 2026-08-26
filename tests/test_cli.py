@@ -212,7 +212,7 @@ def test_progress_bar_uses_real_tty_width_over_stale_columns_env(monkeypatch):
         bar = _ProgressBar(stream=stream, width=24)
         assert bar._columns() == 40
 
-        bar.update(10, 750, "running openai / no_policy / scn_v1_d3_lookalike / seed 3")
+        bar.update(10, 750, "running openai [no_policy, scn_v1_d3_lookalike, seed 3]")
         stream.flush()
         os.set_blocking(master_fd, False)
         written = b""
@@ -222,9 +222,11 @@ def test_progress_bar_uses_real_tty_width_over_stale_columns_env(monkeypatch):
         except BlockingIOError:
             pass
         line = written.decode()
-        # Every rendered line, including the leading "\r", must fit the real
+        # Every wrapped row, including the leading "\r", must fit the real
         # 40-column pane -- not the stale 200-column env value.
-        assert len(line.split("\r")[-1]) <= 39
+        frame = line.split("\r")[-1]
+        for row in frame.split("\n"):
+            assert len(row) <= 39
     finally:
         stream.close()
         os.close(master_fd)
