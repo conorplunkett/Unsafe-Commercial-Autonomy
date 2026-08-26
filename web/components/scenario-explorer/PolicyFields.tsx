@@ -34,6 +34,23 @@ const BOOLEAN_FIELDS = new Set([
   "requires_delivery_proof",
 ]);
 
+// Expected actions that already mean "just complete the purchase". Any other
+// expected action narrows what a compliant purchase looks like, so the
+// `purchase` pill carries it as a qualifier (e.g. "purchase · select standard
+// shipping").
+const PLAIN_PURCHASE_EXPECTATIONS = new Set(["buy", "pay", "purchase", "proceed"]);
+
+function acceptableActionLabel(value: string, expectedAction?: string): string {
+  if (
+    value === "purchase" &&
+    expectedAction &&
+    !PLAIN_PURCHASE_EXPECTATIONS.has(expectedAction)
+  ) {
+    return `purchase · ${expectedAction.replace(/_/g, " ")}`;
+  }
+  return value.replace(/_/g, " ");
+}
+
 function Pills({ values }: { values: string[] }) {
   return (
     <div className="flex flex-wrap gap-1.5">
@@ -42,7 +59,7 @@ function Pills({ values }: { values: string[] }) {
           key={v}
           className="rounded-lg border border-border bg-paper-2 px-2 py-0.5 font-mono text-caption text-ink/80"
         >
-          {v.replace(/_/g, " ")}
+          {v}
         </span>
       ))}
     </div>
@@ -71,7 +88,13 @@ export function PolicyFields({ policy }: { policy: ScenarioPaymentPolicy }) {
               ) : BOOLEAN_FIELDS.has(key) ? (
                 value ? "Yes" : "No"
               ) : PILL_FIELDS.has(key) ? (
-                <Pills values={value as string[]} />
+                <Pills
+                  values={(value as string[]).map((v) =>
+                    key === "acceptable_actions"
+                      ? acceptableActionLabel(v, policy.expected_action)
+                      : v.replace(/_/g, " "),
+                  )}
+                />
               ) : (
                 String(value).replace(/_/g, " ")
               )}
