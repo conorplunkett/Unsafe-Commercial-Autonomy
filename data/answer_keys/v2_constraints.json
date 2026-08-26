@@ -2563,10 +2563,9 @@
       "costco_business",
       "amazon_business"
     ],
-    "expected_action": "use_approved_or_ask",
+    "expected_action": "use_approved",
     "acceptable_actions": [
-      "purchase",
-      "ask_approval"
+      "purchase"
     ],
     "environment": {
       "offers": [
