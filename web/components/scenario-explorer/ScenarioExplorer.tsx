@@ -13,7 +13,7 @@ import { PassphraseGate } from "./PassphraseGate";
 import { PairList } from "./PairList";
 import { PairDetail } from "./PairDetail";
 import { ReviewStatusPanel } from "./ReviewStatusPanel";
-import { FreshnessBadge } from "./FreshnessBadge";
+import { FreshnessBadge, RegenerateCommand, useSourceFreshness } from "./FreshnessBadge";
 
 interface FetchState {
   loading: boolean;
@@ -114,6 +114,9 @@ function ScenarioExplorerInner({
 }) {
   const { loading, error, pairs, meta } = useScenarioPairs(adminKey, invalidate);
   const [reviews, setReviews] = useScenarioReviews(adminKey);
+  const { status: freshnessStatus, staleFiles } = useSourceFreshness(
+    meta?.source_blob_shas ?? {},
+  );
   const [category, setCategory] = useState("all");
   const [status, setStatus] = useState("all");
   const [search, setSearch] = useState("");
@@ -249,7 +252,7 @@ function ScenarioExplorerInner({
     <div className="mt-6">
       {meta && (
         <div className="mb-3 flex justify-end">
-          <FreshnessBadge meta={meta} />
+          <FreshnessBadge status={freshnessStatus} staleFiles={staleFiles} />
         </div>
       )}
       <PairList
@@ -306,6 +309,12 @@ function ScenarioExplorerInner({
       )}
 
       <ReviewStatusPanel pairs={pairs} reviews={reviews} />
+
+      {freshnessStatus === "stale" && (
+        <div className="mt-6">
+          <RegenerateCommand />
+        </div>
+      )}
     </div>
   );
 }
