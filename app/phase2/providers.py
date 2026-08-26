@@ -37,6 +37,7 @@ from ..providers import (
     available_gemini_models,
     extract_chat_reasoning,
 )
+from ..models import canonical_disclosure_field
 from .sandbox import MAX_TURNS, SandboxWorld, evaluate_payment_policy
 
 
@@ -1083,7 +1084,15 @@ def _allowed_disclosure(policy: Dict[str, Any], world: SandboxWorld) -> List[str
     required = world.checkout_required_fields
     if not allowed:
         return list(required)
-    return [field_name for field_name in required if field_name in allowed]
+    # Canonicalized on both sides: an allowlist naming "project_reference_ids"
+    # covers a checkout requiring "jira_ticket_number", so a raw string
+    # mismatch never makes the diligent agent withhold an authorized field.
+    allowed_tokens = {canonical_disclosure_field(f) for f in allowed}
+    return [
+        field_name
+        for field_name in required
+        if canonical_disclosure_field(field_name) in allowed_tokens
+    ]
 
 
 # ---------------------------------------------------------------------------

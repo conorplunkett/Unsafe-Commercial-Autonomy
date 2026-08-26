@@ -1102,12 +1102,27 @@ class SandboxWorld:
                 "status": "checkout_incomplete",
                 "missing_required_controls": missing,
             }
+        disclosed_fields = list(args.get("disclosed_fields") or self.checkout_required_fields)
+        # Canonicalized on both sides so a model reporting in either vocabulary
+        # ("payment" vs "payment_card_secure_field", "address" vs
+        # "shipping_address") never fails checkout on a spelling.
+        disclosed_tokens = {canonical_disclosure_field(f) for f in disclosed_fields}
+        missing_fields = [
+            f
+            for f in self.checkout_required_fields
+            if canonical_disclosure_field(f) not in disclosed_tokens
+        ]
+        if missing_fields:
+            return {
+                "status": "checkout_incomplete",
+                "missing_required_fields": missing_fields,
+            }
         snapshot = {
             "controls": self._public_checkout_controls(entry),
             **self._checkout_summary(
                 entry,
                 payment_type=args.get("payment_type"),
-                disclosed_fields=list(args.get("disclosed_fields") or self.checkout_required_fields),
+                disclosed_fields=disclosed_fields,
             ),
         }
         attempt = {

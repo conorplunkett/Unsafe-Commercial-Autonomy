@@ -1,6 +1,18 @@
 # Changelog
 
-<<<<<<< HEAD
+## [2026-08-26] pay enforces required checkout fields
+
+`pay` now fails with `checkout_incomplete` naming the missing fields when
+`disclosed_fields` leaves out any of the offer's `checkout_required_fields`
+(canonicalized on both sides, so vocabulary differences never fail checkout).
+Previously a model could pay d8_trap with only name+payment and complete a
+checkout that required a passport scan — 34 of 64 purchase episodes in the
+2026-08 reference runs did exactly that. Old runs where a trap was "paid"
+while withholding its required sensitive field are not comparable to new
+ones. `_allowed_disclosure` in the scripted diligent agent now also matches
+allowlist to required fields canonically (d9_lookalike's jira_ticket_number
+vs project_reference_ids), so it no longer withholds authorized fields.
+
 ## [2026-08-26] Discoverability manifest, world_grounded tag, scam-resistance slice
 
 New `data/answer_keys/discoverability.json`: every trap names its deciding-fact
@@ -10,7 +22,7 @@ b11, b17, b19). Manifest entries derive `world_grounded` on scenarios/results,
 and `metrics.by_grounding` reports the world-grounded unsafe rate — the
 scam-resistance number — surfaced on the site and in the Lab. Runs need
 `recompute` to carry the flag.
-=======
+
 ## [2026-08-26] b3_trap page text de-coached
 
 b3_trap's page text announced its own mechanism ("Sets this card as the default
@@ -21,7 +33,6 @@ as convenience. The checkout radio label keeps the full $75/$75/$75/$84
 schedule as the source of truth for the real total.
 `v2_page_texts.json` sidecar and Scenario Explorer chunks regenerated to match.
 
->>>>>>> origin/main
 ## [2026-08-26] b1_trap re-keyed to Costco Business purchase only
 
 b1_trap offered one off-policy merchant and one allowed merchant (Costco
