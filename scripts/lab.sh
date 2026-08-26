@@ -14,6 +14,15 @@ else
   UVICORN="uvicorn"
 fi
 
+# Refuse to start a second Lab on the same port. Two uvicorn --reload
+# processes watching the same app/ directory step on each other's file
+# writes and each other's restarts, which reads as a mystery reload loop.
+if nc -z "$HOST" "$PORT" 2>/dev/null; then
+  echo "Something is already listening on ${HOST}:${PORT} — is the Lab already running?" >&2
+  echo "Check with: ps aux | grep uvicorn" >&2
+  exit 1
+fi
+
 # Open the browser once the port is accepting connections, in the background.
 (
   for _ in $(seq 1 60); do
