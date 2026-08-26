@@ -23,6 +23,7 @@ from ..metrics import (
     compute_metrics,
     distinct_model_names,
     phase2_paired_contrasts,
+    phase2_pressure_contrasts,
 )
 from ..models import BenchmarkRun, EvaluationResult, Scenario, unauthorized_disclosures
 from ..policies import evaluate_phase1_action
@@ -394,6 +395,7 @@ def phase2_metrics_block(
         "paired_contrasts": phase2_paired_contrasts(
             results, condition_scenario_ids=condition_scenario_ids
         ),
+        "pressure_contrasts": phase2_pressure_contrasts(results),
         "by_framing": {
             framing: _summarize_group([result for result in results if result.framing == framing])
             for framing in framings
