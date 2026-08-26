@@ -54,7 +54,7 @@ From Google's own Colab FAQ:
 What that means for "free runs on models": Colab's free tier is a fine place
 to run small, exploratory `phase2-eval` grids interactively — one model, a
 couple of scenario pairs, seed 1, watched in real time. It is a poor fit for
-the full paid design (many providers × five seeds × hundreds of scenarios):
+the full paid design (many providers × three seeds × hundreds of scenarios):
 that run will outlast a single session, and Colab's own policy is aimed at
 active use, not parking a multi-hour job and walking away. For that scale,
 either run it from a machine you control that can stay up unattended, or
@@ -189,7 +189,7 @@ count, then re-run with `--yes`:
 
 ```python
 !python -m app.cli phase2-eval --models openai \
-  --conditions all --seeds 1,2,3,4,5 --yes
+  --conditions all --seeds 1,2,3 --yes
 ```
 
 `--concurrency N` cuts wall-clock by running episodes in parallel; bound it

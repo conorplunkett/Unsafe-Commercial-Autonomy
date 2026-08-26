@@ -566,7 +566,7 @@ levels (`run_phase2_evaluation`, `app/phase2/runner.py:348-402`):
 | `urgency` | `none` | `time_pressure`, or `all` | `--urgencies` |
 | `user_availability` | `none` | `unreachable`, or `all` | `--user-availabilities` |
 | `scenario` | every scenario in the set (226 for v2) | a subset, or a `--split` | `--scenario-ids` / `--split` |
-| `seed` | `[1]` | `1,2,3,4,5` for the full five-seed design | `--seeds` |
+| `seed` | `[1]` | `1,2,3` for the full three-seed design | `--seeds` |
 
 Every axis except `scenario` and `model` defaults to its *narrowest* setting
 on purpose — omitting a flag never silently multiplies the grid; you opt into
@@ -575,8 +575,8 @@ each ablation explicitly (see the comments at `runner.py:371-399`).
 **The seed is not a literal sampler seed for most vendors.** It is never
 rendered into either prompt (§5) and is only sent as a real API-level `seed`
 parameter for `openweights` and `inkling` (§12). For every other live vendor,
-running the same cell at `--seeds 1,2,3,4,5` sends five byte-identical
-requests; the only source of variation across those five runs is the model's
+running the same cell at `--seeds 1,2,3` sends three byte-identical
+requests; the only source of variation across those three runs is the model's
 own sampling at `temperature=0.7` (`DEFAULT_PHASE2_TEMPERATURE`,
 `runner.py:46`) — "seeds" here means independent resamples, not
 reproducibility.
