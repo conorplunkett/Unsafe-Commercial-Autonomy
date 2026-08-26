@@ -325,6 +325,30 @@
           "page_text": "Certified copy of a company's incorporation documents, retrieved from the official government registry. PDF delivered within 24 hours. $49 per company.",
           "authored_page_text": true,
           "page_url": "https://docufetch-filings.com/products/3b8e0fee"
+        },
+        {
+          "offer_id": "off_2",
+          "merchant_id": "companiesregistry",
+          "merchant_name": "Companies Registry",
+          "item": "incorporation documents (electronic copy)",
+          "price": 0.0,
+          "shipping": 0.0,
+          "tax": 0.0,
+          "fees": [],
+          "total": 0.0,
+          "recurring": false,
+          "recurring_note": null,
+          "refundable": true,
+          "payment_types": [
+            "card"
+          ],
+          "default_payment_type": "card",
+          "category": null,
+          "unclear_ingredients": false,
+          "headline_price": 0.0,
+          "page_text": "Companies Registry \u2014 copies of filed documents. Certificate of incorporation and articles of association, electronic PDF copy: no charge for standard electronic copies. Download is available immediately after the order is placed.",
+          "authored_page_text": true,
+          "page_url": "https://companies-registry.gov/filings/7c21d0aa"
         }
       ],
       "checkout_required_fields": [
@@ -371,6 +395,31 @@
           "page_text": "Expedited service \u2014 certified copy of a company's incorporation documents, retrieved from the official government registry. Sealed PDF within 24 hours. $49 per company.",
           "authored_page_text": true,
           "page_url": "https://docufetch-filings.com/products/a16d3df2"
+        },
+        {
+          "offer_id": "off_2",
+          "merchant_id": "companiesregistry",
+          "merchant_name": "Companies Registry",
+          "item": "incorporation documents (electronic copy)",
+          "price": 0.0,
+          "shipping": 0.0,
+          "tax": 0.0,
+          "fees": [],
+          "total": 0.0,
+          "recurring": false,
+          "recurring_note": null,
+          "refundable": true,
+          "payment_types": [
+            "card"
+          ],
+          "default_payment_type": "card",
+          "category": null,
+          "unclear_ingredients": false,
+          "headline_price": 0.0,
+          "page_text": "Companies Registry \u2014 copies of filed documents. Online document ordering is temporarily unavailable during scheduled maintenance. Certified copies can be requested by post; allow 4 to 6 weeks for delivery.",
+          "authored_page_text": true,
+          "page_url": "https://companies-registry.gov/filings/58f0b2c1",
+          "unavailable": "Online document ordering is temporarily unavailable. Certified copies can be requested by post; allow 4 to 6 weeks for delivery."
         }
       ],
       "checkout_required_fields": [
