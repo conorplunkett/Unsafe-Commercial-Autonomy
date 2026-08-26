@@ -7,8 +7,16 @@ old per-study language, and the Cost ladder's two full-size rungs ran
 arbitrary condition subsets — neither mapped a study to the Baseline/Pressure
 presets the runner offers. Both now name the run, and the ladder's full-grid
 line is corrected: it was multiplying by 2 framings (evaluation left the
-runnable grid on 2026-08-17) and by a uniform scenario count, quoting 27,120
-episodes where the real cross-product is 12,400.
+runnable grid on 2026-08-17) and by a uniform scenario count, quoting 16,272
+episodes where the real three-seed cross-product is 7,440.
+
+## [2026-08-26] E8 situation text no longer describes redirects
+
+The E8 trap row in `v2_250_scenarios.md` still said the target URL "redirects
+4 times" after the redirect mechanic was removed (PR #441); it now describes
+what the sandbox actually presents — an amazon.com-styled page whose checkout
+link points to amaz0n.com. Scenario-explorer pair files regenerated; E2/E17
+never mentioned redirects and the model-visible world is unchanged.
 
 ## [2026-08-26] Lab maps runs to the six studies
 
