@@ -125,6 +125,8 @@ for (const id of [
   "runBenchmark",
   "runCount",
   "studyReadout",
+  "studyResultsStamp",
+  "studyResultsContent",
   "runProgress",
   "progressFill",
   "progressLabel",
@@ -3641,6 +3643,167 @@ function runConditionsPills(results) {
   </div>${framingNote}`;
 }
 
+// The two primary condition contrasts (app/metrics.py
+// PHASE2_PRIMARY_CONTRASTS) as they appear in stored
+// metrics.phase2.paired_contrasts rows, mapped to their studies.
+const PAIRED_CONTRAST_META = {
+  structured_policy_minus_no_policy: { study: 2, name: "S2 formalization" },
+  tool_constraints_minus_structured_policy: { study: 3, name: "S3 enforcement" },
+};
+
+const OUTCOME_LABELS = { unsafe_verdict: "unsafe", refused_when_safe: "refused when safe" };
+
+// Rows for one run's Study-results block, from the contrasts the runner
+// stored with the run (app/phase2/runner.py) — read, never recomputed.
+// Paired rows exist per (model, framing, urgency, availability) cell in
+// pooled runs; only the baseline-axes cells are the S2/S3 design, so the
+// rest are dropped here. Every pressure row is S4.
+function runStudyRows(run) {
+  const phase2 = run.metrics && run.metrics.phase2;
+  if (!phase2) return [];
+  const rows = [];
+  const paired = (phase2.paired_contrasts && phase2.paired_contrasts.comparisons) || [];
+  for (const comparison of paired) {
+    const meta = PAIRED_CONTRAST_META[comparison.contrast];
+    if (!meta) continue;
+    if ((comparison.urgency || "none") !== "none") continue;
+    if ((comparison.user_availability || "none") !== "none") continue;
+    rows.push({
+      study: meta.study,
+      name: meta.name,
+      outcome: comparison.outcome,
+      model: comparison.model,
+      framing: comparison.framing,
+      rateA: comparison.condition_a_rate,
+      rateB: comparison.condition_b_rate,
+      riskDifference: comparison.risk_difference,
+      ciLow: comparison.ci_low,
+      ciHigh: comparison.ci_high,
+      exploratory: false,
+      counts: [
+        `${comparison.scenario_count} scenarios`,
+        `${comparison.paired_seed_count} seed pairs`,
+        `excluded ${comparison.excluded_count}`,
+        `missing ${comparison.missing_count}`,
+        `unpaired ${comparison.unpaired_count}`,
+        ...(comparison.duplicate_count ? [`duplicates ${comparison.duplicate_count}`] : []),
+        ...(comparison.out_of_scope_count ? [`out of scope ${comparison.out_of_scope_count}`] : []),
+        `errors ${comparison.error_count}`,
+      ],
+    });
+  }
+  const pressure = (phase2.pressure_contrasts && phase2.pressure_contrasts.comparisons) || [];
+  for (const comparison of pressure) {
+    rows.push({
+      study: 4,
+      name: `S4 ${comparison.axis === "urgency" ? "time pressure" : "user away"}`,
+      axisOrder: comparison.axis === "urgency" ? 0 : 1,
+      outcome: comparison.outcome,
+      model: comparison.model,
+      framing: comparison.framing,
+      rateA: comparison.baseline_rate,
+      rateB: comparison.level_rate,
+      riskDifference: comparison.risk_difference,
+      ciLow: comparison.ci_low,
+      ciHigh: comparison.ci_high,
+      // Pre-registered: the pressure study's confirmatory outcome is the
+      // unsafe delta only (README) — stop-style deltas report without a
+      // confirmatory claim.
+      exploratory: comparison.outcome === "refused_when_safe",
+      counts: [
+        `${comparison.scenario_count} scenarios`,
+        `${comparison.paired_seed_count} seed pairs`,
+        `unpaired ${comparison.unpaired_count}`,
+      ],
+    });
+  }
+  rows.sort(
+    (a, b) =>
+      a.study - b.study ||
+      (a.axisOrder || 0) - (b.axisOrder || 0) ||
+      (a.outcome === "unsafe_verdict" ? 0 : 1) - (b.outcome === "unsafe_verdict" ? 0 : 1) ||
+      String(a.model).localeCompare(String(b.model))
+  );
+  return rows;
+}
+
+function studyRowHtml(row, multiModel) {
+  const modelPrefix = multiModel ? `${row.model} · ` : "";
+  const framingTag =
+    row.framing && row.framing !== "deployment" && row.framing !== "unspecified"
+      ? `<span class="study-flag" title="Non-deployment framing">${framingShortLabel(row.framing)}</span>`
+      : "";
+  const exploratoryTag = row.exploratory
+    ? `<span class="study-flag" title="Stop-style delta under pressure — reported without a confirmatory claim">exploratory</span>`
+    : "";
+  const rates =
+    row.rateA == null || row.rateB == null
+      ? "—"
+      : `${percent(row.rateA)} → ${percent(row.rateB)}`;
+  // Null risk difference means the run formed no pairs for this cell — an
+  // absent answer, which must never render as a zero-sized effect.
+  const value =
+    row.riskDifference == null
+      ? "no pairs"
+      : `${signedPercent(row.riskDifference)}${
+          row.ciLow != null ? ` [${signedPercent(row.ciLow)}, ${signedPercent(row.ciHigh)}]` : ""
+        }`;
+  const title = [
+    ...row.counts,
+    ...(row.riskDifference != null && row.ciLow == null ? ["CI needs ≥2 scenarios"] : []),
+    ...(multiModel ? [row.model] : []),
+  ].join(" · ");
+  return `
+    <div class="bar-row" title="${title}">
+      <span class="bar-name">${modelPrefix}${row.name} · ${OUTCOME_LABELS[row.outcome] || row.outcome}${framingTag}${exploratoryTag}</span>
+      <span class="bar-phase">${rates}</span>
+      ${signedTrack(row.riskDifference, false)}
+      <span class="bar-value">${value}</span>
+    </div>
+  `;
+}
+
+function renderStudyResults() {
+  if (state.loading) {
+    els.studyResultsStamp.innerHTML = '<span class="spinner" aria-hidden="true"></span> Loading…';
+    els.studyResultsContent.innerHTML = "";
+    return;
+  }
+  // Superseded runs are skipped — the merged run that pooled them carries
+  // the pooled contrasts.
+  const entries = state.runList
+    .filter((run) => !state.superseded.has(run.run_id))
+    .map((run) => ({ run, rows: runStudyRows(run) }))
+    .filter((entry) => entry.rows.length);
+  els.studyResultsStamp.textContent = `${entries.length} run${
+    entries.length === 1 ? "" : "s"
+  } with stored contrasts`;
+  if (!entries.length) {
+    els.studyResultsContent.innerHTML =
+      '<p class="phase-empty">No stored Phase 2 contrasts — <code>python -m app.cli recompute</code> rebuilds older runs’ metrics.</p>';
+    return;
+  }
+  els.studyResultsContent.innerHTML = entries
+    .map(({ run, rows }, index) => {
+      const models = [...new Set(run.results.map(modelLabel))].join(", ");
+      const rowModels = new Set(rows.map((row) => row.model));
+      const mergedFlag =
+        run.merged_from && run.merged_from.length ? ` · merged ×${run.merged_from.length}` : "";
+      return `
+        <details class="phase-detail" ${index === 0 ? "open" : ""}>
+          <summary>
+            <span class="phase-detail-title">${compactTime(run.created_at)}</span>
+            <span class="phase-detail-summary">${models}${mergedFlag}</span>
+          </summary>
+          <div class="bar-chart study-rows">
+            ${rows.map((row) => studyRowHtml(row, rowModels.size > 1)).join("")}
+          </div>
+        </details>
+      `;
+    })
+    .join("");
+}
+
 function renderRunList() {
   els.runListStamp.textContent = state.runFilters.size
     ? `${state.runList.length} stored — filtered, click a selected row to clear it`
@@ -3821,6 +3984,7 @@ function renderAll() {
   // before the no-results early return below, same as each other.
   renderPhases();
   renderRunList();
+  renderStudyResults();
 
   // The headline charts and Models table are scoped to the focused phase and
   // show every model with data there — partial runs included, each tagged with

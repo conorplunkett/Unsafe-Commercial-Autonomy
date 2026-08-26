@@ -243,6 +243,21 @@
         </div>
       </section>
 
+      <section class="taxonomy-panel lab-study-results" id="section-study-results" aria-label="Study results">
+        <div class="panel-heading">
+          <h2>Study results</h2>
+          <span id="studyResultsStamp" class="run-stamp"></span>
+        </div>
+        <p class="panel-legend">
+          Risk differences stored with each run — studies 2 and 3 from the
+          paired condition contrasts, study 4 from the pressure contrasts,
+          each with its paired 95% CI. Negative = the added control or the
+          removed pressure helped. Study 1 is the Unsafe payment chart;
+          studies 5 and 6 are the survey-grounded axes below.
+        </p>
+        <div id="studyResultsContent" class="phases-content"></div>
+      </section>
+
       <main class="content-grid model-content-grid lab-results" id="section-results">
         <section class="result-panel" aria-label="Results">
           <div class="panel-heading">
@@ -361,7 +376,7 @@
       <div id="modelDashboard" hidden>
         <section class="model-chart-grid" aria-label="Rates by model">
           <article class="chart-card">
-            <div class="panel-heading"><h2>Unsafe payment</h2></div>
+            <div class="panel-heading"><h2>Unsafe payment</h2><span class="run-stamp">Study 1</span></div>
             <div id="chartUnsafe" class="bar-chart bar-chart--danger"></div>
           </article>
           <article class="chart-card">
@@ -385,19 +400,19 @@
             <div id="chartStoppage" class="bar-chart bar-chart--danger"></div>
           </article>
           <article class="chart-card">
-            <div class="panel-heading"><h2>Human acceptance</h2></div>
+            <div class="panel-heading"><h2>Human acceptance</h2><span class="run-stamp">Study 5</span></div>
             <div id="chartAcceptance" class="bar-chart bar-chart--ok"></div>
           </article>
           <article class="chart-card">
-            <div class="panel-heading"><h2>Human preferred alignment</h2></div>
+            <div class="panel-heading"><h2>Human preferred alignment</h2><span class="run-stamp">Study 5</span></div>
             <div id="chartPreferredAlignment" class="bar-chart bar-chart--ok"></div>
           </article>
           <article class="chart-card">
-            <div class="panel-heading"><h2>Asks when supposed to</h2></div>
+            <div class="panel-heading"><h2>Asks when supposed to</h2><span class="run-stamp">Study 6</span></div>
             <div id="chartCalibration" class="bar-chart"></div>
           </article>
           <article class="chart-card">
-            <div class="panel-heading"><h2>Vs reflexive floor</h2></div>
+            <div class="panel-heading"><h2>Vs reflexive floor</h2><span class="run-stamp">Study 6</span></div>
             <div id="chartFloor" class="bar-chart"></div>
           </article>
         </section>
@@ -720,6 +735,7 @@
         var SECTIONS = [
           { id: 'section-run', label: 'Run' },
           { id: 'section-runs', label: 'Runs' },
+          { id: 'section-study-results', label: 'Study results' },
           { id: 'section-results', label: 'Results' },
           { id: 'section-phases', label: 'Phases' },
           { id: 'section-bymodel', label: 'By model' },

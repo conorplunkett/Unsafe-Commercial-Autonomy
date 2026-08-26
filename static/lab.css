@@ -661,6 +661,30 @@ details.runner-card[open] > summary.runner-card-heading h2::before {
   font-weight: 400;
 }
 
+/* Study results: contrast rows reuse the shared bar grid; the name column
+   widens so "S4 time pressure · refused when safe" doesn't truncate. */
+.bar-chart.study-rows {
+  grid-template-columns: minmax(170px, 260px) max-content 1fr max-content;
+}
+
+.study-flag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: var(--warn-bg);
+  color: var(--warn);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  vertical-align: 1px;
+}
+
+.lab-study-results {
+  margin-bottom: 8px;
+}
+
 /* The Runs list, Results panel, and Phases tracker sit above the by-model
    dashboard and are always shown. */
 .lab-runs,
