@@ -43,8 +43,8 @@ generator = _load_generator()
 
 
 def test_scenario_explorer_chunks_have_not_drifted(tmp_path):
-    """Every committed chunk matches what the generator produces today."""
-    written = generator.write_chunk_files(generator.build_pairs(), tmp_path)
+    """Every committed pair file matches what the generator produces today."""
+    written = generator.write_pair_files(generator.build_pairs(), tmp_path)
 
     expected = {path.name: path.read_text(encoding="utf-8") for path in written}
     committed = {
@@ -73,41 +73,46 @@ def test_scenario_explorer_chunks_have_not_drifted(tmp_path):
     )
 
 
-def test_scenario_explorer_index_imports_every_committed_chunk(tmp_path):
-    """index.ts's import block stays in step with the chunk count.
+def test_scenario_explorer_index_imports_every_committed_pair_file(tmp_path):
+    """index.ts's import block stays in step with the generated pair files.
 
-    write_chunk_files deletes chunks from a previous run with a higher count,
-    so a shrinking snapshot can leave index.ts importing a file that no longer
-    exists -- which fails at Edge Function deploy time, not here, unless this
-    checks it.
+    write_pair_files deletes files a previous run wrote, so a removed or
+    renamed pair can leave index.ts importing a file that no longer exists --
+    which fails at Edge Function deploy time, not here, unless this checks it.
+    The import list also carries the canonical pair order (the filenames sort
+    lexicographically), so its order is checked too.
     """
-    written = generator.write_chunk_files(generator.build_pairs(), tmp_path)
+    import re
+
+    pairs = generator.build_pairs()
+    written = generator.write_pair_files(pairs, tmp_path)
     source = (OUT_DIR / "index.ts").read_text(encoding="utf-8")
 
-    for index, path in enumerate(written):
-        statement = f'import chunk{index:03d} from "./{path.name}" with {{ type: "json" }};'
+    for pair, path in zip(pairs, written):
+        name = generator.pair_import_name(pair["pair_id"])
+        statement = f'import {name} from "./{path.name}" with {{ type: "json" }};'
         assert statement in source, (
             f"index.ts does not import {path.name}. "
             f"Run `{UPDATE_COMMAND}` and commit the result."
         )
-        assert f"...chunk{index:03d}" in source, (
-            f"index.ts imports {path.name} but never spreads it into "
+        assert re.search(rf"^  {name},?$", source, re.MULTILINE), (
+            f"index.ts imports {path.name} but never lists it in "
             f"SCENARIO_PAIRS. Run `{UPDATE_COMMAND}` and commit the result."
         )
 
-    orphan = f'import chunk{len(written):03d} '
-    assert orphan not in source, (
-        f"index.ts imports more chunks than the {len(written)} the generator "
-        f"produces, so it references a deleted file. Run `{UPDATE_COMMAND}` "
-        "and commit the result."
+    imported = re.findall(r'from "\./(scenario_pairs\.[^"]+\.json)"', source)
+    assert imported == [path.name for path in written], (
+        "index.ts's imports do not match the generated pair files (or their "
+        f"canonical order). Run `{UPDATE_COMMAND}` and commit the result."
     )
 
 
 def test_committed_snapshot_covers_every_pair():
     """The snapshot is the whole set, not a truncated one."""
-    pairs = []
-    for path in sorted(OUT_DIR.glob("scenario_pairs.*.json")):
-        pairs.extend(json.loads(path.read_text(encoding="utf-8")))
+    pairs = [
+        json.loads(path.read_text(encoding="utf-8"))
+        for path in sorted(OUT_DIR.glob("scenario_pairs.*.json"))
+    ]
 
     assert len(pairs) == generator.EXPECTED_PAIR_COUNT
 

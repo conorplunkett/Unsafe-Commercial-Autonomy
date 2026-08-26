@@ -118,33 +118,25 @@ def test_pair_order_matches_first_seen_loader_order():
     assert [p["pair_id"] for p in pairs] == expected_order
 
 
-def _read_chunks(out_dir):
+def _read_pair_files(out_dir):
     paths = sorted(out_dir.glob("scenario_pairs.*.json"))
-    chunks = [json.loads(p.read_text(encoding="utf-8")) for p in paths]
-    for chunk in chunks:
-        assert 1 <= len(chunk)
-    return paths, chunks
+    return paths, [json.loads(p.read_text(encoding="utf-8")) for p in paths]
 
 
-def test_pack_chunks_never_exceeds_the_size_budget_by_much():
+def test_each_pair_file_is_named_by_the_pair_it_contains(tmp_path):
     pairs = gen.build_pairs()
-    chunks = gen.pack_chunks(pairs, gen.CHUNK_SIZE_BUDGET)
+    written = gen.write_pair_files(pairs, tmp_path)
 
-    assert sum(len(c) for c in chunks) == len(pairs)
-    for chunk in chunks:
-        size = len(json.dumps(chunk, indent=2))
-        # A lone pair bigger than the budget still gets its own chunk (never
-        # split mid-pair), so allow some slack over the nominal budget --
-        # this asserts the packing is actually doing its job, not that every
-        # chunk is under the budget no matter what.
-        assert size < gen.CHUNK_SIZE_BUDGET * 2
+    assert [p.name for p in written] == [gen.pair_filename(p["pair_id"]) for p in pairs]
+    for pair, path in zip(pairs, written):
+        assert json.loads(path.read_text(encoding="utf-8")) == pair
 
 
-def test_chunk_files_stay_under_a_safe_relay_size(tmp_path):
+def test_pair_files_stay_under_a_safe_relay_size(tmp_path):
     gen.main(out_dir=tmp_path)
-    paths, _ = _read_chunks(tmp_path)
+    paths, _ = _read_pair_files(tmp_path)
 
-    assert len(paths) > 1  # actually split, not one big file
+    assert len(paths) == 113  # actually split, not one big file
     for path in paths:
         assert path.stat().st_size < 25_000
 
@@ -161,8 +153,7 @@ def test_main_output_is_idempotent(tmp_path):
     }
 
     assert first == second
-    _, chunks = _read_chunks(tmp_path)
-    all_pairs = [pair for chunk in chunks for pair in chunk]
+    _, all_pairs = _read_pair_files(tmp_path)
     assert len(all_pairs) == 113
     counts = {}
     for pair in all_pairs:
@@ -170,38 +161,46 @@ def test_main_output_is_idempotent(tmp_path):
     assert counts == EXPECTED_CATEGORY_COUNTS
 
 
-def test_chunk_files_concatenate_to_build_pairs_order(tmp_path):
+def test_editing_one_pair_changes_exactly_one_file(tmp_path):
+    """The whole point of identity-named files: a single scenario edit must
+    diff as a single pair file, never re-flow neighbours into other files."""
+    pairs = gen.build_pairs()
+    before_dir, after_dir = tmp_path / "before", tmp_path / "after"
+    gen.write_pair_files(pairs, before_dir)
+
+    edited = json.loads(json.dumps(pairs))
+    edited[40]["trap"]["title"] += " (edited)"
+    gen.write_pair_files(edited, after_dir)
+
+    before = {p.name: p.read_text() for p in before_dir.glob("*.json")}
+    after = {p.name: p.read_text() for p in after_dir.glob("*.json")}
+    assert set(before) == set(after)
+    changed = [name for name in before if before[name] != after[name]]
+    assert changed == [gen.pair_filename(pairs[40]["pair_id"])]
+
+
+def test_removed_pair_leaves_no_stale_file(tmp_path):
     gen.main(out_dir=tmp_path)
-    _, chunks = _read_chunks(tmp_path)
+    pairs = gen.build_pairs()
+    dropped = pairs.pop()
+    gen.write_pair_files(pairs, tmp_path)
 
-    concatenated = [pair["pair_id"] for chunk in chunks for pair in chunk]
-    assert concatenated == [p["pair_id"] for p in gen.build_pairs()]
-
-
-def test_shrinking_chunk_count_removes_stale_files(tmp_path, monkeypatch):
-    gen.main(out_dir=tmp_path)
-    before = set(p.name for p in tmp_path.glob("*.json"))
-    assert len(before) > 5
-
-    monkeypatch.setattr(gen, "CHUNK_SIZE_BUDGET", 10_000_000)  # collapses to one chunk
-    gen.main(out_dir=tmp_path)
-    after = set(p.name for p in tmp_path.glob("*.json"))
-
-    assert after == {gen.chunk_filename(0)}
-    assert before - after  # the old, now-stale chunk files were deleted
+    names = set(p.name for p in tmp_path.glob("*.json"))
+    assert gen.pair_filename(dropped["pair_id"]) not in names
+    assert names == {gen.pair_filename(p["pair_id"]) for p in pairs}
 
 
-def test_sync_index_chunks_updates_imports_and_spreads(tmp_path):
+def test_sync_index_imports_updates_imports_and_entries(tmp_path):
     index_path = tmp_path / "index.ts"
     index_path.write_text(
-        'before\nimport chunk000 from "./scenario_pairs.000.json" with { type: "json" };\n\n'
-        "const SCENARIO_PAIRS = [\n  ...chunk000\n];\nafter\n"
+        'before\nimport pair_v2_a1 from "./scenario_pairs.v2_a1.json" with { type: "json" };\n\n'
+        "const SCENARIO_PAIRS = [\n  pair_v2_a1\n];\nafter\n"
     )
-    chunks = [tmp_path / gen.chunk_filename(i) for i in range(3)]
+    pairs = [{"pair_id": pair_id} for pair_id in ("v2_a1", "v2_a2", "v2_b3")]
 
-    gen.sync_index_chunks(index_path, chunks)
+    gen.sync_index_imports(index_path, pairs)
 
     result = index_path.read_text()
-    assert 'import chunk002 from "./scenario_pairs.002.json"' in result
-    assert "  ...chunk002" in result
+    assert 'import pair_v2_b3 from "./scenario_pairs.v2_b3.json"' in result
+    assert "  pair_v2_b3\n" in result
     assert result.startswith("before\n") and result.endswith("after\n")
