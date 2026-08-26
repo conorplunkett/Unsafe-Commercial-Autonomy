@@ -268,7 +268,7 @@ def test_scripted_diligent_agent_uses_the_current_base_tool_surface():
     assert tool_names <= {
         "search_offers",
         "view_offer",
-        "pay",
+        "complete_checkout",
         "request_approval",
         "finish",
     }
@@ -283,7 +283,7 @@ def test_transcript_recorded_in_audit_events():
         seeds=[1],
     )
     tool_events = [event for event in run.results[0].audit_events if event["event_type"] == "tool_call"]
-    assert {event["code"] for event in tool_events} >= {"search_offers", "pay", "finish"}
+    assert {event["code"] for event in tool_events} >= {"search_offers", "complete_checkout", "finish"}
 
 
 def test_redirect_history_is_auditable_but_not_model_visible():
@@ -356,7 +356,7 @@ def test_outbound_message_event_is_durable_after_a_later_safe_payment():
                     "attachments": ["payment-details.txt"],
                 },
             )
-            world.handle_tool("pay", {"offer_id": "off_1"})
+            world.handle_tool("complete_checkout", {"offer_id": "off_1"})
             world.handle_tool(
                 "finish", {"summary": "Bought securely.", "action_taken": "purchased"}
             )
@@ -594,7 +594,7 @@ def test_tool_loop_provider_drives_world_via_stub_transport():
 
         def start_conversation(self, system_prompt, user_prompt, tools, temperature):
             self.tools = tools
-            assert any(tool["name"] == "pay" for tool in tools)
+            assert any(tool["name"] == "complete_checkout" for tool in tools)
 
         def step(self, tool_results):
             self.turn += 1
@@ -602,7 +602,7 @@ def test_tool_loop_provider_drives_world_via_stub_transport():
                 return "", [{"id": "c1", "name": "search_offers", "arguments": {}}]
             if self.turn == 2:
                 assert tool_results and "offers" in tool_results[0]["content"]
-                return "", [{"id": "c2", "name": "pay", "arguments": {"offer_id": "off_1"}}]
+                return "", [{"id": "c2", "name": "complete_checkout", "arguments": {"offer_id": "off_1"}}]
             return "", [
                 {"id": "c3", "name": "finish", "arguments": {"summary": "done", "action_taken": "purchased"}}
             ]
@@ -1426,7 +1426,7 @@ def test_completed_payment_is_graded_when_the_turn_budget_runs_out():
         def step(self, tool_results):
             self._turn += 1
             if self._turn == 1:
-                return "", [{"id": "c1", "name": "pay", "arguments": {"offer_id": marked}}]
+                return "", [{"id": "c1", "name": "complete_checkout", "arguments": {"offer_id": marked}}]
             # Alternates two distinct calls post-payment so this dithering
             # exhausts MAX_TURNS on its own terms, rather than tripping the
             # repeated-call guard covered by the test right below this one.
@@ -1465,7 +1465,7 @@ def test_blocked_payment_without_terminal_call_is_graded_as_defer():
                 return "", [
                     {
                         "id": "c1",
-                        "name": "pay",
+                        "name": "complete_checkout",
                         "arguments": {"offer_id": "off_1"},
                     }
                 ]
@@ -1506,7 +1506,7 @@ def test_explicit_acceptable_defer_after_block_is_not_a_no_terminal_stall():
                 return "", [
                     {
                         "id": "c1",
-                        "name": "pay",
+                        "name": "complete_checkout",
                         "arguments": {"offer_id": "off_1"},
                     }
                 ]
@@ -1549,7 +1549,7 @@ def test_blocked_attempt_is_not_excluded_when_provider_fails_afterward():
         model_name = "test-block-then-fail"
 
         def run_episode(self, world, system_prompt, user_prompt, seed, temperature):
-            world.handle_tool("pay", {"offer_id": "off_1"})
+            world.handle_tool("complete_checkout", {"offer_id": "off_1"})
             return EpisodeResult(error="simulated provider failure after block")
 
     result = run_phase2_episode(
@@ -1575,7 +1575,7 @@ def test_blocked_unsafe_attempt_records_incorrect_stoppage_without_realized_harm
         model_name = "test-block-then-stop"
 
         def run_episode(self, world, system_prompt, user_prompt, seed, temperature):
-            world.handle_tool("pay", {"offer_id": "off_cart"})
+            world.handle_tool("complete_checkout", {"offer_id": "off_cart"})
             return EpisodeResult()
 
     result = run_phase2_episode(
@@ -1617,7 +1617,7 @@ def test_completed_payment_is_graded_when_a_repeated_call_ends_the_episode_early
         def step(self, tool_results):
             self._turn += 1
             if self._turn == 1:
-                return "", [{"id": "c1", "name": "pay", "arguments": {"offer_id": marked}}]
+                return "", [{"id": "c1", "name": "complete_checkout", "arguments": {"offer_id": marked}}]
             return "", [
                 {"id": f"c{self._turn}", "name": "view_offer", "arguments": {"offer_id": marked}}
             ]
