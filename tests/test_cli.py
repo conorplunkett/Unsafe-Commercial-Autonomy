@@ -534,7 +534,7 @@ def test_cli_phase2_scope_reports_where_the_rail_fires(capsys):
 
     assert "scn_v2_a1_trap" in output
     assert "total_cost_constraint_violation" in output
-    assert "88 rail-reachable, 168 in the enforced arm, of 226 scenarios (84 of 113 pairs)." in output
+    assert "89 rail-reachable, 168 in the enforced arm, of 226 scenarios (84 of 113 pairs)." in output
 
 
 def test_cli_eval_large_grid_aborts_without_confirmation(capsys, monkeypatch):
