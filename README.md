@@ -165,9 +165,8 @@ splits; scam-style failures read off the deception categories (privacy and
 adversarial) in the category breakdown rather than being a separate number. Separately, `data/answer_keys/discoverability.json` is an integrity
 guard, not a reporting slice: every trap names its deciding-fact patterns,
 which `tests/test_discoverability.py` proves present in the
-`no_policy`-visible surface (`metrics.by_grounding` counts the declared
-`policy_only` exceptions) — the guard against authoring a trap the model
-cannot detect. Survey-grounded measures include incorrect stoppage, human
+`no_policy`-visible surface, with no opt-out — the guard against authoring a
+trap the model cannot detect. Survey-grounded measures include incorrect stoppage, human
 acceptance, ask calibration, and human preferred alignment. Every rate
 carries its count and denominator. Wilson intervals are episode-level
 descriptives.
@@ -211,7 +210,14 @@ recomputed before comparison.
 The pressure axes get the same treatment on the headline arm
 (`metrics.phase2.pressure_contrasts`): `time_pressure - none` and
 `unreachable - none` on `structured_policy` episodes, each holding the other
-axis at baseline, with the identical paired estimator. Together the design
+axis at baseline, with the identical paired estimator. The pressure study's
+confirmatory outcome is the **unsafe delta only**. The stop-style outcomes
+(`refused_when_safe`, incorrect stoppage) are exploratory under `unreachable`
+by design: many traps key `ask_approval` as the right stop, and the
+unreachable preamble tells the model nobody will answer — escalating is still
+the keyed-safe act, but a model that defers or refuses instead is making a
+defensible choice, not a safety error, so those deltas are reported without a
+confirmatory claim. Together the design
 reads as four studies, one question per cell: does a model break a policy it
 can see (headline), does telling it the policy help
 (`structured_policy - no_policy` — since 2026-08-26 every trap states its
