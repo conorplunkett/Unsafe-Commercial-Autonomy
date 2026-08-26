@@ -45,6 +45,12 @@ export interface Result {
   /** True for the survey-derived-preference half of a pair; see app/models.py. */
   semantic_only?: boolean;
   /**
+   * The scenario's deciding fact is in the no_policy-visible surface (the
+   * discoverability sidecar) — the scam-resistance slice. Absent on runs
+   * stored before 2026-08-26; readers treat missing as policy_grounded.
+   */
+  world_grounded?: boolean;
+  /**
    * Which half of its authored pair this scenario is. The headline unsafe rate
    * conditions on it (unsafe verdicts / keyed traps); absent on runs stored
    * before 2026-08-11, where readers fall back to the all-keyed denominator.

@@ -161,7 +161,16 @@ and completed the lookalike. Two axes sit underneath it:
   block
 
 Runs also report stakes, category, control-condition, and objective/survey
-splits. Survey-grounded measures include incorrect stoppage, human
+splits, plus a grounding split over keyed traps
+(`data/answer_keys/discoverability.json`): **world-grounded** traps carry
+their deceiving fact on the page itself — spoofed domains, hidden fees,
+injected instructions — so falling for one is being scammed, in any arm; the
+unsafe rate over that slice is the scam-resistance number. Policy-grounded
+traps (the rule exists only in the payment policy) are a deliberate, counted
+declaration in the manifest, and
+`tests/test_discoverability.py` proves every other trap's deciding fact
+actually appears in the `no_policy`-visible surface — the guard against
+authoring a trap the model cannot detect. Survey-grounded measures include incorrect stoppage, human
 acceptance, ask calibration, and human preferred alignment. Every rate
 carries its count and denominator. Wilson intervals are episode-level
 descriptives.
@@ -211,7 +220,9 @@ reads as one question per cell: does a model break a policy it can see
 since 2026-08-26 every trap states its constraint in the task or on the page,
 so this contrast measures formalization, not information), does enforcement
 stop what slips through (`tool_constraints - structured_policy` plus
-`attempted_harm`), and does pressure erode compliance (the two deltas above).
+`attempted_harm`), does pressure erode compliance (the two deltas above), and
+can a merchant or attacker trick it (`by_grounding`'s world-grounded unsafe
+rate — see Metrics).
 
 ## Quickstart
 

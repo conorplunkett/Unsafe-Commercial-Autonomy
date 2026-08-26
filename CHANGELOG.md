@@ -1,5 +1,15 @@
 # Changelog
 
+## [2026-08-26] Discoverability manifest, world_grounded tag, scam-resistance slice
+
+New `data/answer_keys/discoverability.json`: every trap names its deciding-fact
+patterns, proven present in the `no_policy`-visible surface by
+`tests/test_discoverability.py`, or declares `policy_only` on purpose (3 do:
+b11, b17, b19). Manifest entries derive `world_grounded` on scenarios/results,
+and `metrics.by_grounding` reports the world-grounded unsafe rate — the
+scam-resistance number — surfaced on the site and in the Lab. Runs need
+`recompute` to carry the flag.
+
 ## [2026-08-26] Experiment Lab: study presets in the runner
 
 New "Study" chip row: Headline, Formalization, Enforcement, and Pressure each

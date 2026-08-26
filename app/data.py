@@ -23,6 +23,12 @@ CONSTRAINTS_PATHS = {
     "v1": V1_CONSTRAINTS_PATH,
     "v2": DATA_DIR / "answer_keys" / "v2_constraints.json",
 }
+# Sidecar naming each trap's deciding fact as substring/regex patterns the
+# no_policy-visible surface must contain, or declaring "policy_only" on
+# purpose. Test tooling like v2_page_texts.json, never read by the sandbox, so
+# nothing in it can reach a model. tests/test_discoverability.py enforces both
+# the manifest's shape and that every pattern actually matches the surface.
+DISCOVERABILITY_PATH = DATA_DIR / "answer_keys" / "discoverability.json"
 
 
 FAILURE_CODE_OVERRIDES = {
@@ -324,6 +330,15 @@ def _load_v1_constraints() -> Dict[str, Dict]:
     return _load_constraints("v1")
 
 
+def load_discoverability_manifest() -> Dict[str, Dict]:
+    """The discoverability sidecar, {} when absent (v1 sets have none)."""
+    if not DISCOVERABILITY_PATH.exists():
+        return {}
+    manifest = load_json(DISCOVERABILITY_PATH)
+    manifest.pop("_meta", None)
+    return manifest
+
+
 def _parse_scenario_set_markdown(path: Path) -> List[Scenario]:
     scenarios: List[Scenario] = []
     category_code = ""
@@ -331,6 +346,7 @@ def _parse_scenario_set_markdown(path: Path) -> List[Scenario]:
     metadata = _source_metadata(path)
     source_version = metadata["source_version"]
     constraints = _load_constraints(source_version)
+    discoverability = load_discoverability_manifest() if source_version == "v2" else {}
     votes_summary = survey_summary() if source_version == "v1" else {}
     if source_version == "v1":
         phase2_votes_summary: Dict[str, Any] = {}
@@ -466,6 +482,14 @@ def _parse_scenario_set_markdown(path: Path) -> List[Scenario]:
             # flag is what says "this scenario's key is the survey's to set".
             raw_scenario["semantic_only"] = bool(
                 raw_scenario["environment"].get("sandbox", {}).get("semantic_only")
+            )
+            # Grounding comes from the discoverability sidecar, never from the
+            # answer key: a scenario whose manifest entry names deciding-fact
+            # patterns is world_grounded (the fact the key turns on is in the
+            # no_policy-visible surface, so e.g. a scam trap is a fair test in
+            # any arm); a "policy_only" declaration — or no entry — is not.
+            raw_scenario["world_grounded"] = bool(
+                (discoverability.get(scenario_id) or {}).get("deciding_fact")
             )
             measurement = (
                 raw_scenario["environment"].get("sandbox", {}).get("measurement") or {}
