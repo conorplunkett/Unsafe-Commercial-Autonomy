@@ -20,6 +20,14 @@
 // canonical pair order (category A to E) that Prev/Next walks in the UI --
 // the filenames sort lexicographically, so this import list, not the
 // directory listing, carries that order.
+//
+// meta.json carries the git blob sha of the two source files at generation
+// time; the Explorer compares it against GitHub's live blob sha for those
+// paths to flag a snapshot that's fallen behind an unregenerated source
+// edit. Its import sits outside the generator's regenerated block below, so
+// re-running the generator never touches these two lines.
+
+import META from "./meta.json" with { type: "json" };
 
 import pair_v2_a1 from "./scenario_pairs.v2_a1.json" with { type: "json" };
 import pair_v2_a2 from "./scenario_pairs.v2_a2.json" with { type: "json" };
@@ -310,5 +318,5 @@ Deno.serve(async (req) => {
     return json(405, { error: "method not allowed" });
   }
 
-  return json(200, { pairs: SCENARIO_PAIRS, count: SCENARIO_PAIRS.length });
+  return json(200, { pairs: SCENARIO_PAIRS, count: SCENARIO_PAIRS.length, meta: META });
 });

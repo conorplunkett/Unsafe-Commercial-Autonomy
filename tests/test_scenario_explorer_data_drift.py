@@ -107,6 +107,20 @@ def test_scenario_explorer_index_imports_every_committed_pair_file(tmp_path):
     )
 
 
+def test_meta_json_has_not_drifted(tmp_path):
+    """meta.json's source_blob_shas must match the source files as they are
+    right now -- otherwise a redeploy with stale source_blob_shas would make
+    the Explorer's freshness check lie in the "current" direction instead of
+    just failing to detect staleness."""
+    generator.write_meta_file(tmp_path)
+    expected = json.loads((tmp_path / "meta.json").read_text(encoding="utf-8"))
+    committed = json.loads((OUT_DIR / "meta.json").read_text(encoding="utf-8"))
+    assert expected == committed, (
+        "supabase/functions/admin-scenario-data/meta.json is stale. "
+        f"Run `{UPDATE_COMMAND}` and commit the result."
+    )
+
+
 def test_committed_snapshot_covers_every_pair():
     """The snapshot is the whole set, not a truncated one."""
     pairs = [

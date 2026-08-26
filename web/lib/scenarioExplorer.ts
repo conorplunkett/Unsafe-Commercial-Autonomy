@@ -175,9 +175,19 @@ export interface ScenarioPair {
   lookalike: ScenarioExplorerRecord;
 }
 
+// git blob sha of each source file (data/scenario_sets/v2_250_scenarios.md,
+// data/answer_keys/v2_constraints.json) at the moment
+// generate_scenario_explorer_data.py last ran, keyed by repo-relative path.
+// The Explorer's freshness check compares these against the live blob sha
+// GitHub reports for the same paths on `main`.
+export interface ScenarioExplorerMeta {
+  source_blob_shas: Record<string, string>;
+}
+
 export interface ScenarioExplorerPayload {
   pairs: ScenarioPair[];
   count: number;
+  meta: ScenarioExplorerMeta;
 }
 
 // One row per scenario_id in the scenario_reviews table, fetched from
