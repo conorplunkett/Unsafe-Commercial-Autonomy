@@ -1037,20 +1037,6 @@ details.runner-card[open] > summary.runner-card-heading h2::before {
   accent-color: var(--accent);
 }
 
-/* ---- Survey-grounded axes ---- */
-
-/* Five cards, one row, rather than the headline row's three — a 2- or
-   3-column wrap would strand a lone card on its own line. */
-.axes-chart-grid {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-}
-
-/* The legend sits under the cards, not inside a panel, so it needs the panel
-   padding it would otherwise inherit. */
-.axes-legend {
-  padding: 0 2px 16px;
-}
-
 /* A track centered on zero: correlations run [-1, 1], and refusal is read
    above or below the human floor rather than up from nothing. The center rule
    marks the baseline so a short bar still shows which side it is on. */
@@ -1340,12 +1326,6 @@ details.runner-card[open] > summary.runner-card-heading h2::before {
   color: var(--muted);
   font-size: 11px;
   text-transform: uppercase;
-}
-
-@media (max-width: 1120px) {
-  .axes-chart-grid {
-    grid-template-columns: 1fr;
-  }
 }
 
 /* ---- Collapsible <details> panels (failure modes, cost ladder, pricing, combine runs) ---- */
