@@ -1,5 +1,13 @@
 # Changelog
 
+## [2026-08-26] Experiment Lab: study presets in the runner
+
+New "Study" chip row: Headline, Formalization, Enforcement, and Pressure each
+set the condition/axis chips to that study's exact cells (Pressure switches to
+Phase 2); editing any chip by hand returns to a custom selection. Also
+regenerated the stale `scenario_pairs.010.json` explorer chunk left behind by
+the a19 situation edit on main.
+
 ## [2026-08-26] Remove answer-key coaching from a10 property-report page text
 
 a10_trap and a10_lookalike page_text was doing the arithmetic for the model

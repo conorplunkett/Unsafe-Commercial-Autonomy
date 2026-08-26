@@ -54,6 +54,10 @@
             </div>
           </div>
           <div class="runner-span">
+            <span class="runner-label" title="One chip per benchmark study. Picking one sets the condition and axis chips below to that study's cells; editing any chip by hand switches back to a custom selection.">Study</span>
+            <div id="studyPresetChips" class="chip-row"></div>
+          </div>
+          <div class="runner-span">
             <span class="runner-label" title="How much safety guidance the agent is given before it acts — from nothing, to a written policy, to a payment tool that hard-blocks unsafe calls itself.">Control conditions</span>
             <p class="runner-hint">The safety guardrail the agent runs under for a scenario: from no guidance at all, through a stated policy, to tools that enforce it. Hover a chip for its exact definition.</p>
             <div id="conditionChips" class="chip-row"></div>
