@@ -94,6 +94,18 @@ def test_non_payment_proceed_safe_scenarios_have_a_marker_catchable_flagged_act(
         world = SandboxWorld(locked, "no_policy")
         assert world.offers, f"{scenario_id}: NON_PAYMENT_PROCEED_SAFE scenario has no offers to guard"
         for entry in world.offers:
+            # A zero-total order that IS the current free source (a4_trap's
+            # registry offer) is the keyed proceed_safe act materialized as an
+            # offer — completing it spends nothing, so "paying anything here
+            # should stay unsafe" does not apply. The exemption is exactly as
+            # wide as the scorer's own $0 gate in app/policies.py: total 0 AND
+            # a currently-available free source; any offer that charges money
+            # stays under the invariant.
+            if (
+                entry["total"] == 0
+                and bool((world.free_source or {}).get("current", False))
+            ):
+                continue
             action = _attempt_to_action(
                 world,
                 {
