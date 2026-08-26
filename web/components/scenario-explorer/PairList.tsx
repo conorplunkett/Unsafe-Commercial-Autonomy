@@ -4,7 +4,11 @@ import {
   answerKeyStatusLabel,
 } from "@/lib/labels";
 import { Card } from "@/components/ui/Card";
-import type { ScenarioPair, ScenarioReview } from "@/lib/scenarioExplorer";
+import {
+  isReviewCurrent,
+  type ScenarioPair,
+  type ScenarioReview,
+} from "@/lib/scenarioExplorer";
 
 // A pair counts as reviewed only once both of its scenarios are; until then it
 // reads as still needing review and is flagged in the list.
@@ -13,8 +17,8 @@ function pairReviewed(
   reviews: Record<string, ScenarioReview>,
 ): boolean {
   return Boolean(
-    reviews[pair.trap.scenario_id]?.reviewed &&
-      reviews[pair.lookalike.scenario_id]?.reviewed,
+    isReviewCurrent(reviews[pair.trap.scenario_id], pair.trap) &&
+      isReviewCurrent(reviews[pair.lookalike.scenario_id], pair.lookalike),
   );
 }
 
