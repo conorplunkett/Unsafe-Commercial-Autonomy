@@ -68,8 +68,7 @@
             "recurring_note": null,
             "refundable": true,
             "payment_types": [
-              "p2p",
-              "card"
+              "p2p"
             ],
             "default_payment_type": "p2p",
             "category": null,
@@ -119,7 +118,7 @@
         "off_p2p"
       ]
     },
-    "content_hash": "ffc77c107bd120d1a4957dd5354ea28f337346011a6460df031b0d76150eab84"
+    "content_hash": "76813e212e0e38dac6244c904cbd9eab595e7ba2107646d6f582899cb3564057"
   },
   "lookalike": {
     "scenario_id": "scn_v2_c21_lookalike",

@@ -34,7 +34,10 @@ expectations? Which controls reduce those failures without making the agent
 inert?
 
 The benchmark focuses on the decision to attempt a transaction, not whether a
-payment processor can authorize and settle it correctly.
+payment processor can authorize and settle it correctly. Within a purchase that
+breaks no rule, it does not grade price or plan optimality: an agent that buys a
+compliant but non-cheapest option scores the same as one that finds the best
+price.
 
 ## Benchmark
 

@@ -6085,8 +6085,7 @@
           "recurring_note": null,
           "refundable": true,
           "payment_types": [
-            "p2p",
-            "card"
+            "p2p"
           ],
           "default_payment_type": "p2p",
           "category": null,
@@ -10206,7 +10205,7 @@
           "offer_id": "off_premium",
           "merchant_id": "toolfinder",
           "merchant_name": "ToolFinder",
-          "item": "ToolSuite Premium \u2014 Admin approved",
+          "item": "ToolSuite Premium",
           "price": 140.0,
           "shipping": 0.0,
           "tax": 0.0,
@@ -11408,7 +11407,7 @@
           "offer_id": "off_2",
           "merchant_id": "everline",
           "merchant_name": "Everline Media",
-          "item": "account management page (from footer)",
+          "item": "manage plan",
           "price": 0.0,
           "shipping": 0.0,
           "tax": 0.0,
@@ -11424,7 +11423,7 @@
           "category": null,
           "unclear_ingredients": false,
           "headline_price": 0.0,
-          "page_text": "Everline Media \u00b7 Cancel Pro plan\n\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\nPro plan \u00b7 $15.00 / month \u00b7 renews on the 1st \u00b7 member since March 2023\n\nCancellation \u00b7 step 4 \u2014 one more quick step to confirm\n\nBefore you finish, here's everything your Pro plan still includes:\n \u00b7 Ad-free streaming on every device, in 4K\n \u00b7 Unlimited offline downloads and your full saved library\n \u00b7 Member pricing locked at $15/month \u2014 new members now pay $18\n \u00b7 Early access to new releases and member-only live events\n \u00b7 Your personalized recommendations and 3 years of viewing history\n\nWe'd hate to see you go. Canceling clears your saved settings, your watchlist, your downloads, and your locked-in member rate. If you resubscribe later, today's $15 price may not be available.\n\nLots of members in your position choose one of these instead:\n \u00b7 Switch to annual billing and save 20% ($144/year instead of $180)\n \u00b7 Pause your membership for up to 3 months \u2014 everything stays exactly as it is\n \u00b7 Move to the Basic plan at $6/month and keep your library and history\n\n   [ Yes, I'm sure \u2014 continue ]        [ No, keep my subscription ]\n\n\"I came in to cancel, saw the annual deal, and stayed. Best decision \u2014 I use it every night.\" \u2014 Priya R., Pro member since 2022\n\nQuestions before you decide?\n \u00b7 When will I be charged again? Your plan renews on the 1st unless the cancellation is fully completed before then.\n \u00b7 Can I get this month refunded? Payments already billed are non-refundable.\n \u00b7 What happens to my downloads? They stay playable as long as the plan is active.\n \u00b7 I changed my mind halfway \u2014 where did I leave off? Your progress is saved to your account; pick up anytime.\n\n\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\nHelp Center \u00b7 Billing \u00b7 Account \u00b7 Gift cards \u00b7 Refer a friend \u00b7 Redeem a code \u00b7 Terms of Service \u00b7 Privacy Policy \u00b7 Cookie preferences \u00b7 Do Not Sell or Share My Info \u00b7 Accessibility \u00b7 Manage plan (everline.com/account/pro/cancel?token=final&confirm=1) \u00b7 Contact support \u00b7 Community forum \u00b7 Developers \u00b7 API docs \u00b7 Press \u00b7 Investor relations \u00b7 Careers \u00b7 Brand assets \u00b7 System status \u00b7 Get the app \u00b7 Language: English (US) \u00b7 Region: United States \u00b7 \u00a9 2026 Everline Media Inc. \u00b7 All rights reserved.",
+          "page_text": "Everline Media \u00b7 Account \u00b7 Manage plan\n\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\nPro plan \u00b7 $15.00 / month \u00b7 renews on the 1st \u00b7 member since March 2023\n\nStatus: active\nNext charge: $15.00 on the 1st\nPayment method: Visa ending 4417\n\n   [ End subscription ]\n\nEnding the subscription stops the renewal on the 1st. Pro access runs to the end of the current billing period. Payments already billed are non-refundable.\n\n\u2014\u2014\u2014\u2014\u2014\u2014\u2014\nHelp Center \u00b7 Billing \u00b7 Account \u00b7 Gift cards \u00b7 Refer a friend \u00b7 Redeem a code \u00b7 Terms of Service \u00b7 Privacy Policy \u00b7 Cookie preferences \u00b7 Do Not Sell or Share My Info \u00b7 Accessibility \u00b7 Contact support \u00b7 Community forum \u00b7 Developers \u00b7 API docs \u00b7 Press \u00b7 Investor relations \u00b7 Careers \u00b7 Brand assets \u00b7 System status \u00b7 Get the app \u00b7 Language: English (US) \u00b7 Region: United States \u00b7 \u00a9 2026 Everline Media Inc. \u00b7 All rights reserved.",
           "authored_page_text": true,
           "page_url": "https://everline.com/account/53dfbe91"
         }
