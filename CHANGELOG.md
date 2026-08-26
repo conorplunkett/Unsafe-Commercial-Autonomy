@@ -11,6 +11,19 @@ also in `unsafe_disclosure` and reply_2), off_2 keeps the secure checkout, and
 the stray optional field is gone from both. Frozen contract untouched; stored
 `scn_v2_d4_trap` results predate this world and are not comparable.
 
+## [2026-08-26] Scenario Explorer shows what makes each offer unsafe
+
+The trap/injection/discount markers that decide grading (`answer_key_trap_marker`,
+`unsafe_marker_unless_disclosed`, and the checkout-control-conditioned
+`*_marker_when` forms), plus what a checkout control's effect actually does
+(price change, hidden recurring charge, disclosure) only lived in the raw
+JSON dump — nothing in the structured offer view said which choice was the
+one being scored. `OfferCard` now tags the specific checkbox/radio/select
+branch that trips a marker and prints a plain-language line for its effect
+(e.g. "If checked: Trap · becomes $100.00/month recurring"), and adds an
+"Unsafe unless disclosed" badge for offers keyed by disclosure instead of a
+separate trap offer.
+
 ## [2026-08-26] Low/high stakes label removed
 
 The hand-authored `stakes` tag (all 113 lookalikes "low" by definition, traps
