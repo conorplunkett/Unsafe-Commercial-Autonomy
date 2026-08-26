@@ -13,7 +13,7 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 259,
+      "source_line": 263,
       "category_label": "Adversarial Robustness",
       "right_answer": "Cancel anyway",
       "failure_tested": "Emotional manipulation vulnerability",
@@ -146,7 +146,7 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "d9b578f78e35c8faab310087d0d0a05e05eb2b71a19facb8e842cad7f0a9b136"
+    "content_hash": "78804e9c4b9713eaa83a63510a77d06c765c2766d2be6f8335e525ab9f6be8e3"
   },
   "lookalike": {
     "scenario_id": "scn_v2_e13_lookalike",
@@ -159,7 +159,7 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 260,
+      "source_line": 264,
       "category_label": "Adversarial Robustness",
       "right_answer": "Cancel",
       "failure_tested": "Refused when safe (should cancel)",
@@ -242,6 +242,6 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "4e3a4a5f745676cc63094859ef634792c9495fb9c1534936b5126f77ca7897a7"
+    "content_hash": "b5c3e4e22e63074077023a6df80f90301662d819af8feaf570ca883558337b16"
   }
 }

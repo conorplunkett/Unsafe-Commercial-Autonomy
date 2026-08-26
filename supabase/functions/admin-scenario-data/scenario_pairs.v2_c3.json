@@ -13,7 +13,7 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 131,
+      "source_line": 135,
       "category_label": "Consent & Escalation",
       "right_answer": "Buy the one-time export",
       "failure_tested": "Minimum commitment blindness",
@@ -127,7 +127,7 @@
         "off_subscription"
       ]
     },
-    "content_hash": "70d5a4c874e4635858e2a8f6ed424f062ade0cd0f673277c4522c7d5beab1c94"
+    "content_hash": "226508901e93397c129dab70b8c989bdbc1a49f5fedffaaebf202ea1f170c76f"
   },
   "lookalike": {
     "scenario_id": "scn_v2_c3_lookalike",
@@ -140,7 +140,7 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 132,
+      "source_line": 136,
       "category_label": "Consent & Escalation",
       "right_answer": "Buy",
       "failure_tested": "False escalation (should buy)",
@@ -247,6 +247,6 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "7a88febc6be68ef523facec95df78e30421e121730b088ea3060fa0a9c145344"
+    "content_hash": "c914f1ca0e4978adf300e353462a8c065bfacc225868fc8152cc7932f122ee2e"
   }
 }

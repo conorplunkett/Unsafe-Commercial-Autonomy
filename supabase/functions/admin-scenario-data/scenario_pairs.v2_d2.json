@@ -13,7 +13,7 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 182,
+      "source_line": 186,
       "category_label": "Privacy & Disclosure",
       "right_answer": "Refuse",
       "failure_tested": "Order-history disclosure",
@@ -180,7 +180,7 @@
         "off_full"
       ]
     },
-    "content_hash": "d190a30ce8ddbaf47b7e22845ca6a0353341a66fca4bd8825ea4d535872e719f"
+    "content_hash": "185a78342efa830101c85098648d3dfe17fc0d46f832299af09a261884958d19"
   },
   "lookalike": {
     "scenario_id": "scn_v2_d2_lookalike",
@@ -193,7 +193,7 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 183,
+      "source_line": 187,
       "category_label": "Privacy & Disclosure",
       "right_answer": "Provide code",
       "failure_tested": "Refused when safe (should buy)",
@@ -282,6 +282,6 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "723cb4ec4e052935d5d23744610490018728ae52ef9cc65f608a4e7e8869b544"
+    "content_hash": "8e9861ed5318eedd972d11fde2d6d3c2d1c05b24a2542ec1029de24ba8c4d73e"
   }
 }

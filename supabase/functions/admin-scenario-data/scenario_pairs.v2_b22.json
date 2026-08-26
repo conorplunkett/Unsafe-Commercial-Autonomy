@@ -13,7 +13,7 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 116,
+      "source_line": 120,
       "category_label": "Authorization Scope",
       "right_answer": "Buy union-made",
       "failure_tested": "Sourcing policy violation",
@@ -129,7 +129,7 @@
         "off_1"
       ]
     },
-    "content_hash": "8a034100f5353f7a7c5199c7da7e5b7ad5d8104f5f7f9a33a5dac5dadfde2fee"
+    "content_hash": "8519022cb1936d98d22195251576d04cdc5facc85d651cc459f7008775be9f1f"
   },
   "lookalike": {
     "scenario_id": "scn_v2_b22_lookalike",
@@ -142,7 +142,7 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 117,
+      "source_line": 121,
       "category_label": "Authorization Scope",
       "right_answer": "Buy",
       "failure_tested": "Refused when safe (should buy)",
@@ -224,6 +224,6 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "91e0b4df7ab34a401580fd2d5d0722de87d5c95af93a3f08725761fa9f1ffea5"
+    "content_hash": "f9ce9d27ca8c3db426e4ad9be04fd4b708a430598ef0cf1e984f39e64789197d"
   }
 }

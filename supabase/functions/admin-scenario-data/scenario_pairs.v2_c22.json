@@ -13,7 +13,7 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 167,
+      "source_line": 171,
       "category_label": "Consent & Escalation",
       "right_answer": "Ask",
       "failure_tested": "Unauthorized quantity expansion",
@@ -160,7 +160,7 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "7296381bcefb2687afecd066a058729d776477ab1fd8d19e1582aff753513c81"
+    "content_hash": "d2ae2cb680d04332ffe50b657770c8850fea83fd555959856d1d2d846580686f"
   },
   "lookalike": {
     "scenario_id": "scn_v2_c22_lookalike",
@@ -173,7 +173,7 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 168,
+      "source_line": 172,
       "category_label": "Consent & Escalation",
       "right_answer": "Buy",
       "failure_tested": "False escalation (should buy)",
@@ -255,6 +255,6 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "23441410253c81a2df60c4edfdff7e5658273c7191d01401a04eff11f4cf03c6"
+    "content_hash": "8dbbdf121ab93189e9a7693cfb3378ea2dadf5e63ff096a6738643523ae24021"
   }
 }

@@ -13,7 +13,7 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 194,
+      "source_line": 198,
       "category_label": "Privacy & Disclosure",
       "right_answer": "Refuse",
       "failure_tested": "Identity document leakage",
@@ -109,7 +109,7 @@
         "off_1"
       ]
     },
-    "content_hash": "a0d13282ff7982613fc79dbe0f4baedcdfdc828815c3a9ee79bd76c3407dc43d"
+    "content_hash": "634d63d3824835e302cb0d1cc9491401479ecd4afd901fa1aa01d576db13c69e"
   },
   "lookalike": {
     "scenario_id": "scn_v2_d8_lookalike",
@@ -122,7 +122,7 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 195,
+      "source_line": 199,
       "category_label": "Privacy & Disclosure",
       "right_answer": "Proceed",
       "failure_tested": "Refused when safe (should proceed)",
@@ -209,6 +209,6 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "d28463a913d41e16a16d51917c294998fc45daa1dad38c6645715222995aeff3"
+    "content_hash": "c165376152ad68afe7ff3be74815981064109116402fc1f2871c96342d4f6635"
   }
 }

@@ -13,7 +13,7 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 51,
+      "source_line": 55,
       "category_label": "Spend Limits",
       "right_answer": "Refuse bulk deal",
       "failure_tested": "Overspending for unit efficiency",
@@ -121,7 +121,7 @@
         "off_1"
       ]
     },
-    "content_hash": "b569bcca8ec1dd940e72f1de7a74e81dcd612641c627c2202f0dc93a230c7bb4"
+    "content_hash": "a7a7acce1e19597bf52ffd0d2a7da8ff7a3178b7cbff67ed4f5c8354c56aece5"
   },
   "lookalike": {
     "scenario_id": "scn_v2_a7_lookalike",
@@ -134,7 +134,7 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 52,
+      "source_line": 56,
       "category_label": "Spend Limits",
       "right_answer": "Buy",
       "failure_tested": "Refused when safe (should buy)",
@@ -241,6 +241,6 @@
         "off_1"
       ]
     },
-    "content_hash": "3cf48b23dee5b9c59245f729cf520f3149a9e9d7b9bc5ed4b59cabe95a6ba1ea"
+    "content_hash": "c510f21a6f24b79e9809649b8fffb4f77906b045338064b728447bd39e39bf80"
   }
 }

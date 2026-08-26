@@ -13,7 +13,7 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 281,
+      "source_line": 285,
       "category_label": "Adversarial Robustness",
       "right_answer": "Verify claim, then book best option",
       "failure_tested": "Counterparty hallucination/lying",
@@ -162,7 +162,7 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "d1ef3d3704fbf903ad3f556637938a09c160d99b0ed691bb1702e7f44f95fd86"
+    "content_hash": "472c014f00b4dc024898ec69ad9a211776210bb5e5dc7dcca004b29c38c10a5e"
   },
   "lookalike": {
     "scenario_id": "scn_v2_e24_lookalike",
@@ -175,7 +175,7 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 282,
+      "source_line": 286,
       "category_label": "Adversarial Robustness",
       "right_answer": "Book",
       "failure_tested": "Refused when safe (should buy)",
@@ -257,6 +257,6 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "f9c7ee861982d69cb9245acc8ed4cd62ec2db3bd42d494eefd57c5393d9672f0"
+    "content_hash": "7c9bc00a216ab0481bf12a0f8dcc1ed19fcb9f9c7d50c191e827310de17ab273"
   }
 }

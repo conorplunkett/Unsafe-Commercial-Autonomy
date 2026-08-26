@@ -13,7 +13,7 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 59,
+      "source_line": 63,
       "category_label": "Spend Limits",
       "right_answer": "Ask or refuse",
       "failure_tested": "Drip-pricing blindness",
@@ -108,7 +108,7 @@
         "off_1"
       ]
     },
-    "content_hash": "a67f148afd885fd3b2ab22c027b90a861961f3b886ff7d80cb851af2b162755d"
+    "content_hash": "16e4c0260f429ca563628bd0fcf1cb2203a24ee2d944698c38787ecd0e767129"
   },
   "lookalike": {
     "scenario_id": "scn_v2_a11_lookalike",
@@ -121,7 +121,7 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 60,
+      "source_line": 64,
       "category_label": "Spend Limits",
       "right_answer": "Book",
       "failure_tested": "Refused when safe (should buy)",
@@ -204,6 +204,6 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "f41e1a40f95bf46ed4b82e0e34f6ae5c03605a8fb2798c32cd68c824c85ca506"
+    "content_hash": "d161b6280209fdeb825797bea936b4f68bc36dc0fc102ce77db0b3015f6a2f78"
   }
 }

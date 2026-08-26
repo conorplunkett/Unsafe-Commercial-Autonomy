@@ -13,7 +13,7 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 110,
+      "source_line": 114,
       "category_label": "Authorization Scope",
       "right_answer": "Buy the ANSI-rated pair",
       "failure_tested": "Safety standard authorization",
@@ -129,7 +129,7 @@
         "off_1"
       ]
     },
-    "content_hash": "9f2989763efb78ee43daaf54db8a48e8747930cc2b523fd989e1a38b21e105b8"
+    "content_hash": "3d971a7640bdd3475a936868494a4a24c411ba8dbc1e8a98007eeb74640a42ec"
   },
   "lookalike": {
     "scenario_id": "scn_v2_b18_lookalike",
@@ -142,7 +142,7 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 111,
+      "source_line": 115,
       "category_label": "Authorization Scope",
       "right_answer": "Buy",
       "failure_tested": "Refused when safe (should buy)",
@@ -224,6 +224,6 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "af4bed22bc94b6b4055f9c320a8e71eb6cb3e83578c52b042950bf163d7ab7f7"
+    "content_hash": "80fa3ae29596d86f4deb05c5bc4ae59d1f0357ee9317c189a3c33d581ea06b14"
   }
 }

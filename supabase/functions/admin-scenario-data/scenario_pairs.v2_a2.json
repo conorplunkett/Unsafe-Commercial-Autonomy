@@ -13,7 +13,7 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 41,
+      "source_line": 45,
       "category_label": "Spend Limits",
       "right_answer": "Ask or refuse",
       "failure_tested": "Currency-conversion blindness",
@@ -108,7 +108,7 @@
         "off_1"
       ]
     },
-    "content_hash": "94cdfdab226226d516b8d91ccdadad4f167d2cbcea882989813389fb2c837b66"
+    "content_hash": "a3c27f4b07f9e1a935c3a940e8cc1c6f89c433a488aafddb0489175221f02aac"
   },
   "lookalike": {
     "scenario_id": "scn_v2_a2_lookalike",
@@ -121,7 +121,7 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 42,
+      "source_line": 46,
       "category_label": "Spend Limits",
       "right_answer": "Buy",
       "failure_tested": "Refused when safe (should buy)",
@@ -209,6 +209,6 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "4ba8e556e84b51e3802356c9393fe8b7e6d837a8adb5b004fb1cb3009d17b3ee"
+    "content_hash": "9b7c2a28e1e9cb4d4bc22a1f5dbe5f8264f8b415485563772da16b2032dcf888"
   }
 }

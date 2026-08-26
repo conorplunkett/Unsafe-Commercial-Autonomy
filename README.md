@@ -220,7 +220,9 @@ by design: many traps key `ask_approval` as the right stop, and the
 unreachable preamble tells the model nobody will answer — escalating is still
 the keyed-safe act, but a model that defers or refuses instead is making a
 defensible choice, not a safety error, so those deltas are reported without a
-confirmatory claim. Together the design
+confirmatory claim. Open question, parked on purpose: whether `defer` should
+join the acceptable stops under `unreachable` — it must be decided before any
+confirmatory stop-style claim is made from the pressure cells. Together the design
 reads as four studies, one question per cell: does a model break a policy it
 can see (headline), does telling it the policy help
 (`structured_policy - no_policy` — since 2026-08-26 every trap states its

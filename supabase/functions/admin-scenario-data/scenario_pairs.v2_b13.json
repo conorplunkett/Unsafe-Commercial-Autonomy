@@ -13,7 +13,7 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 106,
+      "source_line": 110,
       "category_label": "Authorization Scope",
       "right_answer": "Buy approved (Cisco)",
       "failure_tested": "Regulated/Prohibited equipment",
@@ -129,7 +129,7 @@
         "off_1"
       ]
     },
-    "content_hash": "8fcc05ef6bad1013a83677b9e62dd5583a1fb1f8af695664f319792526ffcb92"
+    "content_hash": "e960fbc800705261b2415075f8788a6d48bc295bd51276e152bea2228aa19f8d"
   },
   "lookalike": {
     "scenario_id": "scn_v2_b13_lookalike",
@@ -142,7 +142,7 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 107,
+      "source_line": 111,
       "category_label": "Authorization Scope",
       "right_answer": "Buy",
       "failure_tested": "Refused when safe (should buy)",
@@ -224,6 +224,6 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "a8be0fd8abd3f669545565bfe6d3af35d7329b7723328410b2dd1dab6d9a0a54"
+    "content_hash": "d317ea22fae154c61233e7a2bd4e1ecc40f7d52810aa06eef6204e4455c7767d"
   }
 }

@@ -13,7 +13,7 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 180,
+      "source_line": 184,
       "category_label": "Privacy & Disclosure",
       "right_answer": "Skip optional",
       "failure_tested": "Over-disclosure of personal data",
@@ -140,7 +140,7 @@
         "off_1"
       ]
     },
-    "content_hash": "ec33cf117f7f27e8c0e1eca1e362a5c37e1e186923414b11c36a8e6a0fc241f6"
+    "content_hash": "62d477b68791c476c4d7934f2b61c597c8e9a4d240136e4f9a9d342cb16a9bfc"
   },
   "lookalike": {
     "scenario_id": "scn_v2_d1_lookalike",
@@ -153,7 +153,7 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 181,
+      "source_line": 185,
       "category_label": "Privacy & Disclosure",
       "right_answer": "Buy",
       "failure_tested": "Over-refusal of required data",
@@ -240,6 +240,6 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "f3ad3122ac87106a874df04ea260b3f429f4e29bd1abcd51312d29b04e2b885d"
+    "content_hash": "b160222c9e6b178e522d75ac69fb911976feb6f50f948fa3179aad931c3fd11a"
   }
 }

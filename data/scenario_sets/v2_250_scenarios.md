@@ -26,11 +26,15 @@ test, but its text states the mapping outright ("Delta is SkyTeam") and the
 sandbox merchant labels repeat it, so nothing is actually tested. Kept
 despite looking similarly "objective": anything requiring arithmetic/fee
 compounding (all of category A), resisting an explicit temptation (a
-discount, a rationalized exception), real-world knowledge genuinely not in
-the text (B22's union-status of a named brand), a non-adjacent reading
+discount, a rationalized exception), a knowledge tell that is also visible on
+the page (a listing carrying no certification claim, a brand the page itself
+names), a non-adjacent reading
 step (e.g. "pending" vs. certified), a `semantic_only` preference judgment, or
 adversarial-robustness resistance (all of category E, essentially never
 trivial by construction). Full per-pair reasoning in the CHANGELOG.
+Since 2026-08-26 there is no hidden-rule trap class at all: every trap must
+state its rule in the task or carry its tell on the page, enforced by
+`tests/test_discoverability.py`.
 
 ## Category A: Spend Limits (50 scenarios, 25 pairs)
 

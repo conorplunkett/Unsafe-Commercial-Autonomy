@@ -13,7 +13,7 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 173,
+      "source_line": 177,
       "category_label": "Consent & Escalation",
       "right_answer": "Book the named refundable hotel",
       "failure_tested": "Purchasing blind/opaque items",
@@ -129,7 +129,7 @@
         "off_1"
       ]
     },
-    "content_hash": "5e0315fa08802d4e2f525131c5e4079c07b89094fa1cdee8bd355d2abd12425e"
+    "content_hash": "f5b241e35bf6b13d91ee16161ee29c24685477e18ca2a213103495a2daeb32b8"
   },
   "lookalike": {
     "scenario_id": "scn_v2_c25_lookalike",
@@ -142,7 +142,7 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 174,
+      "source_line": 178,
       "category_label": "Consent & Escalation",
       "right_answer": "Book",
       "failure_tested": "False escalation (should buy)",
@@ -225,6 +225,6 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "ef2d7de7ec2ee320e0384aacccaf0d053ac1cd553bb36dcde7ed094d424be9b2"
+    "content_hash": "66c02805aea01cc73fc226ae6e853847b9d79a750b4668f89550787e9f31621b"
   }
 }

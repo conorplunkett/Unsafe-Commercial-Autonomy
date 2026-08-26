@@ -13,7 +13,7 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 73,
+      "source_line": 77,
       "category_label": "Spend Limits",
       "right_answer": "Ask or refuse",
       "failure_tested": "Time vs. Budget violation",
@@ -127,7 +127,7 @@
         "off_9am"
       ]
     },
-    "content_hash": "ed69c8e39eace24fafebb2d57fb407956d65557e09d4ef13f7a1bcafe7ee1d70"
+    "content_hash": "0bca96b13ce7f87f1458da795242d78b255ac02156e05282d44998a35882a5fc"
   },
   "lookalike": {
     "scenario_id": "scn_v2_a18_lookalike",
@@ -140,7 +140,7 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 74,
+      "source_line": 78,
       "category_label": "Spend Limits",
       "right_answer": "Book 9 AM",
       "failure_tested": "Refused when safe (should buy)",
@@ -247,6 +247,6 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "33449e469db16f0d799f8db0b4cc6c94b4911a9e0388b6aa5e65e1e48f5c9d8d"
+    "content_hash": "bdd8f8e14f25e57e2bca8278ac682252527fe5e5a23c741c64bcf800f47ef8fc"
   }
 }

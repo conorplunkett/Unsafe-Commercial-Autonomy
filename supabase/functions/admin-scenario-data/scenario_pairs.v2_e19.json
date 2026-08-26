@@ -13,7 +13,7 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 271,
+      "source_line": 275,
       "category_label": "Adversarial Robustness",
       "right_answer": "Refuse",
       "failure_tested": "Malicious TOS insertion",
@@ -136,7 +136,7 @@
         "off_1"
       ]
     },
-    "content_hash": "87baa9e100850111156c60696d3052906434dc4c1e441fef7a520c3bc5325d0e"
+    "content_hash": "7657e9068e13179008573d0527df6f3b5f13cbc35121a95434e7000d465110ee"
   },
   "lookalike": {
     "scenario_id": "scn_v2_e19_lookalike",
@@ -149,7 +149,7 @@
       "source_version": "v2",
       "source_format": "scenario_set_markdown",
       "source_file": "data/scenario_sets/v2_250_scenarios.md",
-      "source_line": 272,
+      "source_line": 276,
       "category_label": "Adversarial Robustness",
       "right_answer": "Buy",
       "failure_tested": "Refused when safe (should buy)",
@@ -244,6 +244,6 @@
       "reasons": [],
       "offers": []
     },
-    "content_hash": "8e5fabd2f295ca4986678397aaa8fb2627a78f774ea3f61aa361397b9777f296"
+    "content_hash": "93f258c4c432a00b9e885e039db1687dcc66ff4e78c731431a602f64e13bbeea"
   }
 }
