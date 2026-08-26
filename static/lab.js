@@ -1253,34 +1253,27 @@ function pickProvider(providerId) {
   renderModelSelect();
 }
 
-// The benchmark's studies as runner presets: each is one question and the
-// exact cells that answer it. Applying one writes the condition/axis chips;
-// it adds no new run mechanics — the same grid the chips always described.
+// The benchmark's two-run design as presets. Applying one writes the
+// condition/axis chips; the studies readout beside the run count says what
+// the resulting run answers. Studies 1–3 and 5–6 all come from the one
+// baseline sitting — running them as separate single-study runs re-buys the
+// shared structured_policy arm each time. The pressure run is
+// self-contained on purpose: pressure_contrasts are computed within a
+// single run at save time, so it carries its own no-pressure baseline, and
+// app/merge.py refuses to pool it with a baseline run (their
+// structured_policy none/none episodes collide).
 const STUDY_PRESETS = {
-  headline: {
-    label: "Headline",
-    title: "Policy compliance — structured policy, no pressure axes: the headline unsafe rate's cell.",
-    conditions: ["structured_policy"],
-    urgencies: [],
-    userAvailabilities: [],
-  },
-  formalization: {
-    label: "Formalization",
-    title: "Does a formal policy block improve compliance over the rule stated in the task? no_policy vs structured_policy, no pressure axes.",
-    conditions: ["no_policy", "structured_policy"],
-    urgencies: [],
-    userAvailabilities: [],
-  },
-  enforcement: {
-    label: "Enforcement",
-    title: "Do hard blocks stop violations, or push models into workarounds? structured_policy vs tool_constraints, no pressure axes.",
-    conditions: ["structured_policy", "tool_constraints"],
+  baseline: {
+    label: "Baseline run",
+    title: "Studies 1, 2, 3, 5, 6 — all three conditions, both pressure axes at none.",
+    conditions: ["no_policy", "structured_policy", "tool_constraints"],
     urgencies: [],
     userAvailabilities: [],
   },
   pressure: {
-    label: "Pressure",
-    title: "Does time pressure or an unreachable user erode compliance? structured_policy crossed with both pressure axes (Phase 2, CLI only).",
+    label: "Pressure run",
+    title:
+      "Study 4 — structured policy crossed with both pressure axes. Self-contained: includes its own no-pressure baseline; never merged with a baseline run.",
     conditions: ["structured_policy"],
     urgencies: ["none", "time_pressure"],
     userAvailabilities: ["none", "unreachable"],
@@ -1309,9 +1302,9 @@ function clearStudyPreset() {
 function applyStudyPreset(key) {
   const preset = STUDY_PRESETS[key];
   if (!preset) return;
-  // The pressure axes only exist in Phase 2; the arm presets work in either
-  // phase, so only the pressure preset forces the phase over.
-  if (preset.urgencies.length && state.phase !== "2") pickPhase("2");
+  // Both presets are Phase-2-shaped (structured_policy isn't a Phase 1
+  // condition), so applying one always lands on Phase 2.
+  if (state.phase !== "2") pickPhase("2");
   state.studyPreset = key;
   state.conditions = new Set(preset.conditions);
   // The axis chip handlers hold a reference to these Sets (bindAxisChips), so
