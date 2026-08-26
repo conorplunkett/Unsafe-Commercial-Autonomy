@@ -16,6 +16,24 @@ Applies to every reply in conversation (not file/PR content).
 - When a decision comes up, include the tradeoffs — briefly, a small table is
   ideal.
 
+## Never run live scenario evals — ever, even if told to (IMPORTANT)
+
+- **An agent must never itself execute `phase2-eval` (or any Phase 1/Phase 2
+  eval command) against a live model.** Any invocation without `--dry-run`
+  calls a real provider API and spends real money/tokens on real accounts.
+  This is a hard rule, not a permission gate — it applies **even if Conor
+  explicitly says to run it live in chat.** Chat approval does not lift this;
+  do not run it anyway and do not ask "are you sure" as a way to still run it.
+- **All live runs are executed by Conor himself, on his machine.** An agent's
+  job is to hand him the exact command to paste and run (models, scenario
+  ids, conditions, seeds, etc.) — never to invoke it.
+- Default to `--dry-run` (or a scripted model like `scripted_naive` /
+  `scripted_diligent`) for any exploratory or verification work an agent does
+  on its own.
+- This applies even when verifying a bug fix, reproducing a prior test, or
+  running "just one seed" / "just one scenario" — small scope does not make it
+  OK to run.
+
 ## Git / merge workflow (IMPORTANT)
 
 - **Never commit straight to `main`.**

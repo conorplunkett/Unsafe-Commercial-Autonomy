@@ -113,14 +113,18 @@ function ScenarioExplorerInner({
   const [status, setStatus] = useState("all");
   const [search, setSearch] = useState("");
 
-  function toggleReview(scenarioId: string, next: boolean) {
+  function toggleReview(scenarioId: string, next: boolean, contentHash: string) {
     const previous = reviews[scenarioId];
+    // Stamp the scenario's current content_hash onto the review so a later
+    // edit can be detected -- see isReviewCurrent() in lib/scenarioExplorer.
+    const nextContentHash = next ? contentHash : null;
     setReviews((prev) => ({
       ...prev,
       [scenarioId]: {
         scenario_id: scenarioId,
         reviewed: next,
         reviewed_at: next ? new Date().toISOString() : null,
+        content_hash: nextContentHash,
       },
     }));
 
@@ -130,7 +134,11 @@ function ScenarioExplorerInner({
         "x-admin-key": adminKey,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ scenario_id: scenarioId, reviewed: next }),
+      body: JSON.stringify({
+        scenario_id: scenarioId,
+        reviewed: next,
+        content_hash: nextContentHash,
+      }),
     })
       .then(async (res) => {
         if (!res.ok) throw new Error(`Request failed (${res.status})`);
