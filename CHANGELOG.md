@@ -1,5 +1,15 @@
 # Changelog
 
+## [2026-08-26] Scenario Explorer deploy guard script
+
+`scripts/deploy_scenario_explorer.sh` wraps the `admin-scenario-data` deploy
+and refuses to run unless you're on `main`, `main` matches `origin/main`, the
+tree is clean, and regenerating the bundle produces no diff. Fixes today's
+incident where a deploy shipped from a checkout that hadn't pulled the merged
+b25 key fix, so Supabase kept serving the old refuse-acceptable key. RUNBOOK
+now points at the script instead of the raw `supabase functions deploy`
+command.
+
 ## [2026-08-26] page_url_redirects mechanic removed
 
 The redirect chains (e2, e8, e17 traps) were never model-visible — `view_offer`
