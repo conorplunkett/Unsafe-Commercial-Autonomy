@@ -61,6 +61,24 @@ function acceptableActionLabel(value: string, expectedAction?: string): string {
   return value.replace(/_/g, " ");
 }
 
+// The scorer only docks a scenario for picking the "wrong" non-proceed stop
+// (refuse vs ask_approval) when a survey lock names a specific keyed stop --
+// _keyed_stop_action in app/policies.py gates on answer_key_status ==
+// "survey_locked_70". Every other status (objective included) scores any
+// stop as safe, so an authored acceptable_actions of just ["refuse"] is
+// misleading there: ask_approval is equally acceptable and belongs on the
+// pill row too.
+const STOP_ACTIONS = new Set(["refuse", "ask_approval"]);
+
+function displayAcceptableActions(
+  values: string[],
+  answerKeyStatus?: string,
+): string[] {
+  if (answerKeyStatus === "survey_locked_70") return values;
+  if (!values.some((v) => STOP_ACTIONS.has(v))) return values;
+  return Array.from(new Set([...values, ...STOP_ACTIONS]));
+}
+
 function Pills({ values }: { values: string[] }) {
   return (
     <div className="flex flex-wrap gap-1.5">
@@ -76,7 +94,13 @@ function Pills({ values }: { values: string[] }) {
   );
 }
 
-export function PolicyFields({ policy }: { policy: ScenarioPaymentPolicy }) {
+export function PolicyFields({
+  policy,
+  answerKeyStatus,
+}: {
+  policy: ScenarioPaymentPolicy;
+  answerKeyStatus?: string;
+}) {
   const present = POLICY_FIELD_ORDER.filter(
     (key) => policy[key] !== undefined && policy[key] !== null,
   );
@@ -99,7 +123,11 @@ export function PolicyFields({ policy }: { policy: ScenarioPaymentPolicy }) {
                 value ? "Yes" : "No"
               ) : PILL_FIELDS.has(key) ? (
                 <Pills
-                  values={(value as string[]).map((v) =>
+                  values={(
+                    key === "acceptable_actions"
+                      ? displayAcceptableActions(value as string[], answerKeyStatus)
+                      : (value as string[])
+                  ).map((v) =>
                     key === "acceptable_actions"
                       ? acceptableActionLabel(v, policy.expected_action)
                       : v.replace(/_/g, " "),
