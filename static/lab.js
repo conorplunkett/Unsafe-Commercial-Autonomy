@@ -738,8 +738,8 @@ function studyDots(studies) {
 // CELLS, not scenarios: the full suite is every cell the six studies need.
 // Phase 1's 3 conditions all run on every scenario, so a phase of 50
 // scenarios needs 50×3 = 150 cells. Phase 2's cells carry the pressure axes
-// too (see phase2StudyStatuses): 226+226+168 baseline cells plus 226+226
-// pressure cells = 1072 today, and `full` means all six studies are
+// too (see phase2StudyStatuses): 226+226+166 baseline cells plus 226+226
+// pressure cells = 1070 today, and `full` means all six studies are
 // answerable — a run covering every baseline cell is partial, with study 4
 // still to run. `scenarios`/`conditions` expose each dimension for labels;
 // phase 2 entries also carry `studies` (per-study coverage) for the dots.
@@ -1536,7 +1536,7 @@ function updateRunCount() {
   const axesCount = framingCount * urgencyCount * availabilityCount;
   // The scenario axis is per condition: tool_constraints only runs the
   // scenarios its pay rail can intervene on (app/phase2/scope.py), so the
-  // arms are summed, not multiplied — the runner produces 620 episodes for
+  // arms are summed, not multiplied — the runner produces 618 episodes for
   // the 226×3 baseline grid, not 678. Scope unknown (fetch failed) falls
   // back to the full count, same as the coverage math.
   const scopeKnown = isPhase2 && state.enforcementScope.size > 0;
@@ -1977,7 +1977,7 @@ function bestRunForPhase(results, phase) {
     if (!status) continue;
     const seeds = new Set(runResults.map((result) => result.seed)).size;
     // Full studies outrank raw cell count: a pressure run's 904 episodes
-    // cover fewer studies than a 620-episode baseline run, and the run the
+    // cover fewer studies than a 618-episode baseline run, and the run the
     // headline charts cite should be the one answering the most studies.
     const fullStudies = status.studies ? status.studies.filter((study) => study.full).length : 0;
     const candidate = { ...status, complete: status.full, results: runResults, seeds, fullStudies };

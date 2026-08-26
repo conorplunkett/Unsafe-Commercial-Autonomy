@@ -1905,7 +1905,7 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "Which scenarios tool_constraints runs on. Default rail_reachable: the "
             "scenarios whose pay rail can refuse a payment their world offers, plus "
-            "their pair partners (168 of the 226 v2 scenarios). In the other 58 the "
+            "their pair partners (166 of the 226 v2 scenarios). In the other 60 the "
             "engine never fires, so the arm re-measures structured_policy at full "
             "episode cost. Pass 'all' for the full cross-product. no_policy and "
             "structured_policy always run every selected scenario."

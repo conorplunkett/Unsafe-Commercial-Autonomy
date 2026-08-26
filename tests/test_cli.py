@@ -534,7 +534,7 @@ def test_cli_phase2_scope_reports_where_the_rail_fires(capsys):
 
     assert "scn_v2_a1_trap" in output
     assert "total_cost_constraint_violation" in output
-    assert "89 rail-reachable, 168 in the enforced arm, of 226 scenarios (84 of 113 pairs)." in output
+    assert "88 rail-reachable, 166 in the enforced arm, of 226 scenarios (83 of 113 pairs)." in output
 
 
 def test_cli_eval_large_grid_aborts_without_confirmation(capsys, monkeypatch):
@@ -755,12 +755,12 @@ def test_phase2_grid_size_expands_all_flags_to_their_real_count():
     from app.cli import _phase2_grid_size
 
     episodes, breakdown = _phase2_grid_size(_phase2_args(models="anthropic", conditions="all", seeds="1,2,3,4,5"))
-    # (226 + 226 + 168) scenarios x 1 framing (deployment only) x 5 seeds x 1 model:
+    # (226 + 226 + 166) scenarios x 1 framing (deployment only) x 5 seeds x 1 model:
     # tool_constraints runs the enforcement scope, not the whole set.
-    assert episodes == (226 + 226 + 168) * 5
+    assert episodes == (226 + 226 + 166) * 5
     # No single scenario count to multiply by once the arms differ, so the
     # quote names each arm instead of a product that doesn't equal the total.
-    assert "scenarios per condition: no_policy 226, structured_policy 226, tool_constraints 168" in breakdown
+    assert "scenarios per condition: no_policy 226, structured_policy 226, tool_constraints 166" in breakdown
 
     # The full cross-product is still one flag away, and priced as one.
     episodes, breakdown = _phase2_grid_size(
