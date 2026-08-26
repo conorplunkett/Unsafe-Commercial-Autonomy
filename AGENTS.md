@@ -210,6 +210,13 @@ beyond one clause.
 - Scenario contents and counts come from `data/scenario_sets/`.
 - Answer keys and survey status come from `data/answer_keys/` and
   `data/survey/`.
+- **The live key is the effective key, not the authored one.** Survey re-keys
+  are applied at load time on top of `v2_constraints.json`, whose entries keep
+  the authored (pre-survey) key on purpose. When checking what a scenario is
+  actually scored against, read `effective_keys` in
+  `data/answer_keys/phase2_research_contract.json` (its `survey_rekey` field
+  shows what the crowd changed) — never conclude a key is wrong from
+  `v2_constraints.json` alone.
 - CLI commands and defaults come from `python -m app.cli <command> --help`;
   environment variables come from `.env.example`.
 - `RUNBOOK.md` holds only non-obvious operational workflows, and `CHANGELOG.md`
