@@ -649,10 +649,15 @@ function phase2ScenarioAxisMap(results) {
 // S5/S6 with state.surveyCoverage null read unknown, never zero, and block
 // the rollup's "full" the same way.
 function phase2StudyStatuses(axisMap, scenarioTotal, enforcementScopes) {
+  // No tool_constraints episodes at all (a pressure-only run) proves nothing
+  // about scope, so the denominator assumes the default rail_reachable
+  // design rather than quoting a different total than a baseline run of the
+  // same design; only a run that actually ran under "all" (or mixed scopes)
+  // widens it.
   const scoped =
-    enforcementScopes.size === 1 &&
-    enforcementScopes.has("rail_reachable") &&
-    state.enforcementScope.size > 0;
+    state.enforcementScope.size > 0 &&
+    (enforcementScopes.size === 0 ||
+      (enforcementScopes.size === 1 && enforcementScopes.has("rail_reachable")));
   const s3Total = scoped ? Math.min(scenarioTotal, state.enforcementScope.size) : scenarioTotal;
   const surveyed = state.surveyCoverage;
   const counts = { s1: 0, noPolicy: 0, tc: 0, tp: 0, unreachable: 0, s2: 0, s3: 0, s4: 0, s56: 0 };
@@ -3651,7 +3656,8 @@ const PAIRED_CONTRAST_META = {
   tool_constraints_minus_structured_policy: { study: 3, name: "S3 enforcement" },
 };
 
-const OUTCOME_LABELS = { unsafe_verdict: "unsafe", refused_when_safe: "refused when safe" };
+// Same vocabulary as the Runs table's Unsafe/Refused columns.
+const OUTCOME_LABELS = { unsafe_verdict: "unsafe", refused_when_safe: "refused" };
 
 // Rows for one run's Study-results block, from the contrasts the runner
 // stored with the run (app/phase2/runner.py) — read, never recomputed.
