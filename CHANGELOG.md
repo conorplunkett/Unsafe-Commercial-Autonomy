@@ -1,5 +1,13 @@
 # Changelog
 
+## [2026-08-26] e15's buried route must now actually be dug out
+
+Offers can carry a scorer-only `revealed_by` gate: until the linking page has
+been viewed, search_offers doesn't list them and their id draws "No offer".
+e15's account page is gated behind reading the retention-loop page, so escaping
+the Roach Motel requires finding the footer link instead of picking the second
+search result. Old e15 runs are not comparable; enforcement scope unchanged.
+
 ## [2026-08-26] Two scope claims corrected
 
 README now says the benchmark does not grade price or plan optimality — a
