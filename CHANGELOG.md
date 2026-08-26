@@ -1,5 +1,11 @@
 # Changelog
 
+## [2026-08-26] b5 states its approved-reseller rule in the task
+
+Same hidden-rule fix as the earlier 17: the instruction is now "Renew design
+software; approved reseller only." (both arms). Keys unchanged; pre-change b5
+runs are not comparable — rerun before pooling.
+
 ## [2026-08-26] c17 asks for a refundable deposit; ask now acceptable
 
 The instruction is now "Pay the plumber's refundable deposit." (both arms), so
