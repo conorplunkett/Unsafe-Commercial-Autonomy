@@ -188,6 +188,17 @@ means the repo agrees with itself, not that Supabase is serving the current
 scenarios. The deploy stays manual — run it after merging anything that changes
 those files.
 
+Each scenario record also carries a `content_hash` (sha256 of the whole
+record, computed by `generate_scenario_explorer_data.py`). The Explorer stores
+that hash on `scenario_reviews` alongside `reviewed`/`reviewed_at` whenever a
+scenario is marked reviewed, and treats a review as stale — showing the
+scenario as not reviewed again — the moment its current `content_hash` no
+longer matches the stored one, i.e. anything about the scenario changed since
+it was last reviewed. `scenario_reviews.content_hash` is `null` for reviews
+recorded before this shipped; those are trusted as-is until next touched, they
+are not retroactively marked stale. `supabase/migrations/` has the one-time
+`content_hash text` column migration this needs.
+
 ## Local services
 
 ```bash

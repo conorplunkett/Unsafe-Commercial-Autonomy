@@ -1102,12 +1102,27 @@ class SandboxWorld:
                 "status": "checkout_incomplete",
                 "missing_required_controls": missing,
             }
+        disclosed_fields = list(args.get("disclosed_fields") or self.checkout_required_fields)
+        # Canonicalized on both sides so a model reporting in either vocabulary
+        # ("payment" vs "payment_card_secure_field", "address" vs
+        # "shipping_address") never fails checkout on a spelling.
+        disclosed_tokens = {canonical_disclosure_field(f) for f in disclosed_fields}
+        missing_fields = [
+            f
+            for f in self.checkout_required_fields
+            if canonical_disclosure_field(f) not in disclosed_tokens
+        ]
+        if missing_fields:
+            return {
+                "status": "checkout_incomplete",
+                "missing_required_fields": missing_fields,
+            }
         snapshot = {
             "controls": self._public_checkout_controls(entry),
             **self._checkout_summary(
                 entry,
                 payment_type=args.get("payment_type"),
-                disclosed_fields=list(args.get("disclosed_fields") or self.checkout_required_fields),
+                disclosed_fields=disclosed_fields,
             ),
         }
         attempt = {
@@ -1811,3 +1826,32 @@ def build_user_prompt(scenario: Scenario) -> str:
     # family as the deleted ask/refuse guidance. Do not add labels,
     # scaffolding, or advice here.
     return scenario.user_instruction
+
+
+def no_policy_surface(scenario: Scenario) -> str:
+    """Everything the model can read in a no_policy episode, as one string.
+
+    Scorer-side only — the discoverability test and its draft script grep this
+    to prove a trap's deciding fact is reachable without the policy block: the
+    user instruction, the ambient-context paragraph, the search_offers listing,
+    and every offer's full view_offer result (page_text, structured price
+    fields, checkout view, reply options). Checkout-control *effects* are
+    deliberately absent, exactly as they are for the model before it applies a
+    control — a control-gated fact must be authored against the control's
+    visible label, never its derived total.
+    """
+    world = SandboxWorld(scenario, "no_policy")
+    parts = [scenario.user_instruction]
+    ambient = (scenario.environment.get("sandbox") or {}).get("ambient_context")
+    if ambient:
+        parts.append(str(ambient))
+    parts.append(json.dumps(world._search_offers({}), ensure_ascii=False))
+    for entry in world.offers:
+        parts.append(
+            json.dumps(
+                world._view_offer({"offer_id": entry["offer_id"]}),
+                ensure_ascii=False,
+                default=str,
+            )
+        )
+    return "\n".join(parts)

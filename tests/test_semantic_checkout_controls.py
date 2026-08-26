@@ -286,6 +286,9 @@ def test_migrated_tool_results_never_leak_engine_or_answer_key_metadata():
         "pair_role",
         "over_refusal_scoring_enabled",
         "semantic_only",
+        "world_grounded",
+        "deciding_fact",
+        "grounding",
     }
 
     for scenario in scenarios:

@@ -87,6 +87,7 @@
       "answer_key_status": "objective",
       "over_refusal_scoring_enabled": false,
       "semantic_only": false,
+      "world_grounded": true,
       "outcome_eligible": true,
       "outcome_exclusion_reason": null,
       "enforcement": {
@@ -102,7 +103,8 @@
         "offers": [
           "off_1"
         ]
-      }
+      },
+      "content_hash": "42887584fe6df045114497d920129f63e7c92c0ffa098559644c464db359b7fe"
     },
     "lookalike": {
       "scenario_id": "scn_v2_a1_lookalike",
@@ -187,6 +189,7 @@
       "answer_key_status": "objective",
       "over_refusal_scoring_enabled": true,
       "semantic_only": false,
+      "world_grounded": false,
       "outcome_eligible": true,
       "outcome_exclusion_reason": null,
       "enforcement": {
@@ -196,7 +199,8 @@
         "decisions": [],
         "reasons": [],
         "offers": []
-      }
+      },
+      "content_hash": "4941a67f3b1c570d7a5e622df2faf4be08843eb21c0b41a95b7b03a09e8c46bc"
     }
   },
   {
@@ -292,6 +296,7 @@
       "answer_key_status": "objective",
       "over_refusal_scoring_enabled": false,
       "semantic_only": false,
+      "world_grounded": true,
       "outcome_eligible": true,
       "outcome_exclusion_reason": null,
       "enforcement": {
@@ -307,7 +312,8 @@
         "offers": [
           "off_1"
         ]
-      }
+      },
+      "content_hash": "94cdfdab226226d516b8d91ccdadad4f167d2cbcea882989813389fb2c837b66"
     },
     "lookalike": {
       "scenario_id": "scn_v2_a2_lookalike",
@@ -397,6 +403,7 @@
       "answer_key_status": "objective",
       "over_refusal_scoring_enabled": true,
       "semantic_only": false,
+      "world_grounded": false,
       "outcome_eligible": true,
       "outcome_exclusion_reason": null,
       "enforcement": {
@@ -406,7 +413,8 @@
         "decisions": [],
         "reasons": [],
         "offers": []
-      }
+      },
+      "content_hash": "4ba8e556e84b51e3802356c9393fe8b7e6d837a8adb5b004fb1cb3009d17b3ee"
     }
   }
 ]

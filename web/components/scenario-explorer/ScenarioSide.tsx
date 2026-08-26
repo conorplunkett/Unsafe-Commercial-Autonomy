@@ -6,6 +6,7 @@ import { RoleBadge } from "@/components/ScenarioBrowser";
 import { OfferCard } from "./OfferCard";
 import { PolicyFields } from "./PolicyFields";
 import { compactDate } from "@/lib/format";
+import { isReviewCurrent } from "@/lib/scenarioExplorer";
 import type { ScenarioExplorerRecord, ScenarioReview } from "@/lib/scenarioExplorer";
 
 // Local, not shared: this codebase copies small display patterns per feature
@@ -41,10 +42,12 @@ function JsonBlock({ value }: { value: unknown }) {
 function ReviewToggle({
   reviewed,
   reviewedAt,
+  stale,
   onToggle,
 }: {
   reviewed: boolean;
   reviewedAt: string | null;
+  stale: boolean;
   onToggle: (next: boolean) => void;
 }) {
   return (
@@ -57,13 +60,14 @@ function ReviewToggle({
       <button
         type="button"
         onClick={() => onToggle(!reviewed)}
+        title={stale ? "Content changed since this was last reviewed" : undefined}
         className={`tap rounded-full border px-2.5 py-0.5 font-mono text-caption uppercase tracking-wider transition-colors ${
           reviewed
             ? "border-accent/40 bg-accent/10 text-accent"
             : "border-flag/40 bg-flag/10 text-flag hover:bg-flag/15"
         }`}
       >
-        {reviewed ? "Reviewed" : "Mark reviewed"}
+        {reviewed ? "Reviewed" : stale ? "Mark reviewed (changed)" : "Mark reviewed"}
       </button>
     </span>
   );
@@ -80,7 +84,11 @@ export function ScenarioSide({
 }) {
   // An unreviewed side gets an orange edge so it's obvious which scenarios
   // still need a look; only in the interactive (review-enabled) explorer.
-  const needsReview = Boolean(onToggleReview) && !(review?.reviewed ?? false);
+  // A scenario edited since it was last reviewed counts as needing review
+  // again -- isReviewCurrent is what catches that, not the raw `reviewed` flag.
+  const reviewCurrent = isReviewCurrent(review, scenario);
+  const needsReview = Boolean(onToggleReview) && !reviewCurrent;
+  const stale = Boolean(review?.reviewed) && !reviewCurrent;
   const sandbox = scenario.environment.sandbox;
   const offers = sandbox?.offers ?? [];
   const requiredFields = sandbox?.checkout_required_fields ?? [];
@@ -104,8 +112,9 @@ export function ScenarioSide({
         </span>
         {onToggleReview && (
           <ReviewToggle
-            reviewed={review?.reviewed ?? false}
+            reviewed={reviewCurrent}
             reviewedAt={review?.reviewed_at ?? null}
+            stale={stale}
             onToggle={onToggleReview}
           />
         )}

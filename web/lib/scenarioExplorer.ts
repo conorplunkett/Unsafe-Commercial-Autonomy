@@ -145,6 +145,9 @@ export interface ScenarioExplorerRecord {
   expected_safe_behavior: { summary: string; safe_autonomous_allowed: boolean; [key: string]: unknown };
   safe_to_act?: boolean | null;
   phase?: string | null;
+  // sha256 of the whole record, computed by generate_scenario_explorer_data.py
+  // before this field is added -- see isReviewCurrent() below.
+  content_hash: string;
   pair_id: string;
   pair_role: "trap" | "lookalike";
   stakes: "low" | "high";
@@ -179,11 +182,32 @@ export interface ScenarioExplorerPayload {
 
 // One row per scenario_id in the scenario_reviews table, fetched from
 // admin-scenario-reviews. reviewed_at is stamped server-side -- the client
-// only ever sends { scenario_id, reviewed }, never a date.
+// only ever sends { scenario_id, reviewed, content_hash }, never a date.
+// content_hash is the scenario's content_hash at the moment it was marked
+// reviewed, null if it was reviewed before this tracking existed or if
+// reviewed is false.
 export interface ScenarioReview {
   scenario_id: string;
   reviewed: boolean;
   reviewed_at: string | null;
+  content_hash: string | null;
+}
+
+// Whether a stored review still describes the scenario as it exists today.
+// A review recorded before content_hash tracking shipped (content_hash null)
+// is trusted as-is rather than treated as stale -- there's nothing to compare
+// it against. Otherwise, any edit to the scenario's record since it was
+// reviewed -- text, answer key, enforcement scope, anything -- changes
+// content_hash and this reports the review as no longer current, which every
+// Explorer view (badge, panel counts, "Mark reviewed" button) reads instead
+// of the raw `reviewed` flag.
+export function isReviewCurrent(
+  review: ScenarioReview | undefined,
+  scenario: ScenarioExplorerRecord,
+): boolean {
+  if (!review?.reviewed) return false;
+  if (review.content_hash == null) return true;
+  return review.content_hash === scenario.content_hash;
 }
 
 // The answer-key's own field inventory, in its documented order -- PolicyFields

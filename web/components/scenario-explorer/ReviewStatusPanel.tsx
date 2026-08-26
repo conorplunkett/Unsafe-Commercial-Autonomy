@@ -1,9 +1,11 @@
 import { Card } from "@/components/ui/Card";
-import type { ScenarioPair, ScenarioReview } from "@/lib/scenarioExplorer";
+import { isReviewCurrent } from "@/lib/scenarioExplorer";
+import type { ScenarioExplorerRecord, ScenarioPair, ScenarioReview } from "@/lib/scenarioExplorer";
 
 interface Row {
   scenarioId: string;
   label: string;
+  scenario: ScenarioExplorerRecord;
 }
 
 function ChipList({ rows, tone }: { rows: Row[]; tone: "reviewed" | "pending" }) {
@@ -44,11 +46,15 @@ export function ReviewStatusPanel({
   reviews: Record<string, ScenarioReview>;
 }) {
   const rows: Row[] = pairs.flatMap((p) => [
-    { scenarioId: p.trap.scenario_id, label: `${p.pair_label} trap` },
-    { scenarioId: p.lookalike.scenario_id, label: `${p.pair_label} lookalike` },
+    { scenarioId: p.trap.scenario_id, label: `${p.pair_label} trap`, scenario: p.trap },
+    {
+      scenarioId: p.lookalike.scenario_id,
+      label: `${p.pair_label} lookalike`,
+      scenario: p.lookalike,
+    },
   ]);
-  const reviewed = rows.filter((r) => reviews[r.scenarioId]?.reviewed);
-  const pending = rows.filter((r) => !reviews[r.scenarioId]?.reviewed);
+  const reviewed = rows.filter((r) => isReviewCurrent(reviews[r.scenarioId], r.scenario));
+  const pending = rows.filter((r) => !isReviewCurrent(reviews[r.scenarioId], r.scenario));
 
   return (
     <Card as="details" tone="bare" pad="sm" className="mt-8">

@@ -68,6 +68,41 @@ def test_pair_records_carry_the_enforcement_scope_projection():
     assert by_id["scn_v2_c10_trap"]["enforcement"]["in_enforced_arm"] is False
 
 
+def test_content_hash_is_present_and_deterministic():
+    """Every scenario record carries a content_hash, and re-running the
+    generator against the same source data reproduces it exactly -- otherwise
+    an unchanged scenario would spuriously read as edited."""
+    pairs = gen.build_pairs()
+    again = gen.build_pairs()
+
+    for pair, pair_again in zip(pairs, again):
+        for role in ("trap", "lookalike"):
+            record, record_again = pair[role], pair_again[role]
+            content_hash = record["content_hash"]
+            assert isinstance(content_hash, str) and content_hash
+            assert content_hash == record_again["content_hash"]
+
+
+def test_content_hash_changes_when_any_field_changes():
+    """A hash computed on a scenario record must change if any field --
+    answer key, page text, whatever -- changes, since this is what the
+    Scenario Explorer compares against a stored review to detect an edit."""
+    pairs = gen.build_pairs()
+    trap = pairs[0]["trap"]
+
+    edited_text = json.loads(json.dumps(trap))
+    edited_text["title"] = edited_text["title"] + " (edited)"
+    assert gen.compute_content_hash(edited_text) != gen.compute_content_hash(trap)
+
+    edited_key = json.loads(json.dumps(trap))
+    edited_key["right_answer"] = "a different answer"
+    assert gen.compute_content_hash(edited_key) != gen.compute_content_hash(trap)
+
+    assert gen.compute_content_hash(trap) == gen.compute_content_hash(
+        json.loads(json.dumps(trap))
+    )
+
+
 def test_pair_order_matches_first_seen_loader_order():
     from app.data import load_scenarios
     from app.models import model_to_dict
