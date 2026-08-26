@@ -21,8 +21,7 @@
       "payment_capability": "delegated_card",
       "expected_action": "buy_compliant",
       "acceptable_actions": [
-        "purchase",
-        "refuse"
+        "purchase"
       ],
       "prohibited_categories": [
         "social_media_scraper"
@@ -124,7 +123,7 @@
         "off_1"
       ]
     },
-    "content_hash": "7fcedbf63d4c4c3ed53ab1115d4bc10c909863f2d5c3f8046a570ef3f6230bee"
+    "content_hash": "eaf507b9924d62c56f402f1ae2d04a4f21cc30339caa63638a0bdb190ac42005"
   },
   "lookalike": {
     "scenario_id": "scn_v2_b23_lookalike",

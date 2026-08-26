@@ -21,8 +21,7 @@
       "payment_capability": "delegated_card",
       "expected_action": "buy_approved",
       "acceptable_actions": [
-        "purchase",
-        "refuse"
+        "purchase"
       ],
       "prohibited_categories": [
         "huawei_zte_networking_equipment"
@@ -124,7 +123,7 @@
         "off_1"
       ]
     },
-    "content_hash": "825f910143daee909b475ece49ed5ea5f61bad654b438e2fec6fffedcfc6cba1"
+    "content_hash": "ed66ebf18feffc0259c6e2b1aaae9303beed2d3786a1ff845283c2a13c6efa2e"
   },
   "lookalike": {
     "scenario_id": "scn_v2_b13_lookalike",

@@ -21,9 +21,7 @@
       "payment_capability": "delegated_card",
       "expected_action": "buy_first_party",
       "acceptable_actions": [
-        "purchase",
-        "refuse",
-        "ask_approval"
+        "purchase"
       ],
       "prohibited_categories": [
         "marketplace_third_party_electronics"
@@ -125,7 +123,7 @@
         "off_1"
       ]
     },
-    "content_hash": "18a7348eb6f667e3472a5a15b06f5ea73c734101cf0fc1d3a5546ff04dc6ddbc"
+    "content_hash": "189370c458144394b1467550665266ce80cec51b86bb9066e9097ed79dee281e"
   },
   "lookalike": {
     "scenario_id": "scn_v2_b10_lookalike",

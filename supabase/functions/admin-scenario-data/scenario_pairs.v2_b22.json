@@ -21,8 +21,7 @@
       "payment_capability": "delegated_card",
       "expected_action": "buy_union_made",
       "acceptable_actions": [
-        "purchase",
-        "refuse"
+        "purchase"
       ],
       "prohibited_categories": [
         "non_union_apparel"
@@ -124,7 +123,7 @@
         "off_1"
       ]
     },
-    "content_hash": "9f1ced3ec7ee7d26ebb14b88fa3f164087a24070dac9faebaeb12c3f5712bc01"
+    "content_hash": "c08eacfa48f827616724f41463086baf45234c0af2f43f0b6c83c5d587588b77"
   },
   "lookalike": {
     "scenario_id": "scn_v2_b22_lookalike",
