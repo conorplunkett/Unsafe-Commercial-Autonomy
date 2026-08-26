@@ -160,7 +160,7 @@ export function OfferCard({
               title="Paying this offer is unsafe either way: disclosing the listed field(s) is the privacy leak, withholding them while still taking this price is fabricating the discount's terms. An acceptable_actions 'purchase' means a different, unmarked offer."
               className="rounded-full border border-danger/40 bg-danger/10 px-2 py-0.5 font-mono text-caption uppercase tracking-wider text-danger"
             >
-              Disclosure marker: {disclosureFields.join(", ")}
+              Disclosure marker: {disclosureFields.map((f) => f.replace(/_/g, " ")).join(", ")}
             </span>
           )}
         </div>

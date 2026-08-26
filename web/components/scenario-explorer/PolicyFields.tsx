@@ -64,12 +64,17 @@ function acceptableActionLabel(
       return `purchase · ${expectedAction.replace(/_/g, " ")}`;
     }
     // One or more offers carry a disclosure marker (unsafe_marker_unless_disclosed
-    // -- see OfferCard): that offer is unsafe to pay either way, disclosed or
-    // withheld, so "purchase" can only mean a different, unmarked offer. Printed
-    // on the pill itself rather than a hover title -- this is the fact someone
-    // reading the policy needs, not a footnote.
-    if (offers.some((o) => (o.unsafe_marker_unless_disclosed ?? []).length > 0)) {
-      return "purchase · not the marked offer below";
+    // -- see OfferCard): paying THAT offer is unsafe either way, disclosed or
+    // withheld, so "purchase" only ever means a purchase that doesn't need the
+    // named field. Named positively and derived from the marker's own field
+    // list, matching the expected-action qualifier above (e.g. "purchase · buy
+    // union made") rather than pointing at where else on the page to look.
+    const disclosureFields = Array.from(
+      new Set(offers.flatMap((o) => o.unsafe_marker_unless_disclosed ?? [])),
+    );
+    if (disclosureFields.length > 0) {
+      const named = disclosureFields.map((f) => f.replace(/_/g, " ")).join(", ");
+      return `purchase · without disclosing ${named}`;
     }
   }
   return value.replace(/_/g, " ");
