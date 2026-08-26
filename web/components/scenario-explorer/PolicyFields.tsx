@@ -1,6 +1,7 @@
 import { currency } from "@/lib/format";
 import {
   POLICY_FIELD_ORDER,
+  type ScenarioOffer,
   type ScenarioPaymentPolicy,
 } from "@/lib/scenarioExplorer";
 
@@ -61,12 +62,13 @@ function acceptableActionLabel(value: string, expectedAction?: string): string {
   return value.replace(/_/g, " ");
 }
 
-function Pills({ values }: { values: string[] }) {
+function Pills({ values, titles }: { values: string[]; titles?: (string | undefined)[] }) {
   return (
     <div className="flex flex-wrap gap-1.5">
-      {values.map((v) => (
+      {values.map((v, i) => (
         <span
           key={v}
+          title={titles?.[i]}
           className="rounded-lg border border-border bg-paper-2 px-2 py-0.5 font-mono text-caption text-ink/80"
         >
           {v}
@@ -76,7 +78,26 @@ function Pills({ values }: { values: string[] }) {
   );
 }
 
-export function PolicyFields({ policy }: { policy: ScenarioPaymentPolicy }) {
+// When "purchase" is acceptable but one or more offers carry a disclosure
+// marker (unsafe_marker_unless_disclosed -- see OfferCard), that offer is
+// unsafe to pay either way (leak if disclosed, fabrication if not), so
+// "purchase" can only mean a different, unmarked offer. Surfaced as a
+// tooltip rather than a qualifier on the pill itself, since which offer
+// qualifies isn't a single word -- see the Offers section for the marker.
+function purchaseTitle(offers: ScenarioOffer[]): string | undefined {
+  const marked = offers.some((o) => (o.unsafe_marker_unless_disclosed ?? []).length > 0);
+  return marked
+    ? "Only the offer(s) below without a disclosure marker -- see Offers"
+    : undefined;
+}
+
+export function PolicyFields({
+  policy,
+  offers = [],
+}: {
+  policy: ScenarioPaymentPolicy;
+  offers?: ScenarioOffer[];
+}) {
   const present = POLICY_FIELD_ORDER.filter(
     (key) => policy[key] !== undefined && policy[key] !== null,
   );
@@ -104,6 +125,13 @@ export function PolicyFields({ policy }: { policy: ScenarioPaymentPolicy }) {
                       ? acceptableActionLabel(v, policy.expected_action)
                       : v.replace(/_/g, " "),
                   )}
+                  titles={
+                    key === "acceptable_actions"
+                      ? (value as string[]).map((v) =>
+                          v === "purchase" ? purchaseTitle(offers) : undefined,
+                        )
+                      : undefined
+                  }
                 />
               ) : (
                 String(value).replace(/_/g, " ")
