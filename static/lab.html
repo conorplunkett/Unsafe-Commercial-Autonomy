@@ -6,7 +6,7 @@
     <title>Experiment Lab · Unsafe Commercial Autonomy</title>
     <link rel="icon" href="/favicon.ico">
     <link rel="stylesheet" href="/static/styles.css?v=17">
-    <link rel="stylesheet" href="/static/lab.css?v=27">
+    <link rel="stylesheet" href="/static/lab.css?v=28">
   </head>
   <body>
     <div class="lab-page-layout">
@@ -54,7 +54,7 @@
             </div>
           </div>
           <div class="runner-span">
-            <span class="runner-label" title="One chip per benchmark study. Picking one sets the condition and axis chips below to that study's cells; editing any chip by hand switches back to a custom selection.">Study</span>
+            <span class="runner-label" title="The benchmark's two-run design: Baseline answers studies 1–3 and 5–6, Pressure answers study 4. Picking one sets the condition and axis chips below; editing any chip by hand switches back to a custom selection.">Run preset</span>
             <div id="studyPresetChips" class="chip-row"></div>
           </div>
           <div class="runner-span">
@@ -122,6 +122,7 @@
         <div class="runner-actions">
           <button id="runBenchmark" class="runner-button" type="button">Run benchmark</button>
           <span id="runCount" class="runner-hint"></span>
+          <span id="studyReadout" class="study-readout"></span>
           <div class="cli-snippet" title="Equivalent command for running this from a terminal instead of clicking Run benchmark.">
             <code id="cliCommand"></code>
             <button id="copyCliButton" type="button" class="cli-copy-btn">Copy</button>
@@ -219,7 +220,7 @@
               <tr>
                 <th title="When this run was started.">When</th>
                 <th title="Which AI model this run tested.">Model</th>
-                <th title="How much of the test set this run covered. Smoke = at least one scenario ran. Full = every scenario under every control condition its phase defines (3 conditions in both phases), shown as covered/total scenario×condition cells.">Phase</th>
+                <th title="How much of the test set this run covered. Smoke = at least one scenario ran. Full = every cell the phase's studies need — Phase 2 counts scenario×condition×pressure cells and the numbered dots are studies 1–6 (green = answerable from this run); Phase 1 counts scenario×condition cells.">Phase</th>
                 <th title="What safety rules the agent had (left column), and whether there was time pressure or the person was away (right column).">Conditions</th>
                 <th title="How many test cases (scenarios) this run scored.">n</th>
                 <th title="Unsafe payment — how often the agent went ahead and paid for something it shouldn't have. Scored on the structured-policy condition with no pressure axes, where the rules were on screen; other conditions have their own numbers in the condition breakdowns.">Unsafe</th>
@@ -240,6 +241,22 @@
             <tbody id="runListTable"></tbody>
           </table>
         </div>
+      </section>
+
+      <section class="taxonomy-panel lab-study-results" id="section-study-results" aria-label="Study results">
+        <div class="panel-heading">
+          <h2>Study results</h2>
+          <span id="studyResultsStamp" class="run-stamp"></span>
+        </div>
+        <p class="panel-legend">
+          <strong>rates</strong> — condition A → condition B.
+          <strong>delta</strong> — risk difference with its paired 95% CI;
+          negative means the added control or removed pressure helped.
+          One row per model, from its widest stored run — run date and
+          pairing counts in the row tooltip. Study 1 is the Unsafe payment
+          chart; studies 5–6 are the survey-grounded axes.
+        </p>
+        <div id="studyResultsContent" class="phases-content"></div>
       </section>
 
       <main class="content-grid model-content-grid lab-results" id="section-results">
@@ -334,9 +351,12 @@
         </div>
         <p class="panel-legend">
           <strong>smoke</strong> — at least one scenario has run.
-          <strong>full</strong> — every scenario run under every control
-          condition its phase defines (3 conditions in both phases); shown as
-          covered/total scenario×condition cells.
+          <strong>full</strong> — every cell the phase's studies need: Phase 2
+          counts scenario×condition×pressure cells (all six studies
+          answerable), Phase 1 scenario×condition cells.
+          <strong>1–6</strong> — studies 1–6; green = answerable from the
+          pooled runs, amber = partly covered, dashed = survey coverage
+          unavailable.
           <strong>Conditions</strong> — the three levels of safety guidance:
           no policy (none), a stated policy (told in the prompt for Phase 1,
           given as structured fields for Phase 2), and tool constraints (the
@@ -357,7 +377,7 @@
       <div id="modelDashboard" hidden>
         <section class="model-chart-grid" aria-label="Rates by model">
           <article class="chart-card">
-            <div class="panel-heading"><h2>Unsafe payment</h2></div>
+            <div class="panel-heading"><h2>Unsafe payment</h2><span class="run-stamp">Study 1</span></div>
             <div id="chartUnsafe" class="bar-chart bar-chart--danger"></div>
           </article>
           <article class="chart-card">
@@ -381,19 +401,19 @@
             <div id="chartStoppage" class="bar-chart bar-chart--danger"></div>
           </article>
           <article class="chart-card">
-            <div class="panel-heading"><h2>Human acceptance</h2></div>
+            <div class="panel-heading"><h2>Human acceptance</h2><span class="run-stamp">Study 5</span></div>
             <div id="chartAcceptance" class="bar-chart bar-chart--ok"></div>
           </article>
           <article class="chart-card">
-            <div class="panel-heading"><h2>Human preferred alignment</h2></div>
+            <div class="panel-heading"><h2>Human preferred alignment</h2><span class="run-stamp">Study 5</span></div>
             <div id="chartPreferredAlignment" class="bar-chart bar-chart--ok"></div>
           </article>
           <article class="chart-card">
-            <div class="panel-heading"><h2>Asks when supposed to</h2></div>
+            <div class="panel-heading"><h2>Asks when supposed to</h2><span class="run-stamp">Study 6</span></div>
             <div id="chartCalibration" class="bar-chart"></div>
           </article>
           <article class="chart-card">
-            <div class="panel-heading"><h2>Vs reflexive floor</h2></div>
+            <div class="panel-heading"><h2>Vs reflexive floor</h2><span class="run-stamp">Study 6</span></div>
             <div id="chartFloor" class="bar-chart"></div>
           </article>
         </section>
@@ -713,6 +733,7 @@
         var SECTIONS = [
           { id: 'section-run', label: 'Run' },
           { id: 'section-runs', label: 'Runs' },
+          { id: 'section-study-results', label: 'Study results' },
           { id: 'section-results', label: 'Results' },
           { id: 'section-phases', label: 'Phases' },
           { id: 'section-bymodel', label: 'By model' },
@@ -794,6 +815,6 @@
         }, { passive: true });
       })();
     </script>
-    <script src="/static/lab.js?v=31"></script>
+    <script src="/static/lab.js?v=32"></script>
   </body>
 </html>

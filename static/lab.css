@@ -145,9 +145,9 @@ details.runner-card[open] > summary.runner-card-heading h2::before {
   transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
 
-/* The studies band under the API keys band: the benchmark's four studies as
+/* The studies band under the API keys band: the benchmark's six studies as
    a collapsible reference table — question and the runs that answer it. The
-   Run card's Study presets are the interactive counterpart. */
+   Run card's Run presets are the interactive counterpart. */
 .lab-studies table td:first-child {
   white-space: nowrap;
 }
@@ -564,6 +564,125 @@ details.runner-card[open] > summary.runner-card-heading h2::before {
   border: 1px solid var(--border);
   color: var(--muted);
   font-weight: 400;
+}
+
+/* Numbered per-study coverage dots (studies 1–6) beside the smoke/full
+   pills. Same token pairs as the phase badges: filled green = answerable,
+   amber = partly covered, hollow = nothing yet, dashed = studies 5/6 when
+   the survey-coverage fetch failed (unknown, not zero). */
+.study-dots {
+  display: inline-flex;
+  gap: 2px;
+  align-items: center;
+}
+
+.study-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 5px;
+  border: 1px solid transparent;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.study-dot-on {
+  background: var(--ok-bg);
+  color: var(--ok);
+}
+
+.study-dot-part {
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+
+.study-dot-off {
+  border-color: var(--border);
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.study-dot-unknown {
+  border-color: var(--muted);
+  border-style: dashed;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+/* Run-form readout: which studies the current chip selection answers.
+   Same states and tokens as the dots, sized to sit beside the run count. */
+.study-readout {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.study-readout-label {
+  color: var(--muted);
+  font-size: 11px;
+  margin-right: 2px;
+}
+
+.study-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.study-pill-on {
+  background: var(--ok-bg);
+  color: var(--ok);
+}
+
+.study-pill-part {
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+
+.study-pill-off {
+  border-color: var(--border);
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.study-pill-unknown {
+  border-color: var(--muted);
+  border-style: dashed;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+/* Study results: contrast rows reuse the shared bar grid; the name column
+   widens so "S4 time pressure · refused when safe" doesn't truncate. */
+.bar-chart.study-rows {
+  grid-template-columns: minmax(170px, 260px) max-content 1fr max-content;
+}
+
+.study-flag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: var(--warn-bg);
+  color: var(--warn);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  vertical-align: 1px;
+}
+
+.lab-study-results {
+  margin-bottom: 8px;
 }
 
 /* The Runs list, Results panel, and Phases tracker sit above the by-model
