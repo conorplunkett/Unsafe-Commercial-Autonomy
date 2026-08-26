@@ -1,5 +1,13 @@
 # Changelog
 
+## [2026-08-26] Studies 5 & 6 named: human alignment and reflexive asking
+
+The survey-grounded axes are now two studies scored on the 44 surveyed
+scenarios in the headline cell against the human vote distribution: study 5,
+does the model do what humans prefer and accept; study 6, does it ask more
+reflexively than humans do. No new runs or metrics — naming and placement in
+README and the Lab's Studies band.
+
 ## [2026-08-26] Scenario Explorer deploy guard script
 
 `scripts/deploy_scenario_explorer.sh` wraps the `admin-scenario-data` deploy
