@@ -240,6 +240,22 @@ def phase2_enforcement_scope():
     return {"in_enforced_arm": sorted(enforcement_scope_ids(scenarios))}
 
 
+@app.get("/api/phase2/survey-coverage")
+def phase2_survey_coverage():
+    # The survey-covered scenario ids: the question ids of the committed
+    # Phase 2 aggregate (data/survey/phase2_results_v2_web_r3.json) — exactly
+    # the scenarios whose episodes carry human_preferred_share, since
+    # app/data.py merges these distributions into every scenario's answer
+    # key. NOT derivable from answer_key_status: e11_trap was surveyed and
+    # then redesigned objective, so it stays survey-covered while carrying an
+    # objective status. The Lab's studies 5 and 6 coverage math
+    # (static/lab.js) reads this to know which scenarios those studies can
+    # score at all.
+    from .phase2.web_survey import phase2_human_action_distributions
+
+    return {"survey_covered": sorted(phase2_human_action_distributions())}
+
+
 @app.get("/api/scenarios/{scenario_id}")
 def read_scenario(scenario_id: str):
     try:

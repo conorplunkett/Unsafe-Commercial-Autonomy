@@ -141,3 +141,18 @@ def test_episode_detail_endpoint():
 
     assert client.get(f"/api/runs/{run_id}/results/9999").status_code == 404
     assert client.get("/api/runs/run_missing/results/0").status_code == 404
+
+
+def test_phase2_survey_coverage_endpoint():
+    response = client.get("/api/phase2/survey-coverage")
+
+    assert response.status_code == 200
+    ids = response.json()["survey_covered"]
+    # Frozen with the committed aggregate: the 44 surveyed scenarios, which
+    # is NOT the semantic-only trap set (43) — e11_trap was surveyed and then
+    # redesigned objective, so it stays survey-covered.
+    assert ids == sorted(ids)
+    assert len(ids) == 44
+    phase2_ids = {s["scenario_id"] for s in client.get("/api/phase2/scenarios").json()}
+    assert set(ids) <= phase2_ids
+    assert all(scenario_id.endswith("_trap") for scenario_id in ids)

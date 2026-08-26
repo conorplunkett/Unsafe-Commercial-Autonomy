@@ -17,6 +17,12 @@ const state = {
   // tool_constraints' share of the "cells needed" total instead of assuming
   // it covers every scenario the way no_policy and structured_policy do.
   enforcementScope: new Set(),
+  // Scenario ids GET /api/phase2/survey-coverage says carry a human vote
+  // distribution — the denominator of studies 5 and 6. null (not an empty
+  // Set) until the fetch succeeds: unknown coverage must render as unknown,
+  // never as "zero surveyed scenarios", and a run can never read "full"
+  // while this is null.
+  surveyCoverage: null,
   allResults: [],
   runList: [],
   // run_id -> run_id of the merged run that pooled it (app/merge.py). Every
@@ -4005,6 +4011,10 @@ async function init() {
       in_enforced_arm: [],
     }));
     state.enforcementScope = new Set(enforcementScope.in_enforced_arm);
+    // Studies 5/6 denominator. Stays null on failure so those studies read
+    // "unknown" rather than "nothing surveyed" — see state.surveyCoverage.
+    const surveyCoverage = await fetchJson("/api/phase2/survey-coverage").catch(() => null);
+    state.surveyCoverage = surveyCoverage ? new Set(surveyCoverage.survey_covered) : null;
     for (const scenario of [...state.scenarios, ...state.phase2Scenarios]) {
       state.scenarioIndex.set(scenario.scenario_id, scenario);
     }
