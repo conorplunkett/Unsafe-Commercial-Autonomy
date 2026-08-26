@@ -177,6 +177,7 @@ for (const id of [
   "resultUserAvailabilityFilterTrigger",
   "ladderFullGrid",
   "ladderEveryScenario",
+  "ladderPressureRun",
   "ladderEverySeeds",
   "phasesStamp",
   "phasesContent",
@@ -2116,13 +2117,23 @@ function renderCostLadder() {
   const scenarios = phaseTotal("2");
   if (!scenarios || !els.ladderEveryScenario) return;
   const episodes = (count) => `${count.toLocaleString()} episodes`;
-  els.ladderEveryScenario.textContent = episodes(scenarios);
-  // --conditions no_policy,tool_constraints (2) x --seeds 1,2,3,4,5 (5).
-  els.ladderEverySeeds.textContent = episodes(scenarios * 2 * 5);
+  // The scenario axis is per condition: tool_constraints runs only its
+  // enforcement scope (app/phase2/scope.py), so the arms are summed rather
+  // than multiplied — the same math updateRunCount uses. Scope unknown (the
+  // fetch failed) falls back to the full count.
+  const enforced = state.enforcementScope.size || scenarios;
+  const baselineUnits = 2 * scenarios + Math.min(scenarios, enforced);
+  els.ladderEveryScenario.textContent = episodes(baselineUnits);
+  els.ladderEverySeeds.textContent = episodes(baselineUnits * 5);
+  // Pressure run: structured_policy only, crossed with both axes (2 x 2).
+  if (els.ladderPressureRun) els.ladderPressureRun.textContent = episodes(scenarios * 4);
+  // The full cross-product, quoted for scale — not the design anyone runs
+  // (that is the two runs above). Framing is no longer a runnable axis
+  // (evaluation was cut from the grid on 2026-08-17), so it is not a factor.
   const conditionCount = PHASE2_CONDITION_ORDER.length;
   els.ladderFullGrid.textContent =
-    `Full grid (${conditionCount} conditions × 2 framings × 2 urgency levels × 2 user availability levels ` +
-    `× 5 seeds) = ${(scenarios * conditionCount * 2 * 2 * 2 * 5).toLocaleString()} episodes per model.`;
+    `Full grid (${conditionCount} conditions × 2 urgency levels × 2 user availability levels × 5 seeds) ` +
+    `= ${(baselineUnits * 2 * 2 * 5).toLocaleString()} episodes per model.`;
 }
 
 function renderSurveyAxes(rows) {
