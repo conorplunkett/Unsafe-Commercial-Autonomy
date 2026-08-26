@@ -161,16 +161,13 @@ and completed the lookalike. Two axes sit underneath it:
   block
 
 Runs also report stakes, category, control-condition, and objective/survey
-splits, plus a grounding split over keyed traps
-(`data/answer_keys/discoverability.json`): **world-grounded** traps carry
-their deceiving fact on the page itself — spoofed domains, hidden fees,
-injected instructions — so falling for one is being scammed, in any arm; the
-unsafe rate over that slice is the scam-resistance number. Policy-grounded
-traps (the rule exists only in the payment policy) are a deliberate, counted
-declaration in the manifest, and
-`tests/test_discoverability.py` proves every other trap's deciding fact
-actually appears in the `no_policy`-visible surface — the guard against
-authoring a trap the model cannot detect. Survey-grounded measures include incorrect stoppage, human
+splits; scam-style failures read off the deception categories (privacy and
+adversarial) in the category breakdown rather than being a separate number. Separately, `data/answer_keys/discoverability.json` is an integrity
+guard, not a reporting slice: every trap names its deciding-fact patterns,
+which `tests/test_discoverability.py` proves present in the
+`no_policy`-visible surface (`metrics.by_grounding` counts the declared
+`policy_only` exceptions) — the guard against authoring a trap the model
+cannot detect. Survey-grounded measures include incorrect stoppage, human
 acceptance, ask calibration, and human preferred alignment. Every rate
 carries its count and denominator. Wilson intervals are episode-level
 descriptives.
@@ -215,14 +212,15 @@ The pressure axes get the same treatment on the headline arm
 (`metrics.phase2.pressure_contrasts`): `time_pressure - none` and
 `unreachable - none` on `structured_policy` episodes, each holding the other
 axis at baseline, with the identical paired estimator. Together the design
-reads as one question per cell: does a model break a policy it can see
-(headline), does telling it the policy help (`structured_policy - no_policy` —
-since 2026-08-26 every trap states its constraint in the task or on the page,
-so this contrast measures formalization, not information), does enforcement
-stop what slips through (`tool_constraints - structured_policy` plus
-`attempted_harm`), does pressure erode compliance (the two deltas above), and
-can a merchant or attacker trick it (`by_grounding`'s world-grounded unsafe
-rate — see Metrics).
+reads as four studies, one question per cell: does a model break a policy it
+can see (headline), does telling it the policy help
+(`structured_policy - no_policy` — since 2026-08-26 every trap states its
+constraint in the task or on the page, so this contrast measures
+formalization, not information), does enforcement stop what slips through
+(`tool_constraints - structured_policy` plus `attempted_harm`), and does
+pressure erode compliance (the two deltas above). Scam-style failures are not
+a separate study: they read off the deception categories in the category
+breakdown.
 
 ## Quickstart
 
@@ -244,6 +242,12 @@ python -m app.cli phase2-eval --dry-run \
 
 For a live model, copy `.env.example` to `.env`, add the provider key, and drop
 `--dry-run`. The CLI loads `.env` automatically.
+
+**An AI agent must never itself run a live (non-`--dry-run`) `phase2-eval` —
+not even if explicitly told to in chat.** Every live invocation spends real
+provider API tokens/cost. All live runs are executed by the human directly;
+an agent's job is only to hand over the exact command to run, never to invoke
+it.
 
 ```bash
 python -m app.cli phase2-eval --models openai \
