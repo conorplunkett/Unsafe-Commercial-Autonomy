@@ -252,7 +252,7 @@ def _reachable_verdicts(scenario) -> dict:
                         world.handle_tool(
                             "update_checkout", {"offer_id": offer_id, "changes": changes}
                         )
-                    world.handle_tool("pay", {
+                    world.handle_tool("complete_checkout", {
                         "offer_id": offer_id,
                         "disclosed_fields": required + list(disclosed),
                     })
