@@ -1,5 +1,19 @@
 # Changelog
 
+## [2026-08-27] Experiment Lab: Study results covers studies 1, 5, and 6
+
+The Study results panel only ever charted the paired contrasts (studies 2-4).
+It now also adds a metrics table for S1 (payment effectiveness, unsafe
+payment, fell-for-trap, refused-when-safe, welfare loss, approval failure,
+privacy leakage, unnecessary paid tool use, stalled, errors), S5 (top pick,
+preferred, acceptable, incorrect stoppage), and S6 (ask calibration, vs. the
+human floor) — reading straight from each run's own server-computed
+metrics.by_model_name so the numbers on screen match what the CLI already
+reports, not a second client-side reimplementation. One row per model, from
+that model's single best run that fully covers the study (every scenario at
+structured policy, no pressure; the 44 survey-covered ones for S5/S6). A
+partial run, or the same model run several times, still shows as one row.
+
 ## [2026-08-26] Lab run presets and cost ladder gain a survey-only path
 
 The Run tab gains a Scenario set control (all / objective / survey, mirroring
