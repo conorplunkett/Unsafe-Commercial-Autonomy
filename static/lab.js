@@ -29,6 +29,9 @@ const state = {
   // episode of a superseded run also lives inside that merged run, so the
   // stored file is a duplicate copy the Runs table flags for deletion.
   superseded: new Map(),
+  // Superseded runs are duplicate copies of a merged run, so the Runs table
+  // hides their rows by default; the heading toggle shows them for tidy-up.
+  showSuperseded: false,
   // The current Phase 2 scoring-key version from GET /api/answer-key-version.
   // A run whose stored answer_key_version differs was scored against a key that
   // has since changed, so the Runs table flags it "outdated". null until the
@@ -210,6 +213,7 @@ for (const id of [
   "runListTable",
   "runListStamp",
   "runSupersededAction",
+  "runSupersededToggle",
   "labEmpty",
 ]) {
   els[id] = document.querySelector(`#${id}`);
@@ -4291,15 +4295,28 @@ function renderStudyResults() {
 }
 
 function renderRunList() {
-  els.runListStamp.textContent = state.runFilters.size
-    ? `${state.runList.length} stored — filtered, click a selected row to clear it`
-    : `${state.runList.length} stored`;
   // Superseded runs are safe to delete — their episodes are inside the merged
-  // run — so the count doubles as the button that clears them all.
+  // run — so the count doubles as the button that clears them all. Their rows
+  // are hidden by default (a duplicate copy is noise, not data); the heading
+  // toggle shows them when tidying up.
   const supersededIds = state.runList
     .map((run) => run.run_id)
     .filter((runId) => state.superseded.has(runId));
-  els.runSupersededAction.hidden = supersededIds.length === 0;
+  const visibleRuns = state.showSuperseded
+    ? state.runList
+    : state.runList.filter((run) => !state.superseded.has(run.run_id));
+  const hiddenNote =
+    supersededIds.length && !state.showSuperseded
+      ? ` · ${supersededIds.length} superseded hidden`
+      : "";
+  els.runListStamp.textContent = state.runFilters.size
+    ? `${visibleRuns.length} stored${hiddenNote} — filtered, click a selected row to clear it`
+    : `${visibleRuns.length} stored${hiddenNote}`;
+  els.runSupersededToggle.hidden = supersededIds.length === 0;
+  els.runSupersededToggle.textContent = state.showSuperseded
+    ? "Hide superseded"
+    : `Show ${supersededIds.length} superseded`;
+  els.runSupersededAction.hidden = supersededIds.length === 0 || !state.showSuperseded;
   els.runSupersededAction.textContent = `Delete ${supersededIds.length} superseded`;
   els.runSupersededAction.title = supersededIds.join(", ");
   // The Runs section sits above the by-model dashboard and is always shown
@@ -4312,12 +4329,12 @@ function renderRunList() {
     els.runListTable.innerHTML = loadingRow(24, "Loading runs…");
     return;
   }
-  if (!state.runList.length) {
+  if (!visibleRuns.length) {
     els.runListTable.innerHTML =
       '<tr><td colspan="24" class="empty-state">No runs yet. Pick a model above and hit Run benchmark.</td></tr>';
     return;
   }
-  els.runListTable.innerHTML = state.runList
+  els.runListTable.innerHTML = visibleRuns
     .map((run) => {
       const metrics = summarize(run.results);
       const { incorrectStoppage, humanAcceptance, humanPreferredAlignment, askCalibration } = metrics;
@@ -4805,6 +4822,10 @@ function bindEvents() {
     renderDetail(filtered);
   });
   els.runSupersededAction.addEventListener("click", deleteSupersededRuns);
+  els.runSupersededToggle.addEventListener("click", () => {
+    state.showSuperseded = !state.showSuperseded;
+    renderRunList();
+  });
   els.runListTable.addEventListener("click", (event) => {
     const button = event.target.closest(".run-delete");
     if (button) {
