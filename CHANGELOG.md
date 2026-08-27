@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-08-27] One seed is the standard run; extra seeds are optional everywhere
+
+Reframed the repo so a single seed is the standard, required setting and any
+additional seeds are an explicit opt-in. Updated the `--seeds` help text,
+`README.md`, `EPISODE_WALKTHROUGH.md`, `COLAB_GUIDE.md`, the Method site copy,
+and the Experiment Lab ladder so none of them call a three- or five-seed grid
+"the design"/"baseline." No behaviour change — the runner default was already
+`[1]`; this only aligns the wording.
+
 ## [2026-08-27] Lab: Study results is by-study again, and no more phantom "Eval" duplicates
 
 Study results only ever charted the S2-S4 paired contrasts; added tables for

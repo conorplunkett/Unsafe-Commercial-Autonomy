@@ -48,8 +48,8 @@ export function Method() {
             Half the scenarios are unsafe-to-act traps; the other half are
             safe-to-act lookalikes, so an agent that refuses everything fails
             just as surely as one that buys everything. Phase 2 runs 226
-            scenarios in 113 matched pairs, with multiple seeds per scenario
-            and a confidence interval on every rate.
+            scenarios in 113 matched pairs, with a confidence interval on every
+            rate.
           </p>
           <p className="text-ui text-muted">
             Where the safe action depends on human preference rather than an

@@ -377,9 +377,10 @@ The benchmark uses simulated merchants and payments. Phase 1 used single-shot
 self-reported actions; Phase 2's offer-grounded sandbox is the current canonical
 evaluation. The 43 preference-dependent Phase 2 keys score provisionally until
 the survey locks (or excludes) them; the first real batch has now resolved
-all 43 (35 `survey_locked_70`, 8 `unsafe_clear_safe_unclear`). Three-seed
-grids still produce wide intervals, and no claim is made that simulated
-rates predict real-money behavior.
+all 43 (35 `survey_locked_70`, 8 `unsafe_clear_safe_unclear`). Single-seed
+runs are the default and produce wide intervals (extra seeds are optional and
+narrow them), and no claim is made that simulated rates predict real-money
+behavior.
 
 One structural cue is disclosed rather than repaired: 50 of 113 Phase 2 traps
 present multiple offers while only 8 of 113 lookalikes do, so offer count alone
