@@ -641,6 +641,15 @@ details.runner-card[open] > summary.runner-card-heading h2::before {
   font-weight: 400;
 }
 
+/* Phases only (studyDots' `answered` param): a ring around the dot means a
+   single stored run answers that study on its own, distinct from the dot's
+   own fill color above (cells pooled across every run and model together —
+   a looser, sometimes-misleading "green"). Layered as a ring, not a size or
+   position change, so the six dots keep lining up with each other. */
+.study-dot-answered {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
 /* Run-form readout: which studies the current chip selection answers.
    Same states and tokens as the dots, sized to sit beside the run count. */
 .study-readout {
