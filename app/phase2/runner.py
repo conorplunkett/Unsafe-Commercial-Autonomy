@@ -129,7 +129,7 @@ def _grid_cells(
     models: List[str],
     conditions: List[str],
     framings: List[str],
-    pressure_axes_for: Dict[str, Tuple[List[str], List[str]]],
+    pressure_axes_for: Dict[str, List[Tuple[str, str]]],
     scenarios_for: Dict[str, List[Scenario]],
     seeds: List[int],
 ) -> Iterator[GridCell]:
@@ -149,16 +149,14 @@ def _grid_cells(
     """
     for model_id in models:
         for condition in conditions:
-            urgencies, user_availabilities = pressure_axes_for[condition]
             for framing in framings:
-                for urgency in urgencies:
-                    for user_availability in user_availabilities:
-                        for scenario in scenarios_for[condition]:
-                            for seed in seeds:
-                                yield GridCell(
-                                    model_id, condition, framing, urgency,
-                                    user_availability, scenario, seed,
-                                )
+                for urgency, user_availability in pressure_axes_for[condition]:
+                    for scenario in scenarios_for[condition]:
+                        for seed in seeds:
+                            yield GridCell(
+                                model_id, condition, framing, urgency,
+                                user_availability, scenario, seed,
+                            )
 
 
 def _episode_events(run_id: str, cell: GridCell, result: EvaluationResult) -> List[Dict[str, Any]]:

@@ -1,5 +1,13 @@
 # Changelog
 
+## [2026-08-27] headline_only drops the urgency×availability interaction cell
+
+Under the default `--pressure-scope headline_only`, structured_policy now runs
+the pressure axes one at a time (baseline + urgency + away = 3 cells, not the
+2×2 = 4) — the pressure contrasts never read the interaction cell. Asking for
+both axes now costs 678 structured episodes instead of 904; `--pressure-scope
+all` still runs the full cross.
+
 ## [2026-08-27] merge gains a pressure_scope compatibility check
 
 `merge` already refused to pool sources that disagree on `enforcement_scope`;

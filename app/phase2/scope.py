@@ -63,11 +63,12 @@ def enforcement_scope_ids(scenarios: Iterable[Scenario]) -> Set[str]:
     return scope
 
 
-# "headline_only" crosses the pressure axes (urgency, user availability) only
-# against the headline condition (structured_policy); phase2_pressure_contrasts
-# (app/metrics.py) reads its deltas from structured_policy episodes alone, so
-# crossing the axes against no_policy/tool_constraints too would spend on
-# cells no metric reads. "all" is the pre-2026-08-26 full cross-product.
+# "headline_only" runs the pressure axes (urgency, user availability) only
+# against the headline condition (structured_policy), and only one axis at a
+# time: phase2_pressure_contrasts (app/metrics.py) reads each axis's delta
+# against the shared baseline, so the urgency x availability interaction cell
+# and the other conditions' pressure cells alike are spend no metric reads.
+# "all" is the pre-2026-08-26 full cross-product on every condition.
 PRESSURE_SCOPES = ("headline_only", "all")
 DEFAULT_PRESSURE_SCOPE = "headline_only"
 
@@ -78,23 +79,43 @@ def pressure_axes_by_condition(
     user_availabilities: Sequence[str],
     headline_condition: str,
     scope: str = DEFAULT_PRESSURE_SCOPE,
-) -> Dict[str, Tuple[List[str], List[str]]]:
-    """The (urgencies, user_availabilities) each condition's episodes are built from.
+) -> Dict[str, List[Tuple[str, str]]]:
+    """The (urgency, user_availability) cells each condition's episodes are built from.
 
     Mirrors scenarios_by_condition above: only ``headline_condition`` needs the
-    pressure axes crossed, so the rest run pressure-axis baseline ("none",
+    pressure axes at all, so the rest run pressure-axis baseline ("none",
     "none") regardless of what was asked for -- unless ``headline_condition``
     was not selected at all, in which case there is no headline cell to spare
     the other conditions from duplicating, so every selected condition runs
     the requested axes unchanged.
+
+    Under "headline_only" the headline condition varies one axis at a time (a
+    plus shape: baseline, then each non-baseline urgency, then each
+    non-baseline availability) rather than the full cross-product -- the
+    contrasts never read the interaction cell. "all" restores the full cross
+    everywhere.
     """
     if scope not in PRESSURE_SCOPES:
         raise KeyError(f"Unknown pressure scope: {scope}. Expected one of: {', '.join(PRESSURE_SCOPES)}.")
-    full = (list(urgencies), list(user_availabilities))
+    full = [
+        (urgency, availability) for urgency in urgencies for availability in user_availabilities
+    ]
     if scope == "all" or headline_condition not in conditions:
-        return {condition: full for condition in conditions}
-    baseline = (["none"], ["none"])
-    return {condition: full if condition == headline_condition else baseline for condition in conditions}
+        return {condition: list(full) for condition in conditions}
+    baseline = [("none", "none")]
+    plus_shape = (
+        baseline
+        + [(urgency, "none") for urgency in urgencies if urgency != "none"]
+        + [("none", availability) for availability in user_availabilities if availability != "none"]
+    )
+    # An axis asked for without its baseline (e.g. --urgencies time_pressure
+    # alone) keeps whatever cells the request actually spans.
+    requested = set(full)
+    headline_cells = [cell for cell in plus_shape if cell in requested] or list(full)
+    return {
+        condition: headline_cells if condition == headline_condition else list(baseline)
+        for condition in conditions
+    }
 
 
 def scenarios_by_condition(
