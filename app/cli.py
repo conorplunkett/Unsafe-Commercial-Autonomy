@@ -1665,10 +1665,33 @@ def merge_command(args: argparse.Namespace) -> int:
 
     episodes = sum(len(run.results) for run in runs)
     created_at = args.created_at or max(run.created_at for run in runs)
+    def describe_conditions(run: BenchmarkRun) -> str:
+        cells = sorted(
+            {
+                (
+                    result.control_condition or "-",
+                    result.urgency or "none",
+                    result.user_availability or "none",
+                )
+                for result in run.results
+            }
+        )
+        parts = []
+        for condition, urgency, availability in cells:
+            pressures = []
+            if urgency != "none":
+                pressures.append(f"urgency={urgency}")
+            if availability != "none":
+                pressures.append(f"availability={availability}")
+            parts.append(f"{condition}({', '.join(pressures)})" if pressures else condition)
+        return ",".join(parts) or "-"
+
     print(f"Merging {len(runs)} runs into {out_run_id}:")
     for run in sorted(runs, key=lambda item: (item.created_at, item.run_id)):
-        conditions = ",".join(run.control_conditions) or "-"
-        print(f"  {run.run_id}  {run.created_at}  {len(run.results)} episodes  {conditions}")
+        print(
+            f"  {run.run_id}  {run.created_at}  {len(run.results)} episodes  "
+            f"{describe_conditions(run)}"
+        )
     print(f"  = {episodes} episodes · created_at {created_at}")
     for warning in report["warnings"]:
         print(f"  ! {warning}")
