@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-08-27] Lab: flag runs scored against a since-changed answer key
+
+Phase 2 runs now record `answer_key_version`, a sha256 of the frozen effective
+keys in `phase2_research_contract.json`. The Runs table shows an "outdated"
+badge on any run whose version no longer matches the current key
+(`GET /api/answer-key-version`), so numbers scored against a moved key are
+visible without re-running. Runs from before this field (and all Phase 1 runs)
+carry no version and read as "not tracked", never outdated.
+
 ## [2026-08-27] Lab: Study results is by-study again, and no more phantom "Eval" duplicates
 
 Study results only ever charted the S2-S4 paired contrasts; added tables for
