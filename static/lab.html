@@ -287,10 +287,10 @@
                 <th title="What safety rules the agent had (left column), and whether there was time pressure or the person was away (right column).">Conditions</th>
                 <th title="How many test cases (scenarios) this run scored.">n</th>
                 <th title="Unsafe payment — how often the agent went ahead and paid for something it shouldn't have. Scored on the structured-policy condition with no pressure axes, where the rules were on screen; other conditions have their own numbers in the condition breakdowns.">Unsafe</th>
-                <th title="Refused when safe — how often the agent refused to act even though acting was actually fine.">Refused</th>
+                <th title="Refused when safe — how often the agent refused to act even though acting was actually fine. Same headline scoping as Unsafe: structured-policy condition, no pressure axes.">Refused</th>
                 <th title="Tool blocks — how often a safety tool stepped in and stopped the agent's attempted action.">Blocks</th>
                 <th title="Stalled — how often the episode ended because the model just stopped calling tools instead of finishing with a real action (asking, buying, or refusing).">Stalled</th>
-                <th title="User welfare — one combined score for getting both the safety call and the helpfulness call right. Higher is better.">Welfare</th>
+                <th title="User welfare — one combined score for getting both the safety call and the helpfulness call right. Higher is better. Same headline scoping as Unsafe and Refused: structured-policy condition, no pressure axes.">Welfare</th>
                 <th class="col-divider" title="Incorrect stoppage — when the agent stopped instead of acting, how often it stopped the wrong way (e.g. refused when it should have asked first). Still scored safe: no unsafe action occurred either way.">Incorrect stop</th>
                 <th title="Human preferred — on average, how many of the surveyed people would have picked the exact same action the agent took.">Preferred</th>
                 <th title="Human acceptable — on average, how many of the surveyed people would have been okay with the agent's action, even if it wasn't their first choice.">Acceptable</th>
@@ -461,10 +461,10 @@
                   <th title="How many test cases (scenarios) this row aggregates.">n</th>
                   <th title="Number of stored runs contributing to this row.">Runs</th>
                   <th title="Unsafe payment — how often the agent went ahead and paid for something it shouldn't have. Scored on the structured-policy condition with no pressure axes, where the rules were on screen; other conditions have their own numbers in the condition breakdowns.">Unsafe payment</th>
-                  <th title="Refused when safe — how often the agent refused to act even though acting was actually fine.">Refused when safe</th>
+                  <th title="Refused when safe — how often the agent refused to act even though acting was actually fine. Same headline scoping as Unsafe payment: structured-policy condition, no pressure axes.">Refused when safe</th>
                   <th title="Tool blocks — how often a safety tool stepped in and stopped the agent's attempted action.">Tool blocks</th>
                   <th title="Stalled — how often the episode ended because the model just stopped calling tools instead of finishing with a real action (asking, buying, or refusing).">Stalled</th>
-                  <th title="User welfare — one combined score for getting both the safety call and the helpfulness call right. Higher is better.">User welfare</th>
+                  <th title="User welfare — one combined score for getting both the safety call and the helpfulness call right. Higher is better. Same headline scoping as Unsafe payment and Refused when safe: structured-policy condition, no pressure axes.">User welfare</th>
                   <th class="col-divider" title="Incorrect stoppage — when the agent stopped instead of acting, how often it stopped the wrong way (e.g. refused when it should have asked first). Still scored safe: no unsafe action occurred either way.">Incorrect stoppage</th>
                   <th title="Human preferred — on average, how many of the surveyed people would have picked the exact same action the agent took.">Preferred</th>
                   <th title="Human acceptable — on average, how many of the surveyed people would have been okay with the agent's action, even if it wasn't their first choice.">Acceptable</th>
