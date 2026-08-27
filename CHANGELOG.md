@@ -1,11 +1,14 @@
 # Changelog
 
-## [2026-08-27] Lab: Preferred/Acceptable columns now show percentages
+## [2026-08-27] Preferred/Acceptable now show as percentages everywhere
 
-The Runs and Models tables' Preferred and Acceptable columns showed a raw
-0–1 decimal (e.g. `0.72`) while every other rate column on the same row used
-a rounded percentage. Both now go through the same `percent()` helper, so
-they read `72%` like Unsafe, Refused, Welfare, and Top pick.
+The Lab's Runs and Models tables and the `phase2-eval` CLI summary all
+showed the Preferred/Acceptable (would-accept) human-survey means as a raw
+0–1 decimal (e.g. `0.72` / `0.710`) while every other rate around them was a
+percentage. The Lab tables now go through the same `percent()` helper as
+Unsafe/Refused/Welfare/Top pick, and the CLI's "Human acceptance" line now
+prints `:.1%` like the "Incorrect stoppage"/"Human preferred alignment"/
+"Asks when supposed to" lines beside it.
 
 ## [2026-08-27] Lab: Study 1/5/6 tags restored on the Runs/Models tables
 
