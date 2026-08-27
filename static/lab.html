@@ -43,6 +43,14 @@
             <select id="categoryFilter" class="runner-field"></select>
           </div>
           <div>
+            <label class="runner-label" for="splitFilter" title="Narrow the scenario pool to one half of the set: objective (structured-rule verdicts, the scenarios studies 1&ndash;3 grade) or survey (the human-vote-keyed scenarios studies 5&ndash;6 grade against). Default runs both halves.">Scenario set</label>
+            <select id="splitFilter" class="runner-field">
+              <option value="all">All scenarios</option>
+              <option value="objective">Objective half</option>
+              <option value="survey">Survey half</option>
+            </select>
+          </div>
+          <div>
             <label class="runner-label" for="scenarioFilter" title="Run every scenario in the pool, one at random, or a single specific scenario.">Scenario</label>
             <select id="scenarioFilter" class="runner-field"></select>
           </div>
@@ -54,7 +62,7 @@
             </div>
           </div>
           <div class="runner-span">
-            <span class="runner-label" title="The benchmark's two-run design: Baseline answers studies 1–3 and 5–6, Pressure answers study 4. Picking one sets the condition and axis chips below; editing any chip by hand switches back to a custom selection.">Run preset</span>
+            <span class="runner-label" title="Three run designs, named by the studies each one answers: Baseline (1–3, 5–6), Pressure (4), and Survey (5–6 only, on just the 44 survey-covered scenarios — cheaper when 1–3 aren't needed). Picking one sets the condition, axis, and scenario-set controls below; editing any by hand switches back to a custom selection.">Run preset</span>
             <div id="studyPresetChips" class="chip-row"></div>
           </div>
           <div class="runner-span">
@@ -524,6 +532,11 @@
             <pre>python -m app.cli phase2-eval --models <span class="ladder-model">openai</span> \
   --conditions no_policy,tool_constraints --framings deployment \
   --urgencies all --user-availabilities all --scenario-ids scn_v2_a1_trap --seeds 1</pre>
+          </div>
+          <div class="ladder-rung">
+            <div class="ladder-rung-head"><span class="ladder-name">Survey run · studies 5&ndash;6 only</span><span id="ladderSurveyRun" class="ladder-count">44 episodes</span><button type="button" class="ladder-copy">Copy</button></div>
+            <pre>python -m app.cli phase2-eval --models <span class="ladder-model">openai</span> \
+  --conditions structured_policy --split survey --seeds 1</pre>
           </div>
           <div class="ladder-rung">
             <div class="ladder-rung-head"><span class="ladder-name">Baseline run · studies 1&ndash;3, 5&ndash;6</span><span id="ladderEveryScenario" class="ladder-count">618 episodes</span><button type="button" class="ladder-copy">Copy</button></div>

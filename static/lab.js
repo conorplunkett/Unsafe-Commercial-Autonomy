@@ -143,6 +143,7 @@ for (const id of [
   "userAvailabilityChips",
   "dryRunChip",
   "categoryFilter",
+  "splitFilter",
   "scenarioFilter",
   "seedsInput",
   "temperatureInput",
@@ -169,6 +170,7 @@ for (const id of [
   "resultUserAvailabilityFilterTrigger",
   "ladderFullGrid",
   "ladderEveryScenario",
+  "ladderSurveyRun",
   "ladderPressureRun",
   "ladderEverySeeds",
   "phasesStamp",
@@ -1252,30 +1254,46 @@ function pickProvider(providerId) {
   renderModelSelect();
 }
 
-// The benchmark's two-run design as presets. Applying one writes the
-// condition/axis chips; the studies readout beside the run count says what
-// the resulting run answers. Studies 1–3 and 5–6 all come from the one
-// baseline sitting — running them as separate single-study runs re-buys the
-// shared structured_policy arm each time. The pressure run is
-// self-contained on purpose: pressure_contrasts are computed within a
-// single run at save time, so it carries its own no-pressure baseline, and
-// app/merge.py refuses to pool it with a baseline run (their
-// structured_policy none/none episodes collide).
+// The benchmark's run designs as presets, named by the studies each answers.
+// Applying one writes the condition/axis/scenario-set controls; the studies
+// readout beside the run count says what the resulting run answers. Studies
+// 1–3 and 5–6 all come from the one baseline sitting — running them as
+// separate single-study runs re-buys the shared structured_policy arm each
+// time. The pressure run is self-contained on purpose: pressure_contrasts
+// are computed within a single run at save time, so it carries its own
+// no-pressure baseline, and app/merge.py refuses to pool it with a baseline
+// run (their structured_policy none/none episodes collide). The survey run
+// is the cheap alternative when only 5–6 are wanted: S5/S6 are S1's cells
+// (structured_policy, both axes none) read on the survey-covered scenarios
+// only, so no_policy/tool_constraints and the objective-half scenarios add
+// nothing to them — split "survey" (app/cli.py --split) skips paying for
+// either.
 const STUDY_PRESETS = {
   baseline: {
-    label: "Baseline run",
-    title: "Studies 1, 2, 3, 5, 6 — all three conditions, both pressure axes at none.",
+    label: "Baseline · studies 1–3, 5–6",
+    title: "Studies 1, 2, 3, 5, 6 — all three conditions, both pressure axes at none, every scenario.",
     conditions: ["no_policy", "structured_policy", "tool_constraints"],
     urgencies: [],
     userAvailabilities: [],
+    split: "all",
   },
   pressure: {
-    label: "Pressure run",
+    label: "Pressure · study 4",
     title:
       "Study 4 — structured policy crossed with both pressure axes. Self-contained: includes its own no-pressure baseline; never merged with a baseline run.",
     conditions: ["structured_policy"],
     urgencies: ["none", "time_pressure"],
     userAvailabilities: ["none", "unreachable"],
+    split: "all",
+  },
+  survey: {
+    label: "Survey · studies 5–6",
+    title:
+      "Studies 5, 6 only — structured policy, both pressure axes at none, on just the 44 survey-covered scenarios. Cheaper than the baseline run when 1–3 aren't needed.",
+    conditions: ["structured_policy"],
+    urgencies: [],
+    userAvailabilities: [],
+    split: "survey",
   },
 };
 
@@ -1301,7 +1319,7 @@ function clearStudyPreset() {
 function applyStudyPreset(key) {
   const preset = STUDY_PRESETS[key];
   if (!preset) return;
-  // Both presets are Phase-2-shaped (structured_policy isn't a Phase 1
+  // All three presets are Phase-2-shaped (structured_policy isn't a Phase 1
   // condition), so applying one always lands on Phase 2.
   if (state.phase !== "2") pickPhase("2");
   state.studyPreset = key;
@@ -1312,9 +1330,11 @@ function applyStudyPreset(key) {
   for (const value of preset.urgencies) state.urgencies.add(value);
   state.userAvailabilities.clear();
   for (const value of preset.userAvailabilities) state.userAvailabilities.add(value);
+  if (els.splitFilter) els.splitFilter.value = preset.split || "all";
   renderStudyPresetChips();
   renderConditionChips();
   renderPhase2AxesChips();
+  renderScenarioOptions();
   updateRunCount();
 }
 
@@ -1377,14 +1397,29 @@ function pickPhase(phase) {
   updateRunCount();
 }
 
+// Split mirrors the CLI's --split objective|survey (app/cli.py _resolve_split):
+// objective is the structured-rule-verdict half studies 1–3 grade, survey is
+// the human-vote-keyed half studies 5–6 grade against. state.surveyCoverage
+// missing (fetch failed) leaves the split a no-op rather than emptying the
+// pool, same fallback rule as enforcementScope.
 function scenarioPool() {
   const scenarios = state.phase === "2" ? state.phase2Scenarios : state.scenarios;
   const category = els.categoryFilter.value;
-  return scenarios.filter((scenario) => category === "all" || scenario.category === category);
+  const split = els.splitFilter ? els.splitFilter.value : "all";
+  return scenarios.filter((scenario) => {
+    if (category !== "all" && scenario.category !== category) return false;
+    if (split !== "all" && state.surveyCoverage) {
+      const surveyed = state.surveyCoverage.has(scenario.scenario_id);
+      if (split === "survey" && !surveyed) return false;
+      if (split === "objective" && surveyed) return false;
+    }
+    return true;
+  });
 }
 
 function renderScenarioFilters() {
   const scenarios = state.phase === "2" ? state.phase2Scenarios : state.scenarios;
+  if (els.splitFilter) els.splitFilter.value = "all";
   const categories = [...new Set(scenarios.map((scenario) => scenario.category))].sort();
   els.categoryFilter.innerHTML = [
     '<option value="all">All categories</option>',
@@ -1430,7 +1465,8 @@ function axisCount(selected, defaultCount) {
 function runFormStudyStates() {
   const pool = scenarioPool();
   const choice = els.scenarioFilter.value;
-  const wholeSet = choice === "all" && els.categoryFilter.value === "all";
+  const splitIsAll = !els.splitFilter || els.splitFilter.value === "all";
+  const wholeSet = choice === "all" && els.categoryFilter.value === "all" && splitIsAll;
   const subsetIds =
     choice === "all" || choice === "random"
       ? pool.map((scenario) => scenario.scenario_id)
@@ -1593,11 +1629,15 @@ function scenarioSelectionForCommand() {
   const pool = scenarioPool();
   const choice = els.scenarioFilter.value;
   if (choice === "random") {
-    return { ids: null, note: "“Random” has no CLI flag — pick a --scenario-ids value yourself" };
+    return { ids: null, split: null, note: "“Random” has no CLI flag — pick a --scenario-ids value yourself" };
   }
-  if (choice !== "all") return { ids: [choice], note: null };
-  if (els.categoryFilter.value !== "all") return { ids: pool.map((s) => s.scenario_id), note: null };
-  return { ids: null, note: null };
+  if (choice !== "all") return { ids: [choice], split: null, note: null };
+  if (els.categoryFilter.value !== "all") {
+    return { ids: pool.map((s) => s.scenario_id), split: null, note: null };
+  }
+  const split = els.splitFilter ? els.splitFilter.value : "all";
+  if (split !== "all") return { ids: null, split, note: null };
+  return { ids: null, split: null, note: null };
 }
 
 // Flags/notes shared by both `eval` (Phase 1) and `phase2-eval` (Phase 2):
@@ -1614,6 +1654,8 @@ function buildCommonCliParts() {
   const scenarioSelection = scenarioSelectionForCommand();
   if (scenarioSelection.ids) {
     flags.push(`--scenario-ids ${shellQuote(scenarioSelection.ids.join(","))}`);
+  } else if (scenarioSelection.split) {
+    flags.push(`--split ${scenarioSelection.split}`);
   }
   if (scenarioSelection.note) notes.push(scenarioSelection.note);
 
@@ -1740,7 +1782,10 @@ function selectedScenarioIds() {
     return pick ? [pick.scenario_id] : null;
   }
   if (choice !== "all") return [choice];
-  if (els.categoryFilter.value !== "all") return pool.map((scenario) => scenario.scenario_id);
+  const split = els.splitFilter ? els.splitFilter.value : "all";
+  if (els.categoryFilter.value !== "all" || split !== "all") {
+    return pool.map((scenario) => scenario.scenario_id);
+  }
   return null;
 }
 
@@ -2060,6 +2105,13 @@ function renderCostLadder() {
   const baselineUnits = 2 * scenarios + Math.min(scenarios, enforced);
   els.ladderEveryScenario.textContent = episodes(baselineUnits);
   els.ladderEverySeeds.textContent = episodes(baselineUnits * 3);
+  // Survey run: structured_policy only, on the survey-covered scenarios only
+  // (state.surveyCoverage — the same denominator the S5/S6 readout uses).
+  // Falls back to the full scenario count if the coverage fetch failed,
+  // same rule as the enforcement-scope fallback above.
+  if (els.ladderSurveyRun) {
+    els.ladderSurveyRun.textContent = episodes(state.surveyCoverage ? state.surveyCoverage.size : scenarios);
+  }
   // Pressure run: structured_policy only, crossed with both axes (2 x 2).
   if (els.ladderPressureRun) els.ladderPressureRun.textContent = episodes(scenarios * 4);
   // The full cross-product, quoted for scale — not the design anyone runs
@@ -4183,6 +4235,12 @@ function bindEvents() {
     renderScenarioOptions();
     updateRunCount();
   });
+  if (els.splitFilter) {
+    els.splitFilter.addEventListener("change", () => {
+      renderScenarioOptions();
+      updateRunCount();
+    });
+  }
   els.scenarioFilter.addEventListener("change", updateRunCount);
   els.seedsInput.addEventListener("input", updateRunCount);
   els.temperatureInput.addEventListener("input", updateRunCount);
