@@ -203,6 +203,9 @@ def test_different_models_are_refused():
         # A scoped enforced arm and a full-sweep one are two designs; pooling
         # them would put both in one tool_constraints denominator.
         ("enforcement_scope", "all"),
+        # Same reason, the pressure axes: a headline_only source and a
+        # full-cross-product one measured different designs.
+        ("pressure_scope", "all"),
     ],
 )
 def test_sampling_config_must_agree(field, value):
@@ -240,6 +243,36 @@ def test_pre_scope_phase2_run_merges_with_an_explicit_all_run():
     )
     report = compatibility_report([old, scoped])
     assert any("disagree on enforcement_scope" in reason for reason in report["blocking"])
+
+
+def test_pre_scope_phase2_run_merges_with_an_explicit_all_pressure_run():
+    """Same treatment as enforcement_scope: a Phase 2 run stored before
+    pressure_scope existed crossed the pressure axes against every condition
+    by construction, so it reads as "all" and extends a historical full sweep
+    without blocking. None against "headline_only" stays blocked."""
+    old = _run("run_old", "no_policy", created_at="2026-07-01T10:00:00+00:00", phase="phase2")
+    new = _run(
+        "run_new",
+        "structured_policy",
+        created_at="2026-08-27T10:00:00+00:00",
+        phase="phase2",
+        pressure_scope="all",
+    )
+    report = compatibility_report([old, new])
+    assert not any("pressure_scope" in reason for reason in report["blocking"])
+
+    merged = merge_runs([old, new], run_id="merged_pressure_compat")
+    assert merged.pressure_scope == "all"
+
+    scoped = _run(
+        "run_scoped",
+        "structured_policy",
+        created_at="2026-08-27T10:00:00+00:00",
+        phase="phase2",
+        pressure_scope="headline_only",
+    )
+    report = compatibility_report([old, scoped])
+    assert any("disagree on pressure_scope" in reason for reason in report["blocking"])
 
 
 def test_merged_run_pools_the_per_condition_scenario_axes():

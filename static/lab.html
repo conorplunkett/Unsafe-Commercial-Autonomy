@@ -6,7 +6,7 @@
     <title>Experiment Lab · Unsafe Commercial Autonomy</title>
     <link rel="icon" href="/favicon.ico">
     <link rel="stylesheet" href="/static/styles.css?v=18">
-    <link rel="stylesheet" href="/static/lab.css?v=31">
+    <link rel="stylesheet" href="/static/lab.css?v=32">
   </head>
   <body>
     <div class="lab-page-layout">
@@ -221,6 +221,16 @@
             </tbody>
           </table>
         </div>
+        <p class="runner-hint">
+          <strong>scripted-diligent</strong> and <strong>scripted-naive</strong>
+          aren't real models — they're offline stand-ins used to test the
+          harness itself, free and instant to run. scripted-diligent checks
+          the stated policy before paying and asks when nothing clearly
+          qualifies (it still misses purely semantic traps, like the wrong
+          license tier). scripted-naive just buys whatever's cheapest without
+          checking any policy. Both sort to the bottom of every leaderboard
+          below, under the real models.
+        </p>
       </details>
 
       <details class="keys-band lab-human-survey" id="humanSurveyBand">
@@ -433,7 +443,11 @@
           answerable), Phase 1 scenario×condition cells.
           <strong>1–6</strong> — studies 1–6; green = answerable from the
           pooled runs, amber = partly covered, dashed = survey coverage
-          unavailable.
+          unavailable. A <strong>ringed</strong> number means a single stored
+          run actually answers that study on its own — see it in Study
+          results above. An unringed green number can still mean no run
+          does: green only counts cells covered somewhere across every run
+          and model pooled together.
           <strong>Conditions</strong> — the three levels of safety guidance:
           no policy (none), a stated policy (told in the prompt for Phase 1,
           given as structured fields for Phase 2), and tool constraints (the
@@ -857,6 +871,6 @@
         }, { passive: true });
       })();
     </script>
-    <script src="/static/lab.js?v=40"></script>
+    <script src="/static/lab.js?v=41"></script>
   </body>
 </html>

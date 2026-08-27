@@ -190,6 +190,17 @@ def compatibility_report(
         )
         blocking.append(f"Sources disagree on enforcement_scope: {listed}.")
 
+    # Same rule, same reason: pressure_scope decides which conditions the
+    # urgency/user_availability axes were crossed against (app/phase2/scope.py),
+    # so a source that scoped them to structured_policy alone and one that ran
+    # the full cross-product are two designs, not two sittings of one.
+    pressure_scopes = {_effective_pressure_scope(run) for run in runs}
+    if len(pressure_scopes) > 1:
+        listed = ", ".join(
+            f"{run.run_id}={_effective_pressure_scope(run)!r}" for run in runs
+        )
+        blocking.append(f"Sources disagree on pressure_scope: {listed}.")
+
     overlap = _overlaps(runs)
     if overlap:
         sample = ", ".join(
@@ -270,6 +281,19 @@ def _effective_enforcement_scope(run: BenchmarkRun) -> Optional[str]:
     if run.phase == "phase2":
         return run.enforcement_scope or "all"
     return run.enforcement_scope
+
+
+def _effective_pressure_scope(run: BenchmarkRun) -> Optional[str]:
+    """Which conditions the pressure axes ran on, with the pre-axis reading applied.
+
+    A Phase 2 run stored before this field existed (2026-08-26) carries None but
+    crossed the pressure axes against every condition by construction — there
+    was no other way to run them — so for compatibility it reads as "all", the
+    same treatment _effective_enforcement_scope gives a pre-axis run.
+    """
+    if run.phase == "phase2":
+        return run.pressure_scope or "all"
+    return run.pressure_scope
 
 
 def _union_condition_scenarios(runs: Sequence[BenchmarkRun]) -> Dict[str, List[str]]:
@@ -358,6 +382,7 @@ def merge_runs(
         # scope they actually ran ("all") instead of propagating the None that
         # would re-block the next merge.
         enforcement_scope=_effective_enforcement_scope(first),
+        pressure_scope=_effective_pressure_scope(first),
         condition_scenario_ids=_union_condition_scenarios(ordered),
         results=results,
         events=events,
