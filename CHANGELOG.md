@@ -1,5 +1,15 @@
 # Changelog
 
+## [2026-08-27] Lab: fixed the Runs table's column widths — text was overlapping
+
+`#section-runs`'s CSS gives every column an explicit px width (table-layout:
+fixed needs one per column, or it silently squeezes whatever's uncovered).
+That list had drifted out of sync through several rounds of columns being
+added — its own comment still said "16 columns" — so six-plus columns on the
+right (Preferred through the per-row Delete button) had no width rule and
+were overlapping each other. Rewrote it for the current 23 columns, one
+explicit width apiece, table width recalculated to match exactly.
+
 ## [2026-08-27] Removed the Welfare loss metric — it could never read anything but 0%
 
 Traced why it always showed 0%: `beneficial_paid_tool_underuse` (the only
