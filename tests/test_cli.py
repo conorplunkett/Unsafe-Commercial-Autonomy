@@ -705,7 +705,7 @@ def _phase2_args(**overrides):
     defaults = dict(
         models=None, conditions=None, framings=None, urgencies=None,
         user_availabilities=None, scenario_ids=None, scenario_set=None, seeds=None,
-        split="all", enforcement_scope="rail_reachable",
+        split="all", enforcement_scope="rail_reachable", pressure_scope="headline_only",
     )
     defaults.update(overrides)
     return argparse.Namespace(**defaults)
@@ -785,6 +785,72 @@ def test_phase2_grid_size_expands_all_flags_to_their_real_count():
         _phase2_args(models="anthropic", seeds="1", scenario_ids="scn_v2_a1_trap", user_availabilities="all")
     )
     assert episodes == 1 * 2  # 1 framing (deployment default) x 2 user-availability levels
+
+
+def test_phase2_grid_size_scopes_pressure_axes_to_the_headline_condition():
+    # Regression guard for the cost estimate matching the real run exactly:
+    # under the default --pressure-scope headline_only, only structured_policy
+    # crosses the pressure axes, so a naive scenario_units x urgencies x
+    # user_availabilities product would overstate the spend being approved --
+    # the same class of cost lie the enforcement-scope estimate already guards.
+    from app.cli import _phase2_grid_size
+
+    episodes, breakdown = _phase2_grid_size(
+        _phase2_args(
+            models="anthropic", seeds="1", conditions="all",
+            urgencies="all", user_availabilities="all", enforcement_scope="all",
+        )
+    )
+    # no_policy 226 x 1 x 1, structured_policy 226 x 2 x 2, tool_constraints 226 x 1 x 1.
+    assert episodes == 226 * 1 * 1 + 226 * 2 * 2 + 226 * 1 * 1
+    assert "episodes per condition:" in breakdown
+    assert "structured_policy 904" in breakdown
+    assert "no_policy 226" in breakdown
+    assert "--pressure-scope headline_only" in breakdown
+
+    # --pressure-scope all restores the naive full cross-product.
+    episodes, breakdown = _phase2_grid_size(
+        _phase2_args(
+            models="anthropic", seeds="1", conditions="all",
+            urgencies="all", user_availabilities="all", enforcement_scope="all",
+            pressure_scope="all",
+        )
+    )
+    assert episodes == 226 * 3 * 2 * 2
+    assert "episodes per condition" not in breakdown
+
+    # No structured_policy selected: nothing to scope, the requested axes
+    # apply to whatever was asked for.
+    episodes, _ = _phase2_grid_size(
+        _phase2_args(
+            models="anthropic", seeds="1", conditions="no_policy",
+            urgencies="all", scenario_ids="scn_v2_a1_trap",
+        )
+    )
+    assert episodes == 1 * 2
+
+    # The existing enforcement-scope-only divergence (no pressure axes
+    # requested) must not pick up a spurious pressure-scope note.
+    episodes, breakdown = _phase2_grid_size(
+        _phase2_args(models="anthropic", conditions="all", seeds="1,2,3,4,5")
+    )
+    assert episodes == (226 + 226 + 166) * 5
+    assert "scenarios per condition: no_policy 226, structured_policy 226, tool_constraints 166" in breakdown
+    assert "--pressure-scope" not in breakdown
+
+
+def test_phase2_resume_command_line_carries_pressure_scope():
+    from app.cli import _resume_command_line
+
+    args = _phase2_args(
+        models="anthropic", seeds="1", pressure_scope="all",
+        temperature=None, reasoning_effort=None, gemini_thinking_level=None,
+        concurrency=1, dry_run=False,
+    )
+    assert "--pressure-scope all" in _resume_command_line(args, "run_abc123")
+
+    args.pressure_scope = "headline_only"
+    assert "--pressure-scope" not in _resume_command_line(args, "run_abc123")
 
 
 def test_phase2_grid_size_defers_on_an_unknown_condition():

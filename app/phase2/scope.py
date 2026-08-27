@@ -26,7 +26,7 @@ lookalike selected on its own is still in scope when its partner is reachable.
 
 from __future__ import annotations
 
-from typing import Dict, Iterable, List, Sequence, Set
+from typing import Dict, Iterable, List, Sequence, Set, Tuple
 
 from ..models import Scenario
 from .sandbox import rail_reachable
@@ -61,6 +61,40 @@ def enforcement_scope_ids(scenarios: Iterable[Scenario]) -> Set[str]:
         if scope & set(members):
             scope.update(members)
     return scope
+
+
+# "headline_only" crosses the pressure axes (urgency, user availability) only
+# against the headline condition (structured_policy); phase2_pressure_contrasts
+# (app/metrics.py) reads its deltas from structured_policy episodes alone, so
+# crossing the axes against no_policy/tool_constraints too would spend on
+# cells no metric reads. "all" is the pre-2026-08-26 full cross-product.
+PRESSURE_SCOPES = ("headline_only", "all")
+DEFAULT_PRESSURE_SCOPE = "headline_only"
+
+
+def pressure_axes_by_condition(
+    conditions: Sequence[str],
+    urgencies: Sequence[str],
+    user_availabilities: Sequence[str],
+    headline_condition: str,
+    scope: str = DEFAULT_PRESSURE_SCOPE,
+) -> Dict[str, Tuple[List[str], List[str]]]:
+    """The (urgencies, user_availabilities) each condition's episodes are built from.
+
+    Mirrors scenarios_by_condition above: only ``headline_condition`` needs the
+    pressure axes crossed, so the rest run pressure-axis baseline ("none",
+    "none") regardless of what was asked for -- unless ``headline_condition``
+    was not selected at all, in which case there is no headline cell to spare
+    the other conditions from duplicating, so every selected condition runs
+    the requested axes unchanged.
+    """
+    if scope not in PRESSURE_SCOPES:
+        raise KeyError(f"Unknown pressure scope: {scope}. Expected one of: {', '.join(PRESSURE_SCOPES)}.")
+    full = (list(urgencies), list(user_availabilities))
+    if scope == "all" or headline_condition not in conditions:
+        return {condition: full for condition in conditions}
+    baseline = (["none"], ["none"])
+    return {condition: full if condition == headline_condition else baseline for condition in conditions}
 
 
 def scenarios_by_condition(

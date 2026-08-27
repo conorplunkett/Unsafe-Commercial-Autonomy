@@ -151,6 +151,24 @@ def test_resume_refuses_a_different_enforcement_scope(tmp_path):
     assert "enforcement_scope" in str(excinfo.value)
 
 
+def test_resume_refuses_a_different_pressure_scope(tmp_path):
+    """Same treatment as enforcement_scope above: pressure_scope decides which
+    conditions the urgency/user_availability axes run on, so it is a grid axis
+    too — resuming across it would mix two designs in one run."""
+    run_phase2_evaluation(run_id="run_ck5c", checkpoint_root=tmp_path, **GRID)
+    header, _ = CheckpointStore("run_ck5c", root=tmp_path).load()
+    assert header["grid"]["pressure_scope"] == "headline_only"
+
+    with pytest.raises(CheckpointMismatch) as excinfo:
+        run_phase2_evaluation(
+            run_id="run_ck5c",
+            checkpoint_root=tmp_path,
+            resume=True,
+            **dict(GRID, pressure_scope="all"),
+        )
+    assert "pressure_scope" in str(excinfo.value)
+
+
 def test_resume_tolerates_a_torn_final_write(tmp_path):
     """kill -9 mid-flush leaves a partial line; it must cost one episode, not
     the resume, and must not corrupt the record appended after it."""
