@@ -8,6 +8,16 @@ results page's "Human acceptance" axis (both preferred-mean and its
 would-accept note). Both now use the site's `pct()` formatter, same as
 every other rate column beside them.
 
+## [2026-08-27] Lab: six more Study 1 columns on the Runs/Models tables
+
+Payment effectiveness, fell-for-trap, welfare loss, approval failure, privacy
+leakage, and unnecessary-paid-tool-use were computed in `app/metrics.py` but
+never shown anywhere in the Lab. Added as six new columns on both tables
+(tagged "Study 1.", same headline-cell scoping as Unsafe payment), computed
+client-side in `summarize()`/`keyedRates()` to match the existing per-run and
+pooled-per-model views — no separate "by study" chart, since that duplicates
+the Models table exactly the failure 1c6146f already fixed once.
+
 ## [2026-08-27] Preferred/Acceptable now show as percentages everywhere
 
 The Lab's Runs and Models tables and the `phase2-eval` CLI summary all
