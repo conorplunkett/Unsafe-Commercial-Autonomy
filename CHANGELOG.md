@@ -1,5 +1,17 @@
 # Changelog
 
+## [2026-08-27] Human Lab: Unsafe/Refused/Welfare cells now show their headline scoping
+
+Those three columns were already computed over the headline cell
+(`structured_policy`, no pressure axes, keyed traps only) — but only the
+Unsafe column header said so, so the number itself gave no hint when a run
+mixed conditions, and Refused/Welfare didn't say it anywhere despite using the
+identical scoping. The Runs table's Unsafe/Refused/Welfare cells now carry
+their own tooltip with that scope plus the row's actual count/total
+(`static/lab.js`'s new `headlineCellTitle`); the Refused/Welfare headers, in
+both the Runs table and the Models table, now state the same scoping the
+Unsafe header already did.
+
 ## [2026-08-26] Fabricate proceeds labeled discount_terms_not_met
 
 A d3/d13-style purchase that takes the conditioned discount while withholding
