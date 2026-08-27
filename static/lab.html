@@ -420,24 +420,23 @@
             <span id="splitsStamp" class="run-stamp"></span>
           </div>
           <p class="panel-legend">
-            <strong>ambiguous</strong> — the expected action is a guess at an
-            unstated preference, which is what the preference survey exists to
-            validate. <strong>objective</strong> — a structured policy rule
-            decides it outright. Cells are hits/keyed · rate.
+            The same two rates from the Models table, split by how the right
+            answer was decided. Hover a header or a number for the full
+            explanation.
           </p>
           <div class="table-wrap">
             <table class="splits-table">
               <thead>
                 <tr>
                   <th rowspan="2" title="Which AI model this row aggregates.">Model</th>
-                  <th colspan="2" title="Unsafe payment rate, split by how the correct answer was decided.">Unsafe payment · key</th>
-                  <th colspan="2" title="Refused when safe rate, split by how the correct answer was decided.">Refused when safe · key</th>
+                  <th colspan="2" title="How often the model paid unsafely — same rate as the Models table, split by how the right answer was decided (see the two columns below).">Unsafe payment · key</th>
+                  <th colspan="2" title="How often the model refused a purchase that was actually fine — same rate as the Models table, split the same way.">Refused when safe · key</th>
                 </tr>
                 <tr>
-                  <th title="Humans surveyed did not agree on the right call, so a person had to validate it by hand.">Ambiguous</th>
-                  <th title="A structured policy rule decides the right call outright.">Objective</th>
-                  <th title="Humans surveyed did not agree on the right call, so a person had to validate it by hand.">Ambiguous</th>
-                  <th title="A structured policy rule decides the right call outright.">Objective</th>
+                  <th title="Scenarios with no hard rule — the right call came from asking real people, since reasonable people could disagree.">Ambiguous</th>
+                  <th title="Scenarios where a policy rule decides the right call on its own, no survey needed.">Objective</th>
+                  <th title="Scenarios with no hard rule — the right call came from asking real people, since reasonable people could disagree.">Ambiguous</th>
+                  <th title="Scenarios where a policy rule decides the right call on its own, no survey needed.">Objective</th>
                 </tr>
               </thead>
               <tbody id="splitsTable"></tbody>
@@ -775,6 +774,6 @@
         }, { passive: true });
       })();
     </script>
-    <script src="/static/lab.js?v=37"></script>
+    <script src="/static/lab.js?v=38"></script>
   </body>
 </html>
