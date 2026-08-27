@@ -28,18 +28,29 @@ def test_pressure_axes_by_condition_scopes_non_headline_conditions_to_baseline()
     per_condition = pressure_axes_by_condition(
         conditions, ["none", "time_pressure"], ["none", "unreachable"], "structured_policy"
     )
-    assert per_condition["structured_policy"] == (["none", "time_pressure"], ["none", "unreachable"])
-    assert per_condition["no_policy"] == (["none"], ["none"])
-    assert per_condition["tool_constraints"] == (["none"], ["none"])
+    # Plus shape on the headline arm: one axis at a time, no interaction cell.
+    assert per_condition["structured_policy"] == [
+        ("none", "none"),
+        ("time_pressure", "none"),
+        ("none", "unreachable"),
+    ]
+    assert per_condition["no_policy"] == [("none", "none")]
+    assert per_condition["tool_constraints"] == [("none", "none")]
 
 
 def test_pressure_axes_by_condition_all_scope_restores_the_full_cross_product():
     conditions = ["no_policy", "structured_policy"]
     per_condition = pressure_axes_by_condition(
-        conditions, ["none", "time_pressure"], ["none"], "structured_policy", scope="all"
+        conditions, ["none", "time_pressure"], ["none", "unreachable"], "structured_policy", scope="all"
     )
-    assert per_condition["no_policy"] == (["none", "time_pressure"], ["none"])
-    assert per_condition["structured_policy"] == (["none", "time_pressure"], ["none"])
+    full = [
+        ("none", "none"),
+        ("none", "unreachable"),
+        ("time_pressure", "none"),
+        ("time_pressure", "unreachable"),
+    ]
+    assert per_condition["no_policy"] == full
+    assert per_condition["structured_policy"] == full
 
 
 def test_pressure_axes_by_condition_is_a_noop_without_the_headline_condition():
@@ -49,7 +60,23 @@ def test_pressure_axes_by_condition_is_a_noop_without_the_headline_condition():
     per_condition = pressure_axes_by_condition(
         ["no_policy"], ["none", "time_pressure"], ["none"], "structured_policy"
     )
-    assert per_condition["no_policy"] == (["none", "time_pressure"], ["none"])
+    assert per_condition["no_policy"] == [("none", "none"), ("time_pressure", "none")]
+
+
+def test_pressure_axes_keep_a_lone_non_baseline_axis_level():
+    """--urgencies time_pressure without "none" still runs the level asked
+    for, not an unrequested baseline."""
+    per_condition = pressure_axes_by_condition(
+        ["structured_policy"], ["time_pressure"], ["none"], "structured_policy"
+    )
+    assert per_condition["structured_policy"] == [("time_pressure", "none")]
+
+
+def test_pressure_axes_keep_the_interaction_cell_when_it_is_all_that_was_asked_for():
+    per_condition = pressure_axes_by_condition(
+        ["structured_policy"], ["time_pressure"], ["unreachable"], "structured_policy"
+    )
+    assert per_condition["structured_policy"] == [("time_pressure", "unreachable")]
 
 
 def test_unknown_pressure_scope_is_rejected():
@@ -72,11 +99,11 @@ def test_runner_scopes_pressure_axes_to_the_headline_condition_by_default():
         checkpoint=False,
     )
     seen = {(r.control_condition, r.urgency, r.user_availability) for r in run.results}
-    # structured_policy runs the full 2x2.
+    # structured_policy runs one axis at a time — no interaction cell.
     assert ("structured_policy", "none", "none") in seen
-    assert ("structured_policy", "time_pressure", "unreachable") in seen
     assert ("structured_policy", "time_pressure", "none") in seen
     assert ("structured_policy", "none", "unreachable") in seen
+    assert ("structured_policy", "time_pressure", "unreachable") not in seen
     # no_policy and tool_constraints run pressure-axis baseline only.
     non_headline = {
         (condition, urgency, availability)
@@ -85,8 +112,8 @@ def test_runner_scopes_pressure_axes_to_the_headline_condition_by_default():
     }
     assert non_headline == {("no_policy", "none", "none"), ("tool_constraints", "none", "none")}
     assert run.pressure_scope == "headline_only"
-    # 2 scenarios x (1 no_policy cell + 4 structured_policy cells + 1 tool_constraints cell)
-    assert len(run.results) == 2 * (1 + 4 + 1)
+    # 2 scenarios x (1 no_policy cell + 3 structured_policy cells + 1 tool_constraints cell)
+    assert len(run.results) == 2 * (1 + 3 + 1)
 
 
 def test_runner_pressure_scope_all_restores_the_full_cross_product():

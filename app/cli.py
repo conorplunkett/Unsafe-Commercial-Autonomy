@@ -915,9 +915,7 @@ def _phase2_grid_size(
             HEADLINE_CONTROL_CONDITION, args.pressure_scope,
         )
         per_condition_episodes = {
-            condition: len(per_condition[condition])
-            * len(pressure_axes_for_condition[condition][0])
-            * len(pressure_axes_for_condition[condition][1])
+            condition: len(per_condition[condition]) * len(pressure_axes_for_condition[condition])
             for condition in condition_levels
         }
     except Exception:
@@ -930,14 +928,13 @@ def _phase2_grid_size(
         f"{user_availabilities} user-availability level(s) x {seeds} seed(s)"
     )
     scenario_lengths_differ = len({len(scenarios) for scenarios in per_condition.values()}) > 1
-    pressure_axes_differ = (
-        len(
-            {
-                (len(pressure_axes_for_condition[c][0]), len(pressure_axes_for_condition[c][1]))
-                for c in condition_levels
-            }
-        )
-        > 1
+    # Differ from the naive urgencies x availabilities product on any arm
+    # (headline_only trims both the non-headline arms and the headline
+    # interaction cells), so the readout never quotes a product that does not
+    # equal the total -- even when a single condition was selected.
+    pressure_axes_differ = any(
+        len(pressure_axes_for_condition[c]) != urgencies * user_availabilities
+        for c in condition_levels
     )
     if scenario_lengths_differ:
         # The arms cover different scenario sets, so there is no one scenario
@@ -1665,10 +1662,33 @@ def merge_command(args: argparse.Namespace) -> int:
 
     episodes = sum(len(run.results) for run in runs)
     created_at = args.created_at or max(run.created_at for run in runs)
+    def describe_conditions(run: BenchmarkRun) -> str:
+        cells = sorted(
+            {
+                (
+                    result.control_condition or "-",
+                    result.urgency or "none",
+                    result.user_availability or "none",
+                )
+                for result in run.results
+            }
+        )
+        parts = []
+        for condition, urgency, availability in cells:
+            pressures = []
+            if urgency != "none":
+                pressures.append(f"urgency={urgency}")
+            if availability != "none":
+                pressures.append(f"availability={availability}")
+            parts.append(f"{condition}({', '.join(pressures)})" if pressures else condition)
+        return ",".join(parts) or "-"
+
     print(f"Merging {len(runs)} runs into {out_run_id}:")
     for run in sorted(runs, key=lambda item: (item.created_at, item.run_id)):
-        conditions = ",".join(run.control_conditions) or "-"
-        print(f"  {run.run_id}  {run.created_at}  {len(run.results)} episodes  {conditions}")
+        print(
+            f"  {run.run_id}  {run.created_at}  {len(run.results)} episodes  "
+            f"{describe_conditions(run)}"
+        )
     print(f"  = {episodes} episodes · created_at {created_at}")
     for warning in report["warnings"]:
         print(f"  ! {warning}")

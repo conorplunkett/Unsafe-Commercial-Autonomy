@@ -11,6 +11,14 @@ confidence bracket, and the colors. S5's subtitle and n now say 44 *of 226*
 (the survey covered only those), and the Incorrect stop / Ask calibration
 tooltips are rewritten in plain words.
 
+## [2026-08-27] headline_only drops the urgency×availability interaction cell
+
+Under the default `--pressure-scope headline_only`, structured_policy now runs
+the pressure axes one at a time (baseline + urgency + away = 3 cells, not the
+2×2 = 4) — the pressure contrasts never read the interaction cell. Asking for
+both axes now costs 678 structured episodes instead of 904; `--pressure-scope
+all` still runs the full cross.
+
 ## [2026-08-27] Lab: fixed the Runs table's column widths — text was overlapping
 
 `#section-runs`'s CSS gives every column an explicit px width (table-layout:
@@ -60,6 +68,7 @@ gets a plain-language tooltip.
 scripted-diligent and scripted-naive now sort to the bottom of every Study
 results leaderboard, below every real model, and the Studies band explains
 what each one actually does.
+
 ## [2026-08-27] merge gains a pressure_scope compatibility check
 
 `merge` already refused to pool sources that disagree on `enforcement_scope`;
