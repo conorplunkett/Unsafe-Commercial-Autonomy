@@ -1,5 +1,15 @@
 # Changelog
 
+## [2026-08-27] Lab: dropped the standalone Human survey band
+
+Its term-glossary paragraph (Preferred, Acceptable, Top pick, Ask calib.,
+Vs floor, Incorrect stop) just repeated the Runs table's own `th` tooltips,
+so it's gone; those definitions now live inline in the Runs table's
+panel-legend alongside Unsafe/Refused/Blocks/Stalled/Welfare/Errors instead
+of pointing at a separate band. The methodology prose (why we survey, the
+six-step pipeline) moved into the Studies band, right under the studies 5-6
+rows it explains — one place for "what these numbers mean" instead of two.
+
 ## [2026-08-27] Lab: Study results is by-study again, and no more phantom "Eval" duplicates
 
 Study results only ever charted the S2-S4 paired contrasts; added tables for

@@ -152,9 +152,11 @@ details.runner-card[open] > summary.runner-card-heading h2::before {
   white-space: nowrap;
 }
 
-/* The human-survey band under Studies: plain-English background on the
-   survey pipeline. Prose/legend rather than another table — there's no
-   per-row data to show, just the same explanation every time. */
+/* Plain-English background on the survey pipeline, appended under the
+   Studies table (studies 5-6 are the ones it grounds). Prose rather than
+   another table — there's no per-row data to show, just the same
+   explanation every time. Column-by-column definitions live in the Runs
+   table's own panel-legend and th tooltips instead of repeating here. */
 .human-survey-body {
   padding: 14px 20px 20px;
   border-top: 1px solid var(--border);
