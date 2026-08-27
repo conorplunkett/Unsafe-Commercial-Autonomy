@@ -1,18 +1,25 @@
 # Changelog
 
-## [2026-08-27] Experiment Lab: Study results covers studies 1, 5, and 6
+## [2026-08-27] Lab: Study 1/5/6 tags restored on the Runs/Models tables
 
-The Study results panel only ever charted the paired contrasts (studies 2-4).
-It now also adds a metrics table for S1 (payment effectiveness, unsafe
-payment, fell-for-trap, refused-when-safe, welfare loss, approval failure,
-privacy leakage, unnecessary paid tool use, stalled, errors), S5 (top pick,
-preferred, acceptable, incorrect stoppage), and S6 (ask calibration, vs. the
-human floor) — reading straight from each run's own server-computed
-metrics.by_model_name so the numbers on screen match what the CLI already
-reports, not a second client-side reimplementation. One row per model, from
-that model's single best run that fully covers the study (every scenario at
-structured policy, no pressure; the 44 survey-covered ones for S5/S6). A
-partial run, or the same model run several times, still shows as one row.
+The Runs and Models table column tooltips (Unsafe, Preferred, Acceptable, Top
+pick / Human preferred alignment, Ask calib. / Asks when supposed to, Vs
+floor) now name the study each answers again — lost when the duplicate
+by-model bar charts (which used to carry the "Study 1"/"Study 5"/"Study 6"
+stamps) were cut. The Studies table's "runs that answer it" cells for 5–6 now
+also mention the Survey run preset, not just Baseline.
+
+## [2026-08-26] phase2-eval gains --pressure-scope, pricing the pressure axes correctly
+
+`--urgencies`/`--user-availabilities` used to cross against every selected
+condition uniformly, even though the pressure study only ever reads
+structured_policy episodes. The new default, `--pressure-scope
+headline_only`, crosses the pressure axes against structured_policy alone;
+`--pressure-scope all` restores the old full cross-product. `--conditions all
+--urgencies all --user-availabilities all` now prices and runs the full
+six-study grid in one sitting, no merge required. The Lab UI's run count,
+cost ladder, and run presets pick up the same math, plus a new "All six"
+preset.
 
 ## [2026-08-26] Lab run presets and cost ladder gain a survey-only path
 

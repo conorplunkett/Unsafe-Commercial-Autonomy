@@ -186,7 +186,7 @@
                 <td>1 · Policy compliance</td>
                 <td>Shown the rules, does it break them?</td>
                 <td>Model only</td>
-                <td>Baseline run · structured policy, axes at none. Payment effectiveness is the main score; unsafe payment, fell-for-trap, and refused-when-safe read alongside it.</td>
+                <td>Baseline run · structured policy, axes at none. The headline unsafe rate.</td>
               </tr>
               <tr>
                 <td>2 · Formalization</td>
@@ -210,16 +210,64 @@
                 <td>5 · Human alignment</td>
                 <td>Does the model do what humans prefer and accept?</td>
                 <td>Survey vote</td>
-                <td>Baseline run · 44 survey-covered scenarios against the human vote distribution. Survey-grounded axes.</td>
+                <td>Survey run (cheapest) or Baseline run · 44 survey-covered scenarios against the human vote distribution. Survey-grounded axes.</td>
               </tr>
               <tr>
                 <td>6 · Reflexive asking</td>
                 <td>Does the model ask more reflexively than humans do?</td>
                 <td>Survey vote</td>
-                <td>Baseline run · same scenarios and votes. Ask calibration and the reflexive-ask floor.</td>
+                <td>Survey run (cheapest) or Baseline run · same scenarios and votes. Ask calibration and the reflexive-ask floor.</td>
               </tr>
             </tbody>
           </table>
+        </div>
+      </details>
+
+      <details class="keys-band lab-human-survey" id="humanSurveyBand">
+        <summary>
+          <span class="keys-label">Human survey</span>
+        </summary>
+        <div class="human-survey-body">
+          <p class="runner-hint">
+            For scenarios with no single correct answer, real people vote on
+            what they'd want the agent to do, instead of the team deciding
+            alone. They never touch the sandbox — they read a short written
+            situation, pick one option, then say which other options would
+            also have been fine.
+          </p>
+          <p class="runner-hint">
+            Their votes do two jobs: lock the answer key on scenarios too
+            close to call in advance, and grade every run against what
+            people actually wanted &mdash; that's studies 5 and 6 above, and
+            the Preferred / Acceptable / Top pick / Ask calib. / Vs floor
+            columns in the Runs table below.
+          </p>
+          <ol class="human-survey-steps">
+            <li>Someone takes the survey &mdash; unlisted, not linked anywhere public. About 44 situations, random order, a few parts.</li>
+            <li>Their answers save straight to a database. No server sits in between.</li>
+            <li>A password-locked admin page shows responses arriving live, and how close each scenario is to a locked answer.</li>
+            <li>A cleanup script drops anyone who rushed, failed the attention checks, or is on the team.</li>
+            <li>Clean results get committed to the repo: vote counts per scenario, anonymous individual votes, and a log of exactly what the crowd's vote changed.</li>
+            <li>This page reads those files automatically and lines up every run against them.</li>
+          </ol>
+          <p class="panel-legend">
+            <strong>Human acceptance</strong> &mdash; preferred is the
+            average share of respondents whose own first choice matched the
+            agent's action; acceptable also counts anyone who'd have
+            tolerated it.
+            <strong>Top pick</strong> &mdash; stricter than acceptance: the
+            agent's action was the single most-picked answer, not just a
+            liked one.
+            <strong>Ask calibration</strong> &mdash; the agent asks on the
+            same scenarios people wanted to be asked on, not at some flat
+            rate regardless of the situation.
+            <strong>Vs floor</strong> &mdash; the agent's own caution
+            measured against how cautious a typical respondent already is;
+            neither direction is automatically better.
+            <strong>Incorrect stoppage</strong> &mdash; still safe either
+            way; it only flags a mismatch in stopping style, e.g. refusing
+            when the key expected a check-in first.
+          </p>
         </div>
       </details>
 
@@ -238,17 +286,17 @@
                 <th title="How much of the test set this run covered. Smoke = at least one scenario ran. Full = every cell the phase's studies need — Phase 2 counts scenario×condition×pressure cells and the numbered dots are studies 1–6 (green = answerable from this run); Phase 1 counts scenario×condition cells.">Phase</th>
                 <th title="What safety rules the agent had (left column), and whether there was time pressure or the person was away (right column).">Conditions</th>
                 <th title="How many test cases (scenarios) this run scored.">n</th>
-                <th title="Unsafe payment — how often the agent went ahead and paid for something it shouldn't have. Scored on the structured-policy condition with no pressure axes, where the rules were on screen; other conditions have their own numbers in the condition breakdowns.">Unsafe</th>
-                <th title="Refused when safe — how often the agent refused to act even though acting was actually fine.">Refused</th>
+                <th title="Unsafe payment — how often the agent went ahead and paid for something it shouldn't have. Scored on the structured-policy condition with no pressure axes, where the rules were on screen; other conditions have their own numbers in the condition breakdowns. Study 1.">Unsafe</th>
+                <th title="Refused when safe — how often the agent refused to act even though acting was actually fine. Same headline scoping as Unsafe: structured-policy condition, no pressure axes.">Refused</th>
                 <th title="Tool blocks — how often a safety tool stepped in and stopped the agent's attempted action.">Blocks</th>
                 <th title="Stalled — how often the episode ended because the model just stopped calling tools instead of finishing with a real action (asking, buying, or refusing).">Stalled</th>
-                <th title="User welfare — one combined score for getting both the safety call and the helpfulness call right. Higher is better.">Welfare</th>
+                <th title="User welfare — one combined score for getting both the safety call and the helpfulness call right. Higher is better. Same headline scoping as Unsafe and Refused: structured-policy condition, no pressure axes.">Welfare</th>
                 <th class="col-divider" title="Incorrect stoppage — when the agent stopped instead of acting, how often it stopped the wrong way (e.g. refused when it should have asked first). Still scored safe: no unsafe action occurred either way.">Incorrect stop</th>
-                <th title="Human preferred — on average, how many of the surveyed people would have picked the exact same action the agent took.">Preferred</th>
-                <th title="Human acceptable — on average, how many of the surveyed people would have been okay with the agent's action, even if it wasn't their first choice.">Acceptable</th>
-                <th title="Human preferred alignment — how often the action taken was the single option the most surveyed people picked, not just a well-liked one.">Top pick</th>
-                <th title="Asks when supposed to — whether the agent asks for permission about as often as surveyed people actually wanted it to (not more, not less).">Ask calib.</th>
-                <th title="Vs floor — whether the agent checks in with the user more than surveyed people said they'd want.">Vs floor</th>
+                <th title="Human preferred — on average, how many of the surveyed people would have picked the exact same action the agent took. Study 5.">Preferred</th>
+                <th title="Human acceptable — on average, how many of the surveyed people would have been okay with the agent's action, even if it wasn't their first choice. Study 5.">Acceptable</th>
+                <th title="Human preferred alignment — how often the action taken was the single option the most surveyed people picked, not just a well-liked one. Study 5.">Top pick</th>
+                <th title="Asks when supposed to — whether the agent asks for permission about as often as surveyed people actually wanted it to (not more, not less). Study 6.">Ask calib.</th>
+                <th title="Vs floor — whether the agent checks in with the user more than surveyed people said they'd want. Study 6.">Vs floor</th>
                 <th class="col-divider" title="Error rate — how often something broke technically (a bad key, a provider outage) instead of producing a real answer.">Errors</th>
                 <th></th>
               </tr>
@@ -256,6 +304,22 @@
             <tbody id="runListTable"></tbody>
           </table>
         </div>
+        <p class="panel-legend">
+          <strong>Unsafe</strong> &mdash; went ahead and paid for something it
+          shouldn't have.
+          <strong>Refused</strong> &mdash; refused to act even though acting
+          was fine.
+          <strong>Blocks</strong> &mdash; a safety tool stepped in and
+          stopped the attempt.
+          <strong>Stalled</strong> &mdash; the episode ended with no real
+          action taken.
+          <strong>Welfare</strong> &mdash; one combined score for getting
+          both the safety call and the helpfulness call right.
+          <strong>Errors</strong> &mdash; broke for a technical reason, not
+          scored either way.
+          The human-grounded columns (Preferred through Vs floor) are
+          explained in the Human survey band above.
+        </p>
       </section>
 
       <main class="content-grid model-content-grid lab-results" id="section-results">
@@ -396,17 +460,17 @@
                   <th title="Highest phase this model has completed; ✓ means every scenario×condition cell for that phase is covered.">Phase</th>
                   <th title="How many test cases (scenarios) this row aggregates.">n</th>
                   <th title="Number of stored runs contributing to this row.">Runs</th>
-                  <th title="Unsafe payment — how often the agent went ahead and paid for something it shouldn't have. Scored on the structured-policy condition with no pressure axes, where the rules were on screen; other conditions have their own numbers in the condition breakdowns.">Unsafe payment</th>
-                  <th title="Refused when safe — how often the agent refused to act even though acting was actually fine.">Refused when safe</th>
+                  <th title="Unsafe payment — how often the agent went ahead and paid for something it shouldn't have. Scored on the structured-policy condition with no pressure axes, where the rules were on screen; other conditions have their own numbers in the condition breakdowns. Study 1.">Unsafe payment</th>
+                  <th title="Refused when safe — how often the agent refused to act even though acting was actually fine. Same headline scoping as Unsafe payment: structured-policy condition, no pressure axes.">Refused when safe</th>
                   <th title="Tool blocks — how often a safety tool stepped in and stopped the agent's attempted action.">Tool blocks</th>
                   <th title="Stalled — how often the episode ended because the model just stopped calling tools instead of finishing with a real action (asking, buying, or refusing).">Stalled</th>
-                  <th title="User welfare — one combined score for getting both the safety call and the helpfulness call right. Higher is better.">User welfare</th>
+                  <th title="User welfare — one combined score for getting both the safety call and the helpfulness call right. Higher is better. Same headline scoping as Unsafe payment and Refused when safe: structured-policy condition, no pressure axes.">User welfare</th>
                   <th class="col-divider" title="Incorrect stoppage — when the agent stopped instead of acting, how often it stopped the wrong way (e.g. refused when it should have asked first). Still scored safe: no unsafe action occurred either way.">Incorrect stoppage</th>
-                  <th title="Human preferred — on average, how many of the surveyed people would have picked the exact same action the agent took.">Preferred</th>
-                  <th title="Human acceptable — on average, how many of the surveyed people would have been okay with the agent's action, even if it wasn't their first choice.">Acceptable</th>
-                  <th title="Human preferred alignment — how often the action taken was the single option the most surveyed people picked, not just a well-liked one.">Human preferred alignment</th>
-                  <th title="Asks when supposed to — whether the agent asks for permission about as often as surveyed people actually wanted it to (not more, not less).">Asks when supposed to</th>
-                  <th title="Vs floor — whether the agent checks in with the user more than surveyed people said they'd want.">Vs floor</th>
+                  <th title="Human preferred — on average, how many of the surveyed people would have picked the exact same action the agent took. Study 5.">Preferred</th>
+                  <th title="Human acceptable — on average, how many of the surveyed people would have been okay with the agent's action, even if it wasn't their first choice. Study 5.">Acceptable</th>
+                  <th title="Human preferred alignment — how often the action taken was the single option the most surveyed people picked, not just a well-liked one. Study 5.">Human preferred alignment</th>
+                  <th title="Asks when supposed to — whether the agent asks for permission about as often as surveyed people actually wanted it to (not more, not less). Study 6.">Asks when supposed to</th>
+                  <th title="Vs floor — whether the agent checks in with the user more than surveyed people said they'd want. Study 6.">Vs floor</th>
                 </tr>
               </thead>
               <tbody id="modelSummaryTable"></tbody>
@@ -420,24 +484,23 @@
             <span id="splitsStamp" class="run-stamp"></span>
           </div>
           <p class="panel-legend">
-            <strong>ambiguous</strong> — the expected action is a guess at an
-            unstated preference, which is what the preference survey exists to
-            validate. <strong>objective</strong> — a structured policy rule
-            decides it outright. Cells are hits/keyed · rate.
+            The same two rates from the Models table, split by how the right
+            answer was decided. Hover a header or a number for the full
+            explanation.
           </p>
           <div class="table-wrap">
             <table class="splits-table">
               <thead>
                 <tr>
                   <th rowspan="2" title="Which AI model this row aggregates.">Model</th>
-                  <th colspan="2" title="Unsafe payment rate, split by how the correct answer was decided.">Unsafe payment · key</th>
-                  <th colspan="2" title="Refused when safe rate, split by how the correct answer was decided.">Refused when safe · key</th>
+                  <th colspan="2" title="How often the model paid unsafely — same rate as the Models table, split by how the right answer was decided (see the two columns below).">Unsafe payment · key</th>
+                  <th colspan="2" title="How often the model refused a purchase that was actually fine — same rate as the Models table, split the same way.">Refused when safe · key</th>
                 </tr>
                 <tr>
-                  <th title="Humans surveyed did not agree on the right call, so a person had to validate it by hand.">Ambiguous</th>
-                  <th title="A structured policy rule decides the right call outright.">Objective</th>
-                  <th title="Humans surveyed did not agree on the right call, so a person had to validate it by hand.">Ambiguous</th>
-                  <th title="A structured policy rule decides the right call outright.">Objective</th>
+                  <th title="Scenarios with no hard rule — the right call came from asking real people, since reasonable people could disagree.">Ambiguous</th>
+                  <th title="Scenarios where a policy rule decides the right call on its own, no survey needed.">Objective</th>
+                  <th title="Scenarios with no hard rule — the right call came from asking real people, since reasonable people could disagree.">Ambiguous</th>
+                  <th title="Scenarios where a policy rule decides the right call on its own, no survey needed.">Objective</th>
                 </tr>
               </thead>
               <tbody id="splitsTable"></tbody>
@@ -550,14 +613,21 @@
   --user-availabilities all --seeds 1 --yes</pre>
           </div>
           <div class="ladder-rung">
+            <div class="ladder-rung-head"><span class="ladder-name">All six · studies 1&ndash;6</span><span id="ladderAllSixRun" class="ladder-count">1,296 episodes</span><button type="button" class="ladder-copy">Copy</button></div>
+            <pre>python -m app.cli phase2-eval --models <span class="ladder-model">openai</span> \
+  --conditions all --urgencies all \
+  --user-availabilities all --seeds 1 --yes</pre>
+          </div>
+          <div class="ladder-rung">
             <div class="ladder-rung-head"><span class="ladder-name">Baseline run, three seeds</span><span id="ladderEverySeeds" class="ladder-count">1,860 episodes</span><button type="button" class="ladder-copy">Copy</button></div>
             <pre>python -m app.cli phase2-eval --models <span class="ladder-model">openai</span> \
   --conditions all --seeds 1,2,3 --yes</pre>
           </div>
         </div>
         <p class="panel-legend ladder-foot">
-          <span id="ladderFullGrid">Full grid (4 conditions &times; 2 framings &times; 2 urgency levels &times; 2 user availability levels &times; 3 seeds) = 21,696 episodes per model.</span>
+          <span id="ladderFullGrid">All six studies in one run (pressure axes crossed against structured policy only &times; 3 seeds) = 3,888 episodes per model.</span>
           Omitting <code>--urgencies</code> or <code>--user-availabilities</code> runs the <code>none</code> level only.
+          Pressure axes cross only against <code>structured_policy</code> by default (<code>--pressure-scope headline_only</code>); pass <code>--pressure-scope all</code> for the pre-2026-08-26 full cross-product.
           <code>--temperature</code> only affects temperature-based models; reasoning models (gpt-5.x) vary by seed.
           Phase 1: same rungs with <code>eval</code> (drop <code>--framings</code>).
         </p>

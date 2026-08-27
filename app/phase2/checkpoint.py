@@ -1,13 +1,16 @@
 """Per-episode checkpointing for Phase 2 runs, so a crash costs one episode.
 
-The full grid is 12,360 episodes per model (2 urgencies x 2 user availabilities
-x 5 seeds over 618 condition-scenario pairs: 226 scenarios each under no_policy
-and structured_policy, 166 under tool_constraints — see app/phase2/scope.py),
-each a tool loop of up to MAX_TURNS provider calls. Without this the whole run
-lives in memory until the CLI saves it at the end, so a Ctrl-C or a rate-limit
-cascade at episode 13,000 throws away every dollar already spent. Each finished episode is appended here
-as one JSON line and flushed, and `--resume` replays them instead of paying
-for them twice.
+The full grid under the default --pressure-scope headline_only is 6,480
+episodes per model (226 scenarios each under no_policy and structured_policy,
+166 under tool_constraints, x 5 seeds; only structured_policy crosses the 2
+urgencies x 2 user availabilities, the rest run pressure-axis baseline — see
+app/phase2/scope.py). --pressure-scope all restores the pre-2026-08-26 full
+cross-product, 12,360. Each episode is a tool loop of up to MAX_TURNS provider
+calls. Without this the whole run lives in memory until the CLI saves it at
+the end, so a Ctrl-C or a rate-limit cascade late in the grid throws away
+every dollar already spent. Each finished episode is appended here as one
+JSON line and flushed, and `--resume` replays them instead of paying for them
+twice.
 
 Deliberately not the run JSON format: RunStorage writes one whole BenchmarkRun
 after metrics are computed, which is exactly the thing that cannot happen
@@ -28,7 +31,7 @@ from pydantic import ValidationError
 from ..data import ROOT_DIR
 from ..models import EvaluationResult, model_to_dict, parse_model
 from .sandbox import PHASE2_CONTROL_CONDITIONS
-from .scope import DEFAULT_ENFORCEMENT_SCOPE
+from .scope import DEFAULT_ENFORCEMENT_SCOPE, DEFAULT_PRESSURE_SCOPE
 
 
 # Same shape as the (model, condition, framing, urgency, user_availability,
@@ -75,6 +78,7 @@ def grid_fingerprint(
     scenario_ids: Iterable[str],
     seeds: Iterable[int],
     enforcement_scope: str = DEFAULT_ENFORCEMENT_SCOPE,
+    pressure_scope: str = DEFAULT_PRESSURE_SCOPE,
 ) -> Dict[str, Any]:
     """The axes a resume must agree with.
 
@@ -82,11 +86,12 @@ def grid_fingerprint(
     the axes were typed on the command line. Resuming into a different grid
     would silently mix two experiments in one run file.
 
-    ``enforcement_scope`` is an axis like the rest: it decides which scenarios
-    the enforced arm runs (app/phase2/scope.py), so a checkpoint started under
-    one scope cannot be resumed under the other. Checkpoints written before
-    this key existed carry the full cross-product and mismatch every current
-    grid, which is the same answer any grid change gets — start a fresh run.
+    ``enforcement_scope`` and ``pressure_scope`` are axes like the rest: each
+    decides which cells a condition actually runs (app/phase2/scope.py), so a
+    checkpoint started under one scope cannot be resumed under the other.
+    Checkpoints written before a given key existed carry the full
+    cross-product and mismatch every current grid, which is the same answer
+    any grid change gets — start a fresh run.
     """
     return {
         "model_ids": sorted(model_ids),
@@ -97,6 +102,7 @@ def grid_fingerprint(
         "scenario_ids": sorted(scenario_ids),
         "seeds": sorted(int(seed) for seed in seeds),
         "enforcement_scope": enforcement_scope,
+        "pressure_scope": pressure_scope,
     }
 
 

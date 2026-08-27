@@ -11,7 +11,7 @@ from uuid import uuid4
 
 from .env import load_env_file
 from .merge import OVERLAP_POLICIES
-from .metrics import UNKEYED_STATUSES
+from .metrics import HEADLINE_CONTROL_CONDITION, UNKEYED_STATUSES
 from .models import ControlCondition
 from .providers import ProviderError
 from .runner import (
@@ -848,7 +848,7 @@ def _phase2_grid_size(
     from .phase2.providers import LIVE_MODEL_IDS, resolve_phase2_model_ids
     from .phase2.runner import DEFAULT_PHASE2_SEEDS, PHASE2_SCENARIO_SET, _select
     from .phase2.sandbox import FRAMINGS, PHASE2_CONTROL_CONDITIONS, URGENCY_LEVELS, USER_AVAILABILITY_LEVELS
-    from .phase2.scope import scenarios_by_condition
+    from .phase2.scope import pressure_axes_by_condition, scenarios_by_condition
 
     try:
         # Count the set actually being run rather than assuming a size: the v2
@@ -890,37 +890,77 @@ def _phase2_grid_size(
         framings = len(_select(raw_framings, FRAMINGS, "framings")) if raw_framings else 1
         # Omitting --urgencies/--user-availabilities runs a single level
         # ("none"), same as framings above — see run_phase2_evaluation. Only an
-        # explicit flag multiplies these; both together quadruple the grid.
+        # explicit flag multiplies these; both together quadruple the grid, on
+        # whichever conditions --pressure-scope actually crosses them against.
         raw_urgencies = _csv(args.urgencies)
-        urgencies = len(_select(raw_urgencies, URGENCY_LEVELS, "urgency levels")) if raw_urgencies else 1
+        urgency_levels = _select(raw_urgencies, URGENCY_LEVELS, "urgency levels") if raw_urgencies else ["none"]
         raw_user_availabilities = _csv(args.user_availabilities)
-        user_availabilities = (
-            len(_select(raw_user_availabilities, USER_AVAILABILITY_LEVELS, "user-availability levels"))
+        availability_levels = (
+            _select(raw_user_availabilities, USER_AVAILABILITY_LEVELS, "user-availability levels")
             if raw_user_availabilities
-            else 1
+            else ["none"]
         )
+        urgencies = len(urgency_levels)
+        user_availabilities = len(availability_levels)
         seeds = len(_csv_int(args.seeds) or []) or len(DEFAULT_PHASE2_SEEDS)
         # Scripted agents run offline; only live providers incur episode API calls.
         models = len([m for m in resolve_phase2_model_ids(_csv(args.models)) if m in LIVE_MODEL_IDS])
+        # Same per-condition scoping the real run applies (app/phase2/scope.py):
+        # under the default headline_only, only structured_policy crosses the
+        # pressure axes, so counting them uniformly across every condition would
+        # overstate the spend being approved exactly like the enforcement-scope
+        # bug this function's docstring warns about.
+        pressure_axes_for_condition = pressure_axes_by_condition(
+            condition_levels, urgency_levels, availability_levels,
+            HEADLINE_CONTROL_CONDITION, args.pressure_scope,
+        )
+        per_condition_episodes = {
+            condition: len(per_condition[condition])
+            * len(pressure_axes_for_condition[condition][0])
+            * len(pressure_axes_for_condition[condition][1])
+            for condition in condition_levels
+        }
     except Exception:
         return 0, ""
-    episodes = scenario_units * framings * urgencies * user_availabilities * seeds * models
+    episodes = sum(per_condition_episodes.values()) * framings * seeds * models
     if episodes == 0:
         return 0, ""
     axes = (
         f"{models} model(s) x {framings} framing(s) x {urgencies} urgency level(s) x "
         f"{user_availabilities} user-availability level(s) x {seeds} seed(s)"
     )
-    if len({len(scenarios) for scenarios in per_condition.values()}) > 1:
+    scenario_lengths_differ = len({len(scenarios) for scenarios in per_condition.values()}) > 1
+    pressure_axes_differ = (
+        len(
+            {
+                (len(pressure_axes_for_condition[c][0]), len(pressure_axes_for_condition[c][1]))
+                for c in condition_levels
+            }
+        )
+        > 1
+    )
+    if scenario_lengths_differ:
         # The arms cover different scenario sets, so there is no one scenario
         # count to multiply by: name each arm instead of quoting a product that
         # does not equal the total.
         listed = ", ".join(
             f"{condition} {len(scenarios)}" for condition, scenarios in per_condition.items()
         )
+        pressure_note = f" x --pressure-scope {args.pressure_scope}" if pressure_axes_differ else ""
         breakdown = (
             f"{axes}, scenarios per condition: {listed} "
-            f"(--enforcement-scope {args.enforcement_scope}) "
+            f"(--enforcement-scope {args.enforcement_scope}{pressure_note}) "
+            f"= {episodes} multi-turn episodes"
+        )
+    elif pressure_axes_differ:
+        # Same scenario set per arm, but the pressure axes aren't: name each
+        # arm's real episode count instead of quoting the uniform product.
+        listed = ", ".join(
+            f"{condition} {count}" for condition, count in per_condition_episodes.items()
+        )
+        breakdown = (
+            f"{axes}, episodes per condition: {listed} "
+            f"(--pressure-scope {args.pressure_scope}) "
             f"= {episodes} multi-turn episodes"
         )
     else:
@@ -948,6 +988,10 @@ def _resume_command_line(args: argparse.Namespace, run_id: str) -> str:
         (
             "--enforcement-scope",
             args.enforcement_scope if args.enforcement_scope != "rail_reachable" else None,
+        ),
+        (
+            "--pressure-scope",
+            args.pressure_scope if args.pressure_scope != "headline_only" else None,
         ),
         ("--seeds", args.seeds),
         ("--reasoning-effort", args.reasoning_effort),
@@ -1031,6 +1075,7 @@ def phase2_eval_command(args: argparse.Namespace) -> int:
             scenario_ids=scenario_ids,
             scenario_set_path=scenario_set_path,
             enforcement_scope=args.enforcement_scope,
+            pressure_scope=args.pressure_scope,
             seeds=_csv_int(args.seeds),
             temperature=args.temperature,
             reasoning_effort=args.reasoning_effort,
@@ -1098,6 +1143,13 @@ def phase2_eval_command(args: argparse.Namespace) -> int:
             "\nScenarios per condition: "
             + ", ".join(f"{condition} {count}" for condition, count in scenario_counts.items())
             + f" (--enforcement-scope {run.enforcement_scope})"
+        )
+    by_condition_and_urgency = phase2_metrics.get("by_condition_and_urgency") or {}
+    pressure_levels = {key.rsplit("/", 1)[-1] for key in by_condition_and_urgency}
+    if run.pressure_scope and run.pressure_scope != "all" and len(pressure_levels) > 1:
+        print(
+            f"\nPressure axes (urgency, user availability) crossed against "
+            f"{HEADLINE_CONTROL_CONDITION} only (--pressure-scope {run.pressure_scope})."
         )
 
     paired = phase2_metrics.get("paired_contrasts", {}).get("comparisons", [])
@@ -1862,8 +1914,10 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "Comma-separated user-availability levels: none, unreachable, or all. Default: "
             "none only (opt in to add the absent-user ablation; omitting this "
-            "does not run every level). Crosses with --urgencies, so "
-            "setting both to all quadruples the grid."
+            "does not run every level). Crosses with --urgencies, so setting both "
+            "to all quadruples the structured_policy cell under --pressure-scope "
+            "all; under the default headline_only it only quadruples that one "
+            "condition, not the whole grid."
         ),
     )
     phase2_eval_parser.add_argument(
@@ -1909,6 +1963,21 @@ def build_parser() -> argparse.ArgumentParser:
             "engine never fires, so the arm re-measures structured_policy at full "
             "episode cost. Pass 'all' for the full cross-product. no_policy and "
             "structured_policy always run every selected scenario."
+        ),
+    )
+    phase2_eval_parser.add_argument(
+        "--pressure-scope",
+        choices=["headline_only", "all"],
+        default="headline_only",
+        help=(
+            "Which conditions --urgencies/--user-availabilities are crossed "
+            "against. Default headline_only: only structured_policy runs the "
+            "pressure axes; no_policy and tool_constraints run pressure-axis "
+            "baseline (none/none) regardless of what was asked for, since "
+            "phase2_pressure_contrasts reads its deltas from structured_policy "
+            "episodes alone. Has no effect unless structured_policy is one of "
+            "the selected --conditions and a pressure axis is non-default. Pass "
+            "'all' for the full cross-product."
         ),
     )
     phase2_eval_parser.add_argument("--scenario-ids", default=None, help="Comma-separated scenario ids.")
