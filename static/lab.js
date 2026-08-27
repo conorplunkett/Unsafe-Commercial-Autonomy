@@ -918,12 +918,8 @@ function keyedRates(results) {
   };
 }
 
-// Per-cell explanation for a headline-scoped rate (Unsafe/Refused/Welfare in
-// the Runs and Models tables). The column header states the scoping once, but
-// a reader hovering the number itself should see the same fact plus this row's
-// actual count/total — headlineActive flips per run, since a run with no
-// structured_policy/no-pressure episodes (e.g. no_policy-only) falls back to
-// pooling every condition it has instead of reading as a phantom zero.
+// Same headline-scope fallback as summarize(): a run with no
+// structured_policy/no-pressure episodes pools every condition instead.
 function headlineCellTitle(metrics, rate, noun) {
   const scope = metrics.headlineActive
     ? "headline cell: structured_policy, no pressure axes"
