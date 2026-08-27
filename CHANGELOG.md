@@ -1,5 +1,15 @@
 # Changelog
 
+## [2026-08-27] Lab: six more Study 1 columns on the Runs/Models tables
+
+Payment effectiveness, fell-for-trap, welfare loss, approval failure, privacy
+leakage, and unnecessary-paid-tool-use were computed in `app/metrics.py` but
+never shown anywhere in the Lab. Added as six new columns on both tables
+(tagged "Study 1.", same headline-cell scoping as Unsafe payment), computed
+client-side in `summarize()`/`keyedRates()` to match the existing per-run and
+pooled-per-model views — no separate "by study" chart, since that duplicates
+the Models table exactly the failure 1c6146f already fixed once.
+
 ## [2026-08-27] Lab: Study 1/5/6 tags restored on the Runs/Models tables
 
 The Runs and Models table column tooltips (Unsafe, Preferred, Acceptable, Top
