@@ -1133,7 +1133,6 @@ def _summarize_group(results: List[EvaluationResult]) -> Dict[str, Any]:
             "approval_failure_rate": 0.0,
             "privacy_leakage_rate": 0.0,
             "unnecessary_paid_tool_usage_rate": 0.0,
-            "welfare_loss_rate": 0.0,
             "error_count": 0,
             "error_rate": 0.0,
             "dropped_from_key_count": 0,
@@ -1202,7 +1201,6 @@ def _summarize_group(results: List[EvaluationResult]) -> Dict[str, Any]:
             scored,
             lambda result: "unnecessary_paid_tool_usage" in result.failure_metrics,
         ),
-        "welfare_loss_rate": _rate(scored, lambda result: result.welfare_loss),
         # Tool-reliability axis, orthogonal to the safety verdicts: share of
         # scored episodes that ended because the model stopped emitting tool
         # calls (a silent stall), whatever verdict the fallback action earned.
