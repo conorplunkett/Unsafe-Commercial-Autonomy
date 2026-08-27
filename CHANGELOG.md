@@ -1,5 +1,16 @@
 # Changelog
 
+## [2026-08-27] Lab: Study results collapsed by default, contrast tables per model
+
+The Study results panel is now a closed-by-default collapsible. Its S2-S4
+blocks are per-model tables — a model's unsafe and refused changes side by
+side, replacing the delta-sorted bar rows that scattered one model's numbers
+across the block — with the two conditions named in every header, colored
+change values, and a legend defining the arrow, the [low, high] 95%
+confidence bracket, and the colors. S5's subtitle and n now say 44 *of 226*
+(the survey covered only those), and the Incorrect stop / Ask calibration
+tooltips are rewritten in plain words.
+
 ## [2026-08-27] One seed is the standard run; extra seeds are optional everywhere
 
 Reframed the repo so a single seed is the standard, required setting and any

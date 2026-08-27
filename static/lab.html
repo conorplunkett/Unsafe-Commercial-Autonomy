@@ -6,7 +6,7 @@
     <title>Experiment Lab · Unsafe Commercial Autonomy</title>
     <link rel="icon" href="/favicon.ico">
     <link rel="stylesheet" href="/static/styles.css?v=18">
-    <link rel="stylesheet" href="/static/lab.css?v=32">
+    <link rel="stylesheet" href="/static/lab.css?v=33">
   </head>
   <body>
     <div class="lab-page-layout">
@@ -423,13 +423,23 @@
         </aside>
       </main>
 
-      <section class="taxonomy-panel lab-study-results" id="section-study-results" aria-label="Study results">
-        <div class="panel-heading">
+      <details class="taxonomy-panel lab-study-results" id="section-study-results" aria-label="Study results">
+        <summary class="panel-heading">
           <h2>Study results</h2>
           <span id="studyResultsStamp" class="run-stamp"></span>
-        </div>
+        </summary>
+        <p class="panel-legend">
+          <strong>35% &rarr; 24%</strong> &mdash; the rate before, then after,
+          the change each table names.
+          <strong>[&minus;18%, &minus;3%]</strong> &mdash; the 95% confidence
+          range for a change: the real effect is very likely inside it, and a
+          wider range means less certainty.
+          <strong>Green</strong> &mdash; the rate fell (better);
+          <strong>red</strong> &mdash; it rose.
+          Hover any column heading for its exact definition.
+        </p>
         <div id="studyResultsContent" class="phases-content"></div>
-      </section>
+      </details>
 
       <section class="taxonomy-panel lab-phases" id="section-phases" aria-label="Phases">
         <div class="panel-heading">
@@ -871,6 +881,6 @@
         }, { passive: true });
       })();
     </script>
-    <script src="/static/lab.js?v=41"></script>
+    <script src="/static/lab.js?v=42"></script>
   </body>
 </html>
