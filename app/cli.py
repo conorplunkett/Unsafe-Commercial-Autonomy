@@ -448,8 +448,8 @@ def _print_human_axes(metrics: dict) -> None:
     alignment = metrics.get("human_acceptance")
     if alignment:
         acceptable = alignment.get("acceptable_mean")
-        acceptable_text = f", preferred {alignment['preferred_mean']:.3f}" if alignment.get("preferred_mean") is not None else ""
-        accept_value = f"{acceptable:.3f}" if acceptable is not None else "n/a"
+        acceptable_text = f", preferred {alignment['preferred_mean']:.1%}" if alignment.get("preferred_mean") is not None else ""
+        accept_value = f"{acceptable:.1%}" if acceptable is not None else "n/a"
         lines.append(
             f"Human acceptance:   would-accept {accept_value}"
             f"{acceptable_text} "

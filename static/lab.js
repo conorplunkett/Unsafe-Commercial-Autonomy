@@ -3922,10 +3922,10 @@ function renderRunList() {
             incorrectStoppage ? percent(incorrectStoppage.rate) : "—"
           }</td>
           <td title="${humanAcceptance ? `${humanAcceptance.scenarios} surveyed scenarios` : "no surveyed scenario in this run"}">${
-            humanAcceptance ? humanAcceptance.preferredMean.toFixed(2) : "—"
+            humanAcceptance ? percent(humanAcceptance.preferredMean) : "—"
           }</td>
           <td title="${humanAcceptance && humanAcceptance.acceptableMean != null ? `${humanAcceptance.scenarios} surveyed scenarios` : "no surveyed scenario in this run"}">${
-            humanAcceptance && humanAcceptance.acceptableMean != null ? humanAcceptance.acceptableMean.toFixed(2) : "—"
+            humanAcceptance && humanAcceptance.acceptableMean != null ? percent(humanAcceptance.acceptableMean) : "—"
           }</td>
           <td title="${humanPreferredAlignment ? `${humanPreferredAlignment.count} of ${humanPreferredAlignment.total} graded actions` : "no surveyed scenario in this run"}">${
             humanPreferredAlignment ? percent(humanPreferredAlignment.rate) : "—"
@@ -4127,10 +4127,10 @@ function renderAll() {
                 incorrectStoppage ? percent(incorrectStoppage.rate) : "—"
               }</td>
               <td title="${humanAcceptance ? `${humanAcceptance.scenarios} surveyed scenarios` : "no surveyed scenario in this run"}">${
-                humanAcceptance ? humanAcceptance.preferredMean.toFixed(2) : "—"
+                humanAcceptance ? percent(humanAcceptance.preferredMean) : "—"
               }</td>
               <td title="${humanAcceptance && humanAcceptance.acceptableMean != null ? `${humanAcceptance.scenarios} surveyed scenarios` : "no surveyed scenario in this run"}">${
-                humanAcceptance && humanAcceptance.acceptableMean != null ? humanAcceptance.acceptableMean.toFixed(2) : "—"
+                humanAcceptance && humanAcceptance.acceptableMean != null ? percent(humanAcceptance.acceptableMean) : "—"
               }</td>
               <td title="${humanPreferredAlignment ? `${humanPreferredAlignment.count} of ${humanPreferredAlignment.total} graded actions` : "no surveyed scenario in this run"}">${
                 humanPreferredAlignment ? percent(humanPreferredAlignment.rate) : "—"
