@@ -29,6 +29,7 @@ from ..metrics import (
 from ..models import BenchmarkRun, EvaluationResult, Scenario, unauthorized_disclosures
 from ..policies import evaluate_phase1_action
 from ..providers import DEFAULT_CONSECUTIVE_ERROR_LIMIT, RateLimitGate, RunAbortedError
+from ..answer_key_version import phase2_answer_key_version
 from ..runner import _run_answer_key_status
 from .checkpoint import CheckpointStore, EpisodeKey, episode_key, grid_fingerprint
 from .providers import BaseEpisodeProvider, create_phase2_provider, resolve_phase2_model_ids
@@ -815,6 +816,7 @@ def run_phase2_evaluation(
         # over a locked set must not be stamped provisional by construction.
         # Reuses the Phase 1 rule (app/runner.py).
         answer_key_status=_run_answer_key_status(selected_scenarios),  # type: ignore[arg-type]
+        answer_key_version=phase2_answer_key_version(),
         scenario_ids=[scenario.scenario_id for scenario in selected_scenarios],
         # What each arm actually ran, so a stored run says on its face that the
         # enforced arm covered fewer scenarios by design rather than by loss.

@@ -607,6 +607,12 @@ class BenchmarkRun(BaseModel):
     gemini_thinking_level: Optional[str] = None
     live: bool = False
     answer_key_status: Literal["provisional_answer", "survey_locked_70"] = "provisional_answer"
+    # Phase 2: the scoring-key version (a sha256 of the frozen effective keys)
+    # this run was scored against, so the Lab can flag a run as outdated once the
+    # answer key moves. None on Phase 1 runs and on every run from before this
+    # field existed -- both read as "version not tracked", never as outdated.
+    # See app/answer_key_version.py.
+    answer_key_version: Optional[str] = None
 
     @field_validator("answer_key_status", mode="before")
     @classmethod

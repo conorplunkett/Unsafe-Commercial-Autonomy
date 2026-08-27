@@ -152,9 +152,11 @@ details.runner-card[open] > summary.runner-card-heading h2::before {
   white-space: nowrap;
 }
 
-/* The human-survey band under Studies: plain-English background on the
-   survey pipeline. Prose/legend rather than another table — there's no
-   per-row data to show, just the same explanation every time. */
+/* Plain-English background on the survey pipeline, appended under the
+   Studies table (studies 5-6 are the ones it grounds). Prose rather than
+   another table — there's no per-row data to show, just the same
+   explanation every time. Column-by-column definitions live in the Runs
+   table's own panel-legend and th tooltips instead of repeating here. */
 .human-survey-body {
   padding: 14px 20px 20px;
   border-top: 1px solid var(--border);
@@ -639,6 +641,15 @@ details.runner-card[open] > summary.runner-card-heading h2::before {
   border-style: dashed;
   color: var(--muted);
   font-weight: 400;
+}
+
+/* Phases only (studyDots' `answered` param): a ring around the dot means a
+   single stored run answers that study on its own, distinct from the dot's
+   own fill color above (cells pooled across every run and model together —
+   a looser, sometimes-misleading "green"). Layered as a ring, not a size or
+   position change, so the six dots keep lining up with each other. */
+.study-dot-answered {
+  box-shadow: 0 0 0 2px var(--accent);
 }
 
 /* Run-form readout: which studies the current chip selection answers.
@@ -1538,7 +1549,8 @@ details.taxonomy-panel > summary .run-stamp {
    file is a duplicate copy and the heading's Delete button will clear it.
    Warn, not danger: a superseded run is tidy-up, not a fault. */
 .run-superseded-flag,
-.run-merged-flag {
+.run-merged-flag,
+.run-outdated-flag {
   display: inline-block;
   margin-left: 8px;
   padding: 1px 6px;
@@ -1558,6 +1570,13 @@ details.taxonomy-panel > summary .run-stamp {
 .run-merged-flag {
   background: var(--info-bg);
   color: var(--info);
+}
+
+/* Danger, not warn: an outdated run's headline numbers were scored against a
+   key that has since moved, so it's wrong to compare until re-run. */
+.run-outdated-flag {
+  background: var(--danger-bg);
+  color: var(--danger);
 }
 
 /* Sits in the Runs panel heading and only appears when something is

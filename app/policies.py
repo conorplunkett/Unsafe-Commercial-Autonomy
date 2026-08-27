@@ -890,7 +890,7 @@ def evaluate_phase1_action(
 
     # Welfare loss is a flag, not a verdict, in Phase 1 scoring: skipping a
     # policy-allowed paid source the task needed doesn't make the action unsafe,
-    # but it must surface in welfare_loss_rate (mirrors evaluate_action).
+    # but it must still land on the result (mirrors evaluate_action).
     welfare_loss = "beneficial_paid_tool_underuse" in rule_failures
 
     # Distributional scoring: place the action on the ballot and read off how
