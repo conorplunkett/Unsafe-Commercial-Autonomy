@@ -94,7 +94,7 @@ const state = {
   // ("phase2" -> "2", "phase1"/"phase1_fallback" -> "1"). state.surveyFloor is
   // kept as the phase-agnostic "prefer Phase 2" pick other code still reads.
   surveyFloorByPhase: {},
-  // Which phase the By-model / Axes / Splits / Failure-modes sections are scoped
+  // Which phase the Models / Splits / Failure-modes sections are scoped
   // to. Default Phase 2 (the only phase actively run now). Separate from
   // state.phase, which drives the run form and nothing else.
   dashboardPhase: "2",
@@ -143,6 +143,7 @@ for (const id of [
   "userAvailabilityChips",
   "dryRunChip",
   "categoryFilter",
+  "splitFilter",
   "scenarioFilter",
   "seedsInput",
   "temperatureInput",
@@ -158,15 +159,7 @@ for (const id of [
   "modelSectionMeta",
   "dashPhaseChips",
   "modelDashboard",
-  "chartUnsafe",
-  "chartRefusal",
-  "chartWelfare",
   "axesSectionMeta",
-  "chartStoppage",
-  "chartAcceptance",
-  "chartPreferredAlignment",
-  "chartCalibration",
-  "chartFloor",
   "splitsTable",
   "splitsStamp",
   "resultFramingFilter",
@@ -177,6 +170,7 @@ for (const id of [
   "resultUserAvailabilityFilterTrigger",
   "ladderFullGrid",
   "ladderEveryScenario",
+  "ladderSurveyRun",
   "ladderPressureRun",
   "ladderEverySeeds",
   "phasesStamp",
@@ -1260,30 +1254,46 @@ function pickProvider(providerId) {
   renderModelSelect();
 }
 
-// The benchmark's two-run design as presets. Applying one writes the
-// condition/axis chips; the studies readout beside the run count says what
-// the resulting run answers. Studies 1–3 and 5–6 all come from the one
-// baseline sitting — running them as separate single-study runs re-buys the
-// shared structured_policy arm each time. The pressure run is
-// self-contained on purpose: pressure_contrasts are computed within a
-// single run at save time, so it carries its own no-pressure baseline, and
-// app/merge.py refuses to pool it with a baseline run (their
-// structured_policy none/none episodes collide).
+// The benchmark's run designs as presets, named by the studies each answers.
+// Applying one writes the condition/axis/scenario-set controls; the studies
+// readout beside the run count says what the resulting run answers. Studies
+// 1–3 and 5–6 all come from the one baseline sitting — running them as
+// separate single-study runs re-buys the shared structured_policy arm each
+// time. The pressure run is self-contained on purpose: pressure_contrasts
+// are computed within a single run at save time, so it carries its own
+// no-pressure baseline, and app/merge.py refuses to pool it with a baseline
+// run (their structured_policy none/none episodes collide). The survey run
+// is the cheap alternative when only 5–6 are wanted: S5/S6 are S1's cells
+// (structured_policy, both axes none) read on the survey-covered scenarios
+// only, so no_policy/tool_constraints and the objective-half scenarios add
+// nothing to them — split "survey" (app/cli.py --split) skips paying for
+// either.
 const STUDY_PRESETS = {
   baseline: {
-    label: "Baseline run",
-    title: "Studies 1, 2, 3, 5, 6 — all three conditions, both pressure axes at none.",
+    label: "Baseline · studies 1–3, 5–6",
+    title: "Studies 1, 2, 3, 5, 6 — all three conditions, both pressure axes at none, every scenario.",
     conditions: ["no_policy", "structured_policy", "tool_constraints"],
     urgencies: [],
     userAvailabilities: [],
+    split: "all",
   },
   pressure: {
-    label: "Pressure run",
+    label: "Pressure · study 4",
     title:
       "Study 4 — structured policy crossed with both pressure axes. Self-contained: includes its own no-pressure baseline; never merged with a baseline run.",
     conditions: ["structured_policy"],
     urgencies: ["none", "time_pressure"],
     userAvailabilities: ["none", "unreachable"],
+    split: "all",
+  },
+  survey: {
+    label: "Survey · studies 5–6",
+    title:
+      "Studies 5, 6 only — structured policy, both pressure axes at none, on just the 44 survey-covered scenarios. Cheaper than the baseline run when 1–3 aren't needed.",
+    conditions: ["structured_policy"],
+    urgencies: [],
+    userAvailabilities: [],
+    split: "survey",
   },
 };
 
@@ -1309,7 +1319,7 @@ function clearStudyPreset() {
 function applyStudyPreset(key) {
   const preset = STUDY_PRESETS[key];
   if (!preset) return;
-  // Both presets are Phase-2-shaped (structured_policy isn't a Phase 1
+  // All three presets are Phase-2-shaped (structured_policy isn't a Phase 1
   // condition), so applying one always lands on Phase 2.
   if (state.phase !== "2") pickPhase("2");
   state.studyPreset = key;
@@ -1320,9 +1330,11 @@ function applyStudyPreset(key) {
   for (const value of preset.urgencies) state.urgencies.add(value);
   state.userAvailabilities.clear();
   for (const value of preset.userAvailabilities) state.userAvailabilities.add(value);
+  if (els.splitFilter) els.splitFilter.value = preset.split || "all";
   renderStudyPresetChips();
   renderConditionChips();
   renderPhase2AxesChips();
+  renderScenarioOptions();
   updateRunCount();
 }
 
@@ -1385,14 +1397,29 @@ function pickPhase(phase) {
   updateRunCount();
 }
 
+// Split mirrors the CLI's --split objective|survey (app/cli.py _resolve_split):
+// objective is the structured-rule-verdict half studies 1–3 grade, survey is
+// the human-vote-keyed half studies 5–6 grade against. state.surveyCoverage
+// missing (fetch failed) leaves the split a no-op rather than emptying the
+// pool, same fallback rule as enforcementScope.
 function scenarioPool() {
   const scenarios = state.phase === "2" ? state.phase2Scenarios : state.scenarios;
   const category = els.categoryFilter.value;
-  return scenarios.filter((scenario) => category === "all" || scenario.category === category);
+  const split = els.splitFilter ? els.splitFilter.value : "all";
+  return scenarios.filter((scenario) => {
+    if (category !== "all" && scenario.category !== category) return false;
+    if (split !== "all" && state.surveyCoverage) {
+      const surveyed = state.surveyCoverage.has(scenario.scenario_id);
+      if (split === "survey" && !surveyed) return false;
+      if (split === "objective" && surveyed) return false;
+    }
+    return true;
+  });
 }
 
 function renderScenarioFilters() {
   const scenarios = state.phase === "2" ? state.phase2Scenarios : state.scenarios;
+  if (els.splitFilter) els.splitFilter.value = "all";
   const categories = [...new Set(scenarios.map((scenario) => scenario.category))].sort();
   els.categoryFilter.innerHTML = [
     '<option value="all">All categories</option>',
@@ -1438,7 +1465,8 @@ function axisCount(selected, defaultCount) {
 function runFormStudyStates() {
   const pool = scenarioPool();
   const choice = els.scenarioFilter.value;
-  const wholeSet = choice === "all" && els.categoryFilter.value === "all";
+  const splitIsAll = !els.splitFilter || els.splitFilter.value === "all";
+  const wholeSet = choice === "all" && els.categoryFilter.value === "all" && splitIsAll;
   const subsetIds =
     choice === "all" || choice === "random"
       ? pool.map((scenario) => scenario.scenario_id)
@@ -1601,11 +1629,15 @@ function scenarioSelectionForCommand() {
   const pool = scenarioPool();
   const choice = els.scenarioFilter.value;
   if (choice === "random") {
-    return { ids: null, note: "“Random” has no CLI flag — pick a --scenario-ids value yourself" };
+    return { ids: null, split: null, note: "“Random” has no CLI flag — pick a --scenario-ids value yourself" };
   }
-  if (choice !== "all") return { ids: [choice], note: null };
-  if (els.categoryFilter.value !== "all") return { ids: pool.map((s) => s.scenario_id), note: null };
-  return { ids: null, note: null };
+  if (choice !== "all") return { ids: [choice], split: null, note: null };
+  if (els.categoryFilter.value !== "all") {
+    return { ids: pool.map((s) => s.scenario_id), split: null, note: null };
+  }
+  const split = els.splitFilter ? els.splitFilter.value : "all";
+  if (split !== "all") return { ids: null, split, note: null };
+  return { ids: null, split: null, note: null };
 }
 
 // Flags/notes shared by both `eval` (Phase 1) and `phase2-eval` (Phase 2):
@@ -1622,6 +1654,8 @@ function buildCommonCliParts() {
   const scenarioSelection = scenarioSelectionForCommand();
   if (scenarioSelection.ids) {
     flags.push(`--scenario-ids ${shellQuote(scenarioSelection.ids.join(","))}`);
+  } else if (scenarioSelection.split) {
+    flags.push(`--split ${scenarioSelection.split}`);
   }
   if (scenarioSelection.note) notes.push(scenarioSelection.note);
 
@@ -1748,7 +1782,10 @@ function selectedScenarioIds() {
     return pick ? [pick.scenario_id] : null;
   }
   if (choice !== "all") return [choice];
-  if (els.categoryFilter.value !== "all") return pool.map((scenario) => scenario.scenario_id);
+  const split = els.splitFilter ? els.splitFilter.value : "all";
+  if (els.categoryFilter.value !== "all" || split !== "all") {
+    return pool.map((scenario) => scenario.scenario_id);
+  }
   return null;
 }
 
@@ -2026,49 +2063,13 @@ function modelGroups(phase) {
   return rows;
 }
 
-// Short phase tag shown beside each bar / in the Models table: which phase the
-// headline number reflects, and whether that phase is complete.
+// Phase tag shown in the Models table: which phase the headline number
+// reflects, and whether that phase is complete.
 function displayPhaseTag(display) {
   if (!display) return "—";
   if (display.complete) return `P${display.phase} ✓`;
   // covered/total are scenario×condition cells (see phaseStatuses).
   return `P${display.phase} ${display.covered}/${display.total} cells`;
-}
-
-// Short phase tag for the tight, 3-up charts: just phase + complete/partial,
-// no fraction (the exact cells figure lives in the Models table and Phases
-// section). Keeping it short leaves room for the bar itself.
-function displayPhaseTagShort(display) {
-  if (!display) return "—";
-  return display.complete ? `P${display.phase} ✓` : `P${display.phase} partial`;
-}
-
-function renderModelChart(rows, chartEl, metricKey) {
-  // All three metrics are rates, so bars share a fixed 0–100% scale rather
-  // than stretching to the chart's max — a 5% rate must look like 5%.
-  chartEl.innerHTML = rows
-    .map((row) => {
-      const value = row.metrics[metricKey];
-      const width = Math.max(value * 100, value > 0 ? 1.5 : 0);
-      return `
-        <div class="bar-row" title="${row.label} · ${displayPhaseTag(row.display)} · n=${row.metrics.total}">
-          <span class="bar-name" title="${row.label}">${row.label}</span>
-          <span class="bar-phase ${row.display && !row.display.complete ? "bar-phase-partial" : ""}">${displayPhaseTagShort(row.display)}</span>
-          <div class="bar-track"><div class="bar-fill" style="width:${width}%"></div></div>
-          <span class="bar-value">${percent(value)}</span>
-        </div>
-      `;
-    })
-    .join("");
-}
-
-// A 0–100% track, or an empty one when the axis has nothing to report for this
-// model. A null and a zero must not look alike: "no surveyed scenario in this
-// run" is not "scored zero".
-function plainTrack(value) {
-  if (value == null) return `<div class="bar-track bar-track-empty"></div>`;
-  const width = Math.max(value * 100, value > 0 ? 1.5 : 0);
-  return `<div class="bar-track"><div class="bar-fill" style="width:${width}%"></div></div>`;
 }
 
 // A track centered on zero, for axes read against a baseline rather than a
@@ -2088,30 +2089,6 @@ function signedTrack(value, positiveIsGood) {
   `;
 }
 
-// The survey-grounded axes share the headline charts' row layout (model, phase
-// tag, track, value) so the two blocks read as one instrument. `spec.value`
-// pulls the number out of a metrics object and may return null; `spec.note`
-// builds the row tooltip from the same metrics.
-function renderAxisChart(rows, chartEl, spec) {
-  chartEl.innerHTML = rows
-    .map((row) => {
-      const value = spec.value(row.metrics);
-      const note = spec.note ? spec.note(row.metrics) : "";
-      const track = spec.signed
-        ? signedTrack(value, spec.positiveIsGood)
-        : plainTrack(value);
-      return `
-        <div class="bar-row" title="${row.label} · ${displayPhaseTag(row.display)}${note ? ` · ${note}` : ""}">
-          <span class="bar-name" title="${row.label}">${row.label}</span>
-          <span class="bar-phase ${row.display && !row.display.complete ? "bar-phase-partial" : ""}">${displayPhaseTagShort(row.display)}</span>
-          ${track}
-          <span class="bar-value">${spec.format(value)}</span>
-        </div>
-      `;
-    })
-    .join("");
-}
-
 // Episode counts for the CLI cost ladder: the loaded v2 scenario count times
 // the axes each rung crosses. Computed rather than typed in — the ladder read
 // "250 episodes" for a while after the set was trimmed to 226, because the
@@ -2128,6 +2105,13 @@ function renderCostLadder() {
   const baselineUnits = 2 * scenarios + Math.min(scenarios, enforced);
   els.ladderEveryScenario.textContent = episodes(baselineUnits);
   els.ladderEverySeeds.textContent = episodes(baselineUnits * 3);
+  // Survey run: structured_policy only, on the survey-covered scenarios only
+  // (state.surveyCoverage — the same denominator the S5/S6 readout uses).
+  // Falls back to the full scenario count if the coverage fetch failed,
+  // same rule as the enforcement-scope fallback above.
+  if (els.ladderSurveyRun) {
+    els.ladderSurveyRun.textContent = episodes(state.surveyCoverage ? state.surveyCoverage.size : scenarios);
+  }
   // Pressure run: structured_policy only, crossed with both axes (2 x 2).
   if (els.ladderPressureRun) els.ladderPressureRun.textContent = episodes(scenarios * 4);
   // The full cross-product, quoted for scale — not the design anyone runs
@@ -2139,68 +2123,11 @@ function renderCostLadder() {
     `= ${(baselineUnits * 2 * 2 * 3).toLocaleString()} episodes per model.`;
 }
 
-function renderSurveyAxes(rows) {
-  if (!els.chartStoppage) return;
-  renderAxisChart(rows, els.chartStoppage, {
-    value: (metrics) => (metrics.incorrectStoppage ? metrics.incorrectStoppage.rate : null),
-    format: (value) => (value == null ? "—" : percent(value)),
-    note: (metrics) =>
-      metrics.incorrectStoppage
-        ? `${metrics.incorrectStoppage.count}/${metrics.incorrectStoppage.total} graded stops`
-        : "no gradeable stop",
-  });
-  renderAxisChart(rows, els.chartAcceptance, {
-    value: (metrics) => (metrics.humanAcceptance ? metrics.humanAcceptance.preferredMean : null),
-    format: (value) => (value == null ? "—" : value.toFixed(2)),
-    note: (metrics) => {
-      const acceptance = metrics.humanAcceptance;
-      if (!acceptance) return "no surveyed scenario";
-      const accept =
-        acceptance.acceptableMean == null
-          ? ""
-          : `, would-accept ${acceptance.acceptableMean.toFixed(2)}`;
-      return `${acceptance.scenarios} surveyed scenarios${accept}`;
-    },
-  });
-  renderAxisChart(rows, els.chartPreferredAlignment, {
-    value: (metrics) =>
-      metrics.humanPreferredAlignment ? metrics.humanPreferredAlignment.rate : null,
-    format: (value) => (value == null ? "—" : percent(value)),
-    note: (metrics) =>
-      metrics.humanPreferredAlignment
-        ? `${metrics.humanPreferredAlignment.count}/${metrics.humanPreferredAlignment.total} graded actions`
-        : "no surveyed scenario",
-  });
-  renderAxisChart(rows, els.chartCalibration, {
-    value: (metrics) => (metrics.askCalibration ? metrics.askCalibration.r : null),
-    format: correlation,
-    signed: true,
-    positiveIsGood: true,
-    note: (metrics) => {
-      const calibration = metrics.askCalibration;
-      if (!calibration) return "not enough surveyed scenarios to correlate";
-      return `agent ${percent(calibration.agentAskRate)} vs human ${percent(
-        calibration.humanAskRate
-      )} ask-rate over ${calibration.scenarios} scenarios`;
-    },
-  });
-  renderAxisChart(rows, els.chartFloor, {
-    value: floorExcess,
-    format: signedPercent,
-    signed: true,
-    // Refusing more often than the median respondent is the failure here, so
-    // the positive side is the bad one — the opposite of ask calibration.
-    positiveIsGood: false,
-    note: (metrics) => {
-      const floor = currentFloor();
-      return floor
-        ? `refused ${percent(metrics.refusedWhenSafeRate)} against a ${percent(
-            floor.rate
-          )} human floor${floorCaveat()}`
-        : "no survey floor in the loaded runs";
-    },
-  });
-
+// The per-model survey-grounded numbers live only in the Models table now;
+// this just keeps that table's meta line current (which phase, how many
+// surveyed scenarios, what the reflexive-ask floor is).
+function renderSurveyAxes() {
+  if (!els.axesSectionMeta) return;
   const surveyedScenarios = new Set(
     resultsInPhase(state.allResults, state.dashboardPhase)
       .filter((result) => result.human_preferred_share != null)
@@ -3589,9 +3516,8 @@ function readonlyToggle(label, checked, title, type = "radio") {
 // grid but still loadable on old runs); the right column is the urgency and
 // user-availability ablations. A single run can bundle anywhere from one
 // condition to a full cross product, so this reads the results rather than
-// assuming a shape. Framing keeps its own small label, since "Evaluation" vs
-// "Deployment" isn't a checklist question and only needs stating when the
-// run isn't the deployment default.
+// assuming a shape. Framing is dropped here: "evaluation" was cut from the
+// runnable grid (README), so every run is the deployment default now.
 function runConditionsPills(results) {
   const conditions = new Set(results.map((result) => result.control_condition).filter(Boolean));
   const policyColumn = [
@@ -3633,27 +3559,24 @@ function runConditionsPills(results) {
   // cell blank — Phase 2 results always carry a real "none" string here
   // (app/phase2/runner.py), while Phase 1 leaves the field null, so that
   // distinguishes "axis applies, at its default" from "axis doesn't apply".
+  // Ticked only when the run actually includes an unreachable-user episode,
+  // same as the Urgency toggle above.
   if (results.some((result) => result.user_availability != null)) {
     const unreachable = results.some((result) => result.user_availability === "unreachable");
     axisColumn.push(
       readonlyToggle(
-        "User present",
-        !unreachable,
+        "User away",
+        unreachable,
         unreachable ? "Includes an unreachable-user episode" : undefined,
         "checkbox"
       )
     );
   }
 
-  const framings = [...new Set(results.map((result) => result.framing).filter((framing) => framing && framing !== "deployment"))];
-  const framingNote = framings.length
-    ? `<span class="condition-pill">Env: ${framings.map(framingShortLabel).join(" / ")}</span>`
-    : "";
-
   return `<div class="condition-checklist">
     <div class="cond-check-col">${policyColumn.join("")}</div>
     <div class="cond-check-col">${axisColumn.join("")}</div>
-  </div>${framingNote}`;
+  </div>`;
 }
 
 // The two primary condition contrasts (app/metrics.py
@@ -3847,6 +3770,12 @@ function renderStudyResults() {
             <span class="phase-detail-summary">${board.sub}</span>
           </summary>
           <div class="bar-chart study-rows">
+            <div class="bar-row bar-row-head">
+              <span class="bar-col-head">Model</span>
+              <span class="bar-col-head" title="The rate under condition A, then the rate under condition B.">Rate, A &rarr; B</span>
+              <span class="bar-col-head"></span>
+              <span class="bar-col-head" title="Risk difference (B minus A), paired per scenario, with its 95% CI. Negative means the added control — or the removed pressure — helped. Run date and pairing counts are in each row's own tooltip.">Change (B &minus; A)</span>
+            </div>
             ${board.rows.map(studyRowHtml).join("")}
           </div>
         </details>
@@ -4102,10 +4031,7 @@ function renderAll() {
       phaseResultCount === 1 ? "" : "s"
     }` + (partialCount ? ` · ${partialCount} partial` : "");
 
-  renderModelChart(rows, els.chartUnsafe, "unsafePaymentRate");
-  renderModelChart(rows, els.chartRefusal, "refusedWhenSafeRate");
-  renderModelChart(rows, els.chartWelfare, "userWelfareScore");
-  renderSurveyAxes(rows);
+  renderSurveyAxes();
   renderSplits(rows);
 
   els.modelSummaryTable.innerHTML = rows.length
@@ -4267,7 +4193,7 @@ function bindEvents() {
     const chip = event.target.closest("[data-phase]");
     if (chip) pickPhase(chip.dataset.phase);
   });
-  // Dashboard phase toggle: scopes By model / Axes / Splits / Failure modes to
+  // Dashboard phase toggle: scopes Models / Splits / Failure modes to
   // Phase 1 or Phase 2. Separate from the run-form phase chips above.
   els.dashPhaseChips.addEventListener("click", (event) => {
     const chip = event.target.closest("[data-dash-phase]");
@@ -4305,6 +4231,12 @@ function bindEvents() {
     renderScenarioOptions();
     updateRunCount();
   });
+  if (els.splitFilter) {
+    els.splitFilter.addEventListener("change", () => {
+      renderScenarioOptions();
+      updateRunCount();
+    });
+  }
   els.scenarioFilter.addEventListener("change", updateRunCount);
   els.seedsInput.addEventListener("input", updateRunCount);
   els.temperatureInput.addEventListener("input", updateRunCount);

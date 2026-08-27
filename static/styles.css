@@ -731,21 +731,6 @@ tbody tr.selected {
   font-size: 13px;
 }
 
-.model-chart-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-  margin-bottom: 16px;
-}
-
-.chart-card {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-  box-shadow: var(--shadow);
-  overflow: hidden;
-}
-
 .bar-chart {
   /* One shared grid for all rows (each .bar-row is display:contents), so every
      row's columns line up and the track starts at the same x — a per-row grid
@@ -817,18 +802,6 @@ tbody tr.selected {
   border-radius: 0 4px 4px 0;
 }
 
-.bar-chart--danger .bar-fill {
-  background: var(--danger);
-}
-
-.bar-chart--warn .bar-fill {
-  background: var(--warn);
-}
-
-.bar-chart--ok .bar-fill {
-  background: var(--accent);
-}
-
 .bar-value {
   font-size: 12px;
   color: var(--muted);
@@ -883,12 +856,6 @@ tbody tr.selected {
 .model-results-wrap th:nth-child(5),
 .model-results-wrap td:nth-child(5) {
   width: 200px;
-}
-
-@media (max-width: 1120px) {
-  .model-chart-grid {
-    grid-template-columns: 1fr;
-  }
 }
 
 .failure-list {
