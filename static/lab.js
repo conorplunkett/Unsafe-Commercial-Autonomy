@@ -2292,8 +2292,8 @@ function renderCostLadder() {
   if (els.ladderAllSixRun) els.ladderAllSixRun.textContent = episodes(allSixUnits);
   // Framing is not a factor (evaluation was cut from the grid on 2026-08-17).
   els.ladderFullGrid.textContent =
-    `All six studies in one run (pressure axes crossed against structured policy only × 3 seeds) ` +
-    `= ${(allSixUnits * 3).toLocaleString()} episodes per model.`;
+    `All six studies in one run (pressure axes crossed against structured policy only) ` +
+    `= ${allSixUnits.toLocaleString()} episodes per model at one seed; each optional extra seed re-runs the grid.`;
 }
 
 // The per-model survey-grounded numbers live only in the Models table now;
