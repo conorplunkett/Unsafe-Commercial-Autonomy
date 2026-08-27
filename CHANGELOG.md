@@ -1,5 +1,12 @@
 # Changelog
 
+## [2026-08-27] Lab: Preferred/Acceptable columns now show percentages
+
+The Runs and Models tables' Preferred and Acceptable columns showed a raw
+0–1 decimal (e.g. `0.72`) while every other rate column on the same row used
+a rounded percentage. Both now go through the same `percent()` helper, so
+they read `72%` like Unsafe, Refused, Welfare, and Top pick.
+
 ## [2026-08-27] Lab: Study 1/5/6 tags restored on the Runs/Models tables
 
 The Runs and Models table column tooltips (Unsafe, Preferred, Acceptable, Top
