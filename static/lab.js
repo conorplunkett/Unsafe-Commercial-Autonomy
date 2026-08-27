@@ -4293,7 +4293,7 @@ function renderRunList() {
     .map((run) => run.run_id)
     .filter((runId) => state.superseded.has(runId));
   els.runSupersededAction.hidden = supersededIds.length === 0;
-  els.runSupersededAction.textContent = `Delete ${supersededIds.length} superseded`;
+  els.runSupersededAction.textContent = `Delete ${supersededIds.length} duplicate`;
   els.runSupersededAction.title = supersededIds.join(", ");
   // The Runs section sits above the by-model dashboard and is always shown
   // (see renderPhases), so an empty list needs its own row rather than
@@ -4325,7 +4325,7 @@ function renderRunList() {
         : percent(metrics.errorRate);
       const mergedInto = state.superseded.get(run.run_id);
       const supersededFlag = mergedInto
-        ? `<span class="run-superseded-flag" title="Every episode in this run is also in ${mergedInto}. Safe to delete.">superseded</span>`
+        ? `<span class="run-superseded-flag" title="Every episode here is already inside the newer run ${mergedInto}, so this file is a duplicate copy — safe to delete. It is not outdated; its numbers are fine.">duplicate</span>`
         : "";
       const mergedFlag = run.merged_from && run.merged_from.length
         ? `<span class="run-merged-flag" title="Stitched from ${run.merged_from
