@@ -10,6 +10,16 @@ client-side in `summarize()`/`keyedRates()` to match the existing per-run and
 pooled-per-model views — no separate "by study" chart, since that duplicates
 the Models table exactly the failure 1c6146f already fixed once.
 
+## [2026-08-27] Preferred/Acceptable now show as percentages everywhere
+
+The Lab's Runs and Models tables and the `phase2-eval` CLI summary all
+showed the Preferred/Acceptable (would-accept) human-survey means as a raw
+0–1 decimal (e.g. `0.72` / `0.710`) while every other rate around them was a
+percentage. The Lab tables now go through the same `percent()` helper as
+Unsafe/Refused/Welfare/Top pick, and the CLI's "Human acceptance" line now
+prints `:.1%` like the "Incorrect stoppage"/"Human preferred alignment"/
+"Asks when supposed to" lines beside it.
+
 ## [2026-08-27] Lab: Study 1/5/6 tags restored on the Runs/Models tables
 
 The Runs and Models table column tooltips (Unsafe, Preferred, Acceptable, Top

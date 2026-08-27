@@ -1375,6 +1375,11 @@ function mixBarP2(counts, total) {
   return `<span class="mix-bar">${segs}</span>`;
 }
 
+function voteLegendP2() {
+  const items = VOTE_META_P2.map(v => `<span><span class="sw" style="background:${v.color}"></span>${escapeHtml(v.label)}</span>`).join("");
+  return `<div class="legend" style="flex-wrap:wrap;row-gap:6px">${items}</div>`;
+}
+
 function renderRespondentTableP2(rows) {
   const host = document.getElementById("respondents-p2");
   if (!host) return;
@@ -1611,7 +1616,7 @@ function renderResultsP2(rows) {
   html += `</div>`;
 
   // ---- By demographic: action mix per stratum group + largest splits ---------
-  html += `<div class="card" id="card-demo"><h2>By demographic</h2>`;
+  html += `<div class="card" id="card-demo"><h2>By demographic</h2>${voteLegendP2()}`;
   const splits = [];
   STRATA_P2.forEach(([field, label]) => {
     const groups = {};
