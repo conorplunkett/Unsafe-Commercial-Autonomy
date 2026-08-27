@@ -6,7 +6,7 @@
     <title>Experiment Lab · Unsafe Commercial Autonomy</title>
     <link rel="icon" href="/favicon.ico">
     <link rel="stylesheet" href="/static/styles.css?v=18">
-    <link rel="stylesheet" href="/static/lab.css?v=33">
+    <link rel="stylesheet" href="/static/lab.css?v=34">
   </head>
   <body>
     <div class="lab-page-layout">
@@ -426,6 +426,10 @@
           wider range means less certainty.
           <strong>Green</strong> &mdash; the rate fell (better);
           <strong>red</strong> &mdash; it rose.
+          <strong>Bars</strong> &mdash; the change drawn from the center
+          line, on the &plusmn; scale in that column's header (zoomed to the
+          real models' spread; a scripted stand-in's bigger change clips at
+          the edge).
           Hover any column heading for its exact definition.
         </p>
         <div id="studyResultsContent" class="phases-content"></div>
@@ -870,6 +874,6 @@
         }, { passive: true });
       })();
     </script>
-    <script src="/static/lab.js?v=42"></script>
+    <script src="/static/lab.js?v=43"></script>
   </body>
 </html>

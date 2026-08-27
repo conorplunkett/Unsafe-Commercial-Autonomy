@@ -7,9 +7,13 @@ blocks are per-model tables — a model's unsafe and refused changes side by
 side, replacing the delta-sorted bar rows that scattered one model's numbers
 across the block — with the two conditions named in every header, colored
 change values, and a legend defining the arrow, the [low, high] 95%
-confidence bracket, and the colors. S5's subtitle and n now say 44 *of 226*
-(the survey covered only those), and the Incorrect stop / Ask calibration
-tooltips are rewritten in plain words.
+confidence bracket, and the colors. Each contrast row draws its change as a
+bar taking half-plus of the table's width, on a per-block ± scale zoomed to
+the real models' spread (a scripted stand-in's bigger change clips at the
+edge); the failure chart's bars zoom the same way instead of a fixed 0-100%
+track. S5's subtitle and n now say 44 *of 226* (the survey covered only
+those), and the Incorrect stop / Ask calibration tooltips are rewritten in
+plain words.
 
 ## [2026-08-27] headline_only drops the urgency×availability interaction cell
 

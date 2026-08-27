@@ -2468,11 +2468,9 @@ function renderFailureChart(results) {
 
 function paintFailureChart() {
   const { modes, columns, denominators, scoredTotal } = failureBreakdown(state.failureResults);
-  els.failureStamp.textContent = modes.length
-    ? `${modes.length} mode${modes.length === 1 ? "" : "s"} · ${scoredTotal} scored`
-    : `${scoredTotal} scored`;
 
   if (!modes.length) {
+    els.failureStamp.textContent = `${scoredTotal} scored`;
     els.failureChart.innerHTML = scoredTotal
       ? '<p class="failure-empty">No failure modes in this selection — every scored result was clean.</p>'
       : '<p class="failure-empty">No scored results in this selection.</p>';
@@ -2485,6 +2483,22 @@ function paintFailureChart() {
   const start = (state.failurePage - 1) * FAILURE_MODES_PER_PAGE;
   const pageModes = modes.slice(start, start + FAILURE_MODES_PER_PAGE);
 
+  // Same zoomed bar scale as the Study results contrast tables: a full track
+  // is the page's worst rate rounded up to a step, not 100% — failure rates
+  // cluster low, and against a fixed 0-100% track they all drew as slivers.
+  const maxRate = Math.max(
+    0,
+    ...pageModes.flatMap((mode) =>
+      columns.map((column) => {
+        const den = denominators[column.key] || 0;
+        return den ? (mode.counts[column.key] || 0) / den : 0;
+      })
+    )
+  );
+  const scale = CONTRAST_BAR_SCALES.find((step) => maxRate <= step) || 1;
+  els.failureStamp.textContent =
+    `${modes.length} mode${modes.length === 1 ? "" : "s"} · ${scoredTotal} scored · bars 0–${percent(scale)}`;
+
   els.failureChart.innerHTML = pageModes
     .map((mode) => {
       const rows = columns
@@ -2494,7 +2508,7 @@ function paintFailureChart() {
           const rate = den ? num / den : 0;
           // A non-zero rate always gets a sliver of width so a 1-in-50 hit is
           // still visible; a genuine zero stays empty.
-          const width = num ? Math.max(rate * 100, 2) : 0;
+          const width = num ? Math.max((rate / scale) * 100, 2) : 0;
           const valueClass = num ? "failure-cond-value" : "failure-cond-value is-empty";
           return `
             <span class="failure-cond-name" title="${CONDITION_LABELS[column.key] || column.short}">${column.short}</span>
@@ -4225,6 +4239,43 @@ function contrastChangeCell(row) {
 // The S2-S4 boards: one row per model, its unsafe and refused deltas side by
 // side — the two outcomes used to render as separate rows sorted by delta,
 // which scattered one model's numbers across the block.
+// The bar scale for a block: the smallest of these half-ranges that contains
+// the real (non-scripted) models' largest change, so close-together model
+// deltas still draw as visibly different bars instead of slivers on a fixed
+// ±100% track. Scripted stand-ins are left out of the pick on purpose — their
+// outsized deltas (scripted-naive under tool constraints) would force the
+// zoomed-out scale the real models don't need; their bars clip at the track
+// edge instead, with the exact number right beside them.
+const CONTRAST_BAR_SCALES = [0.1, 0.25, 0.5, 1];
+
+function contrastBarScale(rows) {
+  const real = rows.filter((row) => !syntheticRank(row.model) && row.riskDifference != null);
+  const pool = real.length ? real : rows.filter((row) => row.riskDifference != null);
+  const maxAbs = Math.max(0, ...pool.map((row) => Math.abs(row.riskDifference)));
+  return CONTRAST_BAR_SCALES.find((scale) => maxAbs <= scale) || 1;
+}
+
+// The bar for one change, drawn from a center zero line on a track scaled to
+// ±scale. A change past the scale clips at the track edge — the Change cell
+// beside it always carries the exact number. Null (no pairs) draws a faded
+// empty track, never a zero-length bar.
+function contrastBarCell(row, scale) {
+  if (!row || row.riskDifference == null) {
+    return `<td class="contrast-bar-cell"><div class="bar-track delta-track delta-track-empty"></div></td>`;
+  }
+  const half = Math.min(Math.abs(row.riskDifference) / scale, 1) * 50;
+  const width = half ? Math.max(half, 1.5) : 0;
+  const cls = row.riskDifference > 0 ? "is-bad" : "is-good";
+  const edge = row.riskDifference >= 0 ? "left:50%" : "right:50%";
+  return `
+    <td class="contrast-bar-cell">
+      <div class="bar-track delta-track">
+        <div class="delta-fill ${cls}" style="${edge};width:${width}%"></div>
+      </div>
+    </td>
+  `;
+}
+
 function contrastTableHtml(board) {
   const byModel = new Map();
   for (const row of board.rows) {
@@ -4242,12 +4293,20 @@ function contrastTableHtml(board) {
       modelA.localeCompare(modelB)
     );
   });
+  const scale = contrastBarScale(board.rows);
   const span = `${board.fromLabel} &rarr; ${board.toLabel}`;
-  const ratesTitle = `The rate under ${board.fromLabel}, then the rate under ${board.toLabel}.`;
+  // The sub-header stays two short words — the block's own subtitle right
+  // above already names the two conditions, and a full "structured policy →
+  // tool constraints" header forced this column wide, squeezing the bars the
+  // row exists to show. The tooltip still names both.
+  const ratesTitle = `The rate under ${board.fromLabel} (before), then under ${board.toLabel} (after).`;
   const changeTitle =
     `How much the rate moved going from ${board.fromLabel} to ${board.toLabel} ` +
     `(${board.toLabel} minus ${board.fromLabel}), matched scenario by scenario. ` +
     `Negative = the rate fell. The bracket is the 95% confidence range: the real change is very likely inside it; wider = less certain.`;
+  const scaleTitle =
+    `Bar scale: this track spans ±${percent(scale)}, picked from the real models' largest change so their differences draw big. ` +
+    `A change past ±${percent(scale)} (usually a scripted stand-in) clips at the track's edge — the exact number is beside the bar.`;
   const refusedExploratory = board.exploratoryRefused
     ? " Exploratory under pressure: many traps key asking as the right stop, and the pressure preamble makes stopping differently a defensible choice — so these changes carry no confirmatory claim."
     : "";
@@ -4263,8 +4322,10 @@ function contrastTableHtml(board) {
         <tr>
           <td>${model}${flag}</td>
           ${contrastRatesCell(cells.unsafe_verdict)}
+          ${contrastBarCell(cells.unsafe_verdict, scale)}
           ${contrastChangeCell(cells.unsafe_verdict)}
           ${contrastRatesCell(cells.refused_when_safe)}
+          ${contrastBarCell(cells.refused_when_safe, scale)}
           ${contrastChangeCell(cells.refused_when_safe)}
         </tr>
       `;
@@ -4277,17 +4338,24 @@ function contrastTableHtml(board) {
         <span class="phase-detail-summary">${span}</span>
       </summary>
       <div class="table-wrap">
-        <table class="wide-table contrast-table">
+        <table class="contrast-table">
+          <colgroup>
+            <col class="contrast-col-model">
+            <col class="contrast-col-rates"><col class="contrast-col-bar"><col class="contrast-col-change">
+            <col class="contrast-col-rates"><col class="contrast-col-bar"><col class="contrast-col-change">
+          </colgroup>
           <thead>
             <tr>
               <th rowspan="2" title="Which AI model this row shows.">Model</th>
-              <th colspan="2" title="Unsafe payment — how often the agent paid for something it shouldn't have, on the keyed traps.">Unsafe payment</th>
-              <th colspan="2" title="Refused when safe — how often the agent refused or froze even though acting was fine.${refusedExploratory}">Refused when safe${board.exploratoryRefused ? " ·&nbsp;exploratory" : ""}</th>
+              <th colspan="3" title="Unsafe payment — how often the agent paid for something it shouldn't have, on the keyed traps.">Unsafe payment</th>
+              <th colspan="3" title="Refused when safe — how often the agent refused or froze even though acting was fine.${refusedExploratory}">Refused when safe${board.exploratoryRefused ? " ·&nbsp;exploratory" : ""}</th>
             </tr>
             <tr>
-              <th title="${ratesTitle}">${span}</th>
+              <th title="${ratesTitle}">Rates</th>
+              <th class="contrast-bar-cell" title="${scaleTitle}">&plusmn;${percent(scale)}</th>
               <th title="${changeTitle}">Change</th>
-              <th title="${ratesTitle}">${span}</th>
+              <th title="${ratesTitle}">Rates</th>
+              <th class="contrast-bar-cell" title="${scaleTitle}">&plusmn;${percent(scale)}</th>
               <th title="${changeTitle}">Change</th>
             </tr>
           </thead>
