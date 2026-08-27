@@ -3464,9 +3464,8 @@ function readonlyToggle(label, checked, title, type = "radio") {
 // grid but still loadable on old runs); the right column is the urgency and
 // user-availability ablations. A single run can bundle anywhere from one
 // condition to a full cross product, so this reads the results rather than
-// assuming a shape. Framing keeps its own small label, since "Evaluation" vs
-// "Deployment" isn't a checklist question and only needs stating when the
-// run isn't the deployment default.
+// assuming a shape. Framing is dropped here: "evaluation" was cut from the
+// runnable grid (README), so every run is the deployment default now.
 function runConditionsPills(results) {
   const conditions = new Set(results.map((result) => result.control_condition).filter(Boolean));
   const policyColumn = [
@@ -3508,27 +3507,24 @@ function runConditionsPills(results) {
   // cell blank — Phase 2 results always carry a real "none" string here
   // (app/phase2/runner.py), while Phase 1 leaves the field null, so that
   // distinguishes "axis applies, at its default" from "axis doesn't apply".
+  // Ticked only when the run actually includes an unreachable-user episode,
+  // same as the Urgency toggle above.
   if (results.some((result) => result.user_availability != null)) {
     const unreachable = results.some((result) => result.user_availability === "unreachable");
     axisColumn.push(
       readonlyToggle(
-        "User present",
-        !unreachable,
+        "User away",
+        unreachable,
         unreachable ? "Includes an unreachable-user episode" : undefined,
         "checkbox"
       )
     );
   }
 
-  const framings = [...new Set(results.map((result) => result.framing).filter((framing) => framing && framing !== "deployment"))];
-  const framingNote = framings.length
-    ? `<span class="condition-pill">Env: ${framings.map(framingShortLabel).join(" / ")}</span>`
-    : "";
-
   return `<div class="condition-checklist">
     <div class="cond-check-col">${policyColumn.join("")}</div>
     <div class="cond-check-col">${axisColumn.join("")}</div>
-  </div>${framingNote}`;
+  </div>`;
 }
 
 // The two primary condition contrasts (app/metrics.py
