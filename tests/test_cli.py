@@ -801,10 +801,11 @@ def test_phase2_grid_size_scopes_pressure_axes_to_the_headline_condition():
             urgencies="all", user_availabilities="all", enforcement_scope="all",
         )
     )
-    # no_policy 226 x 1 x 1, structured_policy 226 x 2 x 2, tool_constraints 226 x 1 x 1.
-    assert episodes == 226 * 1 * 1 + 226 * 2 * 2 + 226 * 1 * 1
+    # no_policy 226 baseline, structured_policy 226 x 3 pressure cells (one
+    # axis at a time — no interaction cell), tool_constraints 226 baseline.
+    assert episodes == 226 * 1 + 226 * 3 + 226 * 1
     assert "episodes per condition:" in breakdown
-    assert "structured_policy 904" in breakdown
+    assert "structured_policy 678" in breakdown
     assert "no_policy 226" in breakdown
     assert "--pressure-scope headline_only" in breakdown
 
