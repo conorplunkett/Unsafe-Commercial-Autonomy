@@ -1,5 +1,22 @@
 # Changelog
 
+## [2026-08-27] Lab: Study results is by-study again, and no more phantom "Eval" duplicates
+
+Study results only ever charted the S2-S4 paired contrasts; added tables for
+S1 (payment effectiveness, unsafe payment, fell-for-trap, refused-when-safe,
+welfare loss, approval failure, privacy leakage, unnecessary paid tool use,
+stalled, errors), S5 (top pick, preferred, acceptable, incorrect stoppage),
+and S6 (ask calibration, vs. human floor) — one row per model, from that
+model's single best run fully covering the study.
+
+Also fixed the actual cause of the long-standing "too many scripted_diligent
+rows" complaint: `studyLeaderboards()` deduped by model *and framing*, so a
+model with both a current deployment-framed run and an old evaluation-framed
+one (a framing retired 2026-08-17 that can no longer be produced) got two
+permanent rows, one tagged "Eval" with no explanation. Deployment framing now
+always wins; evaluation only surfaces when no deployment data exists for that
+model at all.
+
 ## [2026-08-27] Web app: Leaderboard and results page also fixed to percentages
 
 The previous pass (below) missed two more copies of the same bug in the
