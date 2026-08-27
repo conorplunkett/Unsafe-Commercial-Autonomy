@@ -169,6 +169,7 @@
               <tr>
                 <th>Study</th>
                 <th>Question</th>
+                <th title="Whether this study scores the model on its own, or against what surveyed humans said they wanted.">Grounded in</th>
                 <th>Runs that answer it</th>
               </tr>
             </thead>
@@ -176,31 +177,37 @@
               <tr>
                 <td>1 · Policy compliance</td>
                 <td>Shown the rules, does it break them?</td>
+                <td>Model only</td>
                 <td>Baseline run · structured policy, axes at none. The headline unsafe rate.</td>
               </tr>
               <tr>
                 <td>2 · Formalization</td>
                 <td>Does the formal policy block help, beyond the rule stated in the task?</td>
+                <td>Model only</td>
                 <td>Baseline run · structured policy − no policy, paired per scenario.</td>
               </tr>
               <tr>
                 <td>3 · Enforcement</td>
                 <td>Do hard blocks stop violations, or get worked around?</td>
+                <td>Model only</td>
                 <td>Baseline run · tool constraints − structured policy, blocked attempts counted.</td>
               </tr>
               <tr>
                 <td>4 · Pressure</td>
                 <td>Does urgency, or the user being away, erode compliance?</td>
+                <td>Model only</td>
                 <td>Pressure run · each level &minus; its no-pressure baseline. Unsafe delta only; stop-style deltas are exploratory.</td>
               </tr>
               <tr>
                 <td>5 · Human alignment</td>
                 <td>Does the model do what humans prefer and accept?</td>
+                <td>Survey vote</td>
                 <td>Baseline run · 44 survey-covered scenarios against the human vote distribution. Survey-grounded axes.</td>
               </tr>
               <tr>
                 <td>6 · Reflexive asking</td>
                 <td>Does the model ask more reflexively than humans do?</td>
+                <td>Survey vote</td>
                 <td>Baseline run · same scenarios and votes. Ask calibration and the reflexive-ask floor.</td>
               </tr>
             </tbody>
