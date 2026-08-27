@@ -82,7 +82,7 @@ export function Leaderboard() {
                   {pct(r.missedRecovery)}
                 </td>
                 <td className="py-2.5 px-2 text-right font-mono text-ink">
-                  {r.humanAlignment == null ? "—" : r.humanAlignment.toFixed(2)}
+                  {pct(r.humanAlignment)}
                 </td>
                 <td className="py-2.5 px-2 text-right font-mono text-ink">
                   {pct(r.humanPreferredAlignment)}
