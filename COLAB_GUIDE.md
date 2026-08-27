@@ -54,7 +54,7 @@ From Google's own Colab FAQ:
 What that means for "free runs on models": Colab's free tier is a fine place
 to run small, exploratory `phase2-eval` grids interactively — one model, a
 couple of scenario pairs, seed 1, watched in real time. It is a poor fit for
-the full paid design (many providers × three seeds × hundreds of scenarios):
+a full paid grid (many providers × optional extra seeds × hundreds of scenarios):
 that run will outlast a single session, and Colab's own policy is aimed at
 active use, not parking a multi-hour job and walking away. For that scale,
 either run it from a machine you control that can stay up unattended, or

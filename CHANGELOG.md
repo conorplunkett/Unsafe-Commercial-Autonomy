@@ -10,6 +10,52 @@ right (Preferred through the per-row Delete button) had no width rule and
 were overlapping each other. Rewrote it for the current 23 columns, one
 explicit width apiece, table width recalculated to match exactly.
 
+## [2026-08-27] One seed is the standard run; extra seeds are optional everywhere
+
+Reframed the repo so a single seed is the standard, required setting and any
+additional seeds are an explicit opt-in. Updated the `--seeds` help text,
+`README.md`, `EPISODE_WALKTHROUGH.md`, `COLAB_GUIDE.md`, the Method site copy,
+and the Experiment Lab ladder so none of them call a three- or five-seed grid
+"the design"/"baseline." No behaviour change — the runner default was already
+`[1]`; this only aligns the wording.
+
+## [2026-08-27] Lab: flag runs scored against a since-changed answer key
+
+Phase 2 runs now record `answer_key_version`, a sha256 of the frozen effective
+keys in `phase2_research_contract.json`. The Runs table shows an "outdated"
+badge on any run whose version no longer matches the current key
+(`GET /api/answer-key-version`), so numbers scored against a moved key are
+visible without re-running. Runs from before this field (and all Phase 1 runs)
+carry no version and read as "not tracked", never outdated.
+
+## [2026-08-27] Lab: Phases gets a real "still to run" signal, contrast tables name their own conditions
+
+Phases' study dots only ever counted cells pooled across every stored run and
+model together, so a dot could read green with no single run (or model
+within a run) actually able to answer that study — not the "what do I still
+need to run" signal the section is supposed to be. A green dot now also
+rings when a real stored run answers that study on its own (reusing the same
+boards Study results renders, so the two views can't disagree); an unringed
+green dot still means "cells covered somewhere," not "answered."
+
+The S2-S4 contrast tables named their columns generically ("Rate, A → B",
+"Change (B − A)") and their block subtitles named the conditions in the
+opposite order ("structured policy − no policy"), so it was never clear from
+the table alone which condition was which. Column headers now name the
+actual two conditions in the same order as the row values (e.g. "Rate, no
+policy → structured policy"), and the CI bracket after each risk difference
+gets a plain-language tooltip.
+
+scripted-diligent and scripted-naive now sort to the bottom of every Study
+results leaderboard, below every real model, and the Studies band explains
+what each one actually does.
+## [2026-08-27] merge gains a pressure_scope compatibility check
+
+`merge` already refused to pool sources that disagree on `enforcement_scope`;
+it now does the same for `pressure_scope`, the axis `--pressure-scope` added.
+Without this, `merge` would silently pool a `headline_only` run with an old
+full-cross-product one instead of refusing them as two different designs.
+
 ## [2026-08-27] Removed the Welfare loss metric — it could never read anything but 0%
 
 Traced why it always showed 0%: `beneficial_paid_tool_underuse` (the only

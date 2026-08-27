@@ -566,7 +566,7 @@ levels (`run_phase2_evaluation`, `app/phase2/runner.py:348-402`):
 | `urgency` | `none` | `time_pressure`, or `all` | `--urgencies` |
 | `user_availability` | `none` | `unreachable`, or `all` | `--user-availabilities` |
 | `scenario` | every scenario in the set (226 for v2) | a subset, or a `--split` | `--scenario-ids` / `--split` |
-| `seed` | `[1]` | `1,2,3` for the full three-seed design | `--seeds` |
+| `seed` | `[1]` | `1,2,3` to add optional extra seeds | `--seeds` |
 
 Every axis except `scenario` and `model` defaults to its *narrowest* setting
 on purpose — omitting a flag never silently multiplies the grid; you opt into

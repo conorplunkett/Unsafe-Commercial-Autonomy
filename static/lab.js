@@ -29,6 +29,11 @@ const state = {
   // episode of a superseded run also lives inside that merged run, so the
   // stored file is a duplicate copy the Runs table flags for deletion.
   superseded: new Map(),
+  // The current Phase 2 scoring-key version from GET /api/answer-key-version.
+  // A run whose stored answer_key_version differs was scored against a key that
+  // has since changed, so the Runs table flags it "outdated". null until the
+  // fetch succeeds — unknown must never render as outdated.
+  answerKeyVersion: null,
   // Fetched from GET /api/models: {provider_id: {name, description,
   // default_model, needs_key, configured}}. The provider chips, model
   // dropdown, and key fields all render from this instead of a hardcoded
@@ -565,6 +570,22 @@ function isDryRunLabel(label) {
   return typeof label === "string" && label.startsWith("dryrun-");
 }
 
+// Offline scripted agents (app/phase2/providers.py ScriptedDiligentAgent,
+// ScriptedNaiveAgent — "scripted-diligent"/"scripted-naive") answer fixed
+// rules, not a model's judgment. Useful as a floor/ceiling reference on a
+// leaderboard, but sorted below every real model everywhere models rank —
+// same instinct as isDryRunLabel, for the Study results leaderboards where
+// dry-run labels don't apply (Phase 2 has no dryrun-* provider).
+function isScriptedLabel(label) {
+  return typeof label === "string" && label.startsWith("scripted-");
+}
+
+// 0 for a real model, 1 for a scripted/dry-run one — sort this first so
+// synthetic rows always sink to the bottom regardless of their score.
+function syntheticRank(label) {
+  return isDryRunLabel(label) || isScriptedLabel(label) ? 1 : 0;
+}
+
 // Worst unsafe-payment rate first.
 function compareModelRows(a, b) {
   return b.metrics.unsafePaymentRate - a.metrics.unsafePaymentRate;
@@ -706,8 +727,12 @@ function phase2StudyStatuses(axisMap, scenarioTotal, enforcementScopes) {
 }
 
 // The numbered per-study dots shared by the Runs-table checklist and the
-// Phases badges. Fractions and hints stay in the title.
-function studyDots(studies) {
+// Phases badges. Fractions and hints stay in the title. `answered` (Phases
+// only — see answeredStudyIds) rings a dot when a single stored run actually
+// answers that study on its own; the dot's own on/part/off color is a
+// different, looser question — cells pooled across every run and model
+// together, which can read "full" even when no run individually qualifies.
+function studyDots(studies, answered) {
   if (!studies) return "";
   const dots = studies
     .map((study) => {
@@ -718,13 +743,38 @@ function studyDots(studies) {
           : study.covered > 0
             ? "study-dot-part"
             : "study-dot-off";
-      const title = study.unknown
-        ? `${study.id} · ${study.label} — survey coverage unavailable`
-        : `${study.id} · ${study.label} ${study.covered}/${study.total}`;
-      return `<span class="study-dot ${cls}" title="${title}">${study.id}</span>`;
+      const isAnswered = Boolean(answered && answered.has(study.id));
+      const title =
+        (study.unknown
+          ? `${study.id} · ${study.label} — survey coverage unavailable`
+          : `${study.id} · ${study.label} ${study.covered}/${study.total}`) +
+        (answered
+          ? isAnswered
+            ? " · a stored run answers this study on its own — see Study results below"
+            : " · no single stored run fully answers this study yet, even though cells above may show covered"
+          : "");
+      return `<span class="study-dot ${cls}${isAnswered ? " study-dot-answered" : ""}" title="${title}">${study.id}</span>`;
     })
     .join("");
   return `<span class="study-dots">${dots}</span>`;
+}
+
+// Which of the six studies has at least one row on the Study results panel
+// below — i.e. a real stored run (or merged run) answers it on its own, not
+// just cells pooled across every run and model together (what the dots'
+// on/part/off color already counts, at the top of this file). Reuses the
+// exact boards Study results renders, so this can never disagree with what
+// that panel actually shows — the source of truth for "what do I still need
+// to run" Phases is meant to be.
+function answeredStudyIds() {
+  const answered = new Set();
+  const boards = [study1Board(), ...studyLeaderboards(), ...humanStudyBoards()].filter(Boolean);
+  for (const board of boards) {
+    if (!board.rows.length) continue;
+    const match = /^S(\d)/.exec(board.block);
+    if (match) answered.add(Number(match[1]));
+  }
+  return answered;
 }
 
 // One entry per phase touched by these results. Completion is measured in
@@ -2012,6 +2062,11 @@ async function refreshData() {
     renderAll();
     return;
   }
+  // Best-effort: a failed fetch leaves answerKeyVersion at its last-good value
+  // (or null), so a blip never turns every run "outdated" — it just doesn't
+  // update the freshness comparison this cycle.
+  const keyVersion = await fetchJson("/api/answer-key-version").catch(() => null);
+  if (keyVersion && keyVersion.phase2) state.answerKeyVersion = keyVersion.phase2;
   const runs = await Promise.all(
     runList.map((meta) => fetchJson(`/api/runs/${meta.run_id}`).catch(() => null))
   );
@@ -2235,8 +2290,8 @@ function renderCostLadder() {
   if (els.ladderAllSixRun) els.ladderAllSixRun.textContent = episodes(allSixUnits);
   // Framing is not a factor (evaluation was cut from the grid on 2026-08-17).
   els.ladderFullGrid.textContent =
-    `All six studies in one run (pressure axes crossed against structured policy only × 3 seeds) ` +
-    `= ${(allSixUnits * 3).toLocaleString()} episodes per model.`;
+    `All six studies in one run (pressure axes crossed against structured policy only) ` +
+    `= ${allSixUnits.toLocaleString()} episodes per model at one seed; each optional extra seed re-runs the grid.`;
 }
 
 // The per-model survey-grounded numbers live only in the Models table now;
@@ -3343,7 +3398,17 @@ function transcriptBlocks(detail, result) {
 // One line per tool call a turn made, matching what the Transcript block
 // below shows in full (name, args, result) — just enough here to say what the
 // reasoning right above it led to, not a second copy of the transcript.
+//
+// request_approval's only argument is a full sentence explaining the pause,
+// not a fixture-shaped value — compactJson's 160-char cap was chopping it
+// mid-sentence. It gets the same <pre> treatment as the turn's reasoning
+// above it instead of being crammed into the call signature.
 function turnToolCallSummary(call) {
+  if (call.name === "request_approval") {
+    const reason = call.args && call.args.reason;
+    const header = '<p class="audit-note turn-tool-call">&rarr; request_approval()</p>';
+    return reason ? `${header}<pre>${escapeHtml(reason)}</pre>` : header;
+  }
   return `<p class="audit-note turn-tool-call">&rarr; ${escapeHtml(call.name)}(${escapeHtml(
     compactJson(call.args)
   )})</p>`;
@@ -3472,7 +3537,7 @@ function phasesBreakdown() {
 
 // smoke / full-suite pills for a phase header — always both shown, so an
 // untouched phase reads as "smoke and full still to do" rather than blank.
-function phaseStatusBadges(entry) {
+function phaseStatusBadges(entry, answered) {
   const smoke = entry.smoke
     ? `<span class="phase-badge phase-badge-done">✓ smoke</span>`
     : `<span class="phase-badge phase-badge-empty">smoke</span>`;
@@ -3490,11 +3555,12 @@ function phaseStatusBadges(entry) {
       entry.cellsNeeded ? `0/${entry.cellsNeeded}` : "—"
     }</span>`;
   }
-  return smoke + full + studyDots(entry.studies);
+  return smoke + full + studyDots(entry.studies, answered);
 }
 
 function renderPhases() {
   const breakdown = phasesBreakdown();
+  const answered = answeredStudyIds();
   const started = breakdown.filter((entry) => entry.smoke).length;
   els.phasesStamp.innerHTML = state.loading
     ? '<span class="spinner" aria-hidden="true"></span> Loading…'
@@ -3562,7 +3628,7 @@ function renderPhases() {
         <details class="phase-detail" ${index === defaultOpenIndex ? "open" : ""}>
           <summary>
             <span class="phase-detail-title">${heading}</span>
-            <span class="phase-detail-badges">${phaseStatusBadges(entry)}</span>
+            <span class="phase-detail-badges">${phaseStatusBadges(entry, answered)}</span>
             <span class="phase-detail-summary">${summary}</span>
           </summary>
           ${body}
@@ -3712,16 +3778,23 @@ function runConditionsPills(results) {
 // The two primary condition contrasts (app/metrics.py
 // PHASE2_PRIMARY_CONTRASTS) as they appear in stored
 // metrics.phase2.paired_contrasts rows, mapped to their studies.
+// fromLabel/toLabel name the two conditions in the order app/metrics.py
+// PHASE2_PRIMARY_CONTRASTS actually pairs them (condition_a, condition_b) —
+// "Rate, A -> B" reads fromLabel -> toLabel, and "Change (B - A)" reads
+// toLabel - fromLabel, so both always agree with each other and with the row
+// values instead of each guessing at the contrast's own key order.
 const PAIRED_CONTRAST_META = {
   structured_policy_minus_no_policy: {
     block: "S2 · Formalization",
     order: 0,
-    sub: "structured policy − no policy",
+    fromLabel: "no policy",
+    toLabel: "structured policy",
   },
   tool_constraints_minus_structured_policy: {
     block: "S3 · Enforcement",
     order: 1,
-    sub: "tool constraints − structured policy",
+    fromLabel: "structured policy",
+    toLabel: "tool constraints",
   },
 };
 
@@ -3745,7 +3818,8 @@ function runStudyRows(run) {
     rows.push({
       block: meta.block,
       blockOrder: meta.order,
-      sub: meta.sub,
+      fromLabel: meta.fromLabel,
+      toLabel: meta.toLabel,
       outcome: comparison.outcome,
       model: comparison.model,
       framing: comparison.framing,
@@ -3774,7 +3848,8 @@ function runStudyRows(run) {
     rows.push({
       block: timePressure ? "S4 · Time pressure" : "S4 · User away",
       blockOrder: timePressure ? 2 : 3,
-      sub: timePressure ? "time pressure − none" : "user away − none",
+      fromLabel: "none",
+      toLabel: timePressure ? "time pressure" : "user away",
       outcome: comparison.outcome,
       model: comparison.model,
       framing: comparison.framing,
@@ -3840,14 +3915,22 @@ function studyLeaderboards() {
   const blocks = new Map();
   for (const row of best.values()) {
     if (!blocks.has(row.block)) {
-      blocks.set(row.block, { block: row.block, blockOrder: row.blockOrder, sub: row.sub, rows: [] });
+      blocks.set(row.block, {
+        block: row.block,
+        blockOrder: row.blockOrder,
+        fromLabel: row.fromLabel,
+        toLabel: row.toLabel,
+        rows: [],
+      });
     }
     blocks.get(row.block).rows.push(row);
   }
   const rank = (a, b) =>
-    // Worst first within an outcome, matching the Unsafe payment chart:
-    // most positive delta (the control hurt / pressure eroded) on top,
-    // no-pairs rows last.
+    // Scripted/dry-run rows sink below every real model first; worst first
+    // within an outcome after that, matching the Unsafe payment chart: most
+    // positive delta (the control hurt / pressure eroded) on top, no-pairs
+    // rows last.
+    syntheticRank(a.model) - syntheticRank(b.model) ||
     (a.outcome === "unsafe_verdict" ? 0 : 1) - (b.outcome === "unsafe_verdict" ? 0 : 1) ||
     (a.riskDifference == null) - (b.riskDifference == null) ||
     (b.riskDifference || 0) - (a.riskDifference || 0) ||
@@ -4020,7 +4103,9 @@ const STUDY1_COLUMNS = [
 // main score the rest of the row explains.
 function study1Board() {
   const rows = bestCompleteModelResults(phase2ScenarioIdSet()).sort(
-    (a, b) => (a.metrics.paymentEffectiveness?.rate ?? 1) - (b.metrics.paymentEffectiveness?.rate ?? 1)
+    (a, b) =>
+      syntheticRank(a.model) - syntheticRank(b.model) ||
+      (a.metrics.paymentEffectiveness?.rate ?? 1) - (b.metrics.paymentEffectiveness?.rate ?? 1)
   );
   if (!rows.length) return null;
   return {
@@ -4092,11 +4177,13 @@ function humanStudyBoards() {
   if (!rows.length) return [];
   const floor = state.surveyFloorByPhase["2"] || null;
   const alignmentRows = [...rows].sort(
-    (a, b) => (a.metrics.humanPreferredAlignment?.rate ?? 1) - (b.metrics.humanPreferredAlignment?.rate ?? 1)
+    (a, b) =>
+      syntheticRank(a.model) - syntheticRank(b.model) ||
+      (a.metrics.humanPreferredAlignment?.rate ?? 1) - (b.metrics.humanPreferredAlignment?.rate ?? 1)
   );
   const askRows = [...rows].sort((a, b) => {
     const excess = (row) => (floor ? row.metrics.refusedWhenSafeRate - floor.rate : -1);
-    return excess(b) - excess(a);
+    return syntheticRank(a.model) - syntheticRank(b.model) || excess(b) - excess(a);
   });
   return [
     {
@@ -4153,18 +4240,21 @@ function metricTableHtml(board) {
 // render exactly as before, through studyRowHtml and the A-vs-B bar chart.
 function boardHtml(board) {
   if (board.columns) return metricTableHtml(board);
+  // Named per-board, not the generic "A"/"B": "Rate, no policy -> structured
+  // policy" says outright which condition is which, instead of making a
+  // reader hold "A = ?" in their head against PAIRED_CONTRAST_META's key order.
   return `
     <details class="phase-detail" open>
       <summary>
         <span class="phase-detail-title">${board.block}</span>
-        <span class="phase-detail-summary">${board.sub}</span>
+        <span class="phase-detail-summary">${board.fromLabel} &rarr; ${board.toLabel}</span>
       </summary>
       <div class="bar-chart study-rows">
         <div class="bar-row bar-row-head">
           <span class="bar-col-head">Model</span>
-          <span class="bar-col-head" title="The rate under condition A, then the rate under condition B.">Rate, A &rarr; B</span>
+          <span class="bar-col-head" title="The share verdicted this way under ${board.fromLabel}, then the same share under ${board.toLabel}.">Rate, ${board.fromLabel} &rarr; ${board.toLabel}</span>
           <span class="bar-col-head"></span>
-          <span class="bar-col-head" title="Risk difference (B minus A), paired per scenario, with its 95% CI. Negative means the added control — or the removed pressure — helped. Run date and pairing counts are in each row's own tooltip.">Change (B &minus; A)</span>
+          <span class="bar-col-head" title="The change from ${board.fromLabel} to ${board.toLabel}, paired per scenario. Negative means the added control — or the removed pressure — helped. The bracket after it, e.g. [-18%, -3%], is a range: we're 95% sure the real change falls somewhere inside it — a wide range means less certainty, a narrow one means more. Run date and pairing counts are in each row's own tooltip.">Change (${board.toLabel} &minus; ${board.fromLabel})</span>
         </div>
         ${board.rows.map(studyRowHtml).join("")}
       </div>
@@ -4242,9 +4332,19 @@ function renderRunList() {
             .map((source) => `${source.run_id} (${source.episode_count})`)
             .join(", ")}">merged ×${run.merged_from.length}</span>`
         : "";
+      // Outdated: this run recorded a scoring-key version, and it no longer
+      // matches the current key. Its numbers were scored against an answer key
+      // that has since changed, so re-run before comparing. A run with no
+      // stored version (Phase 1, or from before versions were tracked) is left
+      // unflagged — unknown, not stale — as is any run while the current
+      // version is still unknown.
+      const outdatedFlag =
+        run.answer_key_version && state.answerKeyVersion && run.answer_key_version !== state.answerKeyVersion
+          ? `<span class="run-outdated-flag" title="Scored against answer-key ${run.answer_key_version}, but the current key is ${state.answerKeyVersion}. Re-run before comparing these numbers.">outdated</span>`
+          : "";
       return `
         <tr class="${selected}" data-run-id="${run.run_id}" title="Click to toggle this run in the Results filter">
-          <td>${compactTime(run.created_at)}${supersededFlag}${mergedFlag}</td>
+          <td>${compactTime(run.created_at)}${supersededFlag}${mergedFlag}${outdatedFlag}</td>
           <td>${models}</td>
           <td>${phaseChecklist(run.results)}</td>
           <td>${runConditionsPills(run.results)}</td>

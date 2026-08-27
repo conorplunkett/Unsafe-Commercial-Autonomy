@@ -6,7 +6,7 @@
     <title>Experiment Lab · Unsafe Commercial Autonomy</title>
     <link rel="icon" href="/favicon.ico">
     <link rel="stylesheet" href="/static/styles.css?v=18">
-    <link rel="stylesheet" href="/static/lab.css?v=31">
+    <link rel="stylesheet" href="/static/lab.css?v=32">
   </head>
   <body>
     <div class="lab-page-layout">
@@ -221,6 +221,16 @@
             </tbody>
           </table>
         </div>
+        <p class="runner-hint">
+          <strong>scripted-diligent</strong> and <strong>scripted-naive</strong>
+          aren't real models — they're offline stand-ins used to test the
+          harness itself, free and instant to run. scripted-diligent checks
+          the stated policy before paying and asks when nothing clearly
+          qualifies (it still misses purely semantic traps, like the wrong
+          license tier). scripted-naive just buys whatever's cheapest without
+          checking any policy. Both sort to the bottom of every leaderboard
+          below, under the real models.
+        </p>
         <div class="human-survey-body">
           <p class="runner-hint">
             For scenarios with no single correct answer, real people vote on
@@ -422,7 +432,11 @@
           answerable), Phase 1 scenario×condition cells.
           <strong>1–6</strong> — studies 1–6; green = answerable from the
           pooled runs, amber = partly covered, dashed = survey coverage
-          unavailable.
+          unavailable. A <strong>ringed</strong> number means a single stored
+          run actually answers that study on its own — see it in Study
+          results above. An unringed green number can still mean no run
+          does: green only counts cells covered somewhere across every run
+          and model pooled together.
           <strong>Conditions</strong> — the three levels of safety guidance:
           no policy (none), a stated policy (told in the prompt for Phase 1,
           given as structured fields for Phase 2), and tool constraints (the
@@ -619,13 +633,13 @@
   --user-availabilities all --seeds 1 --yes</pre>
           </div>
           <div class="ladder-rung">
-            <div class="ladder-rung-head"><span class="ladder-name">Baseline run, three seeds</span><span id="ladderEverySeeds" class="ladder-count">1,860 episodes</span><button type="button" class="ladder-copy">Copy</button></div>
+            <div class="ladder-rung-head"><span class="ladder-name">Baseline run + optional extra seeds</span><span id="ladderEverySeeds" class="ladder-count">1,860 episodes</span><button type="button" class="ladder-copy">Copy</button></div>
             <pre>python -m app.cli phase2-eval --models <span class="ladder-model">openai</span> \
   --conditions all --seeds 1,2,3 --yes</pre>
           </div>
         </div>
         <p class="panel-legend ladder-foot">
-          <span id="ladderFullGrid">All six studies in one run (pressure axes crossed against structured policy only &times; 3 seeds) = 3,888 episodes per model.</span>
+          <span id="ladderFullGrid">All six studies in one run (pressure axes crossed against structured policy only) = 1,296 episodes per model at one seed; each optional extra seed re-runs the grid.</span>
           Omitting <code>--urgencies</code> or <code>--user-availabilities</code> runs the <code>none</code> level only.
           Pressure axes cross only against <code>structured_policy</code> by default (<code>--pressure-scope headline_only</code>); pass <code>--pressure-scope all</code> for the pre-2026-08-26 full cross-product.
           <code>--temperature</code> only affects temperature-based models; reasoning models (gpt-5.x) vary by seed.
@@ -845,6 +859,6 @@
         }, { passive: true });
       })();
     </script>
-    <script src="/static/lab.js?v=40"></script>
+    <script src="/static/lab.js?v=41"></script>
   </body>
 </html>

@@ -469,6 +469,22 @@ def test_run_level_answer_key_status_is_computed_not_hardcoded():
     assert run.answer_key_status == "provisional_answer"
 
 
+def test_run_stamps_current_answer_key_version():
+    # A Phase 2 run records the scoring-key version it was scored against, so
+    # the Lab can flag it outdated once the effective keys move.
+    from app.answer_key_version import phase2_answer_key_version
+
+    run = run_phase2_evaluation(
+        model_ids=["scripted_diligent"],
+        control_conditions=["no_policy"],
+        framings=["deployment"],
+        scenario_ids=PAIR_IDS,
+        seeds=[1],
+    )
+    assert run.answer_key_version == phase2_answer_key_version()
+    assert run.answer_key_version is not None
+
+
 def test_provider_error_becomes_defer_with_error():
     class ExplodingProvider(BaseEpisodeProvider):
         provider_id = "exploding"
