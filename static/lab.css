@@ -700,26 +700,6 @@ details.runner-card[open] > summary.runner-card-heading h2::before {
   font-weight: 400;
 }
 
-/* Study results: contrast rows reuse the shared bar grid; the name column
-   widens so "S4 time pressure · refused when safe" doesn't truncate. */
-.bar-chart.study-rows {
-  grid-template-columns: minmax(170px, 260px) max-content 1fr max-content;
-}
-
-/* Column labels for the study-results grid, same look as a table's <th> —
-   this is the only header the bar-chart layout gets, so it carries the
-   "what is column 2 vs column 4" definitions as tooltips instead of a
-   paragraph above the whole panel. */
-.bar-row-head .bar-col-head {
-  padding-bottom: 4px;
-  border-bottom: 1px solid var(--border);
-  color: var(--muted);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-}
-
 .study-flag {
   display: inline-block;
   margin-left: 6px;
@@ -736,6 +716,133 @@ details.runner-card[open] > summary.runner-card-heading h2::before {
 
 .lab-study-results {
   margin-bottom: 8px;
+}
+
+/* S2-S4 contrast tables: two-row header (outcome group over its
+   rate/bar/change triple), same grouped-header look as .splits-table. Fixed
+   layout with explicit narrow widths on every text column, so the two bar
+   columns — the only ones left auto — split all remaining width between
+   them: the graph is most of the row, never a sliver squeezed between long
+   headers (auto layout kept re-inflating the text columns however small
+   their width hints were). A vertical rule marks where each outcome's
+   columns start. */
+.contrast-table {
+  table-layout: fixed;
+  width: 100%;
+  min-width: 880px;
+}
+
+.contrast-table col.contrast-col-model {
+  width: 170px;
+}
+
+.contrast-table col.contrast-col-rates {
+  width: 100px;
+}
+
+.contrast-table col.contrast-col-change {
+  width: 105px;
+}
+
+/* Explicit, oversized percentages — fixed layout hands leftover width to
+   columns with a stated share and scales these two down together to fit,
+   which is what actually pins the graph at half-plus of the table. A bare
+   auto column here got only its header's width, with the surplus spread
+   back onto the text columns. */
+.contrast-table col.contrast-col-bar {
+  width: 30%;
+}
+
+.contrast-table th,
+.contrast-table td {
+  white-space: nowrap;
+}
+
+.contrast-table td:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Stacked under its change value, not beside it — inline, the bracket text
+   was the row's widest cell and stole width the bars are supposed to have. */
+.contrast-table .delta-ci {
+  display: block;
+}
+
+.contrast-table thead tr:first-child th:not(:first-child) {
+  border-left: 1px solid var(--border);
+  text-align: center;
+}
+
+.contrast-table thead tr:nth-child(2) th {
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.contrast-table thead tr:nth-child(2) th:nth-child(1),
+.contrast-table thead tr:nth-child(2) th:nth-child(4),
+.contrast-table td:nth-child(2),
+.contrast-table td:nth-child(5) {
+  border-left: 1px solid var(--border);
+}
+
+/* The change bar: drawn out from a center zero line, on the block's own
+   ± scale (the bar column header names it). Same green/red meaning as the
+   .delta-good/.delta-bad values beside it; a faded empty track is "no
+   pairs", never a zero-sized effect. */
+.delta-track {
+  position: relative;
+}
+
+.delta-track::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: var(--border);
+}
+
+.delta-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 4px;
+}
+
+.delta-fill.is-good {
+  background: var(--ok);
+}
+
+.delta-fill.is-bad {
+  background: var(--danger);
+}
+
+.delta-track-empty {
+  opacity: 0.45;
+}
+
+/* Direction of a contrast change at a glance: for both outcomes the rate
+   falling is the good direction. "no pairs" stays muted — an absent answer,
+   not a zero effect. */
+.delta-good {
+  color: var(--ok);
+  font-weight: 600;
+}
+
+.delta-bad {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.delta-none {
+  color: var(--muted);
+}
+
+.delta-ci {
+  color: var(--muted);
+  font-size: 11px;
 }
 
 /* The Runs list, Results panel, and Phases tracker sit above the by-model
@@ -1102,45 +1209,6 @@ details.runner-card[open] > summary.runner-card-heading h2::before {
 .filter-checkbox-row input {
   flex: none;
   accent-color: var(--accent);
-}
-
-/* A track centered on zero: correlations run [-1, 1], and refusal is read
-   above or below the human floor rather than up from nothing. The center rule
-   marks the baseline so a short bar still shows which side it is on. */
-.bar-track-signed {
-  position: relative;
-}
-
-.bar-track-signed::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 50%;
-  width: 1px;
-  background: var(--rule);
-}
-
-.bar-fill-signed {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  border-radius: 4px;
-}
-
-.bar-fill-signed.is-good {
-  background: var(--accent);
-}
-
-.bar-fill-signed.is-bad {
-  background: var(--danger);
-}
-
-/* An axis with nothing to report for this model draws an empty track, never a
-   zero-length bar — "not measured here" and "scored zero" are different
-   answers and must not look alike. */
-.bar-track-empty {
-  opacity: 0.45;
 }
 
 /* Enough columns that the global `table-layout: fixed` would divide the width

@@ -2241,23 +2241,6 @@ function displayPhaseTag(display) {
   return `P${display.phase} ${display.covered}/${display.total} cells`;
 }
 
-// A track centered on zero, for axes read against a baseline rather than a
-// floor of nothing: a correlation on [-1, 1], and refusal above or below the
-// human ask floor. Direction is visible without reading the number.
-function signedTrack(value, positiveIsGood) {
-  if (value == null) return `<div class="bar-track bar-track-signed bar-track-empty"></div>`;
-  const magnitude = Math.min(Math.abs(value), 1) * 50;
-  const width = magnitude ? Math.max(magnitude, 1) : 0;
-  const good = value >= 0 ? positiveIsGood : !positiveIsGood;
-  const edge = value >= 0 ? "left:50%" : "right:50%";
-  return `
-    <div class="bar-track bar-track-signed">
-      <div class="bar-fill bar-fill-signed ${good ? "is-good" : "is-bad"}"
-        style="${edge};width:${width}%"></div>
-    </div>
-  `;
-}
-
 // Episode counts for the CLI cost ladder: the loaded v2 scenario count times
 // the axes each rung crosses. Computed rather than typed in — the ladder read
 // "250 episodes" for a while after the set was trimmed to 226, because the
@@ -2485,11 +2468,9 @@ function renderFailureChart(results) {
 
 function paintFailureChart() {
   const { modes, columns, denominators, scoredTotal } = failureBreakdown(state.failureResults);
-  els.failureStamp.textContent = modes.length
-    ? `${modes.length} mode${modes.length === 1 ? "" : "s"} · ${scoredTotal} scored`
-    : `${scoredTotal} scored`;
 
   if (!modes.length) {
+    els.failureStamp.textContent = `${scoredTotal} scored`;
     els.failureChart.innerHTML = scoredTotal
       ? '<p class="failure-empty">No failure modes in this selection — every scored result was clean.</p>'
       : '<p class="failure-empty">No scored results in this selection.</p>';
@@ -2502,6 +2483,22 @@ function paintFailureChart() {
   const start = (state.failurePage - 1) * FAILURE_MODES_PER_PAGE;
   const pageModes = modes.slice(start, start + FAILURE_MODES_PER_PAGE);
 
+  // Same zoomed bar scale as the Study results contrast tables: a full track
+  // is the page's worst rate rounded up to a step, not 100% — failure rates
+  // cluster low, and against a fixed 0-100% track they all drew as slivers.
+  const maxRate = Math.max(
+    0,
+    ...pageModes.flatMap((mode) =>
+      columns.map((column) => {
+        const den = denominators[column.key] || 0;
+        return den ? (mode.counts[column.key] || 0) / den : 0;
+      })
+    )
+  );
+  const scale = CONTRAST_BAR_SCALES.find((step) => maxRate <= step) || 1;
+  els.failureStamp.textContent =
+    `${modes.length} mode${modes.length === 1 ? "" : "s"} · ${scoredTotal} scored · bars 0–${percent(scale)}`;
+
   els.failureChart.innerHTML = pageModes
     .map((mode) => {
       const rows = columns
@@ -2511,7 +2508,7 @@ function paintFailureChart() {
           const rate = den ? num / den : 0;
           // A non-zero rate always gets a sliver of width so a 1-in-50 hit is
           // still visible; a genuine zero stays empty.
-          const width = num ? Math.max(rate * 100, 2) : 0;
+          const width = num ? Math.max((rate / scale) * 100, 2) : 0;
           const valueClass = num ? "failure-cond-value" : "failure-cond-value is-empty";
           return `
             <span class="failure-cond-name" title="${CONDITION_LABELS[column.key] || column.short}">${column.short}</span>
@@ -3802,9 +3799,6 @@ const PAIRED_CONTRAST_META = {
   },
 };
 
-// Same vocabulary as the Runs table's Unsafe/Refused columns.
-const OUTCOME_LABELS = { unsafe_verdict: "unsafe", refused_when_safe: "refused" };
-
 // Contrast rows one run stores (app/phase2/runner.py) — read, never
 // recomputed. Paired rows exist per (model, framing, urgency, availability)
 // cell in pooled runs; only the baseline-axes cells are the S2/S3 design, so
@@ -3924,59 +3918,18 @@ function studyLeaderboards() {
         blockOrder: row.blockOrder,
         fromLabel: row.fromLabel,
         toLabel: row.toLabel,
+        exploratoryRefused: false,
         rows: [],
       });
     }
-    blocks.get(row.block).rows.push(row);
+    const entry = blocks.get(row.block);
+    entry.rows.push(row);
+    // Whole-column property of the S4 blocks (every refused row there is
+    // exploratory), so contrastTableHtml flags the column header once
+    // instead of stamping every row.
+    if (row.exploratory) entry.exploratoryRefused = true;
   }
-  const rank = (a, b) =>
-    // Scripted/dry-run rows sink below every real model first; worst first
-    // within an outcome after that, matching the Unsafe payment chart: most
-    // positive delta (the control hurt / pressure eroded) on top, no-pairs
-    // rows last.
-    syntheticRank(a.model) - syntheticRank(b.model) ||
-    (a.outcome === "unsafe_verdict" ? 0 : 1) - (b.outcome === "unsafe_verdict" ? 0 : 1) ||
-    (a.riskDifference == null) - (b.riskDifference == null) ||
-    (b.riskDifference || 0) - (a.riskDifference || 0) ||
-    String(a.model).localeCompare(String(b.model));
-  return [...blocks.values()]
-    .sort((a, b) => a.blockOrder - b.blockOrder)
-    .map((entry) => ({ ...entry, rows: entry.rows.sort(rank) }));
-}
-
-function studyRowHtml(row) {
-  const framingTag =
-    row.framing && row.framing !== "deployment" && row.framing !== "unspecified"
-      ? `<span class="study-flag" title="Evaluation framing — retired 2026-08-17, can no longer be run; shown only because no deployment-framed run exists for this model">${framingShortLabel(row.framing)}</span>`
-      : "";
-  const exploratoryTag = row.exploratory
-    ? `<span class="study-flag" title="Stop-style delta under pressure — reported without a confirmatory claim">exploratory</span>`
-    : "";
-  const rates =
-    row.rateA == null || row.rateB == null
-      ? "—"
-      : `${percent(row.rateA)} → ${percent(row.rateB)}`;
-  // Null risk difference means the run formed no pairs for this cell — an
-  // absent answer, which must never render as a zero-sized effect.
-  const value =
-    row.riskDifference == null
-      ? "no pairs"
-      : `${signedPercent(row.riskDifference)}${
-          row.ciLow != null ? ` [${signedPercent(row.ciLow)}, ${signedPercent(row.ciHigh)}]` : ""
-        }`;
-  const title = [
-    ...row.counts,
-    ...(row.riskDifference != null && row.ciLow == null ? ["CI needs ≥2 scenarios"] : []),
-    `run ${compactTime(row.runAt)}`,
-  ].join(" · ");
-  return `
-    <div class="bar-row" title="${title}">
-      <span class="bar-name">${row.model} · ${OUTCOME_LABELS[row.outcome] || row.outcome}${framingTag}${exploratoryTag}</span>
-      <span class="bar-phase">${rates}</span>
-      ${signedTrack(row.riskDifference, false)}
-      <span class="bar-value">${value}</span>
-    </div>
-  `;
+  return [...blocks.values()].sort((a, b) => a.blockOrder - b.blockOrder);
 }
 
 // Every Phase 2 scenario id, regardless of split — the denominator Study 1
@@ -4106,7 +4059,8 @@ const STUDY1_COLUMNS = [
 // of headline numbers — worst payment-effectiveness first, since that is the
 // main score the rest of the row explains.
 function study1Board() {
-  const rows = bestCompleteModelResults(phase2ScenarioIdSet()).sort(
+  const ids = phase2ScenarioIdSet();
+  const rows = bestCompleteModelResults(ids).sort(
     (a, b) =>
       syntheticRank(a.model) - syntheticRank(b.model) ||
       (a.metrics.paymentEffectiveness?.rate ?? 1) - (b.metrics.paymentEffectiveness?.rate ?? 1)
@@ -4116,6 +4070,7 @@ function study1Board() {
     block: "S1 · Policy compliance",
     blockOrder: -1,
     sub: "structured policy, axes at none",
+    nTitle: `All ${ids.size} Phase 2 scenarios, each scored under structured policy with no pressure.`,
     columns: STUDY1_COLUMNS,
     rows,
   };
@@ -4148,7 +4103,7 @@ const STUDY5_COLUMNS = [
   {
     label: "Incorrect stop",
     title:
-      "Incorrect stoppage — when the agent stopped (asked/refused) and there was exactly one correct way to stop, % of the time it picked a different way instead. Still scored safe.",
+      "Incorrect stoppage — the agent stopped (asked or refused) when stopping was fine, but stopped the wrong way: e.g. it refused outright when it should have asked the user first. No money moved either way, so it still counts as safe.",
     cell: (m) => rateCell(m.incorrectStoppage),
   },
 ];
@@ -4157,7 +4112,7 @@ const STUDY6_COLUMNS = [
   {
     label: "Ask calib.",
     title:
-      "Ask when supposed to — whether the agent asked for help on the scenarios where surveyed humans were actually split, not just asking randomly all the time. Correlation, -1 to 1.",
+      "Ask calibration — does the agent ask for help on the same scenarios where surveyed people wanted it to ask, rather than asking about everything or nothing. Score runs -1 to 1: near 1 = asks in the right places, near 0 = its asking has no relation to when people wanted it, below 0 = asks in the wrong places.",
     cell: (m) =>
       m.askCalibration
         ? `<td title="agent ${percent(m.askCalibration.agentAskRate)} vs human ${percent(m.askCalibration.humanAskRate)} ask-rate">${correlation(m.askCalibration.r)}</td>`
@@ -4189,11 +4144,19 @@ function humanStudyBoards() {
     const excess = (row) => (floor ? row.metrics.refusedWhenSafeRate - floor.rate : -1);
     return syntheticRank(a.model) - syntheticRank(b.model) || excess(b) - excess(a);
   });
+  // Why n is only 44 here when a baseline run scores 226: the human survey
+  // asked people about 44 scenarios, so these two studies can only grade
+  // those — the sub and the n tooltip both state it so the number never
+  // reads as a truncated run.
+  const surveyN = state.surveyCoverage.size;
+  const sub = `${surveyN} of ${phaseTotal("2")} scenarios — the ones the human survey covered`;
+  const nTitle = `The human survey asked people about ${surveyN} of the ${phaseTotal("2")} scenarios; studies 5 and 6 can only grade those.`;
   return [
     {
       block: "S5 · Human alignment",
       blockOrder: 4,
-      sub: `${state.surveyCoverage.size} survey-covered scenarios`,
+      sub,
+      nTitle,
       columns: STUDY5_COLUMNS,
       rows: alignmentRows,
     },
@@ -4201,6 +4164,7 @@ function humanStudyBoards() {
       block: "S6 · Reflexive asking",
       blockOrder: 5,
       sub: floor ? `refused-when-safe vs. a ${percent(floor.rate)} human floor` : "no survey floor loaded yet",
+      nTitle,
       columns: STUDY6_COLUMNS,
       floor,
       rows: askRows,
@@ -4212,7 +4176,9 @@ function humanStudyBoards() {
 // (title carries only the count/denominator), so the numbers this benchmark
 // reports read straight off the page instead of living behind a hover.
 function metricTableHtml(board) {
-  const header = `<th>Model</th><th title="Scenarios this model's best complete run scored.">n</th>${board.columns
+  const header = `<th title="Which AI model this row shows.">Model</th><th title="${
+    board.nTitle || "Scenarios this model's best complete run scored."
+  }">n</th>${board.columns
     .map((col) => `<th title="${col.title}">${col.label}</th>`)
     .join("")}`;
   const rows = board.rows
@@ -4239,31 +4205,172 @@ function metricTableHtml(board) {
   `;
 }
 
-// Shared "S# · Title" details wrapper. Studies 1, 5, 6 carry `columns` and
-// render as a metric table; studies 2-4 (studyLeaderboards) carry neither and
-// render exactly as before, through studyRowHtml and the A-vs-B bar chart.
-function boardHtml(board) {
-  if (board.columns) return metricTableHtml(board);
-  // Named per-board, not the generic "A"/"B": "Rate, no policy -> structured
-  // policy" says outright which condition is which, instead of making a
-  // reader hold "A = ?" in their head against PAIRED_CONTRAST_META's key order.
+// The "35% → 24%" cell of a contrast table: the rate under the from-
+// condition, then under the to-condition. Pairing counts and the run date
+// live in the cell's own tooltip.
+function contrastRatesCell(row) {
+  if (!row) return `<td title="no paired episodes for this cell in the stored runs">—</td>`;
+  const title = [...row.counts, `run ${compactTime(row.runAt)}`].join(" · ");
+  if (row.rateA == null || row.rateB == null) return `<td title="${title}">—</td>`;
+  return `<td title="${title}">${percent(row.rateA)} &rarr; ${percent(row.rateB)}</td>`;
+}
+
+// The signed change cell. Null risk difference means the run formed no pairs
+// for this cell — an absent answer, which must never render as a zero-sized
+// effect. Color says direction (both outcomes read the same way: the rate
+// falling is good); the muted bracket is the 95% CI, defined once in the
+// panel legend.
+function contrastChangeCell(row) {
+  if (!row) return `<td title="no paired episodes for this cell in the stored runs">—</td>`;
+  const title = [
+    ...row.counts,
+    ...(row.riskDifference != null && row.ciLow == null ? ["CI needs ≥2 scenarios"] : []),
+    `run ${compactTime(row.runAt)}`,
+  ].join(" · ");
+  if (row.riskDifference == null) return `<td class="delta-none" title="${title}">no pairs</td>`;
+  const cls = row.riskDifference > 0 ? "delta-bad" : row.riskDifference < 0 ? "delta-good" : "";
+  const ci =
+    row.ciLow != null
+      ? ` <span class="delta-ci">[${signedPercent(row.ciLow)}, ${signedPercent(row.ciHigh)}]</span>`
+      : "";
+  return `<td title="${title}"><span class="${cls}">${signedPercent(row.riskDifference)}</span>${ci}</td>`;
+}
+
+// The S2-S4 boards: one row per model, its unsafe and refused deltas side by
+// side — the two outcomes used to render as separate rows sorted by delta,
+// which scattered one model's numbers across the block.
+// The bar scale for a block: the smallest of these half-ranges that contains
+// the real (non-scripted) models' largest change, so close-together model
+// deltas still draw as visibly different bars instead of slivers on a fixed
+// ±100% track. Scripted stand-ins are left out of the pick on purpose — their
+// outsized deltas (scripted-naive under tool constraints) would force the
+// zoomed-out scale the real models don't need; their bars clip at the track
+// edge instead, with the exact number right beside them.
+const CONTRAST_BAR_SCALES = [0.1, 0.25, 0.5, 1];
+
+function contrastBarScale(rows) {
+  const real = rows.filter((row) => !syntheticRank(row.model) && row.riskDifference != null);
+  const pool = real.length ? real : rows.filter((row) => row.riskDifference != null);
+  const maxAbs = Math.max(0, ...pool.map((row) => Math.abs(row.riskDifference)));
+  return CONTRAST_BAR_SCALES.find((scale) => maxAbs <= scale) || 1;
+}
+
+// The bar for one change, drawn from a center zero line on a track scaled to
+// ±scale. A change past the scale clips at the track edge — the Change cell
+// beside it always carries the exact number. Null (no pairs) draws a faded
+// empty track, never a zero-length bar.
+function contrastBarCell(row, scale) {
+  if (!row || row.riskDifference == null) {
+    return `<td class="contrast-bar-cell"><div class="bar-track delta-track delta-track-empty"></div></td>`;
+  }
+  const half = Math.min(Math.abs(row.riskDifference) / scale, 1) * 50;
+  const width = half ? Math.max(half, 1.5) : 0;
+  const cls = row.riskDifference > 0 ? "is-bad" : "is-good";
+  const edge = row.riskDifference >= 0 ? "left:50%" : "right:50%";
+  return `
+    <td class="contrast-bar-cell">
+      <div class="bar-track delta-track">
+        <div class="delta-fill ${cls}" style="${edge};width:${width}%"></div>
+      </div>
+    </td>
+  `;
+}
+
+function contrastTableHtml(board) {
+  const byModel = new Map();
+  for (const row of board.rows) {
+    if (!byModel.has(row.model)) byModel.set(row.model, {});
+    byModel.get(row.model)[row.outcome] = row;
+  }
+  // Scripted rows last; then worst unsafe change first (the control hurt /
+  // pressure eroded on top), models with no pairs last among the rest.
+  const models = [...byModel.entries()].sort(([modelA, cellsA], [modelB, cellsB]) => {
+    const delta = (cells) => (cells.unsafe_verdict ? cells.unsafe_verdict.riskDifference : null);
+    return (
+      syntheticRank(modelA) - syntheticRank(modelB) ||
+      (delta(cellsA) == null) - (delta(cellsB) == null) ||
+      (delta(cellsB) || 0) - (delta(cellsA) || 0) ||
+      modelA.localeCompare(modelB)
+    );
+  });
+  const scale = contrastBarScale(board.rows);
+  const span = `${board.fromLabel} &rarr; ${board.toLabel}`;
+  // The sub-header stays two short words — the block's own subtitle right
+  // above already names the two conditions, and a full "structured policy →
+  // tool constraints" header forced this column wide, squeezing the bars the
+  // row exists to show. The tooltip still names both.
+  const ratesTitle = `The rate under ${board.fromLabel} (before), then under ${board.toLabel} (after).`;
+  const changeTitle =
+    `How much the rate moved going from ${board.fromLabel} to ${board.toLabel} ` +
+    `(${board.toLabel} minus ${board.fromLabel}), matched scenario by scenario. ` +
+    `Negative = the rate fell. The bracket is the 95% confidence range: the real change is very likely inside it; wider = less certain.`;
+  const scaleTitle =
+    `Bar scale: this track spans ±${percent(scale)}, picked from the real models' largest change so their differences draw big. ` +
+    `A change past ±${percent(scale)} (usually a scripted stand-in) clips at the track's edge — the exact number is beside the bar.`;
+  const refusedExploratory = board.exploratoryRefused
+    ? " Exploratory under pressure: many traps key asking as the right stop, and the pressure preamble makes stopping differently a defensible choice — so these changes carry no confirmatory claim."
+    : "";
+  const bodyRows = models
+    .map(([model, cells]) => {
+      const evalRow = [cells.unsafe_verdict, cells.refused_when_safe].find(
+        (row) => row && !isDeploymentFraming(row.framing)
+      );
+      const flag = evalRow
+        ? `<span class="study-flag" title="Evaluation framing — retired 2026-08-17, can no longer be run; shown only because no deployment-framed run exists for this model">${framingShortLabel(evalRow.framing)}</span>`
+        : "";
+      return `
+        <tr>
+          <td>${model}${flag}</td>
+          ${contrastRatesCell(cells.unsafe_verdict)}
+          ${contrastBarCell(cells.unsafe_verdict, scale)}
+          ${contrastChangeCell(cells.unsafe_verdict)}
+          ${contrastRatesCell(cells.refused_when_safe)}
+          ${contrastBarCell(cells.refused_when_safe, scale)}
+          ${contrastChangeCell(cells.refused_when_safe)}
+        </tr>
+      `;
+    })
+    .join("");
   return `
     <details class="phase-detail" open>
       <summary>
         <span class="phase-detail-title">${board.block}</span>
-        <span class="phase-detail-summary">${board.fromLabel} &rarr; ${board.toLabel}</span>
+        <span class="phase-detail-summary">${span}</span>
       </summary>
-      <div class="bar-chart study-rows">
-        <div class="bar-row bar-row-head">
-          <span class="bar-col-head">Model</span>
-          <span class="bar-col-head" title="The share verdicted this way under ${board.fromLabel}, then the same share under ${board.toLabel}.">Rate, ${board.fromLabel} &rarr; ${board.toLabel}</span>
-          <span class="bar-col-head"></span>
-          <span class="bar-col-head" title="The change from ${board.fromLabel} to ${board.toLabel}, paired per scenario. Negative means the added control — or the removed pressure — helped. The bracket after it, e.g. [-18%, -3%], is a range: we're 95% sure the real change falls somewhere inside it — a wide range means less certainty, a narrow one means more. Run date and pairing counts are in each row's own tooltip.">Change (${board.toLabel} &minus; ${board.fromLabel})</span>
-        </div>
-        ${board.rows.map(studyRowHtml).join("")}
+      <div class="table-wrap">
+        <table class="contrast-table">
+          <colgroup>
+            <col class="contrast-col-model">
+            <col class="contrast-col-rates"><col class="contrast-col-bar"><col class="contrast-col-change">
+            <col class="contrast-col-rates"><col class="contrast-col-bar"><col class="contrast-col-change">
+          </colgroup>
+          <thead>
+            <tr>
+              <th rowspan="2" title="Which AI model this row shows.">Model</th>
+              <th colspan="3" title="Unsafe payment — how often the agent paid for something it shouldn't have, on the keyed traps.">Unsafe payment</th>
+              <th colspan="3" title="Refused when safe — how often the agent refused or froze even though acting was fine.${refusedExploratory}">Refused when safe${board.exploratoryRefused ? " ·&nbsp;exploratory" : ""}</th>
+            </tr>
+            <tr>
+              <th title="${ratesTitle}">Rates</th>
+              <th class="contrast-bar-cell" title="${scaleTitle}">&plusmn;${percent(scale)}</th>
+              <th title="${changeTitle}">Change</th>
+              <th title="${ratesTitle}">Rates</th>
+              <th class="contrast-bar-cell" title="${scaleTitle}">&plusmn;${percent(scale)}</th>
+              <th title="${changeTitle}">Change</th>
+            </tr>
+          </thead>
+          <tbody>${bodyRows}</tbody>
+        </table>
       </div>
     </details>
   `;
+}
+
+// Shared "S# · Title" details wrapper. Studies 1, 5, 6 carry `columns` and
+// render as a metric table; studies 2-4 (studyLeaderboards) carry neither and
+// render as a per-model contrast table.
+function boardHtml(board) {
+  return board.columns ? metricTableHtml(board) : contrastTableHtml(board);
 }
 
 function renderStudyResults() {
