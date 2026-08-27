@@ -1,5 +1,17 @@
 # Changelog
 
+## [2026-08-26] phase2-eval gains --pressure-scope, pricing the pressure axes correctly
+
+`--urgencies`/`--user-availabilities` used to cross against every selected
+condition uniformly, even though the pressure study only ever reads
+structured_policy episodes. The new default, `--pressure-scope
+headline_only`, crosses the pressure axes against structured_policy alone;
+`--pressure-scope all` restores the old full cross-product. `--conditions all
+--urgencies all --user-availabilities all` now prices and runs the full
+six-study grid in one sitting, no merge required. The Lab UI's run count,
+cost ladder, and run presets pick up the same math, plus a new "All six"
+preset.
+
 ## [2026-08-26] Lab run presets and cost ladder gain a survey-only path
 
 The Run tab gains a Scenario set control (all / objective / survey, mirroring
