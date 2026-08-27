@@ -152,6 +152,34 @@ details.runner-card[open] > summary.runner-card-heading h2::before {
   white-space: nowrap;
 }
 
+/* The human-survey band under Studies: plain-English background on the
+   survey pipeline. Prose/legend rather than another table — there's no
+   per-row data to show, just the same explanation every time. */
+.human-survey-body {
+  padding: 14px 20px 20px;
+  border-top: 1px solid var(--border);
+}
+
+.human-survey-body > :first-child {
+  margin-top: 0;
+}
+
+.human-survey-steps {
+  margin: 6px 0 0;
+  padding-left: 20px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.human-survey-steps li {
+  margin-bottom: 4px;
+}
+
+.human-survey-steps li:last-child {
+  margin-bottom: 0;
+}
+
 /* Provider readiness: lit when a key is available (server .env or browser
    override), dim when the provider still needs one before it can run live. */
 /* Readiness indicator: green/filled = this provider can run live right now

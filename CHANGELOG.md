@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-08-27] Lab: Study 1/5/6 tags restored on the Runs/Models tables
+
+The Runs and Models table column tooltips (Unsafe, Preferred, Acceptable, Top
+pick / Human preferred alignment, Ask calib. / Asks when supposed to, Vs
+floor) now name the study each answers again — lost when the duplicate
+by-model bar charts (which used to carry the "Study 1"/"Study 5"/"Study 6"
+stamps) were cut. The Studies table's "runs that answer it" cells for 5–6 now
+also mention the Survey run preset, not just Baseline.
+
 ## [2026-08-26] phase2-eval gains --pressure-scope, pricing the pressure axes correctly
 
 `--urgencies`/`--user-availabilities` used to cross against every selected
