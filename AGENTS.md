@@ -34,6 +34,32 @@ Applies to every reply in conversation (not file/PR content).
   running "just one seed" / "just one scenario" — small scope does not make it
   OK to run.
 
+## Filling in a missing study cell: pass the specific value, not `all` (IMPORTANT)
+
+"All studies" means the six-study, **1,070-cell** coverage `static/lab.js`'s
+`phase2StudyStatuses` defines (`no_policy` + `structured_policy` at
+none/none + `structured_policy` at time_pressure/none + `structured_policy`
+at none/unreachable + `tool_constraints` baseline, seed=1) — not a literal
+`--urgencies all --user-availabilities all` cross. That literal cross adds a
+`time_pressure` + `unreachable` combo no study reads (see the comment at
+`static/lab.js:675-676`) and inflates the run for no coverage gain.
+
+- When only one pressure cell is missing for a model (e.g. the `time_pressure`
+  or `unreachable` cell on `structured_policy`), pass that **single explicit
+  value** on the one flag that needs it — `--urgencies time_pressure` or
+  `--user-availabilities unreachable` — never `--urgencies all` /
+  `--user-availabilities all` for a single-cell fill. The other, unmentioned
+  axis defaults to `none` (its baseline), so a single-value flag produces
+  exactly the missing 226 cells with zero overlap with the baseline run.
+  Passing `all` on that flag needlessly re-sweeps the already-covered `none`
+  value on top of the missing one.
+- Coverage is exact-key, not "any value of the axis": a cell only counts
+  toward `tp` if it is exactly `structured_policy::time_pressure::none`, and
+  toward `unreachable` only if exactly `structured_policy::none::unreachable`
+  (`static/lab.js:662-677`). Before handing Conor a command, check what's
+  actually missing against the run history (`phase2-checkpoints` plus each
+  run's checkpoint `grid`) rather than assuming from the study total alone.
+
 ## Git / merge workflow (IMPORTANT)
 
 - **Never commit straight to `main`.**
