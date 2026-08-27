@@ -46,6 +46,28 @@ it now does the same for `pressure_scope`, the axis `--pressure-scope` added.
 Without this, `merge` would silently pool a `headline_only` run with an old
 full-cross-product one instead of refusing them as two different designs.
 
+## [2026-08-27] Removed the Welfare loss metric — it could never read anything but 0%
+
+Traced why it always showed 0%: `beneficial_paid_tool_underuse` (the only
+rule that sets it) only fires when both `environment.paid_tool_beneficial`
+and `policy.paid_tool_allowed_if_needed` are true, and no scenario or policy
+in `data/` ever sets either flag. Removed the always-zero rate from the
+Lab's Runs, Models, and Study 1 tables (`static/lab.js`, `static/lab.html`)
+and from `app/metrics.py`'s summary output. Left the underlying rule check,
+the `welfare_loss` verdict/flag, and the scripted-agent test path alone —
+that's the real scoring taxonomy, not the dead display; wiring real
+scenario data to it later is still an option.
+
+## [2026-08-27] Lab: dropped the standalone Human survey band
+
+Its term-glossary paragraph (Preferred, Acceptable, Top pick, Ask calib.,
+Vs floor, Incorrect stop) just repeated the Runs table's own `th` tooltips,
+so it's gone; those definitions now live inline in the Runs table's
+panel-legend alongside Unsafe/Refused/Blocks/Stalled/Welfare/Errors instead
+of pointing at a separate band. The methodology prose (why we survey, the
+six-step pipeline) moved into the Studies band, right under the studies 5-6
+rows it explains — one place for "what these numbers mean" instead of two.
+
 ## [2026-08-27] Lab: Study results is by-study again, and no more phantom "Eval" duplicates
 
 Study results only ever charted the S2-S4 paired contrasts; added tables for
