@@ -13,11 +13,12 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional
+from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Tuple
 from uuid import uuid4
 
 from ..data import DATA_DIR, load_scenarios
 from ..metrics import (
+    HEADLINE_CONTROL_CONDITION,
     _summarize_group,
     common_scenario_ids,
     compute_metrics,
@@ -31,7 +32,12 @@ from ..providers import DEFAULT_CONSECUTIVE_ERROR_LIMIT, RateLimitGate, RunAbort
 from ..runner import _run_answer_key_status
 from .checkpoint import CheckpointStore, EpisodeKey, episode_key, grid_fingerprint
 from .providers import BaseEpisodeProvider, create_phase2_provider, resolve_phase2_model_ids
-from .scope import DEFAULT_ENFORCEMENT_SCOPE, scenarios_by_condition
+from .scope import (
+    DEFAULT_ENFORCEMENT_SCOPE,
+    DEFAULT_PRESSURE_SCOPE,
+    pressure_axes_by_condition,
+    scenarios_by_condition,
+)
 from .sandbox import (
     FRAMINGS,
     PHASE2_CONTROL_CONDITIONS,
@@ -123,8 +129,7 @@ def _grid_cells(
     models: List[str],
     conditions: List[str],
     framings: List[str],
-    urgencies: List[str],
-    user_availabilities: List[str],
+    pressure_axes_for: Dict[str, Tuple[List[str], List[str]]],
     scenarios_for: Dict[str, List[Scenario]],
     seeds: List[int],
 ) -> Iterator[GridCell]:
@@ -137,10 +142,14 @@ def _grid_cells(
 
     The scenario axis is per condition rather than shared: the enforced arm
     runs on the scenarios its rail can reach (app/phase2/scope.py), so the grid
-    is a union of per-condition blocks, not one cross-product.
+    is a union of per-condition blocks, not one cross-product. The pressure
+    axes are per condition too, for the same reason: only the headline
+    condition needs them crossed (app/phase2/scope.py's
+    pressure_axes_by_condition), so the rest run pressure-axis baseline.
     """
     for model_id in models:
         for condition in conditions:
+            urgencies, user_availabilities = pressure_axes_for[condition]
             for framing in framings:
                 for urgency in urgencies:
                     for user_availability in user_availabilities:
@@ -503,6 +512,7 @@ def run_phase2_evaluation(
     scenario_ids: Optional[Iterable[str]] = None,
     scenario_set_path: Optional[Path] = None,
     enforcement_scope: str = DEFAULT_ENFORCEMENT_SCOPE,
+    pressure_scope: str = DEFAULT_PRESSURE_SCOPE,
     seeds: Optional[Iterable[int]] = None,
     temperature: Optional[float] = None,
     reasoning_effort: Optional[str] = None,
@@ -556,6 +566,18 @@ def run_phase2_evaluation(
     scenarios_for_condition = scenarios_by_condition(
         selected_conditions, selected_scenarios, scenario_catalogue, enforcement_scope
     )
+    # Only the headline condition needs the pressure axes crossed --
+    # phase2_pressure_contrasts (app/metrics.py) reads urgency/user_availability
+    # deltas from structured_policy episodes alone, so crossing them against
+    # no_policy/tool_constraints too would spend on cells no metric reads. Pass
+    # pressure_scope="all" for the pre-2026-08-26 full cross-product.
+    pressure_axes_for_condition = pressure_axes_by_condition(
+        selected_conditions,
+        selected_urgencies,
+        selected_user_availabilities,
+        HEADLINE_CONTROL_CONDITION,
+        pressure_scope,
+    )
     selected_seeds = list(seeds or DEFAULT_PHASE2_SEEDS)
     resolved_temperature = DEFAULT_PHASE2_TEMPERATURE if temperature is None else temperature
     workers = max(1, int(concurrency))
@@ -591,8 +613,7 @@ def run_phase2_evaluation(
             selected_models,
             selected_conditions,
             selected_framings,
-            selected_urgencies,
-            selected_user_availabilities,
+            pressure_axes_for_condition,
             scenarios_for_condition,
             selected_seeds,
         )
@@ -611,6 +632,7 @@ def run_phase2_evaluation(
         [scenario.scenario_id for scenario in selected_scenarios],
         selected_seeds,
         enforcement_scope=enforcement_scope,
+        pressure_scope=pressure_scope,
     )
 
     results_by_key: Dict[EpisodeKey, EvaluationResult] = {}
@@ -799,6 +821,7 @@ def run_phase2_evaluation(
         # What each arm actually ran, so a stored run says on its face that the
         # enforced arm covered fewer scenarios by design rather than by loss.
         enforcement_scope=enforcement_scope,
+        pressure_scope=pressure_scope,
         condition_scenario_ids=condition_scenario_ids,
         results=results,
         events=events,

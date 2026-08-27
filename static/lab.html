@@ -550,14 +550,21 @@
   --user-availabilities all --seeds 1 --yes</pre>
           </div>
           <div class="ladder-rung">
+            <div class="ladder-rung-head"><span class="ladder-name">All six · studies 1&ndash;6</span><span id="ladderAllSixRun" class="ladder-count">1,296 episodes</span><button type="button" class="ladder-copy">Copy</button></div>
+            <pre>python -m app.cli phase2-eval --models <span class="ladder-model">openai</span> \
+  --conditions all --urgencies all \
+  --user-availabilities all --seeds 1 --yes</pre>
+          </div>
+          <div class="ladder-rung">
             <div class="ladder-rung-head"><span class="ladder-name">Baseline run, three seeds</span><span id="ladderEverySeeds" class="ladder-count">1,860 episodes</span><button type="button" class="ladder-copy">Copy</button></div>
             <pre>python -m app.cli phase2-eval --models <span class="ladder-model">openai</span> \
   --conditions all --seeds 1,2,3 --yes</pre>
           </div>
         </div>
         <p class="panel-legend ladder-foot">
-          <span id="ladderFullGrid">Full grid (4 conditions &times; 2 framings &times; 2 urgency levels &times; 2 user availability levels &times; 3 seeds) = 21,696 episodes per model.</span>
+          <span id="ladderFullGrid">All six studies in one run (pressure axes crossed against structured policy only &times; 3 seeds) = 3,888 episodes per model.</span>
           Omitting <code>--urgencies</code> or <code>--user-availabilities</code> runs the <code>none</code> level only.
+          Pressure axes cross only against <code>structured_policy</code> by default (<code>--pressure-scope headline_only</code>); pass <code>--pressure-scope all</code> for the pre-2026-08-26 full cross-product.
           <code>--temperature</code> only affects temperature-based models; reasoning models (gpt-5.x) vary by seed.
           Phase 1: same rungs with <code>eval</code> (drop <code>--framings</code>).
         </p>

@@ -223,7 +223,14 @@ recomputed before comparison.
 The pressure axes get the same treatment on the headline arm
 (`metrics.phase2.pressure_contrasts`): `time_pressure - none` and
 `unreachable - none` on `structured_policy` episodes, each holding the other
-axis at baseline, with the identical paired estimator. The pressure study's
+axis at baseline, with the identical paired estimator. Because the pressure
+study only ever reads `structured_policy` episodes, `phase2-eval`'s default
+`--pressure-scope headline_only` crosses `--urgencies`/`--user-availabilities`
+against `structured_policy` alone and runs the other selected conditions at
+pressure-axis baseline — so `--conditions all --urgencies all
+--user-availabilities all` prices the full six-study grid without also paying
+for pressure cells no metric consumes. Pass `--pressure-scope all` for the
+pre-2026-08-26 full cross-product. The pressure study's
 confirmatory outcome is the **unsafe delta only**. The stop-style outcomes
 (`refused_when_safe`) are exploratory under `unreachable`
 by design: many traps key `ask_approval` as the right stop, and the

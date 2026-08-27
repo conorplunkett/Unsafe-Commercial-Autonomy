@@ -172,6 +172,7 @@ for (const id of [
   "ladderEveryScenario",
   "ladderSurveyRun",
   "ladderPressureRun",
+  "ladderAllSixRun",
   "ladderEverySeeds",
   "phasesStamp",
   "phasesContent",
@@ -1259,15 +1260,22 @@ function pickProvider(providerId) {
 // readout beside the run count says what the resulting run answers. Studies
 // 1–3 and 5–6 all come from the one baseline sitting — running them as
 // separate single-study runs re-buys the shared structured_policy arm each
-// time. The pressure run is self-contained on purpose: pressure_contrasts
-// are computed within a single run at save time, so it carries its own
-// no-pressure baseline, and app/merge.py refuses to pool it with a baseline
-// run (their structured_policy none/none episodes collide). The survey run
-// is the cheap alternative when only 5–6 are wanted: S5/S6 are S1's cells
-// (structured_policy, both axes none) read on the survey-covered scenarios
-// only, so no_policy/tool_constraints and the objective-half scenarios add
-// nothing to them — split "survey" (app/cli.py --split) skips paying for
-// either.
+// time. The survey run is the cheap alternative when only 5–6 are wanted:
+// S5/S6 are S1's cells (structured_policy, both axes none) read on the
+// survey-covered scenarios only, so no_policy/tool_constraints and the
+// objective-half scenarios add nothing to them — split "survey" (app/cli.py
+// --split) skips paying for either.
+//
+// The pressure and all-six presets both rely on phase2-eval's default
+// --pressure-scope headline_only (2026-08-26): the pressure axes cross only
+// against structured_policy, so no_policy/tool_constraints episodes are
+// unaffected by adding them. "Pressure" stays available as a standalone,
+// cheaper opt-in that never touches no_policy/tool_constraints; "All six"
+// answers every study in the one run, at the one-run cost — pick it instead
+// of running Baseline then Pressure separately, since those two are
+// self-contained sittings that must never be merged (they'd each carry their
+// own structured_policy none/none episodes, and app/merge.py refuses to pool
+// runs whose episodes collide).
 const STUDY_PRESETS = {
   baseline: {
     label: "Baseline · studies 1–3, 5–6",
@@ -1294,6 +1302,15 @@ const STUDY_PRESETS = {
     urgencies: [],
     userAvailabilities: [],
     split: "survey",
+  },
+  allSix: {
+    label: "All six · studies 1–6",
+    title:
+      "All six studies in one run — three conditions, both pressure axes crossed against structured policy only (--pressure-scope headline_only, the CLI default), every scenario.",
+    conditions: ["no_policy", "structured_policy", "tool_constraints"],
+    urgencies: ["none", "time_pressure"],
+    userAvailabilities: ["none", "unreachable"],
+    split: "all",
   },
 };
 
@@ -1578,13 +1595,28 @@ function updateRunCount() {
         : state.enforcementScope.has(choice)
           ? scenarioCount
           : 0;
-  const scenarioUnits = [...state.conditions].reduce(
-    (sum, condition) =>
-      sum + (isPhase2 && condition === "tool_constraints" ? toolConstraintsCount : scenarioCount),
-    0
-  );
-  const cells = scenarioUnits * parseSeeds().length * axesCount;
-  const axesPart = isPhase2 && axesCount > 1 ? ` × ${axesCount} axis combo${axesCount === 1 ? "" : "s"}` : "";
+  // Pressure axes cross only against structured_policy (phase2-eval's default
+  // --pressure-scope headline_only, 2026-08-26): the other conditions run
+  // pressure-axis baseline regardless of what's checked, unless
+  // structured_policy itself isn't selected, in which case there's no
+  // headline cell to spare anything from duplicating and the checked axes
+  // apply as-is. Mirrors app/phase2/scope.py's pressure_axes_by_condition.
+  const pressureAxesCount = urgencyCount * availabilityCount;
+  const pressureScoped = isPhase2 && state.conditions.has("structured_policy") && pressureAxesCount > 1;
+  const conditionAxesCount = (condition) =>
+    pressureScoped && condition !== "structured_policy" ? 1 : pressureAxesCount;
+  const cells =
+    [...state.conditions].reduce((sum, condition) => {
+      const conditionScenarioCount =
+        isPhase2 && condition === "tool_constraints" ? toolConstraintsCount : scenarioCount;
+      return sum + conditionScenarioCount * framingCount * conditionAxesCount(condition);
+    }, 0) * parseSeeds().length;
+  const scopedNote =
+    pressureScoped && [...state.conditions].some((condition) => condition !== "structured_policy")
+      ? " (structured policy only)"
+      : "";
+  const axesPart =
+    isPhase2 && axesCount > 1 ? ` × ${axesCount} axis combo${axesCount === 1 ? "" : "s"}${scopedNote}` : "";
   const toolPart =
     isPhase2 && state.conditions.has("tool_constraints") && toolConstraintsCount < scenarioCount
       ? ` · tool constraints ${toolConstraintsCount}/${scenarioCount}`
@@ -2114,13 +2146,19 @@ function renderCostLadder() {
   }
   // Pressure run: structured_policy only, crossed with both axes (2 x 2).
   if (els.ladderPressureRun) els.ladderPressureRun.textContent = episodes(scenarios * 4);
-  // The full cross-product, quoted for scale — not the design anyone runs
-  // (that is the two runs above). Framing is no longer a runnable axis
-  // (evaluation was cut from the grid on 2026-08-17), so it is not a factor.
-  const conditionCount = PHASE2_CONDITION_ORDER.length;
+  // All six studies in one run (the "All six" preset): same as the baseline
+  // sitting, except structured_policy also crosses both pressure axes instead
+  // of running baseline-only — phase2-eval's default --pressure-scope
+  // headline_only means the other two conditions are unaffected by adding
+  // them, so this is baselineUnits plus structured_policy's 3 *additional*
+  // axis combos (4 total, 1 already counted in baselineUnits), not the naive
+  // full cross-product every condition would owe under --pressure-scope all.
+  const allSixUnits = baselineUnits + 3 * scenarios;
+  if (els.ladderAllSixRun) els.ladderAllSixRun.textContent = episodes(allSixUnits);
+  // Framing is not a factor (evaluation was cut from the grid on 2026-08-17).
   els.ladderFullGrid.textContent =
-    `Full grid (${conditionCount} conditions × 2 urgency levels × 2 user availability levels × 3 seeds) ` +
-    `= ${(baselineUnits * 2 * 2 * 3).toLocaleString()} episodes per model.`;
+    `All six studies in one run (pressure axes crossed against structured policy only × 3 seeds) ` +
+    `= ${(allSixUnits * 3).toLocaleString()} episodes per model.`;
 }
 
 // The per-model survey-grounded numbers live only in the Models table now;

@@ -621,6 +621,13 @@ class BenchmarkRun(BaseModel):
     # from before 2026-08-24 and on Phase 1 runs, which metrics read as "every
     # condition ran every scenario". See app/phase2/scope.py.
     enforcement_scope: Optional[str] = None
+    # Phase 2: which conditions the pressure axes (urgency, user_availability)
+    # were crossed against. "headline_only" (the default since 2026-08-26)
+    # crosses them against structured_policy alone; the other conditions ran
+    # pressure-axis baseline. None on every run from before this field existed,
+    # read as the full cross-product those runs actually ran. See
+    # app/phase2/scope.py.
+    pressure_scope: Optional[str] = None
     condition_scenario_ids: Dict[str, List[str]] = Field(default_factory=dict)
     results: List[EvaluationResult]
     events: List[Dict[str, Any]]
