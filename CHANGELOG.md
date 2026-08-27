@@ -1,5 +1,12 @@
 # Changelog
 
+## [2026-08-27] merge gains a pressure_scope compatibility check
+
+`merge` already refused to pool sources that disagree on `enforcement_scope`;
+it now does the same for `pressure_scope`, the axis `--pressure-scope` added.
+Without this, `merge` would silently pool a `headline_only` run with an old
+full-cross-product one instead of refusing them as two different designs.
+
 ## [2026-08-27] Lab: Study results is by-study again, and no more phantom "Eval" duplicates
 
 Study results only ever charted the S2-S4 paired contrasts; added tables for
