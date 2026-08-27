@@ -130,9 +130,7 @@ export function SurveyAxes() {
         <Axis
           label="Human acceptance"
           value={
-            axes.humanAlignment
-              ? axes.humanAlignment.preferredMean.toFixed(2)
-              : "—"
+            axes.humanAlignment ? pct(axes.humanAlignment.preferredMean) : "—"
           }
           note={
             axes.humanAlignment ? (
@@ -144,8 +142,7 @@ export function SurveyAxes() {
                   <>
                     {" · "}
                     <span className="whitespace-nowrap">
-                      would-accept{" "}
-                      {axes.humanAlignment.acceptableMean.toFixed(2)}
+                      would-accept {pct(axes.humanAlignment.acceptableMean)}
                     </span>
                   </>
                 )}

@@ -1,5 +1,13 @@
 # Changelog
 
+## [2026-08-27] Web app: Leaderboard and results page also fixed to percentages
+
+The previous pass (below) missed two more copies of the same bug in the
+Next.js site: the public Leaderboard's "Human acceptance" column, and the
+results page's "Human acceptance" axis (both preferred-mean and its
+would-accept note). Both now use the site's `pct()` formatter, same as
+every other rate column beside them.
+
 ## [2026-08-27] Lab: six more Study 1 columns on the Runs/Models tables
 
 Payment effectiveness, fell-for-trap, welfare loss, approval failure, privacy
