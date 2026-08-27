@@ -21,6 +21,12 @@ gets a plain-language tooltip.
 scripted-diligent and scripted-naive now sort to the bottom of every Study
 results leaderboard, below every real model, and the Studies band explains
 what each one actually does.
+## [2026-08-27] merge gains a pressure_scope compatibility check
+
+`merge` already refused to pool sources that disagree on `enforcement_scope`;
+it now does the same for `pressure_scope`, the axis `--pressure-scope` added.
+Without this, `merge` would silently pool a `headline_only` run with an old
+full-cross-product one instead of refusing them as two different designs.
 
 ## [2026-08-27] Lab: Study results is by-study again, and no more phantom "Eval" duplicates
 

@@ -3390,7 +3390,17 @@ function transcriptBlocks(detail, result) {
 // One line per tool call a turn made, matching what the Transcript block
 // below shows in full (name, args, result) — just enough here to say what the
 // reasoning right above it led to, not a second copy of the transcript.
+//
+// request_approval's only argument is a full sentence explaining the pause,
+// not a fixture-shaped value — compactJson's 160-char cap was chopping it
+// mid-sentence. It gets the same <pre> treatment as the turn's reasoning
+// above it instead of being crammed into the call signature.
 function turnToolCallSummary(call) {
+  if (call.name === "request_approval") {
+    const reason = call.args && call.args.reason;
+    const header = '<p class="audit-note turn-tool-call">&rarr; request_approval()</p>';
+    return reason ? `${header}<pre>${escapeHtml(reason)}</pre>` : header;
+  }
   return `<p class="audit-note turn-tool-call">&rarr; ${escapeHtml(call.name)}(${escapeHtml(
     compactJson(call.args)
   )})</p>`;
