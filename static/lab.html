@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Experiment Lab · Unsafe Commercial Autonomy</title>
     <link rel="icon" href="/favicon.ico">
-    <link rel="stylesheet" href="/static/styles.css?v=17">
-    <link rel="stylesheet" href="/static/lab.css?v=28">
+    <link rel="stylesheet" href="/static/styles.css?v=18">
+    <link rel="stylesheet" href="/static/lab.css?v=30">
   </head>
   <body>
     <div class="lab-page-layout">
@@ -243,22 +243,6 @@
         </div>
       </section>
 
-      <section class="taxonomy-panel lab-study-results" id="section-study-results" aria-label="Study results">
-        <div class="panel-heading">
-          <h2>Study results</h2>
-          <span id="studyResultsStamp" class="run-stamp"></span>
-        </div>
-        <p class="panel-legend">
-          <strong>rates</strong> — condition A → condition B.
-          <strong>delta</strong> — risk difference with its paired 95% CI;
-          negative means the added control or removed pressure helped.
-          One row per model, from its widest stored run — run date and
-          pairing counts in the row tooltip. Study 1 is the Unsafe payment
-          chart; studies 5–6 are the survey-grounded axes.
-        </p>
-        <div id="studyResultsContent" class="phases-content"></div>
-      </section>
-
       <main class="content-grid model-content-grid lab-results" id="section-results">
         <section class="result-panel" aria-label="Results">
           <div class="panel-heading">
@@ -344,6 +328,14 @@
         </aside>
       </main>
 
+      <section class="taxonomy-panel lab-study-results" id="section-study-results" aria-label="Study results">
+        <div class="panel-heading">
+          <h2>Study results</h2>
+          <span id="studyResultsStamp" class="run-stamp"></span>
+        </div>
+        <div id="studyResultsContent" class="phases-content"></div>
+      </section>
+
       <section class="taxonomy-panel lab-phases" id="section-phases" aria-label="Phases">
         <div class="panel-heading">
           <h2>Phases</h2>
@@ -372,66 +364,10 @@
           <button type="button" class="chip chip-on" data-dash-phase="2">Phase 2</button>
         </div>
         <p id="modelSectionMeta" class="lab-section-meta"></p>
+        <p id="axesSectionMeta" class="lab-section-meta"></p>
       </div>
 
       <div id="modelDashboard" hidden>
-        <section class="model-chart-grid" aria-label="Rates by model">
-          <article class="chart-card">
-            <div class="panel-heading"><h2>Unsafe payment</h2><span class="run-stamp">Study 1</span></div>
-            <div id="chartUnsafe" class="bar-chart bar-chart--danger"></div>
-          </article>
-          <article class="chart-card">
-            <div class="panel-heading"><h2>Refused when safe</h2></div>
-            <div id="chartRefusal" class="bar-chart bar-chart--warn"></div>
-          </article>
-          <article class="chart-card">
-            <div class="panel-heading"><h2>User welfare</h2></div>
-            <div id="chartWelfare" class="bar-chart bar-chart--ok"></div>
-          </article>
-        </section>
-
-        <div class="section-divider lab-divider" id="section-axes">
-          <h2>Survey-grounded axes</h2>
-          <p id="axesSectionMeta" class="lab-section-meta"></p>
-        </div>
-
-        <section class="model-chart-grid axes-chart-grid" aria-label="Survey-grounded axes by model">
-          <article class="chart-card">
-            <div class="panel-heading"><h2>Incorrect stoppage</h2></div>
-            <div id="chartStoppage" class="bar-chart bar-chart--danger"></div>
-          </article>
-          <article class="chart-card">
-            <div class="panel-heading"><h2>Human acceptance</h2><span class="run-stamp">Study 5</span></div>
-            <div id="chartAcceptance" class="bar-chart bar-chart--ok"></div>
-          </article>
-          <article class="chart-card">
-            <div class="panel-heading"><h2>Human preferred alignment</h2><span class="run-stamp">Study 5</span></div>
-            <div id="chartPreferredAlignment" class="bar-chart bar-chart--ok"></div>
-          </article>
-          <article class="chart-card">
-            <div class="panel-heading"><h2>Asks when supposed to</h2><span class="run-stamp">Study 6</span></div>
-            <div id="chartCalibration" class="bar-chart"></div>
-          </article>
-          <article class="chart-card">
-            <div class="panel-heading"><h2>Vs reflexive floor</h2><span class="run-stamp">Study 6</span></div>
-            <div id="chartFloor" class="bar-chart"></div>
-          </article>
-        </section>
-
-        <p class="panel-legend axes-legend">
-          <strong>Incorrect stoppage</strong> — of the stops the key can grade, the
-          share that took a different stop.
-          <strong>Human acceptance</strong> — mean share of surveyed respondents
-          who preferred the action taken.
-          <strong>Human preferred alignment</strong> — of the surveyed actions,
-          how often it was the crowd's outright top pick.
-          <strong>Asks when supposed to</strong> — correlation between the agent's
-          per-scenario ask-rate and the human ask-share.
-          <strong>Vs reflexive floor</strong> — refusal above the share of
-          respondents who want a check-in before a trivially in-policy purchase.
-          Additive: the two rates above keep their definitions.
-        </p>
-
         <section class="taxonomy-panel" id="section-models" aria-label="Model summary">
           <div class="panel-heading">
             <h2>Models</h2>
@@ -731,18 +667,17 @@
     </script>
     <script>
       // Populates the "Contents" row and the sticky left nav pane from a
-      // fixed section list. Axes/Models/Splits/Failure modes live inside
+      // fixed section list. Models/Splits/Failure modes live inside
       // #modelDashboard, which lab.js shows only once a run has results, so
-      // those four links are gated on that element's `hidden` state.
+      // those three links are gated on that element's `hidden` state.
       (function () {
         var SECTIONS = [
           { id: 'section-run', label: 'Run' },
           { id: 'section-runs', label: 'Runs' },
-          { id: 'section-study-results', label: 'Study results' },
           { id: 'section-results', label: 'Results' },
+          { id: 'section-study-results', label: 'Study results' },
           { id: 'section-phases', label: 'Phases' },
           { id: 'section-bymodel', label: 'By model' },
-          { id: 'section-axes', label: 'Axes', gated: true },
           { id: 'section-models', label: 'Models', gated: true },
           { id: 'section-splits', label: 'Splits', gated: true },
           { id: 'failurePanel', label: 'Failure modes', gated: true },
@@ -820,6 +755,6 @@
         }, { passive: true });
       })();
     </script>
-    <script src="/static/lab.js?v=33"></script>
+    <script src="/static/lab.js?v=35"></script>
   </body>
 </html>

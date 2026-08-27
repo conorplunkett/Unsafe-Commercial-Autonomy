@@ -94,7 +94,7 @@ const state = {
   // ("phase2" -> "2", "phase1"/"phase1_fallback" -> "1"). state.surveyFloor is
   // kept as the phase-agnostic "prefer Phase 2" pick other code still reads.
   surveyFloorByPhase: {},
-  // Which phase the By-model / Axes / Splits / Failure-modes sections are scoped
+  // Which phase the Models / Splits / Failure-modes sections are scoped
   // to. Default Phase 2 (the only phase actively run now). Separate from
   // state.phase, which drives the run form and nothing else.
   dashboardPhase: "2",
@@ -158,15 +158,7 @@ for (const id of [
   "modelSectionMeta",
   "dashPhaseChips",
   "modelDashboard",
-  "chartUnsafe",
-  "chartRefusal",
-  "chartWelfare",
   "axesSectionMeta",
-  "chartStoppage",
-  "chartAcceptance",
-  "chartPreferredAlignment",
-  "chartCalibration",
-  "chartFloor",
   "splitsTable",
   "splitsStamp",
   "resultFramingFilter",
@@ -2026,49 +2018,13 @@ function modelGroups(phase) {
   return rows;
 }
 
-// Short phase tag shown beside each bar / in the Models table: which phase the
-// headline number reflects, and whether that phase is complete.
+// Phase tag shown in the Models table: which phase the headline number
+// reflects, and whether that phase is complete.
 function displayPhaseTag(display) {
   if (!display) return "—";
   if (display.complete) return `P${display.phase} ✓`;
   // covered/total are scenario×condition cells (see phaseStatuses).
   return `P${display.phase} ${display.covered}/${display.total} cells`;
-}
-
-// Short phase tag for the tight, 3-up charts: just phase + complete/partial,
-// no fraction (the exact cells figure lives in the Models table and Phases
-// section). Keeping it short leaves room for the bar itself.
-function displayPhaseTagShort(display) {
-  if (!display) return "—";
-  return display.complete ? `P${display.phase} ✓` : `P${display.phase} partial`;
-}
-
-function renderModelChart(rows, chartEl, metricKey) {
-  // All three metrics are rates, so bars share a fixed 0–100% scale rather
-  // than stretching to the chart's max — a 5% rate must look like 5%.
-  chartEl.innerHTML = rows
-    .map((row) => {
-      const value = row.metrics[metricKey];
-      const width = Math.max(value * 100, value > 0 ? 1.5 : 0);
-      return `
-        <div class="bar-row" title="${row.label} · ${displayPhaseTag(row.display)} · n=${row.metrics.total}">
-          <span class="bar-name" title="${row.label}">${row.label}</span>
-          <span class="bar-phase ${row.display && !row.display.complete ? "bar-phase-partial" : ""}">${displayPhaseTagShort(row.display)}</span>
-          <div class="bar-track"><div class="bar-fill" style="width:${width}%"></div></div>
-          <span class="bar-value">${percent(value)}</span>
-        </div>
-      `;
-    })
-    .join("");
-}
-
-// A 0–100% track, or an empty one when the axis has nothing to report for this
-// model. A null and a zero must not look alike: "no surveyed scenario in this
-// run" is not "scored zero".
-function plainTrack(value) {
-  if (value == null) return `<div class="bar-track bar-track-empty"></div>`;
-  const width = Math.max(value * 100, value > 0 ? 1.5 : 0);
-  return `<div class="bar-track"><div class="bar-fill" style="width:${width}%"></div></div>`;
 }
 
 // A track centered on zero, for axes read against a baseline rather than a
@@ -2086,30 +2042,6 @@ function signedTrack(value, positiveIsGood) {
         style="${edge};width:${width}%"></div>
     </div>
   `;
-}
-
-// The survey-grounded axes share the headline charts' row layout (model, phase
-// tag, track, value) so the two blocks read as one instrument. `spec.value`
-// pulls the number out of a metrics object and may return null; `spec.note`
-// builds the row tooltip from the same metrics.
-function renderAxisChart(rows, chartEl, spec) {
-  chartEl.innerHTML = rows
-    .map((row) => {
-      const value = spec.value(row.metrics);
-      const note = spec.note ? spec.note(row.metrics) : "";
-      const track = spec.signed
-        ? signedTrack(value, spec.positiveIsGood)
-        : plainTrack(value);
-      return `
-        <div class="bar-row" title="${row.label} · ${displayPhaseTag(row.display)}${note ? ` · ${note}` : ""}">
-          <span class="bar-name" title="${row.label}">${row.label}</span>
-          <span class="bar-phase ${row.display && !row.display.complete ? "bar-phase-partial" : ""}">${displayPhaseTagShort(row.display)}</span>
-          ${track}
-          <span class="bar-value">${spec.format(value)}</span>
-        </div>
-      `;
-    })
-    .join("");
 }
 
 // Episode counts for the CLI cost ladder: the loaded v2 scenario count times
@@ -2139,68 +2071,11 @@ function renderCostLadder() {
     `= ${(baselineUnits * 2 * 2 * 3).toLocaleString()} episodes per model.`;
 }
 
-function renderSurveyAxes(rows) {
-  if (!els.chartStoppage) return;
-  renderAxisChart(rows, els.chartStoppage, {
-    value: (metrics) => (metrics.incorrectStoppage ? metrics.incorrectStoppage.rate : null),
-    format: (value) => (value == null ? "—" : percent(value)),
-    note: (metrics) =>
-      metrics.incorrectStoppage
-        ? `${metrics.incorrectStoppage.count}/${metrics.incorrectStoppage.total} graded stops`
-        : "no gradeable stop",
-  });
-  renderAxisChart(rows, els.chartAcceptance, {
-    value: (metrics) => (metrics.humanAcceptance ? metrics.humanAcceptance.preferredMean : null),
-    format: (value) => (value == null ? "—" : value.toFixed(2)),
-    note: (metrics) => {
-      const acceptance = metrics.humanAcceptance;
-      if (!acceptance) return "no surveyed scenario";
-      const accept =
-        acceptance.acceptableMean == null
-          ? ""
-          : `, would-accept ${acceptance.acceptableMean.toFixed(2)}`;
-      return `${acceptance.scenarios} surveyed scenarios${accept}`;
-    },
-  });
-  renderAxisChart(rows, els.chartPreferredAlignment, {
-    value: (metrics) =>
-      metrics.humanPreferredAlignment ? metrics.humanPreferredAlignment.rate : null,
-    format: (value) => (value == null ? "—" : percent(value)),
-    note: (metrics) =>
-      metrics.humanPreferredAlignment
-        ? `${metrics.humanPreferredAlignment.count}/${metrics.humanPreferredAlignment.total} graded actions`
-        : "no surveyed scenario",
-  });
-  renderAxisChart(rows, els.chartCalibration, {
-    value: (metrics) => (metrics.askCalibration ? metrics.askCalibration.r : null),
-    format: correlation,
-    signed: true,
-    positiveIsGood: true,
-    note: (metrics) => {
-      const calibration = metrics.askCalibration;
-      if (!calibration) return "not enough surveyed scenarios to correlate";
-      return `agent ${percent(calibration.agentAskRate)} vs human ${percent(
-        calibration.humanAskRate
-      )} ask-rate over ${calibration.scenarios} scenarios`;
-    },
-  });
-  renderAxisChart(rows, els.chartFloor, {
-    value: floorExcess,
-    format: signedPercent,
-    signed: true,
-    // Refusing more often than the median respondent is the failure here, so
-    // the positive side is the bad one — the opposite of ask calibration.
-    positiveIsGood: false,
-    note: (metrics) => {
-      const floor = currentFloor();
-      return floor
-        ? `refused ${percent(metrics.refusedWhenSafeRate)} against a ${percent(
-            floor.rate
-          )} human floor${floorCaveat()}`
-        : "no survey floor in the loaded runs";
-    },
-  });
-
+// The per-model survey-grounded numbers live only in the Models table now;
+// this just keeps that table's meta line current (which phase, how many
+// surveyed scenarios, what the reflexive-ask floor is).
+function renderSurveyAxes() {
+  if (!els.axesSectionMeta) return;
   const surveyedScenarios = new Set(
     resultsInPhase(state.allResults, state.dashboardPhase)
       .filter((result) => result.human_preferred_share != null)
@@ -3847,6 +3722,12 @@ function renderStudyResults() {
             <span class="phase-detail-summary">${board.sub}</span>
           </summary>
           <div class="bar-chart study-rows">
+            <div class="bar-row bar-row-head">
+              <span class="bar-col-head">Model</span>
+              <span class="bar-col-head" title="The rate under condition A, then the rate under condition B.">Rate, A &rarr; B</span>
+              <span class="bar-col-head"></span>
+              <span class="bar-col-head" title="Risk difference (B minus A), paired per scenario, with its 95% CI. Negative means the added control — or the removed pressure — helped. Run date and pairing counts are in each row's own tooltip.">Change (B &minus; A)</span>
+            </div>
             ${board.rows.map(studyRowHtml).join("")}
           </div>
         </details>
@@ -4102,10 +3983,7 @@ function renderAll() {
       phaseResultCount === 1 ? "" : "s"
     }` + (partialCount ? ` · ${partialCount} partial` : "");
 
-  renderModelChart(rows, els.chartUnsafe, "unsafePaymentRate");
-  renderModelChart(rows, els.chartRefusal, "refusedWhenSafeRate");
-  renderModelChart(rows, els.chartWelfare, "userWelfareScore");
-  renderSurveyAxes(rows);
+  renderSurveyAxes();
   renderSplits(rows);
 
   els.modelSummaryTable.innerHTML = rows.length
@@ -4267,7 +4145,7 @@ function bindEvents() {
     const chip = event.target.closest("[data-phase]");
     if (chip) pickPhase(chip.dataset.phase);
   });
-  // Dashboard phase toggle: scopes By model / Axes / Splits / Failure modes to
+  // Dashboard phase toggle: scopes Models / Splits / Failure modes to
   // Phase 1 or Phase 2. Separate from the run-form phase chips above.
   els.dashPhaseChips.addEventListener("click", (event) => {
     const chip = event.target.closest("[data-dash-phase]");
