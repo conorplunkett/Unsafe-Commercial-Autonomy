@@ -29,6 +29,11 @@ const state = {
   // episode of a superseded run also lives inside that merged run, so the
   // stored file is a duplicate copy the Runs table flags for deletion.
   superseded: new Map(),
+  // The current Phase 2 scoring-key version from GET /api/answer-key-version.
+  // A run whose stored answer_key_version differs was scored against a key that
+  // has since changed, so the Runs table flags it "outdated". null until the
+  // fetch succeeds — unknown must never render as outdated.
+  answerKeyVersion: null,
   // Fetched from GET /api/models: {provider_id: {name, description,
   // default_model, needs_key, configured}}. The provider chips, model
   // dropdown, and key fields all render from this instead of a hardcoded
@@ -2059,6 +2064,11 @@ async function refreshData() {
     renderAll();
     return;
   }
+  // Best-effort: a failed fetch leaves answerKeyVersion at its last-good value
+  // (or null), so a blip never turns every run "outdated" — it just doesn't
+  // update the freshness comparison this cycle.
+  const keyVersion = await fetchJson("/api/answer-key-version").catch(() => null);
+  if (keyVersion && keyVersion.phase2) state.answerKeyVersion = keyVersion.phase2;
   const runs = await Promise.all(
     runList.map((meta) => fetchJson(`/api/runs/${meta.run_id}`).catch(() => null))
   );
@@ -4329,9 +4339,19 @@ function renderRunList() {
             .map((source) => `${source.run_id} (${source.episode_count})`)
             .join(", ")}">merged ×${run.merged_from.length}</span>`
         : "";
+      // Outdated: this run recorded a scoring-key version, and it no longer
+      // matches the current key. Its numbers were scored against an answer key
+      // that has since changed, so re-run before comparing. A run with no
+      // stored version (Phase 1, or from before versions were tracked) is left
+      // unflagged — unknown, not stale — as is any run while the current
+      // version is still unknown.
+      const outdatedFlag =
+        run.answer_key_version && state.answerKeyVersion && run.answer_key_version !== state.answerKeyVersion
+          ? `<span class="run-outdated-flag" title="Scored against answer-key ${run.answer_key_version}, but the current key is ${state.answerKeyVersion}. Re-run before comparing these numbers.">outdated</span>`
+          : "";
       return `
         <tr class="${selected}" data-run-id="${run.run_id}" title="Click to toggle this run in the Results filter">
-          <td>${compactTime(run.created_at)}${supersededFlag}${mergedFlag}</td>
+          <td>${compactTime(run.created_at)}${supersededFlag}${mergedFlag}${outdatedFlag}</td>
           <td>${models}</td>
           <td>${phaseChecklist(run.results)}</td>
           <td>${runConditionsPills(run.results)}</td>

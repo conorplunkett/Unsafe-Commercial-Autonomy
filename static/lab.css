@@ -1547,7 +1547,8 @@ details.taxonomy-panel > summary .run-stamp {
    file is a duplicate copy and the heading's Delete button will clear it.
    Warn, not danger: a superseded run is tidy-up, not a fault. */
 .run-superseded-flag,
-.run-merged-flag {
+.run-merged-flag,
+.run-outdated-flag {
   display: inline-block;
   margin-left: 8px;
   padding: 1px 6px;
@@ -1567,6 +1568,13 @@ details.taxonomy-panel > summary .run-stamp {
 .run-merged-flag {
   background: var(--info-bg);
   color: var(--info);
+}
+
+/* Danger, not warn: an outdated run's headline numbers were scored against a
+   key that has since moved, so it's wrong to compare until re-run. */
+.run-outdated-flag {
+  background: var(--danger-bg);
+  color: var(--danger);
 }
 
 /* Sits in the Runs panel heading and only appears when something is

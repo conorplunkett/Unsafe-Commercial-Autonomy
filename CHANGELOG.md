@@ -9,6 +9,15 @@ and the Experiment Lab ladder so none of them call a three- or five-seed grid
 "the design"/"baseline." No behaviour change — the runner default was already
 `[1]`; this only aligns the wording.
 
+## [2026-08-27] Lab: flag runs scored against a since-changed answer key
+
+Phase 2 runs now record `answer_key_version`, a sha256 of the frozen effective
+keys in `phase2_research_contract.json`. The Runs table shows an "outdated"
+badge on any run whose version no longer matches the current key
+(`GET /api/answer-key-version`), so numbers scored against a moved key are
+visible without re-running. Runs from before this field (and all Phase 1 runs)
+carry no version and read as "not tracked", never outdated.
+
 ## [2026-08-27] Lab: Phases gets a real "still to run" signal, contrast tables name their own conditions
 
 Phases' study dots only ever counted cells pooled across every stored run and

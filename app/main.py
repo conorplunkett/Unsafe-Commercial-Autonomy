@@ -18,6 +18,7 @@ from .env import load_env_file
 load_env_file()
 
 from .agents import AGENT_PROFILES
+from .answer_key_version import phase2_answer_key_version
 from .data import ROOT_DIR, get_scenario, load_catalog, load_scenarios, search_catalog
 from .models import AgentAction, RunRequest, model_to_dict
 from .policies import evaluate_action
@@ -347,6 +348,13 @@ async def read_job(job_id: str):
     if job is None:
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
     return job
+
+
+@app.get("/api/answer-key-version")
+def answer_key_version():
+    # The current Phase 2 scoring-key version. The Lab compares each run's stored
+    # answer_key_version against this to flag runs scored on a since-changed key.
+    return {"phase2": phase2_answer_key_version()}
 
 
 @app.get("/api/runs")
