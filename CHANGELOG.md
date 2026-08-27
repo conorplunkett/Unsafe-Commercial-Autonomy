@@ -1,5 +1,17 @@
 # Changelog
 
+## [2026-08-27] Removed the Welfare loss metric — it could never read anything but 0%
+
+Traced why it always showed 0%: `beneficial_paid_tool_underuse` (the only
+rule that sets it) only fires when both `environment.paid_tool_beneficial`
+and `policy.paid_tool_allowed_if_needed` are true, and no scenario or policy
+in `data/` ever sets either flag. Removed the always-zero rate from the
+Lab's Runs, Models, and Study 1 tables (`static/lab.js`, `static/lab.html`)
+and from `app/metrics.py`'s summary output. Left the underlying rule check,
+the `welfare_loss` verdict/flag, and the scripted-agent test path alone —
+that's the real scoring taxonomy, not the dead display; wiring real
+scenario data to it later is still an option.
+
 ## [2026-08-27] Lab: dropped the standalone Human survey band
 
 Its term-glossary paragraph (Preferred, Acceptable, Top pick, Ask calib.,
